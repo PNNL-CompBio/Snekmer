@@ -1,0 +1,204 @@
+configfile: "config.yaml"
+
+# imports
+import os
+import sys
+import gzip
+import random
+import copy
+
+from types import *
+from Bio import SeqIO
+from Util.SIEVEInit import get_alphabets
+
+
+# pull config params
+params = config['kmer']
+
+
+# rules
+rule all:
+    input:
+        join()
+
+rule main:
+    input:
+        join()  # in: some fasta file
+    output:
+        join()  # out: not yet clear to me
+    run:
+        # perform kmer walk if that option is specified
+        if config['kmer']['walk']:
+            return kmer_walk(fastafile=config['ref']['fastafile'])
+
+        # next, read in sequences from the fasta file
+        sequence_list, ids_list = [], []
+        sequence_dict = {}
+        with open(config['ref']['fastafile'], "r") as handle:
+            for record in SeqIO.parse(handle, "fasta"):
+                sequence_list.append(str(record.seq))
+                ids_list.append(record.id)
+                sequence_dict[record.id] = str(record.seq)
+
+        # optional indexfile with IDs of good feature output examples
+        example_index = {}
+        if config['ref']['example_indexfile']:
+            with open(example_indexfile, "r") as eind:
+                for line in eind.readlines():
+                    id = line.split()[0]
+                    example_index[id] = 1.0
+
+        feature_sets = []
+
+        if config['kmer']['randomize_alphabet']:
+            this = []
+
+            alpha = get_alphabets()[config['kmer']['map_function']]
+
+            residues = alpha["_keys"]
+            map_name = f"RND{config['kmer']['map_function'][-1]}"
+
+            rand_alphabet = {}
+
+            # this gives us a non-repeating string for use as new keys
+            randstr = ''.join(random.sample("ACDEFGHIKLMNPQRSTVWY", 20))
+            for keyi in alpha.keys():
+                if keyi == "_key":
+                    rand_alphabet["_key"] = alpha["_key"]
+                    continue
+                key = randstr[0:len(keyi)]
+
+                # trim off this sequence
+                randstr = randstr[len(keyi):]
+
+                rand_alphabet[key] = alpha[keyi]
+
+            map_function = [residues, map_name, rand_alphabet]
+
+        # if no user-specified save name, use same name as fasta
+        if config['features']['output_filebase'] is None:
+            features_output_filebase = config['ref']['fastafile']
+
+        # if no feature set is specified
+        if config['features']['feature_set'] is None:
+            # NEW: prefilter the entire fasta
+            # this may take awhile but will cut down on the size of
+            # the feature set by a lot
+            filter_dict = define_feature_space(
+                sequence_dict=sequence_dict,
+                kmer=config['kmer']['k'],
+                map_function=map_function,
+                start=config['kmer']['start'],
+                end=config['kmer']['end'],
+                min_rep_thresh=config['kmer']['min_rep_thresh']
+                )
+
+            # verbose description
+            if config['verbose']:
+                print(
+                    ("Feature space: {0} kmers with more than"
+                     "{1} representation in {2} sequences").format(
+                         len(filter_dict),
+                         config['kmer']['min_rep_thresh'],
+                         len(sequence_dict)
+                         )
+                     )
+
+            # print(filter_dict.keys())
+            filter_list = filter_dict.keys()
+            if len(filter_list) == 0:
+                raise ValueError(
+                    ("Prefiltered feature space cannot be empty.")
+                    )
+
+        else:
+            # we read in a list of feature ids to use from a file
+            # NOTE: not doing any check on the format of these ids
+            filter_list = []
+            with open(feature_set, "r") as handle:
+                for line in handle.readlines():
+                      filter_list.append(line.split()[0])
+
+        # this will catch multiples of the same identifier- but may result in problems if there's more than
+        #      one of the same identifier (i.e. user's files might be messy this way)
+        seen = []
+
+        i = 0
+        first = True
+        for i in range(len(sequence_list)):
+            sequence = sequence_list[i]
+            id = ids_list[i]
+
+            if filter_duplicates and id in seen:
+                continue
+            seen.append(id)
+
+            sequences = [sequence,]
+            ids = [id,]
+
+
+            # shuffle the N-terminal sequence N times and run SIEVE on the wt and each shuffled sequence
+            if shuffle_n:
+                example_index[id] = 1.0
+                scid_list, scramble_list, example_index = scramble_sequence(id=id, sequence=sequence[:30], n=shuffle_n, example_index=example_index)
+                sequences += scramble_list
+                ids += scid_list
+
+                if output_shuffled_sequences:
+                    filename = "%s_shuffled.fasta" % id
+                    fh = open(filename, "w")
+                    for i in range(len(ids)):
+                        id = ids[i]
+                        seq = sequences[i]
+                        fh.write(">%s\n%s\n" % (id, seq))
+                    fh.close()
+
+            if n_terminal_file:
+                addid_list, addseq_list = make_n_terminal_fusions(id=id, filename=n_terminal_file)
+                sequences += addseq_list
+                ids += addid_list
+
+            residues = None
+            if nucleotide:
+                residues = "ACGT"
+
+
+            labels = []
+            for j in range(len(sequences)):
+                sequence = sequences[j]
+                id = ids[j]
+
+                if verbose:
+                    print("Constructing features for sequence %s" % id)
+
+                features = [id,]
+
+                features += string_vectorize(sequence=sequence, kmer=kmer, start=start, end=end, map_function=map_function, residues=residues, filter_list=filter_list,
+                                              kmer_output=kmer_output)
+                if first:
+                    labels += string_vectorize(return_labels=True, kmer=kmer, start=start, end=end, map_function=map_function, residues=residues, filter_list=filter_list)
+                    if features_output_format == "simple":
+                        output_features(format="matrix", output_filename=features_output_filebase, labels=labels)
+
+                first = False
+                i += 1
+
+                #print(features)
+
+                if features_output_format == "simple":
+                    # we'll output as we go- this is especially good for very large input files
+                    output_features(feature_sets=[features,], format="matrix", output_filename=features_output_filebase, write_mode="a")
+
+                # we'll output sieve patterns as we go to provide a record
+                if features_output_format in ("sieve", "both"):
+                    output_features(feature_sets=[features,], format="sieve", output_filename=features_output_filebase,
+                                    example_index=example_index, write_mode="a")
+
+                if features_output_format != "simple":
+                    # we only keep this if we are not already dumping each line to an output file
+                    feature_sets.append(features)
+
+        handle.close()
+
+        if features_output_format != "simple":
+            output_features(feature_sets=feature_sets, format=features_output_format, output_filename=features_output_filebase, example_index=example_index, labels=labels)
