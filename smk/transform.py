@@ -1,9 +1,14 @@
-"""transform: Transformation module for Kmer pipeline."""
+"""transform: Transformation module for Kmer pipeline.
+
+author: @christinehc
+"""
 
 # imports
 import re
 
-from Utils.SIEVEInit import StandardAlphabet, get_alphabets
+from Utils.SIEVEInit import StandardAlphabet as STDALPH
+from Utils.SIEVEInit import get_alphabets
+
 
 # global variables and dictionary mappings
 RESIDUES = {0: "SV", 1: "APFNDKC", 2: "CAP", 3: "LHC", 4: "LHB"}
@@ -12,50 +17,46 @@ MAPFN2NAME = {f"reduced_alphabet_{n}": f"RED{n}" for n in range(5)}
 
 
 # functions
-def baseconvert(n, k=None, digits=None, **kwargs):
-    """Convert positive decimal integer n to equivalent in another.
+def baseconvert(n, k, digits="ACDEFGHIKLMNPQRSTVWY"):
+    """Generate a kmer sequence from input integer representation.
 
     Parameters
     ----------
-    n : type
-        Description of parameter `n`.
-    k : type
-        Description of parameter `k`.
-    digits : type
-        Description of parameter `digits`.
-    **kwargs : type
-        Optional keyword arguments.
+    n : int
+        Integer representation of a kmer sequence.
+    k : int
+        Length of the kmer (i.e. protein sequence length).
+    digits : str
+        Digits to use in determining the base for conversion.
+            (default: "ACDEFGHIKLMNPQRSTVWY")
 
     Returns
     -------
-    type
-        Description of returned object.
+    str
+        Kmer sequence, in string format.
+        Returns empty string if inputs are invalid.
 
     """
-    #digits = "0123456789abcdefghijklmnopqrstuvwxyz"
-    digits = digits or "ACDEFGHIKLMNPQRSTVWY"
+    assert len(digits) > 0, "digits argument cannot be empty string."
+    # digits = "0123456789abcdefghijklmnopqrstuvwxyz"
     base = len(digits)
 
     try:
         n = int(n)
-        base = int(base)
-    except (TypeError, ValueError, SyntaxError):
+    except (TypeError, ValueError):
         return ""
 
     if n < 0 or base < 2 or base > 36:
         return ""
 
+    # parse integer by digits base to populate sequence backwards
     s = ""
-
-    while 1:
+    while n != 0:
         r = n % base
-
         s = digits[r] + s
         n = n / base
-        n = int(n)
-        if n == 0:
-            break
 
+    # fill in any remaining empty slots with first character
     if len(s) < k:
         for i in range(len(s), k):
             s = "%s%s" % (digits[0], s)
@@ -63,7 +64,7 @@ def baseconvert(n, k=None, digits=None, **kwargs):
     return s
 
 
-def _parse_map_function(map_function, **kwargs):
+def _parse_map_function(map_function, mapping=None):
     """Short summary.
 
     Parameters
@@ -77,9 +78,8 @@ def _parse_map_function(map_function, **kwargs):
             str : e.g. "reduced_alphabet_N"
                 Use a reduced alphabet (N = 0, 1, 2, 3, or 4)
 
-    **kwargs : type
-        Optional keyword arguments for specification.
-            e.g. mapping
+    mapping : type
+        Mapping specification for sequence (?)
 
     Returns
     -------
@@ -95,7 +95,7 @@ def _parse_map_function(map_function, **kwargs):
     # specifically for when we create a random alphabet
     #   that we want to apply to a lot of sequences
     if isinstance(map_function, list):
-        kwargs["mapping"] = map_function[2]
+        mapping = map_function[2]
         residues = map_function[0]
         map_name = map_function[1]
         map_function = reduce_alphabet
@@ -106,7 +106,7 @@ def _parse_map_function(map_function, **kwargs):
             i_mapfn = int(re.search("(?<=reduced_alphabet_)[0-4]",
                                     mapfn).group())
             map_function = reduce_alphabet
-            kwargs['mapping'] = get_alphabets()[mapfn]
+            mapping = get_alphabets()[mapfn]
             residues = RESIDUES[i_mapfn]
             map_name = MAPFN2NAME[i_mapfn]
         except AttributeError as e:
@@ -115,23 +115,23 @@ def _parse_map_function(map_function, **kwargs):
                  ' "reduced_alphabet_n", with n = 0,1,2,3,4')
                 ) from e
 
-    return residues, map_name, map_function, kwargs['mapping']
+    return residues, map_name, map_function, mapping
 
 
-def string_vectorize(residues=None, sequence=None, kmer=3, start=None,
+def string_vectorize(residues=STDALPH, sequence=None, kmer=3, start=None,
                      end=None, map_function=None, return_labels=False,
                      feature_dict=None, filter_list=None, exclusion_list=None,
-                     return_dict=None, kmer_output=None, **kw):
+                     return_dict=None, kmer_output=None, **kwargs):
     """Short summary.
 
     Parameters
     ----------
-    residues : type
+    residues : str
         Description of parameter `residues`.
     sequence : type
         Description of parameter `sequence`.
-    kmer : type
-        Description of parameter `kmer`.
+    kmer : int
+        Sequence length k of the kmer.
     start : type
         Description of parameter `start`.
     end : type
@@ -150,8 +150,8 @@ def string_vectorize(residues=None, sequence=None, kmer=3, start=None,
         Description of parameter `return_dict`.
     kmer_output : type
         Description of parameter `kmer_output`.
-    **kw : type
-        Description of parameter `**kw`.
+    **kwargs : type
+        Description of parameter `**kwargs`.
 
     Returns
     -------
@@ -159,22 +159,21 @@ def string_vectorize(residues=None, sequence=None, kmer=3, start=None,
         Description of returned object.
 
     """
-    def identity(character, **kw):
-        return character
-
+    # appears extraneous
+    # def identity(character, **kw):
+    #     return character
     # if residues or map_function not specified, set generically
-    residues = residues or StandardAlphabet
-    map_function = map_function or identity
+    # map_function = map_function #  or identity
+    # residues = residues or StandardAlphabet
     mapping = None
     map_name = "NAT"
 
-    residues, map_name, map_function, kwargs['mapping'] = _parse_map_function(map_function)
+    residues, map_name, map_function, mapping = _parse_map_function(map_function)
 
     # we should provide the ability to include a bunch of strings
     # that can be used to vectorize
-    # if pow(len(residues), kmer) > 20000:
-    #    sys.stderr.write("Error: this will generate more than 20k inputs\n")
-    #    return
+    error_message = "Error: given parameters will generate >20k inputs."
+    assert pow(len(residues), kmer) <= 2e4, error_message
 
     # return only labels
     if return_labels:
@@ -288,3 +287,49 @@ def string_vectorize(residues=None, sequence=None, kmer=3, start=None,
         results_vector[x] = results[key]
 
     return results_vector
+
+
+def scramble_sequence(id=None, sequence=None, n=None, no_id_modifier=None, first_residue_special=True, example_index=None, **kw):
+    # takes a sequence and an identifier and returns lists of n scrambled sequences
+    #       and numbered identifiers
+    seqlist = []
+    idlist = []
+
+    seq = []
+    # protect the N-terminal M, e.g.
+    if first_residue_special:
+        start_residue = sequence[0]
+        sequence = sequence[1:]
+    else:
+        start_residue = ""
+
+    for c in sequence:
+        seq.append(c)
+
+    for i in range(n):
+        random.shuffle(seq)
+        thisseq = start_residue
+        for c in seq:
+            thisseq += c
+
+        seqlist.append(thisseq)
+        if no_id_modifier:
+            idlist.append(id)
+        else:
+            sid = "%s_shuffle_%d" % (id, i)
+            idlist.append(sid)
+        example_index[sid] = -1.0
+    return idlist, seqlist, example_index
+
+
+def make_n_terminal_fusions(id=None, filename=None, **kw):
+    sequence_list = []
+    id_list = []
+    handle = open(filename, "r")
+    for record in SeqIO.parse(handle, "fasta"):
+        thisid = "%s-%s" % (record.id, id)
+        id_list.append(thisid)
+        sequence_list.append(str(record.seq))
+    handle.close()
+
+    return id_list, sequence_list

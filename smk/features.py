@@ -1,10 +1,13 @@
-"""features: Output feature processing for the Kmer pipeline."""
+"""features: Output feature processing for the Kmer pipeline.
+
+author: @christinehc
+"""
 
 # imports
 
 
 # functions
-def output_features(format, feature_sets=None, output_filename=None, labels=None, mode="w", **kw):
+def output_features(format, feature_sets=None, output_filename=None, labels=None, mode="w", **kwargs):
     """Generate output features based on input fasta file.
 
     Generate
@@ -24,7 +27,7 @@ def output_features(format, feature_sets=None, output_filename=None, labels=None
         File write mode (default: 'w').
             For details, see documentation for Python built-in
             function open().
-    **kw : type
+    **kwargs : type
         Description of parameter `**kw`.
 
     Returns
@@ -57,28 +60,28 @@ def output_features(format, feature_sets=None, output_filename=None, labels=None
                 for i in range(len(feature_sets[0]) - 1):
                     tf.write("\tlabel%d" % i)
             for features in feature_sets:
-                _output_gist_features(features=features, file=tf, **kw)
-                _output_gist_class(features=features, file=cf, **kw)
+                _output_gist_features(features=features, file=tf, **kwargs)
+                _output_gist_class(features=features, file=cf, **kwargs)
 
     # update any sieve files
     if format in ["sieve", "both"]:
         pattern_out = f"{output_filename}.pattern"
         with open(pattern_out, mode) as pf:
             for features in feature_sets:
-                _output_sieve_features(features=features, file=pf, **kw)
+                _output_sieve_features(features=features, file=pf, **kwargs)
 
     # update matrix files
     if format == "matrix":
         file_out = f"{output_filename}.txt"
-        with open(file_out, mode) as of:
+        with open(file_out, mode) as outf:
             if labels:
-                of.write("%s" % labels[0])
+                outf.write("%s" % labels[0])
                 for label in labels[1:]:
-                    of.write("\t%s" % label)
-                of.write("\n")
+                    outf.write("\t%s" % label)
+                outf.write("\n")
             if feature_sets:
                 for features in feature_sets:
-                    _output_gist_features(features=features, file=of, **kw)
+                    _output_gist_features(features=features, file=outf, **kwargs)
 
 
 def _output_gist_features(features=None, file=None, **kw):
@@ -162,3 +165,28 @@ def _output_gist_class(features=None, file=None, example_index={}, **kw):
     value = example_index.get(fid, -1)
     file.write("%s\t%d\n" % (features[0], value))
     file.flush()
+
+
+def define_feature_space(sequence_dict=None, kmer=None, map_function=None, start=None, end=None, residues=None, min_rep_thresh=2, **kw):
+    # this routine will return
+
+    feature_dict = {}
+
+    for id, seq in sequence_dict.items():
+        feature_dict = string_vectorize(sequence=seq, kmer=kmer, map_function=map_function, feature_dict=feature_dict,
+                                         start=start, end=end, residues=residues, return_dict=True)
+
+    # if this is between 0 and 1 then it's a percentage
+    if min_rep_thresh < 1 and min_rep_thresh > 0:
+        min_rep_thresh = len(feature_dict.keys()) * min_rep_thresh
+
+    # filter out all those below the min_rep_thresh
+    if min_rep_thresh:
+        filter_dict = {}
+        for key in feature_dict.keys():
+            if feature_dict[key] >= min_rep_thresh:
+                filter_dict[key] = feature_dict[key]
+    else:
+        filter_dict = feature_dict
+
+    return filter_dict
