@@ -13,7 +13,7 @@ FEAT_OUT_FMTS = {'simple': 'Simple tab-delimited format',
                  'sieve': 'Input for sieve'}
 
 def main():
-    parser = argparse.ArgumentParser(prog = _program, description='A program to generate features and run SIEVE models on input sequences')
+    parser = argparse.ArgumentParser(description='A program to generate features and run SIEVE models on input sequences')
 
     # kmer options
     parser.add_argument('-v', '--verbose', action='store_false', help='verbose output')
