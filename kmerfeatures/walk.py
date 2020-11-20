@@ -4,7 +4,7 @@ author: @christinehc
 """
 
 # functions
-def kmer_walk(fastafile=None, maxk=20, seq_dump=False, **kw):
+def kmer_walk(fastafile=None, max_k=20, seq_dump=False, **kw):
     # next read in sequences from the fasta file
     sequence_list = []
     sequence_dict = {}
@@ -20,7 +20,7 @@ def kmer_walk(fastafile=None, maxk=20, seq_dump=False, **kw):
     minthresh = 10
 
     exclusion_list = None
-    for kmer in range(1, maxk):
+    for kmer in range(1, max_k):
         # build a feature dict for this kmer and these sequences
         feature_dict = {}
 
@@ -28,7 +28,7 @@ def kmer_walk(fastafile=None, maxk=20, seq_dump=False, **kw):
         exclusion_list = []
         for i in range(len(sequence_list)):
             sequence = sequence_list[i]
-            id = ids_list[i]
+            sequence_id = ids_list[i]
 
             feature_dict = string_vectorize(sequence=sequence, kmer=kmer, map_function="reduced_alphabet_0", feature_dict=feature_dict,
                                              exclusion_list=exclusion_list, return_dict=True)

@@ -6,7 +6,7 @@ author: @christinehc
 # imports
 import re
 
-from Utils.SIEVEInit import StandardAlphabet as STDALPH
+from Utils.SIEVEInit import StandardAlphabet
 from Utils.SIEVEInit import get_alphabets
 
 
@@ -64,7 +64,7 @@ def baseconvert(n, k, digits="ACDEFGHIKLMNPQRSTVWY"):
     return s
 
 
-def _parse_map_function(map_function, mapping=None):
+def parse_map_function(map_function, mapping=None):
     """Short summary.
 
     Parameters
@@ -87,7 +87,7 @@ def _parse_map_function(map_function, mapping=None):
         residues, map_name, map_function, kwargs['mapping']
 
     """
-    def reduce_alphabet(character, mapping=None, **kw):
+    def reduce_alphabet(character, mapping=None, **kwargs):
         for key in mapping.keys():
             if character in key:
                 return mapping[key]
@@ -118,16 +118,15 @@ def _parse_map_function(map_function, mapping=None):
     return residues, map_name, map_function, mapping
 
 
-def string_vectorize(residues=STDALPH, sequence=None, kmer=3, start=None,
+def string_vectorize(sequence=None, kmer=3, start=None,
                      end=None, map_function=None, return_labels=False,
                      feature_dict=None, filter_list=None, exclusion_list=None,
-                     return_dict=None, kmer_output=None, **kwargs):
+                     return_dict=None, kmer_output=None
+                     residues=StandardAlphabet, **kwargs):
     """Short summary.
 
     Parameters
     ----------
-    residues : str
-        Description of parameter `residues`.
     sequence : type
         Description of parameter `sequence`.
     kmer : int
@@ -150,8 +149,8 @@ def string_vectorize(residues=STDALPH, sequence=None, kmer=3, start=None,
         Description of parameter `return_dict`.
     kmer_output : type
         Description of parameter `kmer_output`.
-    **kwargs : type
-        Description of parameter `**kwargs`.
+    residues : str
+        (default: "AILMVFYWSTQNCHDEKRGP")
 
     Returns
     -------
@@ -160,7 +159,7 @@ def string_vectorize(residues=STDALPH, sequence=None, kmer=3, start=None,
 
     """
     # appears extraneous
-    # def identity(character, **kw):
+    # def identity(character, **kwargs):
     #     return character
     # if residues or map_function not specified, set generically
     # map_function = map_function #  or identity
@@ -168,7 +167,7 @@ def string_vectorize(residues=STDALPH, sequence=None, kmer=3, start=None,
     mapping = None
     map_name = "NAT"
 
-    residues, map_name, map_function, mapping = _parse_map_function(map_function)
+    residues, map_name, map_function, mapping = parse_map_function(map_function)
 
     # we should provide the ability to include a bunch of strings
     # that can be used to vectorize
@@ -213,8 +212,8 @@ def string_vectorize(residues=STDALPH, sequence=None, kmer=3, start=None,
 
         # do mapping to a reduced alphabet, e.g.
         kstring = ""
-        for c in kmap:
-            cc = map_function(c, **kw)
+        for char in kmap:
+            cc = map_function(char, **kwargs)
 
             # this has the effect of omitting unrecognized characters, which may be undesireable in some cases
             if cc == None:
@@ -289,47 +288,80 @@ def string_vectorize(residues=STDALPH, sequence=None, kmer=3, start=None,
     return results_vector
 
 
-def scramble_sequence(id=None, sequence=None, n=None, no_id_modifier=None, first_residue_special=True, example_index=None, **kw):
-    # takes a sequence and an identifier and returns lists of n scrambled sequences
-    #       and numbered identifiers
-    seqlist = []
-    idlist = []
+def scramble_sequence(sequence_id, sequence, n=1, id_modifier=False,
+                      first_residue=1, example_index=None):
+    """Return scrambled sequences given a sequence and identifier.
 
-    seq = []
-    # protect the N-terminal M, e.g.
-    if first_residue_special:
-        start_residue = sequence[0]
-        sequence = sequence[1:]
+    Given a sequence and an identifier, returns a list of n scrambled
+    sequences and numbered identifiers.
+
+    Parameters
+    ----------
+    sequence_id : type
+        Identifier.
+    sequence : str
+        Sequence to be scrambled.
+    n : int
+        Number of scrambled sequences to produce (default: 1).
+    id_modifier : bool
+        If True, adds modifier to sequence ID to specify shuffle
+        parameters (detault: False).
+    first_residue : int
+        Represents the first index at which to scramble the sequence.
+        e.g. when first_residue=1, protects the first residue from
+        being scrambled, i.e. protecting an N-terminal M (default: 1).
+        When first_residue=0, scrambles the full sequence.
+    example_index : type
+        (default: None)
+
+    Returns
+    -------
+    type
+        Description of returned object.
+
+    """
+    if id_modifier:
+        id_list = [f"{sequence_id}_shuffle_{i}" for i in range(n)]
     else:
-        start_residue = ""
+        id_list = [sequence_id for i in range(n)]
 
-    for c in sequence:
-        seq.append(c)
+    start_residue = sequence[0:first_residue]
+    scramble = [char for char in sequence[first_residue:]]
 
-    for i in range(n):
-        random.shuffle(seq)
-        thisseq = start_residue
-        for c in seq:
-            thisseq += c
+    seq_list = []
+    for i in range(len(id_list)):
+        random.shuffle(scramble)
+        shuffled = [char for char in "".join([start_residue] + scramble)]
+        seq_list.append(shuffled)
 
-        seqlist.append(thisseq)
-        if no_id_modifier:
-            idlist.append(id)
-        else:
-            sid = "%s_shuffle_%d" % (id, i)
-            idlist.append(sid)
-        example_index[sid] = -1.0
-    return idlist, seqlist, example_index
+        example_index[sid] = -1  # this confuses me-- is this mistakenly written?
+
+    return id_list, seq_list, example_index
 
 
-def make_n_terminal_fusions(id=None, filename=None, **kw):
-    sequence_list = []
-    id_list = []
-    handle = open(filename, "r")
-    for record in SeqIO.parse(handle, "fasta"):
-        thisid = "%s-%s" % (record.id, id)
-        id_list.append(thisid)
-        sequence_list.append(str(record.seq))
-    handle.close()
+def make_n_terminal_fusions(sequence_id, filename):
+    """Fuse sequence with sequences in fasta file.
+
+    Parameters
+    ----------
+    sequence_id : type
+        Description of parameter `sequence_id`.
+    filename : str
+        Filename (e.g. "/path/to/file.fasta").
+
+    Returns
+    -------
+    (list, list)
+        Tuple containing (id_list, sequence_list), where:
+            id_list : List of fused sequence IDS
+            sequence_list : List of sequences in fasta file
+
+    """
+    sequence_list, id_list = [], []
+    with open(filename, "r") as f:
+        for record in SeqIO.parse(f, "fasta"):
+            id_string = "%s-%s" % (record.id, sequence_id)
+            id_list.append(id_string)
+            sequence_list.append(str(record.seq))
 
     return id_list, sequence_list

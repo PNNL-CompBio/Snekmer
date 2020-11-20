@@ -45,7 +45,7 @@ rule main:
         if config['ref']['example_indexfile']:
             with open(example_indexfile, "r") as eind:
                 for line in eind.readlines():
-                    id = line.split()[0]
+                    seq_id = line.split()[0]
                     example_index[id] = 1.0
 
         feature_sets = []
@@ -127,34 +127,34 @@ rule main:
         first = True
         for i in range(len(sequence_list)):
             sequence = sequence_list[i]
-            id = ids_list[i]
+            seq_id = ids_list[i]
 
-            if filter_duplicates and id in seen:
+            if filter_duplicates and seq_id in seen:
                 continue
             seen.append(id)
 
             sequences = [sequence,]
-            ids = [id,]
+            ids = [seq_id,]
 
 
             # shuffle the N-terminal sequence N times and run SIEVE on the wt and each shuffled sequence
             if shuffle_n:
                 example_index[id] = 1.0
-                scid_list, scramble_list, example_index = scramble_sequence(id=id, sequence=sequence[:30], n=shuffle_n, example_index=example_index)
+                scid_list, scramble_list, example_index = scramble_sequence(id=seq_id, sequence=sequence[:30], n=shuffle_n, example_index=example_index)
                 sequences += scramble_list
                 ids += scid_list
 
                 if output_shuffled_sequences:
-                    filename = "%s_shuffled.fasta" % id
+                    filename = "%s_shuffled.fasta" % seq_id
                     fh = open(filename, "w")
                     for i in range(len(ids)):
-                        id = ids[i]
+                        seq_id = ids[i]
                         seq = sequences[i]
-                        fh.write(">%s\n%s\n" % (id, seq))
+                        fh.write(">%s\n%s\n" % (seq_id, seq))
                     fh.close()
 
             if n_terminal_file:
-                addid_list, addseq_list = make_n_terminal_fusions(id=id, filename=n_terminal_file)
+                addid_list, addseq_list = make_n_terminal_fusions(id=seq_id, filename=n_terminal_file)
                 sequences += addseq_list
                 ids += addid_list
 
@@ -166,12 +166,12 @@ rule main:
             labels = []
             for j in range(len(sequences)):
                 sequence = sequences[j]
-                id = ids[j]
+                seq_id = ids[j]
 
                 if verbose:
-                    print("Constructing features for sequence %s" % id)
+                    print("Constructing features for sequence %s" % seq_id)
 
-                features = [id,]
+                features = [seq_id,]
 
                 features += string_vectorize(sequence=sequence, kmer=kmer, start=start, end=end, map_function=map_function, residues=residues, filter_list=filter_list,
                                               kmer_output=kmer_output)

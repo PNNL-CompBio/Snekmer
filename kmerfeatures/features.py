@@ -12,8 +12,6 @@ def output_features(format, feature_sets=None, output_filename=None,
                     labels=None, mode="w", **kwargs):
     """Generate output features based on input fasta file.
 
-    Generate
-
     Parameters
     ----------
     format : str
@@ -264,7 +262,7 @@ def define_feature_space(sequence_dict=None, kmer=None, map_function=None,
 
     feature_dict = {}
 
-    for id, seq in sequence_dict.items():
+    for seq_id, seq in sequence_dict.items():
         feature_dict = string_vectorize(sequence=seq, kmer=kmer, map_function=map_function, feature_dict=feature_dict,
                                          start=start, end=end, residues=residues, return_dict=True)
 
