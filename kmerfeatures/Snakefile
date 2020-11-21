@@ -7,6 +7,8 @@ import gzip
 import random
 import copy
 
+import kmerfeatures as kmf
+
 from types import *
 from Bio import SeqIO
 from Util.SIEVEInit import get_alphabets
@@ -21,17 +23,30 @@ rule all:
     input:
         join()
 
+rule perform_kmer_walk:
+    input:
+    output:
+    run:
+        kmf.walk.kmer_walk(fastafile=config['ref']['fastafile'])
+
+rule generate_features:
+    input:
+    output:
+    run:
+
+rule score_features:
+    input:
+    output:
+    run:
+
+# to fix
 rule main:
     input:
         join()  # in: some fasta file
     output:
         join()  # out: not yet clear to me
     run:
-        # perform kmer walk if that option is specified
-        if config['kmer']['walk']:
-            return kmer_walk(fastafile=config['ref']['fastafile'])
-
-        # next, read in sequences from the fasta file
+        # read in sequences from the fasta file
         sequence_list, ids_list = [], []
         sequence_dict = {}
         with open(config['ref']['fastafile'], "r") as handle:
