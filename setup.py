@@ -13,11 +13,11 @@ pkgs = find_packages(exclude=('test'))  # also Util?
 
 setup(name='kmerfeatures',
       version=__version__,
-      packages=['kmerfeatures'],
+      # packages=['kmerfeatures'],
       # test_suite='pytest.collector',
       # tests_require=['pytest'],
       description=('Kmer pipeline for generating features and'
-                   'running SIEVE models on input sequences)',
+                   'running SIEVE models on input sequences'),
       url='http://github.com/biodataganache/KmerPipeline/',
       author='@christinehc, @biodataganache',
       author_email='christine.chang@pnnl.gov',
