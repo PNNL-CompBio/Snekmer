@@ -6,8 +6,8 @@ author: @christinehc
 # imports
 import re
 
-from Utils.SIEVEInit import StandardAlphabet
-from Utils.SIEVEInit import get_alphabets
+from Util.SIEVEInit import StandardAlphabet
+from Util.SIEVEInit import get_alphabets
 
 
 # global variables and dictionary mappings
@@ -121,7 +121,7 @@ def parse_map_function(map_function, mapping=None):
 def string_vectorize(sequence=None, kmer=3, start=None,
                      end=None, map_function=None, return_labels=False,
                      feature_dict=None, filter_list=None, exclusion_list=None,
-                     return_dict=None, kmer_output=None
+                     return_dict=None, kmer_output=None,
                      residues=StandardAlphabet, **kwargs):
     """Short summary.
 

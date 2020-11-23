@@ -4,7 +4,7 @@ author: @christinehc
 """
 
 # functions
-def kmer_walk(fastafile, max_k=20, seq_dump=Falses):
+def kmer_walk(fastafile, max_k=20, seq_dump=False):
     """Short summary.
 
     Parameters
