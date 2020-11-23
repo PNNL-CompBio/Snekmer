@@ -1,6 +1,7 @@
 configfile: "config.yaml"
 
 # imports
+import glob
 import os
 import sys
 import gzip
@@ -16,23 +17,47 @@ from Util.SIEVEInit import get_alphabets
 
 # pull config params
 params = config['kmer']
-
+FNS = glob.glob(join(config['input']['fasta_dir'], "*.fasta"))
 
 # rules
 rule all:
     input:
-        join()
+        expand(join("OUTPUT/{fn}.ext"), fn=FNS)
 
 rule perform_kmer_walk:
     input:
+        fasta=join(config['input']['fasta_dir'], "{fn}.fasta")
     output:
+        # need to fix code to properly generate an output...
     run:
-        kmf.walk.kmer_walk(fastafile=config['ref']['fastafile'])
+        kmf.walk.kmer_walk(input.fasta)
 
 rule generate_features:
     input:
+        fasta=join(config['input']['fasta_dir'], "{fn}.fasta")
     output:
     run:
+        if config['input']['params']:
+            read_parameter_file
+
+        # then pull all config parameters
+        #   sidequest: organize all config parameters by relevant function
+
+        # main(*infiles, **optdict)
+        # rather than run main(), separate this out into steps.
+
+        # read fasta file
+        id_list, id2seq = kmf.utils.read_fasta(input.fasta)
+
+        # optional indexfile with IDs of good feature output examples
+        example_index = {}
+        if config['input']['example_indexfile']:
+            with open(example_indexfile, "r") as f:
+                for line in f.readlines():
+                    seq_id = line.split()[0]
+                    example_index[id] = 1.0
+
+
 
 rule score_features:
     input:
@@ -49,7 +74,7 @@ rule main:
         # read in sequences from the fasta file
         sequence_list, ids_list = [], []
         sequence_dict = {}
-        with open(config['ref']['fastafile'], "r") as handle:
+        with open(config['input']['fasta'], "r") as handle:
             for record in SeqIO.parse(handle, "fasta"):
                 sequence_list.append(str(record.seq))
                 ids_list.append(record.id)
@@ -57,9 +82,9 @@ rule main:
 
         # optional indexfile with IDs of good feature output examples
         example_index = {}
-        if config['ref']['example_indexfile']:
-            with open(example_indexfile, "r") as eind:
-                for line in eind.readlines():
+        if config['input']['example_indexfile']:
+            with open(example_indexfile, "r") as f:
+                for line in f.readlines():
                     seq_id = line.split()[0]
                     example_index[id] = 1.0
 
@@ -92,7 +117,7 @@ rule main:
 
         # if no user-specified save name, use same name as fasta
         if config['features']['output_filebase'] is None:
-            features_output_filebase = config['ref']['fastafile']
+            features_output_filebase = config['input']['fasta']
 
         # if no feature set is specified
         if config['features']['feature_set'] is None:
@@ -146,7 +171,7 @@ rule main:
 
             if filter_duplicates and seq_id in seen:
                 continue
-            seen.append(id)
+            seen.append(seq_id)
 
             sequences = [sequence,]
             ids = [seq_id,]

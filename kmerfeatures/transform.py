@@ -155,7 +155,7 @@ def string_vectorize(sequence=None, kmer=3, start=None,
     Returns
     -------
     type
-        Description of returned object.
+        why is this returning so many things ????
 
     """
     # appears extraneous

@@ -1,8 +1,9 @@
 verbose: True
 
-ref:
-  parameterfile: None
-  fastafile: None
+input:
+  params: None
+  fasta: None
+  fasta_dir: None
   example_indexfile: None
 
 kmer:

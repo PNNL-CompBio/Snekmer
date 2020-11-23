@@ -4,17 +4,34 @@ author: @christinehc
 """
 
 # functions
-def kmer_walk(fastafile=None, max_k=20, seq_dump=False, **kw):
+def kmer_walk(fastafile, max_k=20, seq_dump=Falses):
+    """Short summary.
+
+    Parameters
+    ----------
+    fastafile : type
+        Description of parameter `fastafile`.
+    max_k : type
+        Description of parameter `max_k`.
+    seq_dump : type
+        Description of parameter `seq_dump`.
+
+    Returns
+    -------
+    type
+        seems to return print statements
+        can modify this to output to some log file.
+
+    """
     # next read in sequences from the fasta file
     sequence_list = []
     sequence_dict = {}
     ids_list = []
-    handle = open(fastafile, "r")
-    for record in SeqIO.parse(handle, "fasta"):
-        sequence_list.append(str(record.seq))
-        ids_list.append(record.id)
-        sequence_dict[record.id] = str(record.seq)
-    handle.close()
+    with open(fastafile, "r") as f:
+        for record in SeqIO.parse(f, "fasta"):
+            sequence_list.append(str(record.seq))
+            ids_list.append(record.id)
+            sequence_dict[record.id] = str(record.seq)
 
     # need to make this a percentage - eliminate the bottom XX% of kmers by repreesentation
     minthresh = 10
