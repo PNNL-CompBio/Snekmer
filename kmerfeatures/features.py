@@ -232,7 +232,8 @@ def output_gist_class(features=None, file=None, example_index={}):
 
 
 def define_feature_space(sequence_dict=None, kmer=None, map_function=None,
-                         start=None, end=None, residues=None, min_rep_thresh=2):
+                         start=None, end=None, residues=None, min_rep_thresh=2,
+                         verbose=False):
     """Short summary.
 
     Parameters
@@ -251,6 +252,8 @@ def define_feature_space(sequence_dict=None, kmer=None, map_function=None,
         Description of parameter `residues`.
     min_rep_thresh : type
         Description of parameter `min_rep_thresh`.
+    verbose : bool
+        If True, enables verbose output (default: False).
 
     Returns
     -------
@@ -278,5 +281,21 @@ def define_feature_space(sequence_dict=None, kmer=None, map_function=None,
                 filter_dict[key] = feature_dict[key]
     else:
         filter_dict = feature_dict
+
+    if verbose:
+        print(
+            ("Feature space: {0} kmers with more than"
+             "{1} representation in {2} sequences").format(
+                 len(filter_dict),
+                 config['input']['kmer']['min_rep_thresh'],
+                 len(sequence_dict)
+                 )
+             )
+
+    filter_list = filter_dict.keys()
+    if len(filter_list) == 0:
+        raise ValueError(
+            ("Prefiltered feature space cannot be empty.")
+            )
 
     return filter_dict

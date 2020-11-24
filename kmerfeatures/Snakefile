@@ -32,6 +32,8 @@ rule perform_kmer_walk:
     run:
         kmf.walk.kmer_walk(input.fasta)
 
+rule preprocess:
+
 rule generate_features:
     input:
         fasta=join(config['input']['fasta_dir'], "{fn}.fasta")
@@ -43,155 +45,81 @@ rule generate_features:
         # then pull all config parameters
         #   sidequest: organize all config parameters by relevant function
 
-        # main(*infiles, **optdict)
-        # rather than run main(), separate this out into steps.
-
         # read fasta file
         id_list, id2seq = kmf.utils.read_fasta(input.fasta)
+        seq_list = [id2seq[fid] for fid in id_list]
 
         # optional indexfile with IDs of good feature output examples
-        example_index = {}
         if config['input']['example_indexfile']:
-            with open(example_indexfile, "r") as f:
-                for line in f.readlines():
-                    seq_id = line.split()[0]
-                    example_index[id] = 1.0
+            example_index = kmf.utils.read_example_index(
+                config['input']['example_indexfile']
+                )
+        else:
+            example_index = {}
 
+        feature_sets = []  # what
 
-
-rule score_features:
-    input:
-    output:
-    run:
-
-# to fix
-rule main:
-    input:
-        join()  # in: some fasta file
-    output:
-        join()  # out: not yet clear to me
-    run:
-        # read in sequences from the fasta file
-        sequence_list, ids_list = [], []
-        sequence_dict = {}
-        with open(config['input']['fasta'], "r") as handle:
-            for record in SeqIO.parse(handle, "fasta"):
-                sequence_list.append(str(record.seq))
-                ids_list.append(record.id)
-                sequence_dict[record.id] = str(record.seq)
-
-        # optional indexfile with IDs of good feature output examples
-        example_index = {}
-        if config['input']['example_indexfile']:
-            with open(example_indexfile, "r") as f:
-                for line in f.readlines():
-                    seq_id = line.split()[0]
-                    example_index[id] = 1.0
-
-        feature_sets = []
-
-        if config['kmer']['randomize_alphabet']:
-            this = []
-
-            alpha = get_alphabets()[config['kmer']['map_function']]
-
-            residues = alpha["_keys"]
-            map_name = f"RND{config['kmer']['map_function'][-1]}"
-
-            rand_alphabet = {}
-
-            # this gives us a non-repeating string for use as new keys
-            randstr = ''.join(random.sample("ACDEFGHIKLMNPQRSTVWY", 20))
-            for keyi in alpha.keys():
-                if keyi == "_key":
-                    rand_alphabet["_key"] = alpha["_key"]
-                    continue
-                key = randstr[0:len(keyi)]
-
-                # trim off this sequence
-                randstr = randstr[len(keyi):]
-
-                rand_alphabet[key] = alpha[keyi]
-
+        # if random alphabet specified, implement randomization
+        if config['input']['kmer']['randomize_alphabet']:
+            this = []  # what
+            map_function = kmf.transform.randomize_alphabet(map_function)
             map_function = [residues, map_name, rand_alphabet]
 
         # if no user-specified save name, use same name as fasta
-        if config['features']['output_filebase'] is None:
+        if config['output']['output_filebase'] is None:
             features_output_filebase = config['input']['fasta']
 
-        # if no feature set is specified
-        if config['features']['feature_set'] is None:
-            # NEW: prefilter the entire fasta
-            # this may take awhile but will cut down on the size of
-            # the feature set by a lot
-            filter_dict = define_feature_space(
+        # if no feature set is specified, define feature space
+        if config['output']['feature_set'] is None:
+            # prefilter fasta to cut down on the size of feature set
+            filter_dict = kmf.features.define_feature_space(
                 sequence_dict=sequence_dict,
-                kmer=config['kmer']['k'],
+                kmer=config['input']['kmer']['k'],
                 map_function=map_function,
-                start=config['kmer']['start'],
-                end=config['kmer']['end'],
-                min_rep_thresh=config['kmer']['min_rep_thresh']
+                start=config['input']['kmer']['start'],
+                end=config['input']['kmer']['end'],
+                min_rep_thresh=config['input']['kmer']['min_rep_thresh'],
+                verbose=config['output']['verbose']
                 )
-
-            # verbose description
-            if config['verbose']:
-                print(
-                    ("Feature space: {0} kmers with more than"
-                     "{1} representation in {2} sequences").format(
-                         len(filter_dict),
-                         config['kmer']['min_rep_thresh'],
-                         len(sequence_dict)
-                         )
-                     )
-
-            # print(filter_dict.keys())
-            filter_list = filter_dict.keys()
-            if len(filter_list) == 0:
-                raise ValueError(
-                    ("Prefiltered feature space cannot be empty.")
-                    )
-
         else:
-            # we read in a list of feature ids to use from a file
-            # NOTE: not doing any check on the format of these ids
+            # read in list of ids to use from file; NO FORMAT CHECK
             filter_list = []
-            with open(feature_set, "r") as handle:
-                for line in handle.readlines():
+            with open(feature_set, "r") as f:
+                for line in f.readlines():
                       filter_list.append(line.split()[0])
 
-        # this will catch multiples of the same identifier- but may result in problems if there's more than
-        #      one of the same identifier (i.e. user's files might be messy this way)
+        # this will catch multiples of the same identifier- but may
+        # result in problems if there's more than one of the same
+        # identifier (i.e. user's files might be messy this way)
         seen = []
-
-        i = 0
+        i = 0  # what
         first = True
-        for i in range(len(sequence_list)):
-            sequence = sequence_list[i]
-            seq_id = ids_list[i]
+        for i in range(len(seq_list)):
+            seq = seq_list[i]
+            seq_id = id_list[i]
 
-            if filter_duplicates and seq_id in seen:
+            if config['output']['filter_duplicates'] and seq_id in seen:
                 continue
             seen.append(seq_id)
 
-            sequences = [sequence,]
+            sequences = [seq,]
             ids = [seq_id,]
 
 
             # shuffle the N-terminal sequence N times and run SIEVE on the wt and each shuffled sequence
             if shuffle_n:
                 example_index[id] = 1.0
-                scid_list, scramble_list, example_index = scramble_sequence(id=seq_id, sequence=sequence[:30], n=shuffle_n, example_index=example_index)
+                scid_list, scramble_list, example_index = scramble_sequence(id=seq_id, sequence=seq[:30], n=shuffle_n, example_index=example_index)
                 sequences += scramble_list
                 ids += scid_list
 
                 if output_shuffled_sequences:
                     filename = "%s_shuffled.fasta" % seq_id
-                    fh = open(filename, "w")
-                    for i in range(len(ids)):
-                        seq_id = ids[i]
-                        seq = sequences[i]
-                        fh.write(">%s\n%s\n" % (seq_id, seq))
-                    fh.close()
+                    with open(filename, "w") as f:
+                        for i in range(len(ids)):
+                            seq_id = ids[i]
+                            seq = sequences[i]
+                            f.write(">%s\n%s\n" % (seq_id, seq))
 
             if n_terminal_file:
                 addid_list, addseq_list = make_n_terminal_fusions(id=seq_id, filename=n_terminal_file)
@@ -238,7 +166,26 @@ rule main:
                     # we only keep this if we are not already dumping each line to an output file
                     feature_sets.append(features)
 
-        handle.close()
+
+
+rule score_features:
+    input:
+    output:
+    run:
+
+# to fix
+rule main:
+    input:
+        join()  # in: some fasta file
+    output:
+        join()  # out: not yet clear to me
+    run:
+
+
+
+
+
+        # handle.close()  # what
 
         if features_output_format != "simple":
             output_features(feature_sets=feature_sets, format=features_output_format, output_filename=features_output_filebase, example_index=example_index, labels=labels)

@@ -365,3 +365,38 @@ def make_n_terminal_fusions(sequence_id, filename):
             sequence_list.append(str(record.seq))
 
     return id_list, sequence_list
+
+def randomize_alphabet(map_function):
+    """Short summary.
+
+    Parameters
+    ----------
+    map_function : type
+        Description of parameter `map_function`.
+
+    Returns
+    -------
+    type
+        Description of returned object.
+
+    """
+    alpha = get_alphabets()[map_function]
+
+    residues = alpha["_keys"]
+    map_name = f"RND{map_function[-1]}"
+
+    rand_alphabet = {}
+
+    # this gives us a non-repeating string for use as new keys
+    rand_str = ''.join(random.sample("ACDEFGHIKLMNPQRSTVWY", 20))
+    for key_a in alpha.keys():
+        if key_a == "_key":
+            rand_alphabet["_key"] = alpha["_key"]
+            continue
+        key_r = rand_str[0:len(key_a)]
+
+        # trim off this sequence
+        rand_str = rand_str[len(key_a):]
+        rand_alphabet[key_r] = alpha[key_a]  # ?? what about rand_str
+
+    return rand_alphabet
