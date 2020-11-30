@@ -7,31 +7,41 @@ from Bio import SeqIO
 
 
 # functions
-def read_fasta(fasta):
+def read_fasta(fasta, include_map=True):
     """Read fasta file and obtain sequences, IDs, and mappings.
 
     Parameters
     ----------
     fasta : str
         Filename or /path/to/fasta/file.
+    include_map : bool
+        If True, outputs the dictionary mapping of IDs to sequences.
+        If False, only outputs the sequence list and ID list.
+        (default: True)
 
     Returns
     -------
-    (list, dict)
-        Tuple containing (id_list, id2seq), where:
+    (list, list) or (list, list, dict)
+        Tuple containing (seq_list, id_list, id2seq), where:
+        seq_list : list
+            List of sequences (as strings) from fasta file.
         id_list : list
             List of IDs from fasta file.
         id2seq: dict
             Dictionary mapping IDs to sequences (id2seq[id] = seq).
+            Only included as an output if include_map=True.
 
     """
     # read in sequences from the fasta file
-    id_list, id2seq = [], {}
+    seq_list, id_list, id2seq = list(), list(), dict()
     with open(fasta, "r") as f:
         for record in SeqIO.parse(f, "fasta"):
+            seq_list.append(str(record.seq))
             id_list.append(record.id)
             id2seq[record.id] = str(record.seq)
-    return id_list, id2seq
+    if include_map:
+        return seq_list, id_list, id2seq
+    return seq_list, id_list
 
 
 def read_example_index(example_indexfile):

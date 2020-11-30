@@ -1,7 +1,7 @@
 input:
   params: None
   fasta: None
-  fasta_dir: None
+  fasta_dir: "/Users/chan898/Documents/Projects/kmer_pipeline/KmerPipeline/example"
   example_indexfile: None
   kmer:
     walk: False
@@ -14,6 +14,7 @@ input:
     min_rep_thresh: 1
 
   output:
+    save_dir: "/Users/chan898/Documents/Projects/kmer_pipeline/output"
     verbose: True
     output_format: 'simple'  # choices: ['simple', 'gist', 'sieve']
     output_filebase: None

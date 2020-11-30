@@ -2,52 +2,56 @@ configfile: "config.yaml"
 
 # imports
 import glob
-import os
+# import os
 import sys
-import gzip
+# import gzip
 import random
-import copy
+# import copy
 
 import kmerfeatures as kmf
 
-from types import *
+# from types import *
 from Bio import SeqIO
+from os.path import (basename, join, splitext)
 from Util.SIEVEInit import get_alphabets
 
 
 # pull config params
 params = config['kmer']
-FNS = glob.glob(join(config['input']['fasta_dir'], "*.fasta"))
+files = glob.glob(join(config['input']['fasta_dir'], "*.fasta"))
+FNS = [splitext(basename(f))[0] for f in files]
+
 
 # rules
 rule all:
     input:
-        expand(join("OUTPUT/{fn}.ext"), fn=FNS)
+        expand(join(config['output']['save_dir'], "features", "{fn}.txt"), fn=FNS)
+        # expand(join(config['output']['save_dir'], "score"))  # eventually
 
-rule perform_kmer_walk:
-    input:
-        fasta=join(config['input']['fasta_dir'], "{fn}.fasta")
-    output:
-        # need to fix code to properly generate an output...
-    run:
-        kmf.walk.kmer_walk(input.fasta)
+if config['kmer']['walk']:
+    rule perform_kmer_walk:
+        input:
+            fasta=join(config['input']['fasta_dir'], "{fn}.fasta")
+        output:
+            # need to fix code to properly generate an output...
+        run:
+            kmf.walk.kmer_walk(input.fasta)
+
 
 rule preprocess:
-
-rule generate_features:
     input:
         fasta=join(config['input']['fasta_dir'], "{fn}.fasta")
     output:
+        example_index=join(config['output']['save_dir'], "processed", "{fn}", "example_index.pkl"),
+        map_function=join(config['output']['save_dir'], "processed", "{fn}", "map_function.pkl"),
+        filter=join(config['output']['save_dir'], "processed", "{fn}", "filter.pkl")
     run:
-        if config['input']['params']:
-            read_parameter_file
-
-        # then pull all config parameters
+        # pull all config parameters
         #   sidequest: organize all config parameters by relevant function
 
         # read fasta file
-        id_list, id2seq = kmf.utils.read_fasta(input.fasta)
-        seq_list = [id2seq[fid] for fid in id_list]
+        seq_list, id_list = kmf.utils.read_fasta(input.fasta,
+                                                 include_map=False)
 
         # optional indexfile with IDs of good feature output examples
         if config['input']['example_indexfile']:
@@ -57,17 +61,17 @@ rule generate_features:
         else:
             example_index = {}
 
-        feature_sets = []  # what
+        # feature_sets = []  # what
 
         # if random alphabet specified, implement randomization
         if config['input']['kmer']['randomize_alphabet']:
-            this = []  # what
-            map_function = kmf.transform.randomize_alphabet(map_function)
+            # this = []  # what
+            rand_alphabet = kmf.transform.randomize_alphabet(map_function)
             map_function = [residues, map_name, rand_alphabet]
 
         # if no user-specified save name, use same name as fasta
         if config['output']['output_filebase'] is None:
-            features_output_filebase = config['input']['fasta']
+            features_output_filebase = wildcards.fn
 
         # if no feature set is specified, define feature space
         if config['output']['feature_set'] is None:
@@ -88,6 +92,14 @@ rule generate_features:
                 for line in f.readlines():
                       filter_list.append(line.split()[0])
 
+
+
+rule generate_features:
+    input:
+        fasta=join(config['input']['fasta_dir'], "processed", "{fn}.?")
+    output:
+        features=join(config['output']['save_dir'], "features", "{fn}.txt")
+    run:
         # this will catch multiples of the same identifier- but may
         # result in problems if there's more than one of the same
         # identifier (i.e. user's files might be messy this way)

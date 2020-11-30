@@ -2,6 +2,9 @@
 
 author: @christinehc
 """
+# imports
+from kmerfeatures.utils import read_fasta
+from kmerfeatures.transform import string_vectorize
 
 # functions
 def kmer_walk(fastafile, max_k=20, seq_dump=False):
@@ -24,17 +27,10 @@ def kmer_walk(fastafile, max_k=20, seq_dump=False):
 
     """
     # next read in sequences from the fasta file
-    sequence_list = []
-    sequence_dict = {}
-    ids_list = []
-    with open(fastafile, "r") as f:
-        for record in SeqIO.parse(f, "fasta"):
-            sequence_list.append(str(record.seq))
-            ids_list.append(record.id)
-            sequence_dict[record.id] = str(record.seq)
+    seq_list, id_list = read_fasta(fastafile, include_map=False)
 
-    # need to make this a percentage - eliminate the bottom XX% of kmers by repreesentation
-    minthresh = 10
+    # eliminate the bottom n% of kmers by representation
+    min_thresh = 10
 
     exclusion_list = None
     for kmer in range(1, max_k):
@@ -43,21 +39,24 @@ def kmer_walk(fastafile, max_k=20, seq_dump=False):
 
         # short circuit the exclusion list (very slow) but allow it to count
         exclusion_list = []
-        for i in range(len(sequence_list)):
-            sequence = sequence_list[i]
-            sequence_id = ids_list[i]
+        for i in range(len(seq_list)):
+            seq = seq_list[i]
+            seq_id = id_list[i]
 
-            feature_dict = string_vectorize(sequence=sequence, kmer=kmer, map_function="reduced_alphabet_0", feature_dict=feature_dict,
-                                             exclusion_list=exclusion_list, return_dict=True)
+            feature_dict = string_vectorize(sequence=seq, kmer=kmer,
+                                            map_function="reduced_alphabet_0",
+                                            feature_dict=feature_dict,
+                                            exclusion_list=exclusion_list,
+                                            return_dict=True)
 
         exclusion_list = []
         for key in feature_dict.keys():
-            if feature_dict[key] < minthresh:
+            if feature_dict[key] < min_thresh:
                 exclusion_list.append(key)
         print("Kmer %d, number of remaining features %d total, number of remaining features occuring more than %d times %d, of %g possible, %g%%" %
-              (kmer, len(feature_dict.keys()), minthresh, len(feature_dict.keys())-len(exclusion_list), 20**kmer, (len(feature_dict.keys())-len(exclusion_list))/20**kmer))
+              (kmer, len(feature_dict.keys()), min_thresh, len(feature_dict.keys())-len(exclusion_list), 20**kmer, (len(feature_dict.keys())-len(exclusion_list))/20**kmer))
 
     if seq_dump:
         for seq in feature_dict.keys():
-            if feature_dict[seq] > minthresh:
+            if feature_dict[seq] > min_thresh:
                 print(seq)
