@@ -28,7 +28,7 @@ rule all:
         expand(join(config['output']['save_dir'], "features", "{fn}.txt"), fn=FNS)
         # expand(join(config['output']['save_dir'], "score"))  # eventually
 
-if config['kmer']['walk']:
+if config['input']['walk']:
     rule perform_kmer_walk:
         input:
             fasta=join(config['input']['fasta_dir'], "{fn}.fasta")
@@ -42,7 +42,6 @@ rule preprocess:
     input:
         fasta=join(config['input']['fasta_dir'], "{fn}.fasta")
     output:
-        example_index=join(config['output']['save_dir'], "processed", "{fn}", "example_index.pkl"),
         map_function=join(config['output']['save_dir'], "processed", "{fn}", "map_function.pkl"),
         filter=join(config['output']['save_dir'], "processed", "{fn}", "filter.pkl")
     run:
@@ -53,14 +52,6 @@ rule preprocess:
         seq_list, id_list = kmf.utils.read_fasta(input.fasta,
                                                  include_map=False)
 
-        # optional indexfile with IDs of good feature output examples
-        if config['input']['example_indexfile']:
-            example_index = kmf.utils.read_example_index(
-                config['input']['example_indexfile']
-                )
-        else:
-            example_index = {}
-
         # feature_sets = []  # what
 
         # if random alphabet specified, implement randomization
@@ -68,10 +59,6 @@ rule preprocess:
             # this = []  # what
             rand_alphabet = kmf.transform.randomize_alphabet(map_function)
             map_function = [residues, map_name, rand_alphabet]
-
-        # if no user-specified save name, use same name as fasta
-        if config['output']['output_filebase'] is None:
-            features_output_filebase = wildcards.fn
 
         # if no feature set is specified, define feature space
         if config['output']['feature_set'] is None:
@@ -92,6 +79,48 @@ rule preprocess:
                 for line in f.readlines():
                       filter_list.append(line.split()[0])
 
+        # filter duplicates?
+        seen = []
+        # i = 0  # what
+        first = True
+        for i in range(len(seq_list)):
+            seq = seq_list[i]
+            sid = id_list[i]
+
+            # ignore duplicate ids
+            if config['output']['filter_duplicates'] and sid in seen:
+                continue
+            seen.append(sid)
+
+            seqs = [seq, ]
+            sids = [sid, ]
+
+
+            # shuffle the N-terminal sequence N times and run SIEVE on the wt and each shuffled sequence
+            if config['output']['shuffle_n']:
+                example_index[id] = 1.0
+                scid_list, scramble_list, example_index = scramble_sequence(id=sid, sequence=seq[:30], n=shuffle_n, example_index=example_index)
+                seqs += scramble_list
+                sids += scid_list
+
+                if config['output']['shuffle_sequences']:
+                    filename = "%s_shuffled.fasta" % sid
+                    with open(filename, "w") as f:
+                        for i in range(len(sids)):
+                            # seq_id =
+                            # seq = seqs[i]
+                            f.write(">%s\n%s\n" % (sids[i], seqs[i]))
+
+            if config['output']['n_terminal_file']:
+                addid_list, addseq_list = make_n_terminal_fusions(id=sid,
+                                                                  filename=config['output']['n_terminal_file'])
+                sequences += addseq_list
+                ids += addid_list
+
+            residues = None
+            if nucleotide:
+                residues = "ACGT"
+
 
 
 rule generate_features:
@@ -99,42 +128,57 @@ rule generate_features:
         fasta=join(config['input']['fasta_dir'], "processed", "{fn}.?")
     output:
         features=join(config['output']['save_dir'], "features", "{fn}.txt")
+    log:
+        join(config['output']['save_dir'], "logs", "{fn}.log")
     run:
+        # if no user-specified save name, use same name as fasta
+        if config['output']['filename'] is None:
+            output_filename = wildcards.fn
+
+        # optional indexfile with IDs of good feature output examples
+        if config['input']['example_index_file']:
+            example_index = kmf.utils.read_example_index(
+                config['input']['example_index_file']
+                )
+        else:
+            example_index = {}
+
         # this will catch multiples of the same identifier- but may
-        # result in problems if there's more than one of the same
+        # result in problems if there are more than one of the same
         # identifier (i.e. user's files might be messy this way)
         seen = []
         i = 0  # what
         first = True
         for i in range(len(seq_list)):
             seq = seq_list[i]
-            seq_id = id_list[i]
+            sid = id_list[i]
 
-            if config['output']['filter_duplicates'] and seq_id in seen:
+            if config['output']['filter_duplicates'] and sid in seen:
                 continue
-            seen.append(seq_id)
+            seen.append(sid)
 
-            sequences = [seq,]
-            ids = [seq_id,]
+            seqs = [seq, ]
+            sids = [sid, ]
 
 
             # shuffle the N-terminal sequence N times and run SIEVE on the wt and each shuffled sequence
-            if shuffle_n:
+            if config['output']['shuffle_n']:
                 example_index[id] = 1.0
-                scid_list, scramble_list, example_index = scramble_sequence(id=seq_id, sequence=seq[:30], n=shuffle_n, example_index=example_index)
-                sequences += scramble_list
-                ids += scid_list
+                scid_list, scramble_list, example_index = scramble_sequence(id=sid, sequence=seq[:30], n=shuffle_n, example_index=example_index)
+                seqs += scramble_list
+                sids += scid_list
 
-                if output_shuffled_sequences:
-                    filename = "%s_shuffled.fasta" % seq_id
+                if config['output']['shuffle_sequences']:
+                    filename = "%s_shuffled.fasta" % sid
                     with open(filename, "w") as f:
-                        for i in range(len(ids)):
-                            seq_id = ids[i]
-                            seq = sequences[i]
-                            f.write(">%s\n%s\n" % (seq_id, seq))
+                        for i in range(len(sids)):
+                            # seq_id =
+                            # seq = seqs[i]
+                            f.write(">%s\n%s\n" % (sids[i], seqs[i]))
 
-            if n_terminal_file:
-                addid_list, addseq_list = make_n_terminal_fusions(id=seq_id, filename=n_terminal_file)
+            if config['output']['n_terminal_file']:
+                addid_list, addseq_list = make_n_terminal_fusions(id=sid,
+                                                                  filename=config['output']['n_terminal_file'])
                 sequences += addseq_list
                 ids += addid_list
 
@@ -145,8 +189,8 @@ rule generate_features:
 
             labels = []
             for j in range(len(sequences)):
-                sequence = sequences[j]
-                seq_id = ids[j]
+                sequence = seqs[j]
+                seq_id = sids[j]
 
                 if verbose:
                     print("Constructing features for sequence %s" % seq_id)
@@ -154,11 +198,11 @@ rule generate_features:
                 features = [seq_id,]
 
                 features += string_vectorize(sequence=sequence, kmer=kmer, start=start, end=end, map_function=map_function, residues=residues, filter_list=filter_list,
-                                              kmer_output=kmer_output)
+                                             kmer_output=kmer_output)
                 if first:
                     labels += string_vectorize(return_labels=True, kmer=kmer, start=start, end=end, map_function=map_function, residues=residues, filter_list=filter_list)
                     if features_output_format == "simple":
-                        output_features(format="matrix", output_filename=features_output_filebase, labels=labels)
+                        output_features(format="matrix", output_filename=output_filename, labels=labels)
 
                 first = False
                 i += 1

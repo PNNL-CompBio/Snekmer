@@ -1,10 +1,9 @@
 input:
-  params: None
   fasta: None
   fasta_dir: "/Users/chan898/Documents/Projects/kmer_pipeline/KmerPipeline/example"
-  example_indexfile: None
+  example_index_file: None
+  walk: False
   kmer:
-    walk: False
     k: 3
     start: None
     end: None
@@ -16,10 +15,12 @@ input:
   output:
     save_dir: "/Users/chan898/Documents/Projects/kmer_pipeline/output"
     verbose: True
-    output_format: 'simple'  # choices: ['simple', 'gist', 'sieve']
-    output_filebase: None
+    format: 'simple'  # choices: ['simple', 'gist', 'sieve']
+    filename: None
     filter_duplicates: True
-    output_shuffled_sequences: None
+    n_terminal_file: None
+    shuffle_n: None
+    shuffle_sequences: None
     feature_set: None
     kmer_output: True
 
