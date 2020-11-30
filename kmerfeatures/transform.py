@@ -87,12 +87,12 @@ def parse_map_function(map_function, mapping=None):
         residues, map_name, map_function, kwargs['mapping']
 
     """
-    # not sure exactly what this is trying to do
+    # reduce alphabet according to pre-defined alphabet mapping
     def reduce_alphabet(character, mapping=None):
         for key in mapping.keys():
             if character in key:
                 return mapping[key]
-        return None  # my addition-- does this work?
+        # return None  # my addition-- does this work?
 
     # for when we create a random alphabet to apply to many sequences
     if isinstance(map_function, list):
