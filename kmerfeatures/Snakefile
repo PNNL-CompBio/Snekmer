@@ -96,10 +96,12 @@ rule preprocess:
             sids = [sid, ]
 
 
-            # shuffle the N-terminal sequence N times and run SIEVE on the wt and each shuffled sequence
+            # shuffle the N-terminal sequence n times
             if config['output']['shuffle_n']:
                 example_index[id] = 1.0
-                scid_list, scramble_list, example_index = scramble_sequence(id=sid, sequence=seq[:30], n=shuffle_n, example_index=example_index)
+                scid_list, scramble_list, example_index = kmf.transform.scramble_sequence(
+                    sid, seq[:30], n=shuffle_n, example_index=example_index
+                    )
                 seqs += scramble_list
                 sids += scid_list
 
@@ -111,9 +113,11 @@ rule preprocess:
                             # seq = seqs[i]
                             f.write(">%s\n%s\n" % (sids[i], seqs[i]))
 
+            # run SIEVE on the wt and each shuffled sequence
             if config['output']['n_terminal_file']:
-                addid_list, addseq_list = make_n_terminal_fusions(id=sid,
-                                                                  filename=config['output']['n_terminal_file'])
+                addid_list, addseq_list = kmf.transform.make_n_terminal_fusions(
+                    sid, config['output']['n_terminal_file']
+                    )
                 sequences += addseq_list
                 ids += addid_list
 
@@ -164,7 +168,9 @@ rule generate_features:
             # shuffle the N-terminal sequence N times and run SIEVE on the wt and each shuffled sequence
             if config['output']['shuffle_n']:
                 example_index[id] = 1.0
-                scid_list, scramble_list, example_index = scramble_sequence(id=sid, sequence=seq[:30], n=shuffle_n, example_index=example_index)
+                scid_list, scramble_list, example_index = kmf.transform.scramble_sequence(
+                    sid, seq[:30], n=shuffle_n, example_index=example_index
+                    )
                 seqs += scramble_list
                 sids += scid_list
 
@@ -177,8 +183,9 @@ rule generate_features:
                             f.write(">%s\n%s\n" % (sids[i], seqs[i]))
 
             if config['output']['n_terminal_file']:
-                addid_list, addseq_list = make_n_terminal_fusions(id=sid,
-                                                                  filename=config['output']['n_terminal_file'])
+                addid_list, addseq_list = kmf.transform.make_n_terminal_fusions(
+                    sid, config['output']['n_terminal_file']
+                    )
                 sequences += addseq_list
                 ids += addid_list
 

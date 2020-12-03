@@ -4,6 +4,7 @@ author: @christinehc
 """
 
 # imports
+import random
 import re
 
 from Util.SIEVEInit import StandardAlphabet
@@ -65,7 +66,10 @@ def baseconvert(n, k, digits="ACDEFGHIKLMNPQRSTVWY"):
 
 
 def parse_map_function(map_function, mapping=None):
-    """Short summary.
+    """Parse map function input into mapping parameters.
+
+    Mappings are created as follows:
+        If the input map function is a list,
 
     Parameters
     ----------
@@ -74,6 +78,7 @@ def parse_map_function(map_function, mapping=None):
             None
                 No sequence (use generic alphabets)
             list
+                (residues, map_name, mapping)
                 Specifications for a random alphabet to use
             str : e.g. "reduced_alphabet_N"
                 Use a reduced alphabet (N = 0, 1, 2, 3, or 4)
@@ -92,13 +97,13 @@ def parse_map_function(map_function, mapping=None):
         for key in mapping.keys():
             if character in key:
                 return mapping[key]
-        # return None  # my addition-- does this work?
+        return None  # my addition-- does this work?
 
     # for when we create a random alphabet to apply to many sequences
     if isinstance(map_function, list):
-        mapping = map_function[2]
         residues = map_function[0]
         map_name = map_function[1]
+        mapping = map_function[2]
         map_function = reduce_alphabet
 
     elif isinstance(map_function, str):
@@ -119,7 +124,7 @@ def parse_map_function(map_function, mapping=None):
     return residues, map_name, map_function, mapping
 
 
-def string_vectorize(sequence=None, kmer=3, start=None,
+def string_vectorize(sequence=None, k=3, start=None,
                      end=None, map_function=None, return_labels=False,
                      feature_dict=None, filter_list=None, exclusion_list=None,
                      return_dict=None, kmer_output=None,
@@ -130,7 +135,7 @@ def string_vectorize(sequence=None, kmer=3, start=None,
     ----------
     sequence : type
         Description of parameter `sequence`.
-    kmer : int
+    k : int
         Sequence length k of the kmer.
     start : type
         Description of parameter `start`.
@@ -165,28 +170,31 @@ def string_vectorize(sequence=None, kmer=3, start=None,
     # if residues or map_function not specified, set generically
     # map_function = map_function #  or identity
     # residues = residues or StandardAlphabet
-    mapping = None
+    # mapping = None
     map_name = "NAT"
 
-    residues, map_name, map_function, mapping = parse_map_function(map_function)
+    residues, map_name, map_function, mapping = parse_map_function(
+        map_function
+        )
 
     # we should provide the ability to include a bunch of strings
     # that can be used to vectorize
     error_message = "Error: given parameters will generate >20k inputs."
-    assert pow(len(residues), kmer) <= 2e4, error_message
+    assert pow(len(residues), k) <= 2e4, error_message
 
     # return only labels
     if return_labels:
         labels = []
         if filter_list:
             for filter in filter_list:
-                label = "KMER-%d-%s-%s" % (kmer, map_name, filter)
+                label = "KMER-%d-%s-%s" % (k, map_name, filter)
                 labels.append(label)
             return labels
 
         else:
-            for bit in range(pow(len(residues), kmer)):
-                label = "KMER-%d-%s-%s" % (kmer, map_name, baseconvert(bit, k=kmer, digits=residues))
+            for bit in range(pow(len(residues), k)):
+                label = "KMER-%d-%s-%s" % (k, map_name, baseconvert(bit, k=k,
+                                                                    digits=residues))
                 labels.append(label)
             return labels
 
@@ -196,7 +204,7 @@ def string_vectorize(sequence=None, kmer=3, start=None,
         if tstart < 0:
             tstart = 0
 
-    tend = end or len(sequence)-kmer
+    tend = end or len(sequence) - k
 
     results = {}
     if feature_dict:
@@ -209,8 +217,7 @@ def string_vectorize(sequence=None, kmer=3, start=None,
             results[item] = 0
 
     for i in range(tstart, tend):
-        kmap = sequence[i:i+kmer]
-
+        kmap = sequence[i:i + k]
         # do mapping to a reduced alphabet, e.g.
         kstring = ""
         for char in kmap:
@@ -221,7 +228,7 @@ def string_vectorize(sequence=None, kmer=3, start=None,
                 continue
             kstring += cc
 
-        if len(kstring) < kmer:
+        if len(kstring) < k:
             # this happens when there are unrecognized characters
             # and we need to not include these
             continue
@@ -235,7 +242,7 @@ def string_vectorize(sequence=None, kmer=3, start=None,
         if kmer_output:
           print(i, "\t", kmap, "\t", kstring, "\t1", )
 
-        if filter_list and not kstring in filter_list:
+        if filter_list and kstring not in filter_list:
             #print("hoopla")
             continue
 
@@ -270,7 +277,7 @@ def string_vectorize(sequence=None, kmer=3, start=None,
 
     # old stuff below
     results_vector = []
-    for j in range(0, pow(len(residues), kmer)):
+    for j in range(0, pow(len(residues), k)):
         results_vector.append(0.0)
 
     for key in results.keys():
@@ -278,12 +285,12 @@ def string_vectorize(sequence=None, kmer=3, start=None,
         # for the standard aa alphabet. We can also use various reduced alphabets
         x = 0
 
-        if len(key) < kmer:
+        if len(key) < k:
             continue
 
-        for k in range(kmer):
+        for k_idx in range(k):
             # provide a unique index for all possible strings
-            x += residues.find(key[k]) * pow(len(residues), k)
+            x += residues.find(key[k_idx]) * pow(len(residues), k_idx)
         results_vector[x] = results[key]
 
     return results_vector
@@ -291,7 +298,7 @@ def string_vectorize(sequence=None, kmer=3, start=None,
 
 def scramble_sequence(sequence_id, sequence, n=1, id_modifier=False,
                       first_residue=1, example_index=None):
-    """Return scrambled sequences given a sequence and identifier.
+    """Scramble sequences given a sequence and identifier.
 
     Given a sequence and an identifier, returns a list of n scrambled
     sequences and numbered identifiers.
