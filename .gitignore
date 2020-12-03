@@ -1,3 +1,6 @@
+# hiding tests for now
+kmerfeatures/test/
+
 # History files
 .Rhistory
 .Rapp.history
