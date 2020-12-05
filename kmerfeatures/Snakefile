@@ -226,3 +226,5 @@ rule score_features:
     input:
     output:
     run:
+        matrix = kmf.score.connection_matrix_from_features(input[0])
+        clusters = kmf.score.cluster_feature_matrix(matrix)
