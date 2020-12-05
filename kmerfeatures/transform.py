@@ -7,6 +7,7 @@ author: @christinehc
 import random
 import re
 
+from Bio import SeqIO
 from Util.SIEVEInit import StandardAlphabet
 from Util.SIEVEInit import get_alphabets
 
@@ -124,9 +125,9 @@ def parse_map_function(map_function, mapping=None):
     return residues, map_name, map_function, mapping
 
 
-def string_vectorize(sequence=None, k=3, start=None,
+def vectorize_string(sequence=None, k=3, start=None,
                      end=None, map_function=None, return_labels=False,
-                     feature_dict=None, filter_list=None, exclusion_list=None,
+                     feature_dict=None, filter_list=None, exclude=None,
                      return_dict=None, kmer_output=None,
                      residues=StandardAlphabet, **kwargs):
     """Short summary.
@@ -149,8 +150,10 @@ def string_vectorize(sequence=None, k=3, start=None,
         Description of parameter `feature_dict`.
     filter_list : type
         Description of parameter `filter_list`.
-    exclusion_list : type
-        Description of parameter `exclusion_list`.
+    exclude : list
+        List of sequence strings for exclusion (default: None).
+        This is from the kmer_walk approach and should be shorter
+        sequences (though they may also be the same length).
     return_dict : type
         Description of parameter `return_dict`.
     kmer_output : type
@@ -164,12 +167,13 @@ def string_vectorize(sequence=None, k=3, start=None,
         why is this returning so many things ????
 
     """
-    # appears extraneous
-    # def identity(character, **kwargs):
-    #     return character
+    # placeholder function
+    def identity(character):
+        return character
+
     # if residues or map_function not specified, set generically
-    # map_function = map_function #  or identity
-    # residues = residues or StandardAlphabet
+    map_function = map_function or identity
+    residues = residues or StandardAlphabet
     # mapping = None
     map_name = "NAT"
 
@@ -179,24 +183,27 @@ def string_vectorize(sequence=None, k=3, start=None,
 
     # we should provide the ability to include a bunch of strings
     # that can be used to vectorize
-    error_message = "Error: given parameters will generate >20k inputs."
-    assert pow(len(residues), k) <= 2e4, error_message
+    if pow(len(residues), k) <= 2e4:
+        raise RuntimeError(
+            "Given parameters will generate >20k inputs."
+        )
 
     # return only labels
     if return_labels:
         labels = []
+
+        # if there is a filter list, return labels for listed filters
         if filter_list:
-            for filter in filter_list:
-                label = "KMER-%d-%s-%s" % (k, map_name, filter)
+            for filt in filter_list:
+                label = "KMER-%d-%s-%s" % (k, map_name, filt)
                 labels.append(label)
             return labels
 
-        else:
-            for bit in range(pow(len(residues), k)):
-                label = "KMER-%d-%s-%s" % (k, map_name, baseconvert(bit, k=k,
-                                                                    digits=residues))
-                labels.append(label)
-            return labels
+        for bit in range(pow(len(residues), k)):
+            label = "KMER-%d-%s-%s" % (k, map_name, baseconvert(bit, k=k,
+                                                                digits=residues))
+            labels.append(label)
+        return labels
 
     tstart = start or 0
     if tstart < 0:
@@ -235,7 +242,7 @@ def string_vectorize(sequence=None, k=3, start=None,
 
         # if we don't find the kstring in the filter_list
         #   then we skip.
-        #if filter_dict:
+        # if filter_dict:
         #    print(filter_dict.keys())
         #    print(kstring)
 
@@ -243,24 +250,24 @@ def string_vectorize(sequence=None, k=3, start=None,
           print(i, "\t", kmap, "\t", kstring, "\t1", )
 
         if filter_list and kstring not in filter_list:
-            #print("hoopla")
+            # print("hoopla")
             continue
 
-        #FILTER HERE
+        # FILTER HERE
 
         # a list of strings to exclude from consideration
         #   this is from the kmer_walk approach and should
         #   be shorter sequences (though could also be the
         #   same length)
-        if exclusion_list:
+        if exclude:
             breaker = 0
-            for bit in exclusion_list:
+            for bit in exclude:
                 if kstring.find(bit) > 0:
                     breaker = 1
                     break
             if breaker: next
 
-        if not kstring in results:
+        if kstring not in results:
             results[kstring] = 0
         results[kstring] += 1
 

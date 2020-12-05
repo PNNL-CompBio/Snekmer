@@ -4,12 +4,12 @@ author: @christinehc
 """
 
 # imports
-from kmerfeatures.transform import string_vectorize
+from kmerfeatures.transform import vectorize_string
 
 
 # functions
-def output_features(format, feature_sets=None, output_filename=None,
-                    labels=None, mode="w", **kwargs):
+def output_features(format, feature_sets=None, output_file=None,
+                    labels=None, mode="w"):
     """Generate output features based on input fasta file.
 
     Parameters
@@ -19,16 +19,14 @@ def output_features(format, feature_sets=None, output_filename=None,
             ('gist', 'sieve', 'matrix', 'both')
     feature_sets : type
         Description of parameter `feature_sets`.
-    output_filename : type
-        Description of parameter `output_filename`.
+    output_file : str
+        Name of output file (default: None).
     labels : list
         Description of parameter `labels`.
     mode : str
         File write mode (default: 'w').
             For details, see documentation for Python built-in
             function open().
-    **kwargs : type
-        Description of parameter `**kw`.
 
     Returns
     -------
@@ -45,17 +43,17 @@ def output_features(format, feature_sets=None, output_filename=None,
 
     # update any gist files
     if format in ["gist", "both"]:
-        read_gist_file(output_filename, labels=labels,
+        read_gist_file(output_file, labels=labels,
                        feature_sets=feature_sets, mode=mode)
 
     # update any sieve files
     if format in ["sieve", "both"]:
-        read_sieve_file(output_filename, feature_sets=feature_sets, mode=mode)
+        read_sieve_file(output_file, feature_sets=feature_sets, mode=mode)
 
     # update matrix files
     if format == "matrix":
-        read_matrix_file(output_filename, labels=labels,
-                          feature_sets=feature_sets, mode=mode)
+        read_matrix_file(output_file, labels=labels,
+                         feature_sets=feature_sets, mode=mode)
 
 
 def read_gist_file(filename, labels=None, feature_sets=None, mode='w'):
@@ -117,7 +115,7 @@ def read_sieve_file(filename, feature_sets=None, mode='w'):
         Description of returned object.
 
     """
-    def output_sieve_features(features=None, file=None, example_index={}):
+    def output_sieve_features(features, file, example_index):
         """Write features to SIEVE output file.
 
         Parameters
@@ -138,6 +136,8 @@ def read_sieve_file(filename, feature_sets=None, mode='w'):
         # parse first item in feature list as feature ID
         fid = features[0]
         value = example_index.get(fid, 0.0)
+
+        with open(file, "w+")
         file.write("pattern\t%s\t%d\n" % (fid, len(features) - 1))
         file.write("\tinput\t%s" % fid)
         for f in features[1:]:
@@ -266,7 +266,7 @@ def define_feature_space(sequence_dict=None, kmer=None, map_function=None,
     feature_dict = {}
 
     for seq_id, seq in sequence_dict.items():
-        feature_dict = string_vectorize(sequence=seq, kmer=kmer, map_function=map_function, feature_dict=feature_dict,
+        feature_dict = vectorize_string(sequence=seq, kmer=kmer, map_function=map_function, feature_dict=feature_dict,
                                          start=start, end=end, residues=residues, return_dict=True)
 
     # if this is between 0 and 1 then it's a percentage

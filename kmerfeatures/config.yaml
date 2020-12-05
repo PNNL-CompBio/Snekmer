@@ -3,6 +3,7 @@ input:
   fasta_dir: "/Users/chan898/Documents/Projects/kmer_pipeline/KmerPipeline/example"
   example_index_file: None
   walk: False
+  feature_set: None
   kmer:
     k: 3
     start: None
@@ -21,7 +22,6 @@ input:
     n_terminal_file: None
     shuffle_n: None
     shuffle_sequences: None
-    feature_set: None
     kmer_output: True
 
 # parser.add_argument('-v', '--verbose', action='store_false', help='verbose output')
