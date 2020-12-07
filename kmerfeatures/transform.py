@@ -66,11 +66,36 @@ def baseconvert(n, k, digits="ACDEFGHIKLMNPQRSTVWY"):
     return s
 
 
-def parse_map_function(map_function, mapping=None):
+def reduce_alphabet(character, mapping=None):
+    """reduce alphabet according to pre-defined alphabet mapping.
+
+    Parameters
+    ----------
+    character : type
+        Description of parameter `character`.
+    mapping : dict
+        Mapping specification for sequence.
+
+    Returns
+    -------
+    type
+        Description of returned object.
+
+    """
+    for key in mapping.keys():
+        if character in key:
+            return mapping[key]
+    return None
+
+
+def parse_map_function(map_function):
     """Parse map function input into mapping parameters.
 
     Mappings are created as follows:
-        If the input map function is a list,
+        If the input map function is a list, this format is assumed:
+            (residues, map_name, mapping)
+        If the input map function is a string, the mapping is defined
+        from pre-existing alphabets.
 
     Parameters
     ----------
@@ -84,22 +109,13 @@ def parse_map_function(map_function, mapping=None):
             str : e.g. "reduced_alphabet_N"
                 Use a reduced alphabet (N = 0, 1, 2, 3, or 4)
 
-    mapping : type
-        Mapping specification for sequence (?)
 
     Returns
     -------
     type
-        residues, map_name, map_function, kwargs['mapping']
+        residues, map_name, map_function
 
     """
-    # reduce alphabet according to pre-defined alphabet mapping
-    def reduce_alphabet(character, mapping=None):
-        for key in mapping.keys():
-            if character in key:
-                return mapping[key]
-        return None  # my addition-- does this work?
-
     # for when we create a random alphabet to apply to many sequences
     if isinstance(map_function, list):
         residues = map_function[0]
@@ -125,8 +141,37 @@ def parse_map_function(map_function, mapping=None):
     return residues, map_name, map_function, mapping
 
 
-def vectorize_string(sequence=None, k=3, start=None,
-                     end=None, map_function=None, return_labels=False,
+def map_characters(k_map, map_function, **kwargs):
+    """Apply character mapping as specified.
+
+    Parameters
+    ----------
+    k_map : str
+        String of mapped characters.
+    map_function : type
+        Description of parameter `map_function`.
+    **kwargs : type
+        Description of parameter `**kwargs`.
+
+    Returns
+    -------
+    type
+        Description of returned object.
+
+    """
+    k_string = ""
+    for char in k_map:
+        map_char = map_function(char, **kwargs)
+
+        # omits unrecognized characters (may be undesireable in some cases)
+        if map_char is None:
+            continue
+        k_string += map_char
+    return k_string
+
+
+def vectorize_string(sequence, k=3, start=0, end=False,
+                     map_function=None, return_labels=False,
                      feature_dict=None, filter_list=None, exclude=None,
                      return_dict=None, kmer_output=None,
                      residues=StandardAlphabet, **kwargs):
@@ -173,13 +218,10 @@ def vectorize_string(sequence=None, k=3, start=None,
 
     # if residues or map_function not specified, set generically
     map_function = map_function or identity
-    residues = residues or StandardAlphabet
     # mapping = None
-    map_name = "NAT"
+    # map_name = "NAT"
 
-    residues, map_name, map_function, mapping = parse_map_function(
-        map_function
-        )
+    residues, map_name, map_function, mapping = parse_map_function(map_function)
 
     # we should provide the ability to include a bunch of strings
     # that can be used to vectorize
@@ -205,52 +247,34 @@ def vectorize_string(sequence=None, k=3, start=None,
             labels.append(label)
         return labels
 
-    tstart = start or 0
-    if tstart < 0:
-        tstart = len(sequence) + tstart
-        if tstart < 0:
-            tstart = 0
+    if start < 0:
+        start = len(sequence) + start
+        if start < 0:
+            start = 0
 
-    tend = end or len(sequence) - k
+    if not end:
+        end = len(sequence) - k
 
     results = {}
     if feature_dict:
         results = feature_dict
 
     elif filter_list:
+        results = {k: 0 for k in filter_list}
 
-        # there is a more elegant way of doing this- and probably clever too
-        for item in filter_list:
-            results[item] = 0
-
-    for i in range(tstart, tend):
-        kmap = sequence[i:i + k]
+    for i in range(start, end):
+        k_map = sequence[i: i + k]
         # do mapping to a reduced alphabet, e.g.
-        kstring = ""
-        for char in kmap:
-            cc = map_function(char, **kwargs)
+        k_string = map_characters(k_map, map_function, **kwargs)
 
-            # this has the effect of omitting unrecognized characters, which may be undesireable in some cases
-            if cc == None:
-                continue
-            kstring += cc
-
-        if len(kstring) < k:
-            # this happens when there are unrecognized characters
-            # and we need to not include these
+        # exclude unrecognized characters
+        if len(k_string) < k:
             continue
 
-        # if we don't find the kstring in the filter_list
-        #   then we skip.
-        # if filter_dict:
-        #    print(filter_dict.keys())
-        #    print(kstring)
-
         if kmer_output:
-          print(i, "\t", kmap, "\t", kstring, "\t1", )
+            print(i, "\t", k_map, "\t", k_string, "\t1", )
 
-        if filter_list and kstring not in filter_list:
-            # print("hoopla")
+        if filter_list and k_string not in filter_list:
             continue
 
         # FILTER HERE
@@ -262,14 +286,14 @@ def vectorize_string(sequence=None, k=3, start=None,
         if exclude:
             breaker = 0
             for bit in exclude:
-                if kstring.find(bit) > 0:
+                if k_string.find(bit) > 0:
                     breaker = 1
                     break
             if breaker: next
 
-        if kstring not in results:
-            results[kstring] = 0
-        results[kstring] += 1
+        if k_string not in results:
+            results[k_string] = 0
+        results[k_string] += 1
 
     if return_dict:
         return results

@@ -8,8 +8,8 @@ from kmerfeatures.transform import vectorize_string
 
 
 # functions
-def output_features(format, feature_sets=None, output_file=None,
-                    labels=None, mode="w"):
+def output_features(format, output_file feature_sets=None,
+                    labels=None, mode="w", **kwargs):
     """Generate output features based on input fasta file.
 
     Parameters
@@ -17,10 +17,10 @@ def output_features(format, feature_sets=None, output_file=None,
     format : str
         File format; select one option from the following list:
             ('gist', 'sieve', 'matrix', 'both')
-    feature_sets : type
-        Description of parameter `feature_sets`.
     output_file : str
         Name of output file (default: None).
+    feature_sets : type
+        Description of parameter `feature_sets`.
     labels : list
         Description of parameter `labels`.
     mode : str
@@ -48,7 +48,8 @@ def output_features(format, feature_sets=None, output_file=None,
 
     # update any sieve files
     if format in ["sieve", "both"]:
-        read_sieve_file(output_file, feature_sets=feature_sets, mode=mode)
+        read_sieve_file(output_file, feature_sets=feature_sets, mode=mode,
+                        **kwargs)
 
     # update matrix files
     if format == "matrix":
@@ -95,7 +96,7 @@ def read_gist_file(filename, labels=None, feature_sets=None, mode='w'):
             output_gist_class(features=features, file=classf)
 
 
-def read_sieve_file(filename, feature_sets=None, mode='w'):
+def read_sieve_file(filename, feature_sets=None, mode='w', **kwargs):
     """Read sieve file and parse into output file.
 
     Parameters
@@ -115,17 +116,18 @@ def read_sieve_file(filename, feature_sets=None, mode='w'):
         Description of returned object.
 
     """
-    def output_sieve_features(features, file, example_index):
+
+    def output_sieve_features(features, filepath, example_index=None):
         """Write features to SIEVE output file.
 
         Parameters
         ----------
         features : type
             List of specified features.
-        file : str
+        filepath : str
             File handle for naming of output files.
         example_index : dict
-            Description of parameter `example_index`.
+            Description of parameter `example_index` (default: None).
 
         Returns
         -------
@@ -137,14 +139,14 @@ def read_sieve_file(filename, feature_sets=None, mode='w'):
         fid = features[0]
         value = example_index.get(fid, 0.0)
 
-        with open(file, "w+")
-        file.write("pattern\t%s\t%d\n" % (fid, len(features) - 1))
-        file.write("\tinput\t%s" % fid)
-        for f in features[1:]:
-            file.write("\t%s" % f)
-        file.write("\n")
-        file.write("\toutput\t%s\t%d\n" % (fid, value))
-        file.flush()
+        with open(filepath, "w+") as f:
+            filepath.write("pattern\t%s\t%d\n" % (fid, len(features) - 1))
+            filepath.write("\tinput\t%s" % fid)
+            for f in features[1:]:
+                filepath.write("\t%s" % f)
+            filepath.write("\n")
+            filepath.write("\toutput\t%s\t%d\n" % (fid, value))
+            filepath.flush()
 
     pattern_out = f"{filename}.pattern"
     with open(pattern_out, mode) as f:
@@ -184,15 +186,15 @@ def read_matrix_file(filename, labels=None, feature_sets=None, mode='w'):
                 output_gist_features(features=features, file=f)
 
 
-def output_gist_features(features=None, file=None):
+def output_gist_features(filename, features):
     """Write features to gist output file.
 
     Parameters
     ----------
+    filename : type
+        Description of parameter `file`.
     features : type
         Description of parameter `features`.
-    file : type
-        Description of parameter `filehandle`.
 
     Returns
     -------
@@ -200,24 +202,25 @@ def output_gist_features(features=None, file=None):
         Description of returned object.
 
     """
-    file.write("%s" % features[0])
-    for f in features[1:]:
-        file.write("\t%s" % f)
-    file.write("\n")
-    file.flush()
+    with open(filename, 'w') as f:)
+        filename.write("%s" % features[0])
+        for f in features[1:]:
+            filename.write("\t%s" % f)
+        filename.write("\n")
+    # filename.flush()
 
 
-def output_gist_class(features=None, file=None, example_index={}):
+def output_gist_class(filename, features, example_index=None):
     """Write gist class to specified output file.
 
     Parameters
     ----------
+    filename : str
+        File handle for naming of output files.
     features : list
         List of specified features.
-    file : str
-        File handle for naming of output files.
     example_index : dict
-        Description of parameter `example_index`.
+        Description of parameter `example_index` (default: None).
 
     Returns
     -------
@@ -231,7 +234,7 @@ def output_gist_class(features=None, file=None, example_index={}):
     file.flush()
 
 
-def define_feature_space(sequence_dict=None, kmer=None, map_function=None,
+def define_feature_space(sequence_dict, kmer=None, map_function=None,
                          start=None, end=None, residues=None, min_rep_thresh=2,
                          verbose=False):
     """Short summary.

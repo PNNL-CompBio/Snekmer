@@ -5,6 +5,7 @@ import glob
 import sys
 import random
 
+import h5py
 import kmerfeatures as kmf
 
 # from types import *
@@ -14,7 +15,6 @@ from Util.SIEVEInit import get_alphabets
 
 
 # pull config params
-params = config['kmer']
 files = glob.glob(join(config['input']['fasta_dir'], "*.fasta"))
 FNS = [splitext(basename(f))[0] for f in files]
 
@@ -24,6 +24,7 @@ rule all:
     input:
         expand(join(config['output']['save_dir'], "features", "{fn}.txt"), fn=FNS)
         # expand(join(config['output']['save_dir'], "score"))  # eventually
+
 
 if config['input']['walk']:
     rule perform_kmer_walk:
@@ -39,8 +40,7 @@ rule preprocess:
     input:
         fasta=join(config['input']['fasta_dir'], "{fn}.fasta")
     output:
-        map_function=join(config['output']['save_dir'], "processed", "{fn}", "map_function.pkl"),
-        filter=join(config['output']['save_dir'], "processed", "{fn}", "filter.pkl")
+        join(config['output']['save_dir'], "processed", "{fn}.hdf5")
     run:
         # read fasta file
         seq_list, id_list = kmf.utils.read_fasta(input.fasta)
@@ -68,12 +68,11 @@ rule preprocess:
             filter_list = []
             with open(config['input']['feature_set'], "r") as f:
                 for line in f.readlines():
-                      filter_list.append(line.split()[0])
+                    filter_list.append(line.split()[0])
 
         # filter duplicates?
-        seen = []
-        # i = 0  # what
-        first = True
+        seen, first = [], True
+
         for i in range(len(seq_list)):
             seq = seq_list[i]
             sid = id_list[i]
@@ -90,14 +89,16 @@ rule preprocess:
             if config['output']['shuffle_n']:
                 example_index[id] = 1.0
                 scid_list, scramble_list, example_index = kmf.transform.scramble_sequence(
-                    sid, seq[:30], n=shuffle_n, example_index=example_index
+                    sid, seq[:30], n=config['output']['shuffle_n'],
+                    example_index=config['output']['example_index_file']
                     )
                 seqs += scramble_list
                 sids += scid_list
 
                 # include shuffled sequences in output
                 if config['output']['shuffle_sequences']:
-                    filename = "%s_shuffled.fasta" % sid
+                    filename = join(config['output']['save_dir'], "processed",
+                                    "%s_shuffled.fasta" % sid)
                     with open(filename, "w") as f:
                         for i in range(len(sids)):
                             f.write(">%s\n%s\n" % (sids[i], seqs[i]))
@@ -113,18 +114,27 @@ rule preprocess:
             if config['input']['nucleotide']:
                 residues = "ACGT"
 
+        with h5py.File(output[0], "w") as f:
+            mf_data = f.create_dataset("map_function",
+                                       data=map_function)
+                                       # dtype=)
+            # note to self: redo with sids/seqs saved in filtered group
+            filt_data = f.create_dataset("filter",
+                                         data=filt_data)
+        map_function, filter
+
 
 rule generate_features:
     input:
-        fasta=join(config['input']['fasta_dir'], "processed", "{fn}.?")
+        data=join(config['output']['save_dir'], "processed", "{fn}.hdf5"),
     output:
         features=join(config['output']['save_dir'], "features", "{fn}.txt")
     log:
         join(config['output']['save_dir'], "logs", "{fn}.log")
     run:
-        # if no user-specified save name, use same name as fasta
-        if config['output']['filename'] is None:
-            output_file = wildcards.fn
+        # read processed features
+        with h5py.File(input.data, 'r') as f:
+            map_function = f['map_function']
 
         # optional indexfile with IDs of good feature output examples
         if config['input']['example_index_file']:
@@ -134,12 +144,14 @@ rule generate_features:
         else:
             example_index = {}
 
-        # this will catch multiples of the same identifier- but may
+        # apply user-specified save name, if it exists
+        # if config['output']['filename'] is None:
+        #     output_file = wildcards.fn
+
+        # catch multiples w/ same identifier- but may
         # result in problems if there are more than one of the same
         # identifier (i.e. user's files might be messy this way)
-        seen = []
-        i = 0  # what
-        first = True
+        seen, first = [], True
         for i in range(len(seq_list)):
             seq = seq_list[i]
             sid = id_list[i]
@@ -189,37 +201,39 @@ rule generate_features:
 
                 features = [seq_id,]
 
-                features += vectorize_string(sequence=sequence, kmer=kmer, start=start,
-                                             end=end, map_function=map_function,
-                                             residues=residues, filter_list=filter_list,
-                                             kmer_output=kmer_output)
+                features += kmf.transform.vectorize_string(
+                    sequence=sequence, kmer=kmer, start=start, end=end,
+                    map_function=map_function, residues=residues,
+                    filter_list=filter_list, kmer_output=kmer_output
+                    )
                 if first:
-                    labels += vectorize_string(return_labels=True, kmer=kmer, start=start,
-                                               end=end, map_function=map_function,
-                                               residues=residues, filter_list=filter_list)
+                    labels += kmf.transform.vectorize_string(
+                        return_labels=True, kmer=kmer, start=start, end=end,
+                        map_function=map_function, residues=residues,
+                        filter_list=filter_list
+                        )
                     if features_output_format == "simple":
-                        output_features(format="matrix", output_file=output_file,
-                                        labels=labels)
+                        output_features("matrix", output.features, labels=labels)
 
                 first = False
                 i += 1
 
-                #print(features)
+                # print(features)
 
+                # output as we go (esp. good for very large input files)
                 if config['output']['format'] == "simple":
-                    # we'll output as we go- this is especially good for very large input files
-                    output_features(feature_sets=[features,], format="matrix",
-                                    output_file=config['output']['filename'], write_mode="a")
+                    output_features("matrix", output.features,
+                                    feature_sets=[features, ], write_mode="a")
 
-                # we'll output sieve patterns as we go to provide a record
+                # output sieve patterns as we go to provide a record
                 if config['output']['format'] in ("sieve", "both"):
-                    output_features(feature_sets=[features,], format="sieve",
-                                    output_file=config['output']['filename'],
-                                    example_index=example_index, write_mode="a")
+                    output_features("sieve", output.features,
+                                    feature_sets=[features, ], write_mode="a",
+                                    example_index=example_index)
 
+                # only append features if not dumping into file
                 if config['output']['format'] != "simple":
-                    # we only keep this if we are not already dumping each line to an output file
-                    feature_sets.append(features)
+                    feature_sets.append(features)  # what happens with this
 
 
 rule score_features:
