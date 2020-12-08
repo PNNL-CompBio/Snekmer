@@ -9,13 +9,10 @@ from types import *
 from Util.Options import *
 from Util.SIEVEInit import *
 
-try:
-    from Bio import SeqIO
-    #from Bio.Alphabet import IUPAC
-
-except ImportError:
-    sys.stderr.write("BioPython not installed correctly (see http://biopython.org)\n")
-    sys.exit(-1)
+from Bio import SeqIO
+from sklearn.metrics.pairwise import pairwise_distances
+from sklearn.cluster import AgglomerativeClustering
+import pandas as pd
 
 OPTION_LIST = ["A program to generate features and run SIEVE models on input sequences",
                 "None",
@@ -92,9 +89,6 @@ def connection_matrix_from_features(feature_matrix, metric="jaccard"):
     #   https://pythonpedia.com/en/knowledge-base/37003272/how-to-compute-jaccard-similarity-from-a-pandas-dataframe
     # and I adapted it - not sure if it will work as coded :)
 
-    from sklearn.metrics.pairwise import pairwise_distances
-    import pandas as pd
-
     df = pd.DataFrame(data=feature_matrix)
 
     if metric == "jaccard":
@@ -113,12 +107,107 @@ def cluster_feature_matrix(feature_matrix, method="agglomerative"):
     # another place to have HPC since the clustering can be computationally
     #   intensive. AgglomerativeClustering may not be the best candidate
     #   for parallelization though - not sure
-    from sklearn.cluster import AgglomerativeClustering
 
+    # only have one option here but we could easily add other Options
+    #     since sklearn has a bunch.
     if method == "agglomerative":
         feat_clusters = AgglomerativeClustering().fit_predict(feature_matrix)
 
     return(feat_clusters)
+
+# For Christine
+#   This code will calculate the probabilities for features being
+#       in a class (as defined by example_classes)
+# Input: feature matrix and an example_classes vector which has as
+#        many entries as the number of examples and indicate a class
+def feature_class_probabilities(feature_matrix, example_labels):
+    # coding this first for the binary case - in class or not
+
+    # transform example labels into 1 and 0, if necessary
+    # check to make sure the labels are the same size as number of examples
+    # check labels to make sure they contain two classes
+    # make sure that the feature_matrix has only 1s and 0s (instead of kmer counts)
+    #  All TBD
+
+    colnames = feature_matrix.keys()
+
+
+    results = pd.DataFrame(data=colnames, columns=5)
+
+    pos_tot = sum(example_labels)
+    neg_tot = length(example_labels) - pos_tot
+
+    # for every feature in the input matrix
+    for key in 1:feature_matrix.keys():
+        features = feature_matrix[key]
+        pos_score = example_labels * features
+        neg_score = example_labels * !features
+
+        # probability that the presence of this kmer maps to the positive
+        #   examples
+        pos_score_p = sum(pos_score)/pos_tot
+        neg_score_p = sum(neg_score)/neg_tot
+
+        results[key] = [pos_score, pos_score_p, neg_score, neg_score_p, pos_score_p-neg_score_p]
+
+    return(results)
+
+
+# Below is the code in R
+#     which I think should do pretty much the same thing
+#     key difference is that the R code functioned for
+#     related families (groups of examples that are similar)
+#     so was more complicated
+#
+#
+#     family_counts = function(data, families, these_fact) {
+#   # first we make sure we get rid of multiple counts from the same protein
+#   data = as.matrix(data)
+#   data[which(data>0)] = 1
+#
+#   results = matrix(ncol=5, nrow=ncol(data))
+#   rownames(results) = colnames(data)
+#
+#   for (i in 1:ncol(data)) {
+#     pcount = 0
+#     pscore = 0
+#     ncount = 0
+#     nscore = 0
+#     pos = 0
+#     neg = 0
+#
+#     for (fam in unique(families)) {
+#       famil = names(which(families==fam))
+#       #print(fam, famil)
+#       #browser()
+#
+#       # we'll use a weighted score for each kmer in families
+#       count = sum(data[famil,i])
+#       score = count/length(famil)
+#
+#       # this assumes that all in the family are labeled the same way
+#       # if they're not then that might be an issue overall
+#       if (these_fact[famil][length(famil)]=="positive") {
+#         pcount = pcount + count
+#         pscore = pscore + score
+#         pos = pos + 1
+#         #print(c(ncol(data), count, length(famil)))
+#         #browser()
+#       }
+#       else {
+#         ncount = ncount + count
+#         nscore = nscore + score
+#         neg = neg + 1
+#       }
+#     }
+#     pscore = pscore/pos
+#     nscore = nscore/neg
+#     results[i,] = c(pcount, pscore, ncount, nscore, pscore-nscore)
+#   }
+#   return(results)
+# }
+
+
 
 def output_features(feature_sets=None, format=None, output_filename=None, labels=None, write_mode="w", **kw):
     if format == "gist" or format == "both":
