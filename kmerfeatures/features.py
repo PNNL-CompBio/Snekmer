@@ -8,7 +8,7 @@ from kmerfeatures.transform import vectorize_string
 
 
 # functions
-def output_features(format, output_file feature_sets=None,
+def output_features(format, output_file, feature_sets=None,
                     labels=None, mode="w", **kwargs):
     """Generate output features based on input fasta file.
 
@@ -202,7 +202,7 @@ def output_gist_features(filename, features):
         Description of returned object.
 
     """
-    with open(filename, 'w') as f:)
+    with open(filename, 'w') as f:
         filename.write("%s" % features[0])
         for f in features[1:]:
             filename.write("\t%s" % f)
@@ -230,11 +230,11 @@ def output_gist_class(filename, features, example_index=None):
     """
     fid = features[0]
     value = example_index.get(fid, -1)
-    file.write("%s\t%d\n" % (features[0], value))
-    file.flush()
+    filename.write("%s\t%d\n" % (features[0], value))
+    filename.flush()
 
 
-def define_feature_space(sequence_dict, kmer=None, map_function=None,
+def define_feature_space(sequence_dict, k=3, map_function=None,
                          start=None, end=None, residues=None, min_rep_thresh=2,
                          verbose=False):
     """Short summary.
@@ -243,8 +243,8 @@ def define_feature_space(sequence_dict, kmer=None, map_function=None,
     ----------
     sequence_dict : type
         Description of parameter `sequence_dict`.
-    kmer : type
-        Description of parameter `kmer`.
+    k : type
+        Description of parameter `k`.
     map_function : type
         Description of parameter `map_function`.
     start : type
@@ -268,12 +268,14 @@ def define_feature_space(sequence_dict, kmer=None, map_function=None,
 
     feature_dict = {}
 
-    for seq_id, seq in sequence_dict.items():
-        feature_dict = vectorize_string(sequence=seq, kmer=kmer, map_function=map_function, feature_dict=feature_dict,
-                                         start=start, end=end, residues=residues, return_dict=True)
+    for seq in sequence_dict.values():
+        feature_dict = vectorize_string(seq, k=k, map_function=map_function,
+                                        feature_dict=feature_dict, start=start,
+                                        end=end, residues=residues,
+                                        return_dict=True)
 
     # if this is between 0 and 1 then it's a percentage
-    if min_rep_thresh < 1 and min_rep_thresh > 0:
+    if 0 < min_rep_thresh < 1:
         min_rep_thresh = len(feature_dict.keys()) * min_rep_thresh
 
     # filter out all those below the min_rep_thresh
@@ -290,7 +292,7 @@ def define_feature_space(sequence_dict, kmer=None, map_function=None,
             ("Feature space: {0} kmers with more than"
              "{1} representation in {2} sequences").format(
                  len(filter_dict),
-                 config['input']['kmer']['min_rep_thresh'],
+                 min_rep_thresh,
                  len(sequence_dict)
                  )
              )

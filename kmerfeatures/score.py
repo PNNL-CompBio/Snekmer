@@ -24,7 +24,7 @@ def connection_matrix_from_features(feature_matrix, metric="jaccard"):
 
     Returns
     -------
-    type
+    pandas.DataFrame
         a square matrix with the similarity scores of pairwise
         relationships between proteins.
 
@@ -56,7 +56,7 @@ def cluster_feature_matrix(feature_matrix, method="agglomerative"):
 
     Parameters
     ----------
-    feature_matrix : type
+    feature_matrix : pandas.DataFrame
         Description of parameter `feature_matrix`.
     method : type
         Description of parameter `method`.

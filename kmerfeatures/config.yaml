@@ -1,27 +1,28 @@
 input:
   fasta: None
   fasta_dir: "/Users/chan898/Documents/Projects/kmer_pipeline/KmerPipeline/example"
-  example_index_file: None
+  example_index_file: False
   walk: False
-  feature_set: None
-  kmer:
-    k: 3
-    start: None
-    end: None
-    nucleotide: False
-    map_function: 'reduced_alphabet_0'  # choices: 0-5
-    randomize_alphabet: False
-    min_rep_thresh: 1
+  feature_set: '/Users/chan898/Documents/Projects/kmer_pipeline/KmerPipeline/example/model_features.txt'
+
+kmer:
+  k: 14
+  start: None
+  end: None
+  nucleotide: False
+  map_function: 'reduced_alphabet_0'  # choices: 0-5
+  randomize_alphabet: False
+  min_rep_thresh: 1
 
 output:
   save_dir: "/Users/chan898/Documents/Projects/kmer_pipeline/output"
   verbose: True
   format: 'simple'  # choices: ['simple', 'gist', 'sieve']
-  filename: None
+  filename: False
   filter_duplicates: True
-  n_terminal_file: None
-  shuffle_n: None
-  shuffle_sequences: None
+  n_terminal_file: False
+  shuffle_n: False
+  shuffle_sequences: False
   kmer_output: True
 
 # parser.add_argument('-v', '--verbose', action='store_false', help='verbose output')
