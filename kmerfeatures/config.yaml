@@ -1,28 +1,29 @@
 input:
   fasta: None
   fasta_dir: "/Users/chan898/Documents/Projects/kmer_pipeline/KmerPipeline/example"
-  example_index_file: None
+  example_index_file: False
   walk: False
-  kmer:
-    k: 3
-    start: None
-    end: None
-    nucleotide: False
-    map_function: 'reduced_alphabet_0'  # choices: 0-5
-    randomize_alphabet: False
-    min_rep_thresh: 1
+  feature_set: '/Users/chan898/Documents/Projects/kmer_pipeline/KmerPipeline/example/model_features.txt'
 
-  output:
-    save_dir: "/Users/chan898/Documents/Projects/kmer_pipeline/output"
-    verbose: True
-    format: 'simple'  # choices: ['simple', 'gist', 'sieve']
-    filename: None
-    filter_duplicates: True
-    n_terminal_file: None
-    shuffle_n: None
-    shuffle_sequences: None
-    feature_set: None
-    kmer_output: True
+kmer:
+  k: 14
+  start: None
+  end: None
+  nucleotide: False
+  map_function: 'reduced_alphabet_0'  # choices: 0-5
+  randomize_alphabet: False
+  min_rep_thresh: 1
+
+output:
+  save_dir: "/Users/chan898/Documents/Projects/kmer_pipeline/output"
+  verbose: True
+  format: 'simple'  # choices: ['simple', 'gist', 'sieve']
+  filename: False
+  filter_duplicates: True
+  n_terminal_file: False
+  shuffle_n: False
+  shuffle_sequences: False
+  kmer_output: True
 
 # parser.add_argument('-v', '--verbose', action='store_false', help='verbose output')
 #   parser.add_argument('-p', '--parameterfile', metavar='PATH', help='filename of a parameter file to use')

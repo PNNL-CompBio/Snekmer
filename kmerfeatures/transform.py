@@ -7,6 +7,7 @@ author: @christinehc
 import random
 import re
 
+from Bio import SeqIO
 from Util.SIEVEInit import StandardAlphabet
 from Util.SIEVEInit import get_alphabets
 
@@ -18,6 +19,25 @@ MAPFN2NAME = {f"reduced_alphabet_{n}": f"RED{n}" for n in range(5)}
 
 
 # functions
+def identity(character):
+    """Return self.
+
+    Used as a placeholder map function when applicable.
+
+    Parameters
+    ----------
+    character : object
+        Object to return.
+
+    Returns
+    -------
+    object
+        Returned object.
+
+    """
+    return character
+
+
 def baseconvert(n, k, digits="ACDEFGHIKLMNPQRSTVWY"):
     """Generate a kmer sequence from input integer representation.
 
@@ -65,11 +85,36 @@ def baseconvert(n, k, digits="ACDEFGHIKLMNPQRSTVWY"):
     return s
 
 
-def parse_map_function(map_function, mapping=None):
+def reduce_alphabet(character, mapping=None):
+    """reduce alphabet according to pre-defined alphabet mapping.
+
+    Parameters
+    ----------
+    character : type
+        Description of parameter `character`.
+    mapping : dict
+        Mapping specification for sequence.
+
+    Returns
+    -------
+    type
+        Description of returned object.
+
+    """
+    for key in mapping.keys():
+        if character in key:
+            return mapping[key]
+    return None
+
+
+def parse_map_function(map_function):
     """Parse map function input into mapping parameters.
 
     Mappings are created as follows:
-        If the input map function is a list,
+        If the input map function is a list, this format is assumed:
+            (residues, map_name, mapping)
+        If the input map function is a string, the mapping is defined
+        from pre-existing alphabets.
 
     Parameters
     ----------
@@ -83,22 +128,13 @@ def parse_map_function(map_function, mapping=None):
             str : e.g. "reduced_alphabet_N"
                 Use a reduced alphabet (N = 0, 1, 2, 3, or 4)
 
-    mapping : type
-        Mapping specification for sequence (?)
 
     Returns
     -------
     type
-        residues, map_name, map_function, kwargs['mapping']
+        residues, map_name, map_function
 
     """
-    # reduce alphabet according to pre-defined alphabet mapping
-    def reduce_alphabet(character, mapping=None):
-        for key in mapping.keys():
-            if character in key:
-                return mapping[key]
-        return None  # my addition-- does this work?
-
     # for when we create a random alphabet to apply to many sequences
     if isinstance(map_function, list):
         residues = map_function[0]
@@ -124,9 +160,143 @@ def parse_map_function(map_function, mapping=None):
     return residues, map_name, map_function, mapping
 
 
-def string_vectorize(sequence=None, k=3, start=None,
-                     end=None, map_function=None, return_labels=False,
-                     feature_dict=None, filter_list=None, exclusion_list=None,
+def map_characters(k_map, map_function, **kwargs):
+    """Apply character mapping as specified.
+
+    Parameters
+    ----------
+    k_map : str
+        String of mapped characters.
+    map_function : type
+        Description of parameter `map_function`.
+    **kwargs : type
+        Description of parameter `**kwargs`.
+
+    Returns
+    -------
+    type
+        Description of returned object.
+
+    """
+    k_string = ""
+    for char in k_map:
+        map_char = map_function(char, **kwargs)
+
+        # omits unrecognized characters (may be undesireable in some cases)
+        if map_char is None:
+            continue
+        k_string += map_char
+    return k_string
+
+
+def generate_labels(k=3, map_function=None, residues=None, filter_list=None):
+    """Short summary.
+
+    Parameters
+    ----------
+    k : type
+        Description of parameter `k`.
+    map_function : type
+        Description of parameter `map_function`.
+    residues : type
+        Description of parameter `residues`.
+    filter_list : type
+        Description of parameter `filter_list`.
+
+    Returns
+    -------
+    type
+        Description of returned object.
+
+    """
+    # if residues or map_function not specified, set generically
+    map_function = map_function or identity
+
+    residues, map_name, map_function, mapping = parse_map_function(map_function)
+
+    # we should provide the ability to include a bunch of strings
+    # that can be used to vectorize
+    if pow(len(residues), k) <= 2e4:
+        raise RuntimeError(
+            "Given parameters will generate >20k inputs."
+        )
+
+    labels = []
+
+    # if there is a filter list, return labels for listed filters
+    if filter_list:
+        for filt in filter_list:
+            label = "KMER-%d-%s-%s" % (k, map_name, filt)
+            labels.append(label)
+        return labels
+
+    for bit in range(pow(len(residues), k)):
+        label = "KMER-%d-%s-%s" % (k, map_name, baseconvert(bit, k,
+                                                            digits=residues))
+        labels.append(label)
+    return labels
+
+
+def set_sequence_endpoints(sequence, k, start, end):
+    """Set logical start and end indices for a given sequence.
+
+    Parameters
+    ----------
+    sequence : str or iterable
+        Sequence for which to determine endpoints.
+    k : int
+        Kmer length (k units).
+    start : int
+        Start index of the sequence.
+    end : int
+        End index of the sequence.
+
+    Returns
+    -------
+    type
+        Description of returned object.
+
+    """
+    # set logical start and end indices for sequence
+    if start < 0:
+        start = len(sequence) + start
+        if start < 0:
+            start = 0
+    if not end:
+        end = len(sequence) - k
+    return start, end
+
+
+def exclude_from_string(k_string, exclude):
+    """Exclude string if at least one given substring is detected.
+
+    Parameters
+    ----------
+    k_string : str
+        String to check.
+    exclude : list
+        List of substrings to search for in k_string.
+
+    Returns
+    -------
+    bool
+        Returns True if a specified substring is found in k_string.
+        Returns False if none of the specified substrings are found
+            in k_string, or if no exclusion list is given.
+
+    """
+    if exclude:
+        if not isinstance(exclude, list):
+            exclude = [exclude]
+        for bit in exclude:
+            if k_string.find(bit) > 0:
+                return True
+    return False
+
+
+def vectorize_string(sequence, k=3, start=0, end=False,
+                     map_function=None, feature_dict=None,
+                     filter_list=None, exclude=None,
                      return_dict=None, kmer_output=None,
                      residues=StandardAlphabet, **kwargs):
     """Short summary.
@@ -143,14 +313,14 @@ def string_vectorize(sequence=None, k=3, start=None,
         Description of parameter `end`.
     map_function : type
         Description of parameter `map_function`.
-    return_labels : type
-        Description of parameter `return_labels`.
     feature_dict : type
-        Description of parameter `feature_dict`.
+        Description of parameter `feature_dict` (default: None).
     filter_list : type
         Description of parameter `filter_list`.
-    exclusion_list : type
-        Description of parameter `exclusion_list`.
+    exclude : list
+        List of sequence strings for exclusion (default: None).
+        This is from the kmer_walk approach and should be shorter
+        sequences (though they may also be the same length).
     return_dict : type
         Description of parameter `return_dict`.
     kmer_output : type
@@ -164,141 +334,59 @@ def string_vectorize(sequence=None, k=3, start=None,
         why is this returning so many things ????
 
     """
-    # appears extraneous
-    # def identity(character, **kwargs):
-    #     return character
     # if residues or map_function not specified, set generically
-    # map_function = map_function #  or identity
-    # residues = residues or StandardAlphabet
-    # mapping = None
-    map_name = "NAT"
-
-    residues, map_name, map_function, mapping = parse_map_function(
-        map_function
-        )
+    map_function = map_function or identity
+    residues, map_name, map_function, mapping = parse_map_function(map_function)
 
     # we should provide the ability to include a bunch of strings
     # that can be used to vectorize
-    error_message = "Error: given parameters will generate >20k inputs."
-    assert pow(len(residues), k) <= 2e4, error_message
+    if pow(len(residues), k) <= 2e4:
+        raise RuntimeError(
+            "Given parameters will generate >20k inputs."
+        )
 
-    # return only labels
-    if return_labels:
-        labels = []
-        if filter_list:
-            for filter in filter_list:
-                label = "KMER-%d-%s-%s" % (k, map_name, filter)
-                labels.append(label)
-            return labels
+    # set logical start and end indices for sequence
+    start, end = set_sequence_endpoints(sequence, k, start, end)
 
-        else:
-            for bit in range(pow(len(residues), k)):
-                label = "KMER-%d-%s-%s" % (k, map_name, baseconvert(bit, k=k,
-                                                                    digits=residues))
-                labels.append(label)
-            return labels
+    results = feature_dict or {}
+    if filter_list:
+        results = {k: 0 for k in filter_list}
 
-    tstart = start or 0
-    if tstart < 0:
-        tstart = len(sequence) + tstart
-        if tstart < 0:
-            tstart = 0
+    for i in range(start, end):
+        k_map = sequence[i: i + k]
 
-    tend = end or len(sequence) - k
-
-    results = {}
-    if feature_dict:
-        results = feature_dict
-
-    elif filter_list:
-
-        # there is a more elegant way of doing this- and probably clever too
-        for item in filter_list:
-            results[item] = 0
-
-    for i in range(tstart, tend):
-        kmap = sequence[i:i + k]
-        # do mapping to a reduced alphabet, e.g.
-        kstring = ""
-        for char in kmap:
-            cc = map_function(char, **kwargs)
-
-            # this has the effect of omitting unrecognized characters, which may be undesireable in some cases
-            if cc == None:
-                continue
-            kstring += cc
-
-        if len(kstring) < k:
-            # this happens when there are unrecognized characters
-            # and we need to not include these
-            continue
-
-        # if we don't find the kstring in the filter_list
-        #   then we skip.
-        #if filter_dict:
-        #    print(filter_dict.keys())
-        #    print(kstring)
+        # perform mapping to a reduced alphabet
+        k_string = map_characters(k_map, map_function, **kwargs)
 
         if kmer_output:
-          print(i, "\t", kmap, "\t", kstring, "\t1", )
+            print(i, "\t", k_map, "\t", k_string, "\t1", )
 
-        if filter_list and kstring not in filter_list:
-            #print("hoopla")
+        # filter unrecognized characters or filter from list
+        if (len(k_string) < k) or (filter_list and k_string
+                                   not in filter_list):
             continue
 
-        #FILTER HERE
+        # FILTER HERE
 
-        # a list of strings to exclude from consideration
-        #   this is from the kmer_walk approach and should
-        #   be shorter sequences (though could also be the
-        #   same length)
-        if exclusion_list:
-            breaker = 0
-            for bit in exclusion_list:
-                if kstring.find(bit) > 0:
-                    breaker = 1
-                    break
-            if breaker: next
+        # exclude specified substrings from results
+        if exclude_from_string(k_string, exclude):
+            continue
 
-        if not kstring in results:
-            results[kstring] = 0
-        results[kstring] += 1
+        # initialize value in dictionary if missing
+        if k_string not in results:
+            results[k_string] = 0
+        results[k_string] += 1
 
     if return_dict:
         return results
-
     if filter_list:
-        results_ordered = []
-        for item in filter_list:
-            results_ordered.append(results[item])
-        return results_ordered
-
+        return [results[item] for item in filter_list]
     return results.values()
-
-    # old stuff below
-    results_vector = []
-    for j in range(0, pow(len(residues), k)):
-        results_vector.append(0.0)
-
-    for key in results.keys():
-        # base conversion- though we're using base 20 (A-Y, minus B, J, O, U) and not base 25 (A-Y)
-        # for the standard aa alphabet. We can also use various reduced alphabets
-        x = 0
-
-        if len(key) < k:
-            continue
-
-        for k_idx in range(k):
-            # provide a unique index for all possible strings
-            x += residues.find(key[k_idx]) * pow(len(residues), k_idx)
-        results_vector[x] = results[key]
-
-    return results_vector
 
 
 def scramble_sequence(sequence_id, sequence, n=1, id_modifier=False,
                       first_residue=1, example_index=None):
-    """Scramble sequences given a sequence and identifier.
+    """Scramble sequences given an identifier and its sequence.
 
     Given a sequence and an identifier, returns a list of n scrambled
     sequences and numbered identifiers.
@@ -333,18 +421,19 @@ def scramble_sequence(sequence_id, sequence, n=1, id_modifier=False,
     else:
         id_list = [sequence_id for i in range(n)]
 
-    start_residue = sequence[0:first_residue]
-    scramble = [char for char in sequence[first_residue:]]
+    start_residue = sequence[:first_residue]
+    seq = [char for char in sequence[first_residue:]]
 
-    seq_list = []
-    for i in range(len(id_list)):
-        random.shuffle(scramble)
-        shuffled = [char for char in "".join([start_residue] + scramble)]
-        seq_list.append(shuffled)
+    scrambled_seqs = []
+    for sid in id_list:
+        random.shuffle(seq)
+        shuffled = [char for char in "".join([start_residue] + seq)]
+        scrambled_seqs.append(shuffled)
 
-        example_index[sid] = -1  # this confuses me-- is this mistakenly written?
+        # change indices to -1 for shuffled
+        example_index[sid] = -1.0  # this confuses me-- is this mistakenly written?
 
-    return id_list, seq_list, example_index
+    return id_list, scrambled_seqs, example_index
 
 
 def make_n_terminal_fusions(sequence_id, filename):

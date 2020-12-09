@@ -2,22 +2,22 @@ configfile: "config.yaml"
 
 # imports
 import glob
-# import os
 import sys
-# import gzip
 import random
-# import copy
 
+import h5py
 import kmerfeatures as kmf
+import numpy as np
+import pandas as pd
 
 # from types import *
 from Bio import SeqIO
-from os.path import (basename, join, splitext)
+from os import makedirs
+from os.path import (basename, dirname, exists, join, splitext)
 from Util.SIEVEInit import get_alphabets
 
 
 # pull config params
-params = config['kmer']
 files = glob.glob(join(config['input']['fasta_dir'], "*.fasta"))
 FNS = [splitext(basename(f))[0] for f in files]
 
@@ -27,6 +27,7 @@ rule all:
     input:
         expand(join(config['output']['save_dir'], "features", "{fn}.txt"), fn=FNS)
         # expand(join(config['output']['save_dir'], "score"))  # eventually
+
 
 if config['input']['walk']:
     rule perform_kmer_walk:
@@ -42,47 +43,54 @@ rule preprocess:
     input:
         fasta=join(config['input']['fasta_dir'], "{fn}.fasta")
     output:
-        map_function=join(config['output']['save_dir'], "processed", "{fn}", "map_function.pkl"),
-        filter=join(config['output']['save_dir'], "processed", "{fn}", "filter.pkl")
+        data=join(config['output']['save_dir'], "processed", "{fn}.hdf5"),
+        # shuffle=join(config['output']['save_dir'], "processed", "{fn}_shuffle.fasta")
     run:
-        # pull all config parameters
-        #   sidequest: organize all config parameters by relevant function
-
         # read fasta file
-        seq_list, id_list = kmf.utils.read_fasta(input.fasta,
-                                                 include_map=False)
-
-        # feature_sets = []  # what
+        seq_list, id_list = kmf.utils.read_fasta(input.fasta)
 
         # if random alphabet specified, implement randomization
-        if config['input']['kmer']['randomize_alphabet']:
+        if config['kmer']['randomize_alphabet']:
             # this = []  # what
-            rand_alphabet = kmf.transform.randomize_alphabet(map_function)
+            rand_alphabet = kmf.transform.randomize_alphabet(config['input']['map_function'])
             map_function = [residues, map_name, rand_alphabet]
+        else:
+            map_function = config['kmer']['map_function']
 
         # if no feature set is specified, define feature space
-        if config['output']['feature_set'] is None:
+        if not config['input']['feature_set']:
             # prefilter fasta to cut down on the size of feature set
             filter_dict = kmf.features.define_feature_space(
                 sequence_dict=sequence_dict,
-                kmer=config['input']['kmer']['k'],
+                kmer=config['kmer']['k'],
                 map_function=map_function,
-                start=config['input']['kmer']['start'],
-                end=config['input']['kmer']['end'],
-                min_rep_thresh=config['input']['kmer']['min_rep_thresh'],
+                start=config['kmer']['start'],
+                end=config['kmer']['end'],
+                min_rep_thresh=config['kmer']['min_rep_thresh'],
                 verbose=config['output']['verbose']
                 )
+            filter_list = list(filter_dict.keys())
+
         else:
             # read in list of ids to use from file; NO FORMAT CHECK
             filter_list = []
-            with open(feature_set, "r") as f:
+            with open(config['input']['feature_set'], "r") as f:
                 for line in f.readlines():
-                      filter_list.append(line.split()[0])
+                    filter_list.append(line.split()[0])
 
-        # filter duplicates?
-        seen = []
-        # i = 0  # what
-        first = True
+        # optional indexfile with IDs of good feature output examples
+        if config['input']['example_index_file']:
+            example_index = kmf.utils.read_example_index(
+                config['input']['example_index_file'] is not None
+                )
+        else:
+            example_index = {}
+
+        # loop thru seqs, apply input params to preprocess seq list
+        seen = []  # filter duplicates
+        filt_seq_list, filt_sid_list,  = list(), list()
+        filt_residues, filt_example_index = list(), list()
+
         for i in range(len(seq_list)):
             seq = seq_list[i]
             sid = id_list[i]
@@ -92,163 +100,150 @@ rule preprocess:
                 continue
             seen.append(sid)
 
-            seqs = [seq, ]
-            sids = [sid, ]
-
+            seqs = [seq]
+            sids = [sid]
 
             # shuffle the N-terminal sequence n times
             if config['output']['shuffle_n']:
                 example_index[id] = 1.0
                 scid_list, scramble_list, example_index = kmf.transform.scramble_sequence(
-                    sid, seq[:30], n=shuffle_n, example_index=example_index
+                    sid, seq[:30], n=config['output']['shuffle_n'],
+                    example_index=example_index
                     )
                 seqs += scramble_list
                 sids += scid_list
 
+                # include shuffled sequences in output
                 if config['output']['shuffle_sequences']:
-                    filename = "%s_shuffled.fasta" % sid
+                    filename = join(config['output']['save_dir'], 'shuffled',
+                                    wildcards.fn, "%s_shuffled.fasta" % sid)
+                    if not exists(dirname(filename)):
+                        makedirs(dirname(filename))
                     with open(filename, "w") as f:
                         for i in range(len(sids)):
-                            # seq_id =
-                            # seq = seqs[i]
                             f.write(">%s\n%s\n" % (sids[i], seqs[i]))
 
             # run SIEVE on the wt and each shuffled sequence
             if config['output']['n_terminal_file']:
-                addid_list, addseq_list = kmf.transform.make_n_terminal_fusions(
+                sids_n, seqs_n = kmf.transform.make_n_terminal_fusions(
                     sid, config['output']['n_terminal_file']
                     )
-                sequences += addseq_list
-                ids += addid_list
-
+                seqs += seqs_n
+                sids += sids_n
             residues = None
-            if nucleotide:
+            if config['kmer']['nucleotide']:
                 residues = "ACGT"
 
+            filt_seq_list.append(seqs)
+            filt_sid_list.append(sids)
+            filt_residues.append(residues)
+            filt_example_index.append(example_index)
+
+        with h5py.File(output.data, "w") as f:
+            dt = h5py.special_dtype(vlen=str)
+            # save map function
+            f.create_dataset("map_function", data=map_function, dtype=dt)
+                                       # dtype=)
+            f.create_dataset("filter_list", data=np.array(filter_list, dtype=dt))
+
+            # save ids, seqs, and residues in separate group
+            f.create_dataset("filtered/sequences", data=filt_seq_list)
+            f.create_dataset("filtered/ids", data=filt_sid_list)
+            f.create_dataset("filtered/residues", data=filt_residues)
+            f.create_dataset("filtered/example_index", data=filt_example_index)
 
 
 rule generate_features:
     input:
-        fasta=join(config['input']['fasta_dir'], "processed", "{fn}.?")
+        data=join(config['output']['save_dir'], "processed", "{fn}.hdf5"),
     output:
         features=join(config['output']['save_dir'], "features", "{fn}.txt")
     log:
         join(config['output']['save_dir'], "logs", "{fn}.log")
     run:
-        # if no user-specified save name, use same name as fasta
-        if config['output']['filename'] is None:
-            output_filename = wildcards.fn
+        # read processed features
+        with h5py.File(input.data, 'r') as f:
+            map_function = f['map_function']
+            filter_list = f['filter_list']
+            filtered = f['filtered']
 
-        # optional indexfile with IDs of good feature output examples
-        if config['input']['example_index_file']:
-            example_index = kmf.utils.read_example_index(
-                config['input']['example_index_file']
-                )
-        else:
-            example_index = {}
+            sequences = filtered['sequences']
+            ids = filtered['ids']
+            residues = filtered['residues']
+            example_index = filtered['example_index']
 
-        # this will catch multiples of the same identifier- but may
-        # result in problems if there are more than one of the same
-        # identifier (i.e. user's files might be messy this way)
-        seen = []
-        i = 0  # what
-        first = True
-        for i in range(len(seq_list)):
-            seq = seq_list[i]
-            sid = id_list[i]
+        # apply user-specified save name, if it exists
+        # if config['output']['filename'] is None:
+        #     output_file = wildcards.fn
 
-            if config['output']['filter_duplicates'] and sid in seen:
-                continue
-            seen.append(sid)
-
-            seqs = [seq, ]
-            sids = [sid, ]
-
-
-            # shuffle the N-terminal sequence N times and run SIEVE on the wt and each shuffled sequence
-            if config['output']['shuffle_n']:
-                example_index[id] = 1.0
-                scid_list, scramble_list, example_index = kmf.transform.scramble_sequence(
-                    sid, seq[:30], n=shuffle_n, example_index=example_index
-                    )
-                seqs += scramble_list
-                sids += scid_list
-
-                if config['output']['shuffle_sequences']:
-                    filename = "%s_shuffled.fasta" % sid
-                    with open(filename, "w") as f:
-                        for i in range(len(sids)):
-                            # seq_id =
-                            # seq = seqs[i]
-                            f.write(">%s\n%s\n" % (sids[i], seqs[i]))
-
-            if config['output']['n_terminal_file']:
-                addid_list, addseq_list = kmf.transform.make_n_terminal_fusions(
-                    sid, config['output']['n_terminal_file']
-                    )
-                sequences += addseq_list
-                ids += addid_list
-
-            residues = None
-            if nucleotide:
-                residues = "ACGT"
-
+        #
+        first = []
+        for i in range(len(sequences)):
+            seq = sequences[i]
+            sid = ids[i]
 
             labels = []
-            for j in range(len(sequences)):
-                sequence = seqs[j]
-                seq_id = sids[j]
+            for j in range(len(seq)):
+                sequence = seq[j]
+                seq_id = sid[j]
 
-                if verbose:
+                if config['output']['verbose']:
                     print("Constructing features for sequence %s" % seq_id)
 
-                features = [seq_id,]
+                features = [seq_id]
 
-                features += string_vectorize(sequence=sequence, kmer=kmer, start=start, end=end, map_function=map_function, residues=residues, filter_list=filter_list,
-                                             kmer_output=kmer_output)
+                features += kmf.transform.vectorize_string(
+                    sequence, k=config['kmer']['k'],
+                    start=config['kmer']['start'],
+                    end=config['kmer']['end'],
+                    map_function=map_function, residues=residues,
+                    filter_list=filter_list,
+                    kmer_output=config['output']['kmer_output']
+                    )
+
+                # record labels for first sequence only
                 if first:
-                    labels += string_vectorize(return_labels=True, kmer=kmer, start=start, end=end, map_function=map_function, residues=residues, filter_list=filter_list)
+                    labels += kmf.transform.generate_labels(
+                        k=config['kmer']['k'],
+                        map_function=map_function, residues=residues,
+                        filter_list=filter_list
+                        )
                     if features_output_format == "simple":
-                        output_features(format="matrix", output_filename=output_filename, labels=labels)
+                        kmf.features.output_features("matrix",
+                                                     output.features,
+                                                     labels=labels)
 
                 first = False
                 i += 1
 
-                #print(features)
+                # print(features)
 
-                if features_output_format == "simple":
-                    # we'll output as we go- this is especially good for very large input files
-                    output_features(feature_sets=[features,], format="matrix", output_filename=features_output_filebase, write_mode="a")
+                # output as we go (esp. good for very large input files)
+                if config['output']['format'] == "simple":
+                    kmf.features.output_features(
+                        "matrix", output.features, feature_sets=[features],
+                        write_mode="a"
+                        )
 
-                # we'll output sieve patterns as we go to provide a record
-                if features_output_format in ("sieve", "both"):
-                    output_features(feature_sets=[features,], format="sieve", output_filename=features_output_filebase,
-                                    example_index=example_index, write_mode="a")
+                # output sieve patterns as we go to provide a record
+                if config['output']['format'] in ("sieve", "both"):
+                    kmf.features.output_features(
+                        "sieve", output.features, feature_sets=[features],
+                        write_mode="a", example_index=example_index
+                        )
 
-                if features_output_format != "simple":
-                    # we only keep this if we are not already dumping each line to an output file
-                    feature_sets.append(features)
-
+                # only append features if not dumping into file
+                if config['output']['format'] != "simple":
+                    feature_sets.append(features)  # what happens with this
 
 
 rule score_features:
     input:
+        join(config['output']['save_dir'], "features", "{fn}.txt")
     output:
+        join(config['output']['save_dir'], "score", "{fn}.hdf5")
     run:
+        matrix = kmf.score.connection_matrix_from_features(input[0])
+        clusters = kmf.score.cluster_feature_matrix(matrix)
 
-# to fix
-rule main:
-    input:
-        join()  # in: some fasta file
-    output:
-        join()  # out: not yet clear to me
-    run:
-
-
-
-
-
-        # handle.close()  # what
-
-        if features_output_format != "simple":
-            output_features(feature_sets=feature_sets, format=features_output_format, output_filename=features_output_filebase, example_index=example_index, labels=labels)
+        pd.to_hdf(output[0], 'cluster_matrix')

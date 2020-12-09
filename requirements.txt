@@ -1,2 +1,3 @@
 biopython
+h5py
 snakemake

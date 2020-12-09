@@ -2,7 +2,9 @@
 
 # imports
 import argparse
+
 from multiprocessing import cpu_count
+from pkg_resources import resource_filename
 from snakemake import snakemake
 
 # define options
@@ -37,6 +39,7 @@ def main():
 
     # snakemake options
     parser.add_argument('--dryrun', action='store_true', help='perform a dry run')
+    parser.add_argument('--config', metavar='PATH', default='config.yaml', help='path to yaml configuration file')
     parser.add_argument('--unlock', action='store_true', help='unlock directory')
     parser.add_argument('--touch', action='store_true', help='touch output files only')
     parser.add_argument('--latency', metavar='N', type=int, default=3, help='specify filesystem latency (seconds)')
@@ -65,8 +68,8 @@ def main():
     else:
         cluster = None
 
-    snakemake('Snakefile',
-              configfiles=[args.config],
+    snakemake(resource_filename('kmerfeatures','Snakefile'),
+              configfile=args.config,
               config=config,
               cluster_config=args.cluster,
               cluster=cluster,
