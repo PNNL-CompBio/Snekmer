@@ -142,7 +142,7 @@ def feature_class_probabilities(feature_matrix, example_labels):
     for key in feature_matrix.keys():
         features = feature_matrix[key]
         pos_score = example_labels * features
-        neg_score = example_labels * ((features==0)*1)
+        neg_score = ((example_labels==0)*1) * features
 
         # probability that the presence of this kmer maps to the positive
         #   examples
