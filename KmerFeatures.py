@@ -9,7 +9,7 @@ from types import *
 from Util.Options import *
 from Util.SIEVEInit import *
 
-from Bio import SeqIO
+#from Bio import SeqIO
 from sklearn.metrics.pairwise import pairwise_distances
 from sklearn.cluster import AgglomerativeClustering
 import pandas as pd
@@ -123,32 +123,33 @@ def cluster_feature_matrix(feature_matrix, method="agglomerative"):
 def feature_class_probabilities(feature_matrix, example_labels):
     # coding this first for the binary case - in class or not
 
-    # transform example labels into 1 and 0, if necessary
     # check to make sure the labels are the same size as number of examples
     # check labels to make sure they contain two classes
-    # make sure that the feature_matrix has only 1s and 0s (instead of kmer counts)
-    #  All TBD
+    #  TBD
+
+    # convert the feature count matrix into binary presence/absence
+    feature_matrix = (feature_matrix>0)*1
 
     colnames = feature_matrix.keys()
 
-
-    results = pd.DataFrame(data=colnames, columns=5)
+    #results = pd.DataFrame(data=colnames, columns=["CountPos","ProbPos","CountNeg","ProbNeg","Score"])
+    results = pd.DataFrame(index=colnames, columns=["CountPos","ProbPos","CountNeg","ProbNeg","Score"])
 
     pos_tot = sum(example_labels)
-    neg_tot = length(example_labels) - pos_tot
+    neg_tot = len(example_labels) - pos_tot
 
     # for every feature in the input matrix
-    for key in 1:feature_matrix.keys():
+    for key in feature_matrix.keys():
         features = feature_matrix[key]
         pos_score = example_labels * features
-        neg_score = example_labels * !features
+        neg_score = example_labels * ((features==0)*1)
 
         # probability that the presence of this kmer maps to the positive
         #   examples
         pos_score_p = sum(pos_score)/pos_tot
         neg_score_p = sum(neg_score)/neg_tot
 
-        results[key] = [pos_score, pos_score_p, neg_score, neg_score_p, pos_score_p-neg_score_p]
+        results.loc[key] = [sum(pos_score), pos_score_p, sum(neg_score), neg_score_p, pos_score_p-neg_score_p]
 
     return(results)
 
