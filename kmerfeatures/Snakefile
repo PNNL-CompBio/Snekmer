@@ -2,13 +2,12 @@ configfile: "config.yaml"
 
 # imports
 import glob
-import sys
+import json
 import random
+import sys
 
-import h5py
 import kmerfeatures as kmf
 import numpy as np
-import pandas as pd
 
 # from types import *
 from Bio import SeqIO
@@ -20,6 +19,9 @@ from Util.SIEVEInit import get_alphabets
 # pull config params
 files = glob.glob(join(config['input']['fasta_dir'], "*.fasta"))
 FNS = [splitext(basename(f))[0] for f in files]
+RECURS_DSETS = ['sequences', 'ids', 'residues']
+NONRECURS_DSETS = ['map_function', 'example_index', 'filter_list']
+DSETS = RECURS_DSETS + NONRECURS_DSETS
 
 
 # rules
@@ -43,7 +45,9 @@ rule preprocess:
     input:
         fasta=join(config['input']['fasta_dir'], "{fn}.fasta")
     output:
-        data=join(config['output']['save_dir'], "processed", "{fn}.hdf5"),
+        data=join(config['output']['save_dir'], "processed", "{fn}.json")
+        # data=expand(join(config['output']['save_dir'], "processed", "{{fn}}", "{dset}.json"), dset=DSETS)
+        # data=join(config['output']['save_dir'], "processed", "{fn}.hdf5"),
         # shuffle=join(config['output']['save_dir'], "processed", "{fn}_shuffle.fasta")
     run:
         # read fasta file
@@ -88,8 +92,7 @@ rule preprocess:
 
         # loop thru seqs, apply input params to preprocess seq list
         seen = []  # filter duplicates
-        filt_seq_list, filt_sid_list,  = list(), list()
-        filt_residues, filt_example_index = list(), list()
+        save_data = dict()
 
         for i in range(len(seq_list)):
             seq = seq_list[i]
@@ -134,53 +137,51 @@ rule preprocess:
             if config['kmer']['nucleotide']:
                 residues = "ACGT"
 
-            filt_seq_list.append(seqs)
-            filt_sid_list.append(sids)
-            filt_residues.append(residues)
-            filt_example_index.append(example_index)
+            to_save = [seqs, sids, residues]
+            save_label = RECURS_DSETS
+            for dset, label in zip(to_save, save_label):
+                if label in save_data.keys() and save_data[label] is not None:
+                    save_data[label] = save_data[label] + dset
+                else:
+                    save_data[label] = dset
 
-        with h5py.File(output.data, "w") as f:
-            dt = h5py.special_dtype(vlen=str)
-            # save map function
-            f.create_dataset("map_function", data=map_function, dtype=dt)
-                                       # dtype=)
-            f.create_dataset("filter_list", data=np.array(filter_list, dtype=dt))
+        # convert data to strings instead of objects
+        # for label in save_label:
+        #     save_data[label] = np.asarray(save_data[label], dtype=str)
+        # print(save_data['sequences'][:15])
 
-            # save ids, seqs, and residues in separate group
-            f.create_dataset("filtered/sequences", data=filt_seq_list)
-            f.create_dataset("filtered/ids", data=filt_sid_list)
-            f.create_dataset("filtered/residues", data=filt_residues)
-            f.create_dataset("filtered/example_index", data=filt_example_index)
+        # save variables not generated in loop
+        for dset, label in zip([map_function, example_index, filter_list],
+                               NONRECURS_DSETS):
+            save_data[label] = dset
+
+        print(save_data.keys())
+
+        # kmf.utils.save_hdf5(output.data, files=save_data)
+        with open(output.data, 'w') as f:
+            json.dump(save_data, f)
 
 
 rule generate_features:
     input:
-        data=join(config['output']['save_dir'], "processed", "{fn}.hdf5"),
+        data=rules.preprocess.output.data
     output:
         features=join(config['output']['save_dir'], "features", "{fn}.txt")
     log:
         join(config['output']['save_dir'], "logs", "{fn}.log")
     run:
         # read processed features
-        with h5py.File(input.data, 'r') as f:
-            map_function = f['map_function']
-            filter_list = f['filter_list']
-            filtered = f['filtered']
-
-            sequences = filtered['sequences']
-            ids = filtered['ids']
-            residues = filtered['residues']
-            example_index = filtered['example_index']
+        with open(input.data, 'r') as f:
+            data = json.load(f)
 
         # apply user-specified save name, if it exists
         # if config['output']['filename'] is None:
         #     output_file = wildcards.fn
 
-        #
         first = []
-        for i in range(len(sequences)):
-            seq = sequences[i]
-            sid = ids[i]
+        for i in range(len(data['sequences'])):
+            seq = data['sequences'][i]
+            sid = data['ids'][i]
 
             labels = []
             for j in range(len(seq)):
@@ -196,8 +197,9 @@ rule generate_features:
                     sequence, k=config['kmer']['k'],
                     start=config['kmer']['start'],
                     end=config['kmer']['end'],
-                    map_function=map_function, residues=residues,
-                    filter_list=filter_list,
+                    map_function=data['map_function'],
+                    residues=data['residues'],
+                    filter_list=data['filter_list'],
                     kmer_output=config['output']['kmer_output']
                     )
 
@@ -205,10 +207,11 @@ rule generate_features:
                 if first:
                     labels += kmf.transform.generate_labels(
                         k=config['kmer']['k'],
-                        map_function=map_function, residues=residues,
-                        filter_list=filter_list
+                        map_function=data['map_function'],
+                        residues=data['residues'],
+                        filter_list=data['filter_list']
                         )
-                    if features_output_format == "simple":
+                    if config['output']['format'] == "simple":
                         kmf.features.output_features("matrix",
                                                      output.features,
                                                      labels=labels)
@@ -229,7 +232,7 @@ rule generate_features:
                 if config['output']['format'] in ("sieve", "both"):
                     kmf.features.output_features(
                         "sieve", output.features, feature_sets=[features],
-                        write_mode="a", example_index=example_index
+                        write_mode="a", example_index=data['example_index']
                         )
 
                 # only append features if not dumping into file
