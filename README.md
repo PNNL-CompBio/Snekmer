@@ -17,3 +17,59 @@ Evaluation pipeline:
 3. Run pipeline above with some parameters
 4. Assess how sensitive the method is - that is how likely is it that a members of a cluster have the annotation that is the most prevalent for that cluster
 5. Assess the specificity - that is how likely is it that an annotation maps to a single cluster
+
+## Installation
+
+I recommend using Anaconda to create a virtual environment. Anaconda handles dependencies and versioning, which simplifies the process of installation.
+
+
+### Procedure
+
+Create a conda environment called `kmers`:
+
+```
+conda create -n kmers -c conda-forge -c bioconda biopython numpy pandas snakemake scikit-learn
+```
+
+Activate the environment:
+
+```
+conda activate kmers
+```
+
+Install the `kmerfeatures` package (note: git clone ste):
+
+```
+# clone repository if you haven't already
+git clone https://github.com/biodataganache/KmerPipeline.git
+
+# install from cloned repository
+cd KmerPipeline
+git checkout christine
+pip install .
+```
+
+The package should now be ready to use!
+
+### Command-Line Interface
+
+To run `kmerfeatures`, make sure to modify `kmerfeatures/config.yaml` to set the desired parameters for analysis.
+
+In particular, be sure to set `output: save_dir` to the desired output file path.
+
+Once the config file has been updated, I recommend running the following:
+
+```
+kmerfeatures --dryrun
+```
+The output of the dry run shows you the files that will be created by the pipeline. If no files are generated, check the config file and make sure that `input: fasta_dir` is pointing toward the correct file, and that the desired outputs are being generated.
+
+When you are ready to process your files, run:
+
+```
+kmerfeatures --cores 1
+```
+
+#### Extra Notes
+
+The `kmerfeatures` CLI is ready-to-use in the above format, but if you run `kmerfeatures --help`, you'll notice many extra parameters. Ignore these for now

@@ -1,9 +1,8 @@
 input:
-  fasta: None
-  fasta_dir: "/Users/chan898/Documents/Projects/kmer_pipeline/KmerPipeline/example"
+  fasta_dir: "../example"
   example_index_file: False
   walk: False
-  feature_set: '/Users/chan898/Documents/Projects/kmer_pipeline/KmerPipeline/example/model_features.txt'
+  feature_set: '../example/model_features.txt'
 
 kmer:
   k: 14
@@ -15,7 +14,7 @@ kmer:
   min_rep_thresh: 1
 
 output:
-  save_dir: "/Users/chan898/Documents/Projects/kmer_pipeline/output"
+  save_dir: "../../output"
   verbose: True
   format: 'simple'  # choices: ['simple', 'gist', 'sieve']
   filename: False
