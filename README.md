@@ -37,7 +37,7 @@ Activate the environment:
 conda activate kmers
 ```
 
-Install the `kmerfeatures` package (note: git clone ste):
+Install the `kmerfeatures` package (note: git clone step is optional if you already have the repo cloned locally):
 
 ```
 # clone repository if you haven't already
@@ -72,4 +72,4 @@ kmerfeatures --cores 1
 
 #### Extra Notes
 
-The `kmerfeatures` CLI is ready-to-use in the above format, but if you run `kmerfeatures --help`, you'll notice many extra parameters. Ignore these for now
+The `kmerfeatures` CLI is ready-to-use in the above format, but if you run `kmerfeatures --help`, you'll notice many extra parameters. Ignore these for now; these are a WIP still!
