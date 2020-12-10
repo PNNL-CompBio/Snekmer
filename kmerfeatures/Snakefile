@@ -24,7 +24,7 @@ NONRECURS_DSETS = ['map_function', 'example_index', 'filter_list']
 DSETS = RECURS_DSETS + NONRECURS_DSETS
 
 
-# rules
+# define output
 rule all:
     input:
         expand(join(config['output']['save_dir'], "features", "{fn}.txt"), fn=FNS)
@@ -46,9 +46,6 @@ rule preprocess:
         fasta=join(config['input']['fasta_dir'], "{fn}.fasta")
     output:
         data=join(config['output']['save_dir'], "processed", "{fn}.json")
-        # data=expand(join(config['output']['save_dir'], "processed", "{{fn}}", "{dset}.json"), dset=DSETS)
-        # data=join(config['output']['save_dir'], "processed", "{fn}.hdf5"),
-        # shuffle=join(config['output']['save_dir'], "processed", "{fn}_shuffle.fasta")
     run:
         # read fasta file
         seq_list, id_list = kmf.utils.read_fasta(input.fasta)
@@ -138,6 +135,7 @@ rule preprocess:
             if config['kmer']['nucleotide']:
                 residues = "ACGT"
 
+            # populate dictionary for json save file
             to_save = [seqs, sids, residues]
             save_label = RECURS_DSETS
             for dset, label in zip(to_save, save_label):
@@ -146,19 +144,14 @@ rule preprocess:
                 else:
                     save_data[label] = dset
 
-        # convert data to strings instead of objects
-        # for label in save_label:
-        #     save_data[label] = np.asarray(save_data[label], dtype=str)
-        # print(save_data['sequences'][:15])
-
         # save variables not generated in loop
         for dset, label in zip([map_function, example_index, filter_list],
                                NONRECURS_DSETS):
             save_data[label] = dset
 
-        print(save_data.keys())
+        # print(save_data.keys())
 
-        # kmf.utils.save_hdf5(output.data, files=save_data)
+        # save all parameters into json
         with open(output.data, 'w') as f:
             json.dump(save_data, f)
 
