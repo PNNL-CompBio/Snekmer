@@ -36,12 +36,12 @@ def read_fasta(fasta):
     return seq_list, id_list
 
 
-def read_example_index(example_indexfile):
+def read_example_index(example_index_file):
     """Read example index file and parse into dictionary.
 
     Parameters
     ----------
-    example_indexfile : str
+    example_index_file : str
         /path/to/example_indexfile
 
     Returns
@@ -52,8 +52,8 @@ def read_example_index(example_indexfile):
 
     """
     example_index = {}
-    if example_indexfile:
-        with open(example_indexfile, "r") as f:
+    if example_index_file:
+        with open(example_index_file, "r") as f:
             for line in f.readlines():
                 seq_id = line.split()[0]
                 example_index[seq_id] = 1.0

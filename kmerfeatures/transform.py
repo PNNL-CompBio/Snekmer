@@ -16,10 +16,11 @@ from Util.SIEVEInit import get_alphabets
 RESIDUES = {0: "SV", 1: "APFNDKC", 2: "CAP", 3: "LHC", 4: "LHB"}
 MAPFN2RESIDUE = {f"reduced_alphabet_{n}": RESIDUES[n] for n in range(5)}
 MAPFN2NAME = {f"reduced_alphabet_{n}": f"RED{n}" for n in range(5)}
+MAPFN2MAPPING = {k: get_alphabets()[k] for k in MAPFN2NAME.keys()}
 
 
 # functions
-def identity(character):
+def identity(character, mapping):
     """Return self.
 
     Used as a placeholder map function when applicable.
@@ -28,6 +29,8 @@ def identity(character):
     ----------
     character : object
         Object to return.
+    mapping : NoneType
+        For consistency with reduce_alphabet
 
     Returns
     -------
@@ -85,15 +88,15 @@ def baseconvert(n, k, digits="ACDEFGHIKLMNPQRSTVWY"):
     return s
 
 
-def reduce_alphabet(character, mapping=None):
-    """reduce alphabet according to pre-defined alphabet mapping.
+def reduce_alphabet(character, mapping):
+    """Reduce alphabet according to pre-defined alphabet mapping.
 
     Parameters
     ----------
     character : type
         Description of parameter `character`.
-    mapping : dict
-        Mapping specification for sequence.
+    map_function : str
+        Name of map function.
 
     Returns
     -------
@@ -145,12 +148,10 @@ def parse_map_function(map_function):
     elif isinstance(map_function, str):
         try:
             mapfn = map_function
-            i_mapfn = int(re.search("(?<=reduced_alphabet_)[0-4]",
-                                    mapfn).group())
             map_function = reduce_alphabet
             mapping = get_alphabets()[mapfn]
-            residues = RESIDUES[i_mapfn]
-            map_name = MAPFN2NAME[i_mapfn]
+            residues = MAPFN2RESIDUE[mapfn]
+            map_name = MAPFN2NAME[mapfn]
         except AttributeError as e:
             raise ValueError(
                 ('map_function string must be in this format:'
@@ -160,7 +161,7 @@ def parse_map_function(map_function):
     return residues, map_name, map_function, mapping
 
 
-def map_characters(k_map, map_function, **kwargs):
+def map_characters(k_map, map_function, mapping):
     """Apply character mapping as specified.
 
     Parameters
@@ -169,8 +170,8 @@ def map_characters(k_map, map_function, **kwargs):
         String of mapped characters.
     map_function : type
         Description of parameter `map_function`.
-    **kwargs : type
-        Description of parameter `**kwargs`.
+    mapping : type
+        Description of parameter `mapping`.
 
     Returns
     -------
@@ -180,7 +181,7 @@ def map_characters(k_map, map_function, **kwargs):
     """
     k_string = ""
     for char in k_map:
-        map_char = map_function(char, **kwargs)
+        map_char = map_function(char, mapping)
 
         # omits unrecognized characters (may be undesireable in some cases)
         if map_char is None:
@@ -216,10 +217,10 @@ def generate_labels(k=3, map_function=None, residues=None, filter_list=None):
 
     # we should provide the ability to include a bunch of strings
     # that can be used to vectorize
-    if pow(len(residues), k) <= 2e4:
-        raise RuntimeError(
-            "Given parameters will generate >20k inputs."
-        )
+    # if pow(len(residues), k) <= 2e4:
+    #     raise RuntimeError(
+    #         "Given parameters will generate >20k inputs."
+    #     )
 
     labels = []
 
@@ -257,13 +258,13 @@ def set_sequence_endpoints(sequence, k, start, end):
         Description of returned object.
 
     """
+    start = start or 0
+    end = end or len(sequence) - k
     # set logical start and end indices for sequence
     if start < 0:
         start = len(sequence) + start
         if start < 0:
             start = 0
-    if not end:
-        end = len(sequence) - k
     return start, end
 
 
@@ -297,8 +298,8 @@ def exclude_from_string(k_string, exclude):
 def vectorize_string(sequence, k=3, start=0, end=False,
                      map_function=None, feature_dict=None,
                      filter_list=None, exclude=None,
-                     return_dict=None, kmer_output=None,
-                     residues=StandardAlphabet, **kwargs):
+                     return_dict=None, verbose=False,
+                     residues=StandardAlphabet):
     """Short summary.
 
     Parameters
@@ -323,7 +324,7 @@ def vectorize_string(sequence, k=3, start=0, end=False,
         sequences (though they may also be the same length).
     return_dict : type
         Description of parameter `return_dict`.
-    kmer_output : type
+    verbose : type
         Description of parameter `kmer_output`.
     residues : str
         (default: "AILMVFYWSTQNCHDEKRGP")
@@ -340,25 +341,25 @@ def vectorize_string(sequence, k=3, start=0, end=False,
 
     # we should provide the ability to include a bunch of strings
     # that can be used to vectorize
-    if pow(len(residues), k) <= 2e4:
-        raise RuntimeError(
-            "Given parameters will generate >20k inputs."
-        )
+    # if pow(len(residues), k) <= 2e4:
+    #     raise RuntimeError(
+    #         "Given parameters will generate >20k inputs."
+    #     )
 
     # set logical start and end indices for sequence
     start, end = set_sequence_endpoints(sequence, k, start, end)
 
     results = feature_dict or {}
     if filter_list:
-        results = {k: 0 for k in filter_list}
+        results = {key: 0 for key in filter_list}
 
     for i in range(start, end):
         k_map = sequence[i: i + k]
 
         # perform mapping to a reduced alphabet
-        k_string = map_characters(k_map, map_function, **kwargs)
+        k_string = map_characters(k_map, map_function, mapping)
 
-        if kmer_output:
+        if verbose:
             print(i, "\t", k_map, "\t", k_string, "\t1", )
 
         # filter unrecognized characters or filter from list
@@ -381,7 +382,7 @@ def vectorize_string(sequence, k=3, start=0, end=False,
         return results
     if filter_list:
         return [results[item] for item in filter_list]
-    return results.values()
+    return list(results.values())
 
 
 def scramble_sequence(sequence_id, sequence, n=1, id_modifier=False,

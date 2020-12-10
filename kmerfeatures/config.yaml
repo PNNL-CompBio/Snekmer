@@ -7,8 +7,8 @@ input:
 
 kmer:
   k: 14
-  start: None
-  end: None
+  start: False
+  end: False
   nucleotide: False
   map_function: 'reduced_alphabet_0'  # choices: 0-5
   randomize_alphabet: False

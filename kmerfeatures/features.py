@@ -4,21 +4,22 @@ author: @christinehc
 """
 
 # imports
+import os.path
 from kmerfeatures.transform import vectorize_string
 
 
 # functions
-def output_features(format, output_file, feature_sets=None,
+def output_features(save_to, fformat, feature_sets=None,
                     labels=None, mode="w", **kwargs):
     """Generate output features based on input fasta file.
 
     Parameters
     ----------
-    format : str
+    save_to : str
+        File path to output file (default: None).
+    fformat : str
         File format; select one option from the following list:
             ('gist', 'sieve', 'matrix', 'both')
-    output_file : str
-        Name of output file (default: None).
     feature_sets : type
         Description of parameter `feature_sets`.
     labels : list
@@ -34,31 +35,30 @@ def output_features(format, output_file, feature_sets=None,
         Description of returned object.
 
     """
-    # ensure valid format is specified
-    if format not in ['gist', 'sieve', 'matrix', 'both']:
-        raise ValueError(
-            ('File format must be one of the following:'
-             ' "gist", "sieve", "both", or "matrix".')
-            )
+    # # ensure valid format is specified
+    # if fformat not in ['gist', 'sieve', 'matrix', 'both']:
+    #     raise ValueError(
+    #         ('File format must be one of the following:'
+    #          ' "gist", "sieve", "both", or "matrix".')
+    #         )
 
     # update any gist files
-    if format in ["gist", "both"]:
-        read_gist_file(output_file, labels=labels,
-                       feature_sets=feature_sets, mode=mode)
+    if fformat in ["gist", "both"]:
+        output_gist(save_to, labels=labels,
+                    feature_sets=feature_sets, mode=mode, **kwargs)
 
     # update any sieve files
-    if format in ["sieve", "both"]:
-        read_sieve_file(output_file, feature_sets=feature_sets, mode=mode,
-                        **kwargs)
+    if fformat in ["sieve", "both"]:
+        output_sieve(save_to, feature_sets=feature_sets, mode=mode, **kwargs)
 
     # update matrix files
-    if format == "matrix":
-        read_matrix_file(output_file, labels=labels,
-                         feature_sets=feature_sets, mode=mode)
+    if fformat == "matrix":
+        output_matrix(save_to, labels=labels,
+                      feature_sets=feature_sets, mode=mode)
 
 
-def read_gist_file(filename, labels=None, feature_sets=None, mode='w'):
-    """Read gist file and parse into output file.
+def output_gist(filename, labels=None, feature_sets=None, mode='w', **kwargs):
+    """Output features in gist format.
 
     Parameters
     ----------
@@ -77,32 +77,32 @@ def read_gist_file(filename, labels=None, feature_sets=None, mode='w'):
         Description of returned object.
 
     """
-    train_out = f"{filename}.train"
-    class_out = f"%{filename}.class"
+    train_out = f"{filename.split('.')[0]}.train"
+    class_out = f"{filename.split('.')[0]}.class"
 
     # update train
-    with open(train_out, mode) as trainf, open(class_out, mode) as classf:
-        trainf.write("corner")
-        classf.write("corner\tclass\n")
+    with open(train_out, mode) as tf, open(class_out, mode) as cf:
+        tf.write("corner")
+        cf.write("corner\tclass\n")
 
         if labels:
             for label in labels:
-                trainf.write("\t%s" % label)
+                tf.write("\t%s" % label)
         else:
             for i in range(len(feature_sets[0]) - 1):
-                trainf.write("\tlabel%d" % i)
+                tf.write("\tlabel%d" % i)
         for features in feature_sets:
-            output_gist_features(features=features, file=trainf)
-            output_gist_class(features=features, file=classf)
+            output_gist_features(tf, features, mode)
+            output_gist_class(tf, features, mode)
 
 
-def read_sieve_file(filename, feature_sets=None, mode='w', **kwargs):
-    """Read sieve file and parse into output file.
+def output_sieve(filename, feature_sets=None, mode='w', **kwargs):
+    """Output features in sieve format.
 
     Parameters
     ----------
     filename : str
-        Base filename (i.e. file name without .ext)
+        /path/to/filename
     labels : list
         (default: None)
     feature_sets : type
@@ -117,14 +117,14 @@ def read_sieve_file(filename, feature_sets=None, mode='w', **kwargs):
 
     """
 
-    def output_sieve_features(features, filepath, example_index=None):
+    def output_sieve_features(features, filename, example_index=None):
         """Write features to SIEVE output file.
 
         Parameters
         ----------
         features : type
             List of specified features.
-        filepath : str
+        filename : str
             File handle for naming of output files.
         example_index : dict
             Description of parameter `example_index` (default: None).
@@ -139,30 +139,30 @@ def read_sieve_file(filename, feature_sets=None, mode='w', **kwargs):
         fid = features[0]
         value = example_index.get(fid, 0.0)
 
-        with open(filepath, "w+") as f:
-            filepath.write("pattern\t%s\t%d\n" % (fid, len(features) - 1))
-            filepath.write("\tinput\t%s" % fid)
-            for f in features[1:]:
-                filepath.write("\t%s" % f)
-            filepath.write("\n")
-            filepath.write("\toutput\t%s\t%d\n" % (fid, value))
-            filepath.flush()
+        with open(filename, "a") as f:
+            f.write("pattern\t%s\t%d\n" % (fid, len(features) - 1))
+            f.write("\tinput\t%s" % fid)
+            for ft in features[1:]:
+                f.write("\t%s" % ft)
+            f.write("\n")
+            f.write("\toutput\t%s\t%d\n" % (fid, value))
+            f.flush()
 
-    pattern_out = f"{filename}.pattern"
-    with open(pattern_out, mode) as f:
+    # pattern_out = f"{filename}.pattern"
+    with open(filename, mode) as f:
         for features in feature_sets:
-            output_sieve_features(features=features, file=f)
+            output_sieve_features(features, f, **kwargs)
 
 
-def read_matrix_file(filename, labels=None, feature_sets=None, mode='w'):
-    """Read matrix file and parse into output file.
+def output_matrix(filename, labels=False, feature_sets=False, mode='w'):
+    """Output features in matrix format.
 
     Parameters
     ----------
     filename : str
         Base filename (i.e. file name without .ext)
     labels : list
-        (default: None)
+        (default: False)
     feature_sets : type
         Description of parameter `feature_sets`.
     mode : str
@@ -174,19 +174,20 @@ def read_matrix_file(filename, labels=None, feature_sets=None, mode='w'):
         Description of returned object.
 
     """
-    file_out = f"{filename}.txt"
-    with open(file_out, mode) as f:
+    with open(filename, mode) as f:
         if labels:
             f.write("%s" % labels[0])
             for label in labels[1:]:
                 f.write("\t%s" % label)
             f.write("\n")
-        if feature_sets:
-            for features in feature_sets:
-                output_gist_features(features=features, file=f)
+            f.flush()
+
+    if feature_sets:
+        for features in feature_sets:
+            output_gist_features(filename, features, mode)
 
 
-def output_gist_features(filename, features):
+def output_gist_features(filename, features, mode='w'):
     """Write features to gist output file.
 
     Parameters
@@ -202,15 +203,15 @@ def output_gist_features(filename, features):
         Description of returned object.
 
     """
-    with open(filename, 'w') as f:
-        filename.write("%s" % features[0])
-        for f in features[1:]:
-            filename.write("\t%s" % f)
-        filename.write("\n")
+    with open(filename, mode) as f:
+        f.write("%s" % features[0])
+        for ft in features[1:]:
+            f.write("\t%s" % ft)
+        f.write("\n")
     # filename.flush()
 
 
-def output_gist_class(filename, features, example_index=None):
+def output_gist_class(filename, features, example_index=None, mode='w'):
     """Write gist class to specified output file.
 
     Parameters
@@ -228,10 +229,12 @@ def output_gist_class(filename, features, example_index=None):
         Description of returned object.
 
     """
-    fid = features[0]
-    value = example_index.get(fid, -1)
-    filename.write("%s\t%d\n" % (features[0], value))
-    filename.flush()
+    pattern = f"{filename.split('.')[0]}.pattern"
+    with open(pattern, mode) as f:
+        fid = features[0]
+        value = example_index.get(fid, -1)
+        f.write("%s\t%d\n" % (features[0], value))
+        # filename.flush()
 
 
 def define_feature_space(sequence_dict, k=3, map_function=None,

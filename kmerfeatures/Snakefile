@@ -65,7 +65,7 @@ rule preprocess:
         if not config['input']['feature_set']:
             # prefilter fasta to cut down on the size of feature set
             filter_dict = kmf.features.define_feature_space(
-                sequence_dict=sequence_dict,
+                {k: v for k, v in zip(id_list, seq_list)},
                 kmer=config['kmer']['k'],
                 map_function=map_function,
                 start=config['kmer']['start'],
@@ -74,6 +74,7 @@ rule preprocess:
                 verbose=config['output']['verbose']
                 )
             filter_list = list(filter_dict.keys())
+            assert len(filter_list) > 0, "Invalid feature space; terminating."
 
         else:
             # read in list of ids to use from file; NO FORMAT CHECK
@@ -85,7 +86,7 @@ rule preprocess:
         # optional indexfile with IDs of good feature output examples
         if config['input']['example_index_file']:
             example_index = kmf.utils.read_example_index(
-                config['input']['example_index_file'] is not None
+                config['input']['example_index_file']
                 )
         else:
             example_index = {}
@@ -166,7 +167,7 @@ rule generate_features:
     input:
         data=rules.preprocess.output.data
     output:
-        features=join(config['output']['save_dir'], "features", "{fn}.txt")
+        features=join(config['output']['save_dir'], "features", "{fn}.txt"),
     log:
         join(config['output']['save_dir'], "logs", "{fn}.log")
     run:
@@ -178,66 +179,72 @@ rule generate_features:
         # if config['output']['filename'] is None:
         #     output_file = wildcards.fn
 
-        first = []
+        # generate features for each sequence and output features
+        first = True
         for i in range(len(data['sequences'])):
             seq = data['sequences'][i]
-            sid = data['ids'][i]
+            seq_id = data['ids'][i]
 
             labels = []
-            for j in range(len(seq)):
-                sequence = seq[j]
-                seq_id = sid[j]
 
-                if config['output']['verbose']:
-                    print("Constructing features for sequence %s" % seq_id)
+            if config['output']['verbose']:
+                print("Constructing features for sequence %s" % seq_id)
 
-                features = [seq_id]
+            features = [seq_id]
 
-                features += kmf.transform.vectorize_string(
-                    sequence, k=config['kmer']['k'],
-                    start=config['kmer']['start'],
-                    end=config['kmer']['end'],
+            features += kmf.transform.vectorize_string(
+                seq,
+                k=config['kmer']['k'],
+                start=config['kmer']['start'],
+                end=config['kmer']['end'],
+                map_function=data['map_function'],
+                residues=data['residues'],
+                filter_list=data['filter_list'],
+                verbose=config['output']['verbose']
+                )
+
+            # print(features)
+
+            # record labels for first sequence only
+            if first:
+                labels += kmf.transform.generate_labels(
+                    k=config['kmer']['k'],
                     map_function=data['map_function'],
                     residues=data['residues'],
-                    filter_list=data['filter_list'],
-                    kmer_output=config['output']['kmer_output']
+                    filter_list=data['filter_list']
+                    )
+                if config['output']['format'] == "simple":
+                    kmf.features.output_features(output.features,
+                                                 "matrix",
+                                                 labels=labels)
+
+            first = False
+
+            # print(features)
+
+            # output as we go (esp. good for very large input files)
+            if config['output']['format'] == "simple":
+                kmf.features.output_features(
+                    output.features, "matrix", feature_sets=[features],
+                    mode="a"
                     )
 
-                # record labels for first sequence only
-                if first:
-                    labels += kmf.transform.generate_labels(
-                        k=config['kmer']['k'],
-                        map_function=data['map_function'],
-                        residues=data['residues'],
-                        filter_list=data['filter_list']
-                        )
-                    if config['output']['format'] == "simple":
-                        kmf.features.output_features("matrix",
-                                                     output.features,
-                                                     labels=labels)
+            # output sieve patterns as we go to provide a record
+            if config['output']['format'] in ("sieve", "both"):
+                kmf.features.output_features(
+                    output.features, "sieve", feature_sets=[features],
+                    mode="a", example_index=data['example_index']
+                    )
 
-                first = False
-                i += 1
-
-                # print(features)
-
-                # output as we go (esp. good for very large input files)
-                if config['output']['format'] == "simple":
-                    kmf.features.output_features(
-                        "matrix", output.features, feature_sets=[features],
-                        write_mode="a"
-                        )
-
-                # output sieve patterns as we go to provide a record
-                if config['output']['format'] in ("sieve", "both"):
-                    kmf.features.output_features(
-                        "sieve", output.features, feature_sets=[features],
-                        write_mode="a", example_index=data['example_index']
-                        )
-
-                # only append features if not dumping into file
-                if config['output']['format'] != "simple":
-                    feature_sets.append(features)  # what happens with this
+            # only append features if not dumping into file
+            if config['output']['format'] != "simple":
+                feature_sets.append(features)
+                kmf.features.output_features(
+                    output.features,
+                    config['output']['format'],
+                    feature_sets=feature_sets,
+                    example_index=data['example_index'],
+                    labels=labels)
 
 
 rule score_features:
