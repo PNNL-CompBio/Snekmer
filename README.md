@@ -55,7 +55,12 @@ The package should now be ready to use!
 ## Command-Line Interface
 
 To run `kmerfeatures`, make sure to modify `kmerfeatures/config.yaml` to set
- the desired parameters for analysis.
+ the desired parameters for analysis. Then, navigate to the directory
+ containing `config.yaml`. If you are using the default config file, this entails:
+
+ ```
+cd kmerfeatures
+ ```
 
 In particular, be sure to set `output: save_dir` to the desired output file
  directory, and make sure that `input: fasta_dir` is pointing toward the
@@ -69,8 +74,6 @@ kmerfeatures --dryrun
 The output of the dry run shows you the files that will be created by the
  pipeline. If no files are generated, double-check `input: fasta_dir` in the
  config file, and make sure that the desired outputs are being generated.
-
-**Note: You _must_ navigate to the directory containing `config.yaml` before running `kmerfeatures`!**
 
 When you are ready to process your files, run:
 
