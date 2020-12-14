@@ -37,7 +37,8 @@ Activate the environment:
 conda activate kmers
 ```
 
-Install the `kmerfeatures` package (note: git clone step is optional if you already have the repo cloned locally):
+Install the `kmerfeatures` package (note: git clone step is optional if you
+ already have the repo cloned locally):
 
 ```
 # clone repository if you haven't already
@@ -51,18 +52,25 @@ pip install .
 
 The package should now be ready to use!
 
-### Command-Line Interface
+## Command-Line Interface
 
-To run `kmerfeatures`, make sure to modify `kmerfeatures/config.yaml` to set the desired parameters for analysis.
+To run `kmerfeatures`, make sure to modify `kmerfeatures/config.yaml` to set
+ the desired parameters for analysis.
 
-In particular, be sure to set `output: save_dir` to the desired output file directory.
+In particular, be sure to set `output: save_dir` to the desired output file
+ directory, and make sure that `input: fasta_dir` is pointing toward the
+ directory containing .fasta input files.
 
 Once the config file has been updated, I recommend running the following:
 
 ```
 kmerfeatures --dryrun
 ```
-The output of the dry run shows you the files that will be created by the pipeline. If no files are generated, check the config file and make sure that `input: fasta_dir` is pointing toward the directory containing .fasta input files, and that the desired outputs are being generated.
+The output of the dry run shows you the files that will be created by the
+ pipeline. If no files are generated, double-check `input: fasta_dir` in the
+ config file, and make sure that the desired outputs are being generated.
+
+**Note: You _must_ navigate to the directory containing `config.yaml` before running `kmerfeatures`!**
 
 When you are ready to process your files, run:
 
@@ -70,6 +78,6 @@ When you are ready to process your files, run:
 kmerfeatures --cores 1
 ```
 
-#### Extra Notes
+### Extra Notes
 
 The `kmerfeatures` CLI is ready-to-use in the above format, but if you run `kmerfeatures --help`, you'll notice many extra parameters. Ignore these for now; these are a WIP still!
