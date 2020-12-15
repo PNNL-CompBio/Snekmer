@@ -31,8 +31,9 @@ def output_features(save_to, fformat, feature_sets=None,
 
     Returns
     -------
-    type
-        Description of returned object.
+    None
+        Feature output is written to the `save_to` file path.
+        No output is returned.
 
     """
     # # ensure valid format is specified
@@ -57,13 +58,13 @@ def output_features(save_to, fformat, feature_sets=None,
                       feature_sets=feature_sets, mode=mode)
 
 
-def output_gist(filename, labels=None, feature_sets=None, mode='w', **kwargs):
+def output_gist(filename, labels=None, feature_sets=None, mode='w'):
     """Output features in gist format.
 
     Parameters
     ----------
     filename : str
-        Base filename (i.e. file name without .ext)
+        /path/to/file.ext
     labels : list
         (default: None)
     feature_sets : type
@@ -73,8 +74,8 @@ def output_gist(filename, labels=None, feature_sets=None, mode='w', **kwargs):
 
     Returns
     -------
-    type
-        Description of returned object.
+    None
+        Feature output is written to files; no output is returned.
 
     """
     train_out = f"{filename.split('.')[0]}.train"
@@ -102,7 +103,7 @@ def output_sieve(filename, feature_sets=None, mode='w', **kwargs):
     Parameters
     ----------
     filename : str
-        /path/to/filename
+        /path/to/file.ext
     labels : list
         (default: None)
     feature_sets : type
@@ -112,8 +113,8 @@ def output_sieve(filename, feature_sets=None, mode='w', **kwargs):
 
     Returns
     -------
-    type
-        Description of returned object.
+    None
+        Feature output is written to file; no output is returned.
 
     """
 
@@ -131,8 +132,8 @@ def output_sieve(filename, feature_sets=None, mode='w', **kwargs):
 
         Returns
         -------
-        type
-            Description of returned object.
+        None
+            Feature output is written to file; no output is returned.
 
         """
         # parse first item in feature list as feature ID
@@ -160,7 +161,7 @@ def output_matrix(filename, labels=False, feature_sets=False, mode='w'):
     Parameters
     ----------
     filename : str
-        Base filename (i.e. file name without .ext)
+        /path/to/file.ext
     labels : list
         (default: False)
     feature_sets : type
@@ -170,8 +171,8 @@ def output_matrix(filename, labels=False, feature_sets=False, mode='w'):
 
     Returns
     -------
-    type
-        Description of returned object.
+    None
+        Feature output is written to file; no output is returned.
 
     """
     with open(filename, mode) as f:
@@ -199,8 +200,8 @@ def output_gist_features(filename, features, mode='w'):
 
     Returns
     -------
-    type
-        Description of returned object.
+    None
+        Feature output is written to file; no output is returned.
 
     """
     with open(filename, mode) as f:
@@ -217,7 +218,7 @@ def output_gist_class(filename, features, example_index=None, mode='w'):
     Parameters
     ----------
     filename : str
-        File handle for naming of output files.
+        /path/to/file.ext
     features : list
         List of specified features.
     example_index : dict
@@ -225,8 +226,8 @@ def output_gist_class(filename, features, example_index=None, mode='w'):
 
     Returns
     -------
-    type
-        Description of returned object.
+    None
+        Feature output is written to file; no output is returned.
 
     """
     pattern = f"{filename.split('.')[0]}.pattern"
@@ -237,25 +238,23 @@ def output_gist_class(filename, features, example_index=None, mode='w'):
         # filename.flush()
 
 
-def define_feature_space(sequence_dict, k=3, map_function=None,
-                         start=None, end=None, residues=None, min_rep_thresh=2,
-                         verbose=False):
-    """Short summary.
+def define_feature_space(sequence_dict, k, map_function=None, start=None,
+                         end=None, min_rep_thresh=2, verbose=False):
+    """Create a feature dictionary defined from parameters.
 
     Parameters
     ----------
-    sequence_dict : type
-        Description of parameter `sequence_dict`.
-    k : type
-        Description of parameter `k`.
-    map_function : type
-        Description of parameter `map_function`.
-    start : type
-        Description of parameter `start`.
-    end : type
-        Description of parameter `end`.
-    residues : type
-        Description of parameter `residues`.
+    sequence_dict : dict
+        Sequence dictionary {ID: sequence}.
+    k : int
+        Sequence length k of the kmer.
+    map_function : str
+        Name of the map function (e.g. "reduced_alphabet_0")
+        (default: None; applies no mapping).
+    start : int
+        Start index of the sequence (for sequence slicing).
+    end : int
+        End index of the sequence (for sequence slicing).
     min_rep_thresh : type
         Description of parameter `min_rep_thresh`.
     verbose : bool
@@ -263,8 +262,8 @@ def define_feature_space(sequence_dict, k=3, map_function=None,
 
     Returns
     -------
-    type
-        Description of returned object.
+    dict
+        Filtered feature dictionary {ID: sequence}.
 
     """
     # this routine will return
@@ -274,8 +273,7 @@ def define_feature_space(sequence_dict, k=3, map_function=None,
     for seq in sequence_dict.values():
         feature_dict = vectorize_string(seq, k=k, map_function=map_function,
                                         feature_dict=feature_dict, start=start,
-                                        end=end, residues=residues,
-                                        return_dict=True)
+                                        end=end, return_dict=True)
 
     # if this is between 0 and 1 then it's a percentage
     if 0 < min_rep_thresh < 1:

@@ -11,15 +11,14 @@ from sklearn.metrics.pairwise import pairwise_distances
 
 # functions
 def connection_matrix_from_features(feature_matrix, metric="jaccard"):
-    """Calculate similarities between examples based on features
-    output from main().
+    """Calculate similarities based on features output from main().
 
     Parameters
     ----------
-    feature_matrix : type
+    feature_matrix : numpy.ndarray
         feature_matrix in the form of rows (proteins), columns (kmers),
         where values are the counts of the kmers for each protein.
-    metric : type
+    metric : str
         description.
 
     Returns
@@ -29,23 +28,10 @@ def connection_matrix_from_features(feature_matrix, metric="jaccard"):
         relationships between proteins.
 
     """
-    # just need to do a pairwise calculation of similarity based on
-    #      the specified method. This would be a great place to have
-    #      HPC capability because when we get enough examples this is going
-    #      to be a lot of calculations
-    # I just took this from:
-    #   https://pythonpedia.com/en/knowledge-base/37003272/how-to-compute-jaccard-similarity-from-a-pandas-dataframe
-    # and I adapted it - not sure if it will work as coded :)
-
-    df = pd.DataFrame(feature_matrix)
-
     if metric == "jaccard":
-        sim = 1 - pairwise_distances(df.T, metric="hamming")
+        sim = 1 - pairwise_distances(feature_matrix.T, metric="hamming")
     else:
-        sim = pairwise_distances(df.T, metric=metric)
-
-    sim = pd.DataFrame(sim, index=df.columns, columns=df.columns)
-
+        sim = pairwise_distances(feature_matrix.T, metric=metric)
     return sim
 
 
@@ -72,17 +58,28 @@ def cluster_feature_matrix(feature_matrix, method="agglomerative"):
     #   for parallelization though - not sure
 
     if method == "agglomerative":
-        feat_clusters = AgglomerativeClustering().fit_predict(feature_matrix)
+        clusters = AgglomerativeClustering().fit_predict(feature_matrix)
 
-    return feat_clusters
+    return clusters
 
 
-# For Christine
-#   This code will calculate the probabilities for features being
-#       in a class (as defined by example_classes)
-# Input: feature matrix and an example_classes vector which has as
-#        many entries as the number of examples and indicate a class
 def feature_class_probabilities(feature_matrix, example_labels):
+    """Calculate probabilities for features being in a defined class.
+
+    Parameters
+    ----------
+    feature_matrix : type
+        Feature matrix.
+    example_labels : type
+        Example classes vector which has as many entries as the
+        number of examples and indicates a class.
+
+    Returns
+    -------
+    type
+        Description of returned object.
+
+    """
     # coding this first for the binary case - in class or not
 
     # check to make sure the labels are the same size as number of examples
@@ -90,27 +87,30 @@ def feature_class_probabilities(feature_matrix, example_labels):
     #  TBD
 
     # convert the feature count matrix into binary presence/absence
-    feature_matrix = (feature_matrix>0)*1
+    feature_matrix = (feature_matrix > 0) * 1
 
-    colnames = feature_matrix.keys()
+    cols = feature_matrix.keys()
 
-    #results = pd.DataFrame(data=colnames, columns=["CountPos","ProbPos","CountNeg","ProbNeg","Score"])
-    results = pd.DataFrame(index=colnames, columns=["CountPos","ProbPos","CountNeg","ProbNeg","Score"])
+    # results = pd.DataFrame(data=colnames, columns=["CountPos","ProbPos","CountNeg","ProbNeg","Score"])
+    results = pd.DataFrame(index=cols,
+                           columns=["CountPos", "ProbPos",
+                                    "CountNeg", "ProbNeg", "Score"])
 
-    pos_tot = sum(example_labels)
-    neg_tot = len(example_labels) - pos_tot
+    pos_total = sum(example_labels)
+    neg_total = len(example_labels) - pos_total
 
     # for every feature in the input matrix
     for key in feature_matrix.keys():
         features = feature_matrix[key]
         pos_score = example_labels * features
-        neg_score = ((example_labels==0)*1) * features
+        neg_score = ((example_labels == 0) * 1) * features
 
-        # probability that the presence of this kmer maps to the positive
-        #   examples
-        pos_score_p = sum(pos_score)/pos_tot
-        neg_score_p = sum(neg_score)/neg_tot
+        # probability that presence of this kmer maps to positive examples
+        pos_prob_score = sum(pos_score) / pos_total
+        neg_prob_score = sum(neg_score) / neg_total
 
-        results.loc[key] = [sum(pos_score), pos_score_p, sum(neg_score), neg_score_p, pos_score_p-neg_score_p]
+        results[key] = [sum(pos_score), pos_prob_score,
+                        sum(neg_score), neg_prob_score,
+                        pos_prob_score - neg_prob_score]
 
-    return(results)
+    return results

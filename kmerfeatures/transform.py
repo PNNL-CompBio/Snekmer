@@ -190,24 +190,27 @@ def map_characters(k_map, map_function, mapping):
     return k_string
 
 
-def generate_labels(k=3, map_function=None, residues=None, filter_list=None):
-    """Short summary.
+def generate_labels(k, map_function=None, residues=StandardAlphabet,
+                    filter_list=None):
+    """Generate labels for mapped residues.
 
     Parameters
     ----------
-    k : type
-        Description of parameter `k`.
-    map_function : type
-        Description of parameter `map_function`.
-    residues : type
-        Description of parameter `residues`.
-    filter_list : type
-        Description of parameter `filter_list`.
+    k : int
+        Sequence length k of the kmer.
+    map_function : str
+        Name of map function (default: None). If None, no mapping is
+        applied.
+    residues : str or iterable
+        Residues alphabet; the default standard alphabet is below.
+        (default: "AILMVFYWSTQNCHDEKRGP")
+    filter_list : list
+        List of filter sequences (default: None).
 
     Returns
     -------
-    type
-        Description of returned object.
+    list
+        List of labels in the format 'KMER-{k}-{map_name}-{mapped residues}'.
 
     """
     # if residues or map_function not specified, set generically
@@ -298,41 +301,39 @@ def exclude_from_string(k_string, exclude):
 def vectorize_string(sequence, k=3, start=0, end=False,
                      map_function=None, feature_dict=None,
                      filter_list=None, exclude=None,
-                     return_dict=None, verbose=False,
-                     residues=StandardAlphabet):
-    """Short summary.
+                     return_dict=False, verbose=False):
+    """Transform a protein sequence into a vector representation.
 
     Parameters
     ----------
-    sequence : type
-        Description of parameter `sequence`.
+    sequence : str
+        Protein sequence.
     k : int
         Sequence length k of the kmer.
-    start : type
-        Description of parameter `start`.
-    end : type
-        Description of parameter `end`.
-    map_function : type
-        Description of parameter `map_function`.
-    feature_dict : type
-        Description of parameter `feature_dict` (default: None).
-    filter_list : type
-        Description of parameter `filter_list`.
+    start : int
+        Start index of the sequence (for sequence slicing).
+    end : int
+        End index of the sequence (for sequence slicing).
+    map_function : str
+        Name of the map function (e.g. "reduced_alphabet_0")
+        (default: None).
+    feature_dict : dict
+        Dictionary of {feature ID: feature} (default: None).
+    filter_list : list
+        List of filter sequences (default: None).
     exclude : list
         List of sequence strings for exclusion (default: None).
         This is from the kmer_walk approach and should be shorter
         sequences (though they may also be the same length).
-    return_dict : type
-        Description of parameter `return_dict`.
-    verbose : type
-        Description of parameter `kmer_output`.
-    residues : str
-        (default: "AILMVFYWSTQNCHDEKRGP")
+    return_dict : bool
+        If True, returns {kmer: count} for kmers (default: False).
+    verbose : bool
+        If True, prints verbose output during run (default: False).
 
     Returns
     -------
-    type
-        why is this returning so many things ????
+    list
+        List containing kmer counts.
 
     """
     # if residues or map_function not specified, set generically
@@ -464,13 +465,14 @@ def make_n_terminal_fusions(sequence_id, filename):
 
     return id_list, sequence_list
 
+
 def randomize_alphabet(map_function):
-    """Short summary.
+    """Create a randomized residue alphabet.
 
     Parameters
     ----------
-    map_function : type
-        Description of parameter `map_function`.
+    map_function : str
+        Name of the map function (e.g. "reduced_alphabet_0").
 
     Returns
     -------
@@ -480,11 +482,7 @@ def randomize_alphabet(map_function):
     """
     alpha = get_alphabets()[map_function]
 
-    residues = alpha["_keys"]
-    map_name = f"RND{map_function[-1]}"
-
     rand_alphabet = {}
-
     # this gives us a non-repeating string for use as new keys
     rand_str = ''.join(random.sample("ACDEFGHIKLMNPQRSTVWY", 20))
     for key_a in alpha.keys():
@@ -493,8 +491,8 @@ def randomize_alphabet(map_function):
             continue
         key_r = rand_str[0:len(key_a)]
 
-        # trim off this sequence
+        # trim off used sequence bits
         rand_str = rand_str[len(key_a):]
-        rand_alphabet[key_r] = alpha[key_a]  # ?? what about rand_str
+        rand_alphabet[key_r] = alpha[key_a]
 
     return rand_alphabet

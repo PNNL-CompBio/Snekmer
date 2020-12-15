@@ -1,5 +1,3 @@
-configfile: "config.yaml"
-
 # imports
 import glob
 import json
@@ -63,7 +61,7 @@ rule preprocess:
             # prefilter fasta to cut down on the size of feature set
             filter_dict = kmf.features.define_feature_space(
                 {k: v for k, v in zip(id_list, seq_list)},
-                kmer=config['kmer']['k'],
+                config['kmer']['k'],
                 map_function=map_function,
                 start=config['kmer']['start'],
                 end=config['kmer']['end'],
@@ -201,7 +199,7 @@ rule generate_features:
             # record labels for first sequence only
             if first:
                 labels += kmf.transform.generate_labels(
-                    k=config['kmer']['k'],
+                    config['kmer']['k'],
                     map_function=data['map_function'],
                     residues=data['residues'],
                     filter_list=data['filter_list']

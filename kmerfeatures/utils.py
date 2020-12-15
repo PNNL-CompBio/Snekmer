@@ -58,3 +58,37 @@ def read_example_index(example_index_file):
                 seq_id = line.split()[0]
                 example_index[seq_id] = 1.0
     return example_index
+
+
+def output_to_npy(filename, id_length=6):
+    """Convert feature output to numpy arrays.
+
+    Parameters
+    ----------
+    filename : str
+        /path/to/file.ext
+    id_length : int
+        Length of feature ID string (default: 6).
+
+    Returns
+    -------
+    (numpy.ndarray, numpy.ndarray)
+        Tuple of numpy arrays (feature_array, vector_array), where:
+            feature_array : numpy.ndarray
+                One-dimensional array containing feature IDs
+            vector_array : np.ndarray
+                N-dimensional array of vectorized feature outputs
+                for all features listed in `feature_array`
+        Note that the arrays are ordered; that is, the first vector
+        in `vector_array` corresponds to the first ID in
+        `feature_array`.
+
+    """
+    features, vectors = list(), list()
+    with open(filename) as f:
+        for line in f:
+            line_data = line.split("\t")
+            if len(line_data[0]) == id_length:
+                features.append(line_data[0])
+                vectors.append(np.array([float(el) for el in line_data[1:]]))
+    return np.array(features), np.array(vectors)
