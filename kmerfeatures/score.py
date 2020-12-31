@@ -1,6 +1,6 @@
 """score: Scoring and similarity analysis for extracted features.
 
-author: @christinehc
+author: @christinehc / @biodataganache
 """
 # imports
 import pandas as pd
