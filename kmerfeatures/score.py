@@ -23,19 +23,19 @@ def connection_matrix_from_features(feature_matrix, metric="jaccard"):
 
     Returns
     -------
-    pandas.DataFrame
+    numpy.ndarray
         a square matrix with the similarity scores of pairwise
         relationships between proteins.
 
     """
     if metric == "jaccard":
-        sim = 1 - pairwise_distances(feature_matrix.T, metric="hamming")
+        sim = 1 - pairwise_distances(feature_matrix, metric="hamming")  # .T?
     else:
-        sim = pairwise_distances(feature_matrix.T, metric=metric)
+        sim = pairwise_distances(feature_matrix, metric=metric)
     return sim
 
 
-def cluster_feature_matrix(feature_matrix, method="agglomerative"):
+def cluster_feature_matrix(feature_matrix, method="agglomerative", **kwargs):
     """Calculate clusters based on the feature matrix.
 
     Note: sklearn has a wide range of clustering options.
@@ -46,6 +46,8 @@ def cluster_feature_matrix(feature_matrix, method="agglomerative"):
         Description of parameter `feature_matrix`.
     method : type
         Description of parameter `method`.
+    **kwargs : dict
+        Keyword arguments for clustering class.
 
     Returns
     -------
@@ -58,12 +60,12 @@ def cluster_feature_matrix(feature_matrix, method="agglomerative"):
     #   for parallelization though - not sure
 
     if method == "agglomerative":
-        clusters = AgglomerativeClustering().fit_predict(feature_matrix)
+        clusters = AgglomerativeClustering(n_clusters=n_clusters).fit_predict(feature_matrix)
 
     return clusters
 
 
-def feature_class_probabilities(feature_matrix, example_labels):
+def feature_class_probabilities(feature_matrix, example_labels, df=True):
     """Calculate probabilities for features being in a defined class.
 
     Parameters
@@ -73,6 +75,9 @@ def feature_class_probabilities(feature_matrix, example_labels):
     example_labels : type
         Example classes vector which has as many entries as the
         number of examples and indicates a class.
+    df : bool
+        If True, returns output as a pandas DataFrame;
+        if False, returns output as a dictionary (default: True).
 
     Returns
     -------
@@ -87,30 +92,31 @@ def feature_class_probabilities(feature_matrix, example_labels):
     #  TBD
 
     # convert the feature count matrix into binary presence/absence
-    feature_matrix = (feature_matrix > 0) * 1
+    feature_matrix = (feature_matrix > 0) * 1.0
 
-    cols = feature_matrix.keys()
+    cols = ["count_pos", "prob_pos", "count_neg", "prob_neg", "score"]
 
-    # results = pd.DataFrame(data=colnames, columns=["CountPos","ProbPos","CountNeg","ProbNeg","Score"])
-    results = pd.DataFrame(index=cols,
-                           columns=["CountPos", "ProbPos",
-                                    "CountNeg", "ProbNeg", "Score"])
-
+    # count label totals in each category
     pos_total = sum(example_labels)
     neg_total = len(example_labels) - pos_total
 
+    results = {key: [] for key in cols}
     # for every feature in the input matrix
-    for key in feature_matrix.keys():
-        features = feature_matrix[key]
-        pos_score = example_labels * features
-        neg_score = ((example_labels == 0) * 1) * features
+    for i, features in enumerate(feature_matrix):
+        pos_score = example_labels[i] * features
+        neg_score = ((example_labels[i] == 0) * 1) * features
 
         # probability that presence of this kmer maps to positive examples
         pos_prob_score = sum(pos_score) / pos_total
         neg_prob_score = sum(neg_score) / neg_total
 
-        results[key] = [sum(pos_score), pos_prob_score,
-                        sum(neg_score), neg_prob_score,
-                        pos_prob_score - neg_prob_score]
+        results['count_pos'] = results['count_pos'] + [sum(pos_score)]
+        results['prob_pos'] = results['prob_pos'] + [pos_prob_score]
+        results['count_neg'] = results['count_neg'] + [sum(neg_score)]
+        results['prob_neg'] = results['prob_neg'] + [neg_prob_score]
+        results['score'] = results['score'] + [pos_prob_score - neg_prob_score]
+
+    if df:
+        return pd.DataFrame(results)
 
     return results
