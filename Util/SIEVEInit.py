@@ -13,8 +13,8 @@ ALPHABETS = {
                           "NQST":"N",     # polar
                           "DE":"D",       # acidic
                           "KR":"K",       # alkaline
-                          "CY":"C",       # ionizable
-                          "_keys":"APFNDKC"},      
+                          "C":"C",        # ionizable
+                          "_keys":"APFNDKC"},
 
     # Solvent accessibility alphabet
     # from Bacardit, et al. 2009. BMC Bioinformatics 10:6
@@ -27,7 +27,7 @@ ALPHABETS = {
     "reduced_alphabet_3":{"SFTNYQCWPH":"L", # hydrophilic (L-ove)
                           "VMLAIG":"H",     # hydrophobic (H-ate)
                           "KNDR":"C",       # charged (C-harged)
-                          "_keys":"SV"},
+                          "_keys":"LHC"},
     # 2-value hydrophobicity with structural-breakers as a third category
     #  Made by me
     "reduced_alphabet_4":{"SFTNKYEQCWHDR":"L",

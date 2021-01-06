@@ -1,0 +1,25 @@
+input:
+  fasta_dir: "../example"
+  example_index_file: False
+  walk: False
+  feature_set: '../example/model_features.txt'
+
+kmer:
+  k: 14
+  start: False
+  end: False
+  nucleotide: False
+  map_function: 'reduced_alphabet_0'  # choices: 0-5
+  randomize_alphabet: False
+  min_rep_thresh: 1
+
+output:
+  save_dir: "../../output"
+  verbose: True
+  format: 'simple'  # choices: ['simple', 'gist', 'sieve']
+  filename: False
+  filter_duplicates: True
+  n_terminal_file: False
+  shuffle_n: False
+  shuffle_sequences: False
+  kmer_output: True

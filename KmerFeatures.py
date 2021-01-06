@@ -9,13 +9,10 @@ from types import *
 from Util.Options import *
 from Util.SIEVEInit import *
 
-try:
-    from Bio import SeqIO
-    #from Bio.Alphabet import IUPAC
-    
-except ImportError:
-    sys.stderr.write("BioPython not installed correctly (see http://biopython.org)\n")
-    sys.exit(-1)
+#from Bio import SeqIO
+from sklearn.metrics.pairwise import pairwise_distances
+from sklearn.cluster import AgglomerativeClustering
+import pandas as pd
 
 OPTION_LIST = ["A program to generate features and run SIEVE models on input sequences",
                 "None",
@@ -76,6 +73,142 @@ OPTION_LIST = ["A program to generate features and run SIEVE models on input seq
                  "Perform a kmer walk on the input fasta file to get an idea of the kmer representation")
     ]
 
+# For Christine
+#   Example code to calculate similarities between examples based on features
+#         output from main() below.
+#   Input: feature_matrix in the form of rows (proteins), columns (kmers),
+#          where values are the counts of the kmers for each protein
+#   Output: a square matrix with the similarity scores of pairwise relationships
+#          between proteins
+def connection_matrix_from_features(feature_matrix, metric="jaccard"):
+    # just need to do a pairwise calculation of similarity based on
+    #      the specified method. This would be a great place to have
+    #      HPC capability because when we get enough examples this is going
+    #      to be a lot of calculations
+    # I just took this from:
+    #   https://pythonpedia.com/en/knowledge-base/37003272/how-to-compute-jaccard-similarity-from-a-pandas-dataframe
+    # and I adapted it - not sure if it will work as coded :)
+
+    df = pd.DataFrame(data=feature_matrix)
+
+    if metric == "jaccard":
+        sim = 1 - pairwise_distances(df.T, metric = "hamming")
+    else:
+        sim = pairwise_distances(df.T, metric=metric)
+
+    sim = pd.DataFrame(sim, index=df.columns, columns=df.columns)
+
+    return(sim)
+
+# For Christine
+#   Example code to calculate clusters based on the feature matrix as
+#           above. sklearn has a wide range of clustering options
+def cluster_feature_matrix(feature_matrix, method="agglomerative"):
+    # another place to have HPC since the clustering can be computationally
+    #   intensive. AgglomerativeClustering may not be the best candidate
+    #   for parallelization though - not sure
+
+    # only have one option here but we could easily add other Options
+    #     since sklearn has a bunch.
+    if method == "agglomerative":
+        feat_clusters = AgglomerativeClustering().fit_predict(feature_matrix)
+
+    return(feat_clusters)
+
+# For Christine
+#   This code will calculate the probabilities for features being
+#       in a class (as defined by example_classes)
+# Input: feature matrix and an example_classes vector which has as
+#        many entries as the number of examples and indicate a class
+def feature_class_probabilities(feature_matrix, example_labels):
+    # coding this first for the binary case - in class or not
+
+    # check to make sure the labels are the same size as number of examples
+    # check labels to make sure they contain two classes
+    #  TBD
+
+    # convert the feature count matrix into binary presence/absence
+    feature_matrix = (feature_matrix>0)*1
+
+    colnames = feature_matrix.keys()
+
+    #results = pd.DataFrame(data=colnames, columns=["CountPos","ProbPos","CountNeg","ProbNeg","Score"])
+    results = pd.DataFrame(index=colnames, columns=["CountPos","ProbPos","CountNeg","ProbNeg","Score"])
+
+    pos_tot = sum(example_labels)
+    neg_tot = len(example_labels) - pos_tot
+
+    # for every feature in the input matrix
+    for key in feature_matrix.keys():
+        features = feature_matrix[key]
+        pos_score = example_labels * features
+        neg_score = ((example_labels==0)*1) * features
+
+        # probability that the presence of this kmer maps to the positive
+        #   examples
+        pos_score_p = sum(pos_score)/pos_tot
+        neg_score_p = sum(neg_score)/neg_tot
+
+        results.loc[key] = [sum(pos_score), pos_score_p, sum(neg_score), neg_score_p, pos_score_p-neg_score_p]
+
+    return(results)
+
+
+# Below is the code in R
+#     which I think should do pretty much the same thing
+#     key difference is that the R code functioned for
+#     related families (groups of examples that are similar)
+#     so was more complicated
+#
+#
+#     family_counts = function(data, families, these_fact) {
+#   # first we make sure we get rid of multiple counts from the same protein
+#   data = as.matrix(data)
+#   data[which(data>0)] = 1
+#
+#   results = matrix(ncol=5, nrow=ncol(data))
+#   rownames(results) = colnames(data)
+#
+#   for (i in 1:ncol(data)) {
+#     pcount = 0
+#     pscore = 0
+#     ncount = 0
+#     nscore = 0
+#     pos = 0
+#     neg = 0
+#
+#     for (fam in unique(families)) {
+#       famil = names(which(families==fam))
+#       #print(fam, famil)
+#       #browser()
+#
+#       # we'll use a weighted score for each kmer in families
+#       count = sum(data[famil,i])
+#       score = count/length(famil)
+#
+#       # this assumes that all in the family are labeled the same way
+#       # if they're not then that might be an issue overall
+#       if (these_fact[famil][length(famil)]=="positive") {
+#         pcount = pcount + count
+#         pscore = pscore + score
+#         pos = pos + 1
+#         #print(c(ncol(data), count, length(famil)))
+#         #browser()
+#       }
+#       else {
+#         ncount = ncount + count
+#         nscore = nscore + score
+#         neg = neg + 1
+#       }
+#     }
+#     pscore = pscore/pos
+#     nscore = nscore/neg
+#     results[i,] = c(pcount, pscore, ncount, nscore, pscore-nscore)
+#   }
+#   return(results)
+# }
+
+
 
 def output_features(feature_sets=None, format=None, output_filename=None, labels=None, write_mode="w", **kw):
     if format == "gist" or format == "both":
@@ -91,16 +224,16 @@ def output_features(feature_sets=None, format=None, output_filename=None, labels
             for i in range(len(feature_sets[0])-1):
                 trainhandle.write("\tlabel%d" % i)
         trainhandle.write("\n")
-        
+
         classhandle = open(classout, write_mode)
         classhandle.write("corner\tclass\n")
-        
+
         for features in feature_sets:
             output_gist_features(features=features, filehandle=trainhandle, **kw)
             output_gist_class(features=features, filehandle=classhandle, **kw)
         trainhandle.close()
         classhandle.close()
-            
+
     if format == "sieve" or format == "both":
         patternout = "%s.pattern" % output_filename
         outhandle = open(patternout, write_mode)
@@ -144,7 +277,7 @@ def output_sieve_features(features=None, filehandle=None, example_index={}, **kw
     filehandle.write("\n")
     filehandle.write("\toutput\t%s\t%d\n" % (id, value))
     filehandle.flush()
-    
+
 def string_vectorize(residues=None, sequence=None, kmer=3, start=None, end=None, map_function=None, return_labels=None,
                      feature_dict=None, filter_list=None, exclusion_list=None, return_dict=None, kmer_output=None, **kw):
     def identity(character, **kw):
@@ -163,7 +296,7 @@ def string_vectorize(residues=None, sequence=None, kmer=3, start=None, end=None,
     # this is specifically for when we create a random alphabet
     #   that we want to apply to a lot of sequences
     if type(map_function) == list:
-        
+
         kw["mapping"] = map_function[2]
         residues = map_function[0]
         map_name = map_function[1]
@@ -246,7 +379,7 @@ def string_vectorize(residues=None, sequence=None, kmer=3, start=None, end=None,
         kstring = ""
         for c in kmap:
             cc = map_function(c, **kw)
-            
+
             # this has the effect of omitting unrecognized characters, which may be undesireable in some cases
             if cc == None:
                 continue
@@ -262,16 +395,16 @@ def string_vectorize(residues=None, sequence=None, kmer=3, start=None, end=None,
         #if filter_dict:
         #    print(filter_dict.keys())
         #    print(kstring)
-        
+
         if kmer_output:
           print(i, "\t", kmap, "\t", kstring, "\t1", )
-        
+
         if filter_list and not kstring in filter_list:
             #print("hoopla")
             continue
-        
+
         #FILTER HERE
-        
+
         # a list of strings to exclude from consideration
         #   this is from the kmer_walk approach and should
         #   be shorter sequences (though could also be the
@@ -283,7 +416,7 @@ def string_vectorize(residues=None, sequence=None, kmer=3, start=None, end=None,
                     breaker = 1
                     break
             if breaker: next
-            
+
         if not kstring in results:
             results[kstring] = 0
         results[kstring] += 1
@@ -296,7 +429,7 @@ def string_vectorize(residues=None, sequence=None, kmer=3, start=None, end=None,
         for item in filter_list:
             results_ordered.append(results[item])
         return results_ordered
-    
+
     return results.values()
 
     # old stuff below
@@ -308,7 +441,7 @@ def string_vectorize(residues=None, sequence=None, kmer=3, start=None, end=None,
         # base conversion- though we're using base 20 (A-Y, minus B, J, O, U) and not base 25 (A-Y)
         # for the standard aa alphabet. We can also use various reduced alphabets
         x = 0
-        
+
         if len(key) < kmer:
             continue
 
@@ -332,7 +465,7 @@ def scramble_sequence(id=None, sequence=None, n=None, no_id_modifier=None, first
         sequence = sequence[1:]
     else:
         start_residue = ""
-    
+
     for c in sequence:
         seq.append(c)
 
@@ -341,7 +474,7 @@ def scramble_sequence(id=None, sequence=None, n=None, no_id_modifier=None, first
         thisseq = start_residue
         for c in seq:
             thisseq += c
-            
+
         seqlist.append(thisseq)
         if no_id_modifier:
             idlist.append(id)
@@ -366,7 +499,7 @@ def make_n_terminal_fusions(id=None, filename=None, **kw):
 def baseconvert(n, k=None, digits=None, **kw):
     """convert positive decimal integer n to equivalent in another """
 
-    
+
     #digits = "0123456789abcdefghijklmnopqrstuvwxyz"
     digits = digits or "ACDEFGHIKLMNPQRSTVWY"
     base = len(digits)
@@ -381,10 +514,10 @@ def baseconvert(n, k=None, digits=None, **kw):
         return ""
 
     s = ""
-    
+
     while 1:
         r = n % base
-        
+
         s = digits[r] + s
         n = n / base
         n = int(n)
@@ -405,7 +538,7 @@ def kmer_walk(fastafile=None, maxk=20, seq_dump=False, **kw):
     handle = open(fastafile, "r")
     for record in SeqIO.parse(handle, "fasta"):
         sequence_list.append(str(record.seq))
-        ids_list.append(record.id)            
+        ids_list.append(record.id)
         sequence_dict[record.id] = str(record.seq)
     handle.close()
 
@@ -416,7 +549,7 @@ def kmer_walk(fastafile=None, maxk=20, seq_dump=False, **kw):
     for kmer in range(1, maxk):
         # build a feature dict for this kmer and these sequences
         feature_dict = {}
-        
+
         # short circuit the exclusion list (very slow) but allow it to count
         exclusion_list = []
         for i in range(len(sequence_list)):
@@ -442,7 +575,7 @@ def define_feature_space(sequence_dict=None, kmer=None, map_function=None, start
     # this routine will return
 
     feature_dict = {}
-    
+
     for id, seq in sequence_dict.items():
         feature_dict = string_vectorize(sequence=seq, kmer=kmer, map_function=map_function, feature_dict=feature_dict,
                                          start=start, end=end, residues=residues, return_dict=True)
@@ -450,7 +583,7 @@ def define_feature_space(sequence_dict=None, kmer=None, map_function=None, start
     # if this is between 0 and 1 then it's a percentage
     if min_rep_thresh < 1 and min_rep_thresh > 0:
         min_rep_thresh = len(feature_dict.keys()) * min_rep_thresh
-        
+
     # filter out all those below the min_rep_thresh
     if min_rep_thresh:
         filter_dict = {}
@@ -459,17 +592,17 @@ def define_feature_space(sequence_dict=None, kmer=None, map_function=None, start
                 filter_dict[key] = feature_dict[key]
     else:
         filter_dict = feature_dict
-    
+
     return filter_dict
-        
+
 
 def main(fastafile=None, example_indexfile=None, features_output_format=None, features_output_filebase=None,
          filter_duplicates=None, shuffle_n=None, output_shuffled_sequences=None, n_terminal_file=None,
-         svm_ism=None, feature_set=None, kmer=None, start=None, end=None, nucleotide=None, kmer_output=None, 
+         svm_ism=None, feature_set=None, kmer=None, start=None, end=None, nucleotide=None, kmer_output=None,
          map_function=None, min_rep_thresh=None, randomize_alphabet=0, walk=None, verbose=None, **kw):
 
     #randomize_alphabet = 1
-    
+
     if walk:
         return kmer_walk(fastafile=fastafile)
 
@@ -480,10 +613,10 @@ def main(fastafile=None, example_indexfile=None, features_output_format=None, fe
     handle = open(fastafile, "r")
     for record in SeqIO.parse(handle, "fasta"):
         sequence_list.append(str(record.seq))
-        ids_list.append(record.id)            
+        ids_list.append(record.id)
         sequence_dict[record.id] = str(record.seq)
     handle.close()
-    
+
     # this indexfile (optional) contains the identifiers of positive examples for feature output
     example_index = {}
     if example_indexfile:
@@ -496,9 +629,9 @@ def main(fastafile=None, example_indexfile=None, features_output_format=None, fe
 
     if randomize_alphabet:
         this = []
-        
+
         alpha = get_alphabets()[map_function]
-        
+
         residues = alpha["_keys"]
         map_name = "RND%s" % map_function[-1]
 
@@ -514,7 +647,7 @@ def main(fastafile=None, example_indexfile=None, features_output_format=None, fe
 
             # trim off this sequence
             randstr = randstr[len(keyi):]
-            
+
             rand_alphabet[key] = alpha[keyi]
 
         map_function = [residues, map_name, rand_alphabet]
@@ -523,7 +656,7 @@ def main(fastafile=None, example_indexfile=None, features_output_format=None, fe
         features_output_filebase = fastafile
 
     if feature_set == None:
-        # NEW: prefilter the entire fasta 
+        # NEW: prefilter the entire fasta
         # this may take awhile but will cut down on the size of the feature set by a lot
         filter_dict = define_feature_space(sequence_dict=sequence_dict, kmer=kmer,
                                         map_function=map_function, start=start, end=end,
@@ -531,7 +664,7 @@ def main(fastafile=None, example_indexfile=None, features_output_format=None, fe
 
         if verbose:
             print("Feature space: %d kmers with more than %d representation in %d sequences" % (len(filter_dict.keys()), min_rep_thresh, len(sequence_dict.keys())))
-            
+
         #print(filter_dict.keys())
         filter_list = filter_dict.keys()
         if len(filter_list) == 0:
@@ -546,7 +679,7 @@ def main(fastafile=None, example_indexfile=None, features_output_format=None, fe
         for line in handle.readlines():
               filter_list.append(line.split()[0])
         handle.close()
-    
+
     # this will catch multiples of the same identifier- but may result in problems if there's more than
     #      one of the same identifier (i.e. user's files might be messy this way)
     seen = []
@@ -600,14 +733,14 @@ def main(fastafile=None, example_indexfile=None, features_output_format=None, fe
                 print("Constructing features for sequence %s" % id)
 
             features = [id,]
-            
+
             features += string_vectorize(sequence=sequence, kmer=kmer, start=start, end=end, map_function=map_function, residues=residues, filter_list=filter_list,
                                           kmer_output=kmer_output)
             if first:
                 labels += string_vectorize(return_labels=True, kmer=kmer, start=start, end=end, map_function=map_function, residues=residues, filter_list=filter_list)
                 if features_output_format == "simple":
                     output_features(format="matrix", output_filename=features_output_filebase, labels=labels)
-                    
+
             first = False
             i += 1
 
@@ -616,7 +749,7 @@ def main(fastafile=None, example_indexfile=None, features_output_format=None, fe
             if features_output_format == "simple":
                 # we'll output as we go- this is especially good for very large input files
                 output_features(feature_sets=[features,], format="matrix", output_filename=features_output_filebase, write_mode="a")
-            
+
             # we'll output sieve patterns as we go to provide a record
             if features_output_format in ("sieve", "both"):
                 output_features(feature_sets=[features,], format="sieve", output_filename=features_output_filebase,
@@ -630,7 +763,7 @@ def main(fastafile=None, example_indexfile=None, features_output_format=None, fe
 
     if features_output_format != "simple":
         output_features(feature_sets=feature_sets, format=features_output_format, output_filename=features_output_filebase, example_index=example_index, labels=labels)
-        
+
 if __name__ == "__main__":
     optdict, infiles = process_options(OPTION_LIST)
     if optdict["parameterfile"]:
