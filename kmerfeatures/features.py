@@ -239,7 +239,8 @@ def output_gist_class(filename, features, example_index=None, mode='w'):
 
 
 def define_feature_space(sequence_dict, k, map_function=None, start=None,
-                         end=None, min_rep_thresh=2, verbose=False):
+                         end=None, min_rep_thresh=2, verbose=False,
+                         log_file=False):
     """Create a feature dictionary defined from parameters.
 
     Parameters
@@ -259,6 +260,9 @@ def define_feature_space(sequence_dict, k, map_function=None, start=None,
         Description of parameter `min_rep_thresh`.
     verbose : bool
         If True, enables verbose output (default: False).
+    log_file : str
+        /path/to/log.file for verbose outputs (default: False)
+        If False, pipes verbose outputs to console instead.
 
     Returns
     -------
@@ -288,9 +292,19 @@ def define_feature_space(sequence_dict, k, map_function=None, start=None,
     else:
         filter_dict = feature_dict
 
-    if verbose:
+    if verbose and log_file:
+        with open(log_file, 'w') as f:
+            f.write(
+                ("Feature space: {0} kmers with more than "
+                 "{1} representation in {2} sequences").format(
+                     len(filter_dict),
+                     min_rep_thresh,
+                     len(sequence_dict)
+                     )
+                 )
+    elif verbose and not log_file:
         print(
-            ("Feature space: {0} kmers with more than"
+            ("Feature space: {0} kmers with more than "
              "{1} representation in {2} sequences").format(
                  len(filter_dict),
                  min_rep_thresh,
