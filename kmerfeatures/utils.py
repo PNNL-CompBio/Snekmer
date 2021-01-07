@@ -3,7 +3,10 @@
 author: @christinehc
 """
 # imports
+import re
+
 import numpy as np
+import pandas as pd
 
 from Bio import SeqIO
 
@@ -92,3 +95,39 @@ def output_to_npy(filename, id_length=6):
                 features.append(line_data[0])
                 vectors.append(np.array([float(el) for el in line_data[1:]]))
     return np.array(features), np.array(vectors)
+
+
+def parse_fasta_description(fasta, df=True):
+    """Short summary.
+
+    Parameters
+    ----------
+    fasta : str
+        path/to/fasta.file
+    df : bool
+        If True, returns output as a pandas DataFrame (default: True)
+        If False, returns output as a dictionary.
+
+    Returns
+    -------
+    type
+        Description of returned object.
+
+    """
+    # collect parsed description data into dict
+    pdict = dict()
+    with open(fasta, 'r') as f:
+        for record in SeqIO.parse(f, fasta):
+            pdict[record.id] = dict()
+            s = f"{record.description} "  # trailing space needed for regex
+            parsed = re.findall(r'([\w]+[=][\w\", ]+)(?= )(?!=)', s)
+            for item in parsed:
+                key = item.split("=")[0].lower()
+                val = item.split("=")[1]
+    #             print(key, val)
+                i = 1
+                while key in pdict[record.id].keys():
+                    key = f"{key.split('_')[0]}_{i}"
+                    i += 1
+                pdict[record.id][key] = val
+    return pdict
