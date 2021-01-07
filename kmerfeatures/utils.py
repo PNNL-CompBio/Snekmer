@@ -91,7 +91,8 @@ def output_to_npy(filename, id_length=6):
     with open(filename) as f:
         for line in f:
             line_data = line.split("\t")
-            if len(line_data[0]) == id_length:
+            # skip kmer outputs and only parse vectors
+            if not re.findall(r'^KMER', line_data[0]):
                 features.append(line_data[0])
                 vectors.append(np.array([float(el) for el in line_data[1:]]))
     return np.array(features), np.array(vectors)
@@ -110,24 +111,28 @@ def parse_fasta_description(fasta, df=True):
 
     Returns
     -------
-    type
-        Description of returned object.
+    dict or pandas.DataFrame
+        Parsed values as {key: value} pairs or collated in DataFrame.
 
     """
     # collect parsed description data into dict
     pdict = dict()
     with open(fasta, 'r') as f:
-        for record in SeqIO.parse(f, fasta):
+        for record in SeqIO.parse(f, 'fasta'):
             pdict[record.id] = dict()
             s = f"{record.description} "  # trailing space needed for regex
             parsed = re.findall(r'([\w]+[=][\w\", ]+)(?= )(?!=)', s)
             for item in parsed:
                 key = item.split("=")[0].lower()
-                val = item.split("=")[1]
+                val = item.split("=")[1].replace('"', '')
     #             print(key, val)
                 i = 1
                 while key in pdict[record.id].keys():
-                    key = f"{key.split('_')[0]}_{i}"
+                    key = f"{key.rstrip('0123456789_')}_{i}"
                     i += 1
                 pdict[record.id][key] = val
+    if df:
+        pdict = pd.DataFrame(pdict).T.reset_index().rename(
+            columns={'index': 'sequence_id'}
+            )
     return pdict
