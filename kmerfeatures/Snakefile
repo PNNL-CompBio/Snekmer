@@ -43,7 +43,8 @@ rule preprocess:
     input:
         fasta=join(config['input']['fasta_dir'], "{fn}.fasta")
     output:
-        data=join(config['output']['save_dir'], "processed", "{fn}.json")
+        data=join(config['output']['save_dir'], "processed", "{fn}.json"),
+        desc=join(config['output']['save_dir'], "processed", "{fn}.pkl")
     log:
         join(config['output']['save_dir'], "processed", "log", "{fn}.log")
     run:
@@ -52,7 +53,6 @@ rule preprocess:
 
         # if random alphabet specified, implement randomization
         if config['kmer']['randomize_alphabet']:
-            # this = []  # what
             rand_alphabet = kmf.transform.randomize_alphabet(config['input']['map_function'])
             map_function = [residues, map_name, rand_alphabet]
         else:
@@ -150,18 +150,20 @@ rule preprocess:
                                NONRECURS_DSETS):
             save_data[label] = dset
 
-        # print(save_data.keys())
-
         # save all parameters into json
         with open(output.data, 'w') as f:
             json.dump(save_data, f)
+
+        # read and save fasta descriptions into dataframe
+        desc = kmf.utils.parse_fasta_description(input.fasta)
+        desc.to_pickle(output.desc)
 
 
 rule generate_features:
     input:
         data=rules.preprocess.output.data
     output:
-        features=join(config['output']['save_dir'], "features", "{fn}.txt"),
+        features=join(config['output']['save_dir'], "features", "{fn}.txt")
     log:
         join(config['output']['save_dir'], "features", "log", "{fn}.log")
     run:
@@ -245,11 +247,11 @@ rule generate_features:
 
 rule score_features:
     input:
-        join(config['output']['save_dir'], "features", "{fn}.txt")
+        rules.generate_features.output.data
     output:
         join(config['output']['save_dir'], "score", "{fn}.hdf5")
     run:
         matrix = kmf.score.connection_matrix_from_features(input[0])
         clusters = kmf.score.cluster_feature_matrix(matrix)
 
-        pd.to_hdf(output[0], 'cluster_matrix')
+        clusters.to_hdf(output[0], 'cluster_matrix')

@@ -120,3 +120,10 @@ def feature_class_probabilities(feature_matrix, example_labels, df=True):
         return pd.DataFrame(results)
 
     return results
+
+
+def standardize_vectors():
+    # takes an n-length list of kmers and n-length list of vectors.
+    # n must be the same in both
+    # uses feature names (e.g. KMER-RED0-xxxx) to recreate new vectors from unique identifiers
+    return
