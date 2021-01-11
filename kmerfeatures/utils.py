@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 
 from Bio import SeqIO
+from os.path import basename
 
 
 # functions
@@ -63,15 +64,13 @@ def read_example_index(example_index_file):
     return example_index
 
 
-def output_to_npy(filename, id_length=6):
+def output_to_npy(filename):
     """Convert feature output to numpy arrays.
 
     Parameters
     ----------
     filename : str
-        /path/to/file.ext
-    id_length : int
-        Length of feature ID string (default: 6).
+        /path/to/output/file.txt
 
     Returns
     -------
@@ -98,8 +97,32 @@ def output_to_npy(filename, id_length=6):
     return np.array(features), np.array(vectors)
 
 
+def get_output_kmers(filename):
+    """Extract kmer identifiers from kmerfeatures output file.
+
+    Parameters
+    ----------
+    filename : str
+        /path/to/output/file.txt
+
+    Returns
+    -------
+    list
+        Array of strings (kmer identifiers)
+
+    """
+    kmers = list()
+    with open(filename) as f:
+        for line in f:
+            line_data = line.split("\t")
+            # parse kmer outputs if detected
+            if re.findall(r'^KMER', line_data[0]):
+                kmers += line_data
+    return kmers
+
+
 def parse_fasta_description(fasta, df=True):
-    """Short summary.
+    """Parse description field of a FASTA file.
 
     Parameters
     ----------
@@ -120,6 +143,7 @@ def parse_fasta_description(fasta, df=True):
     with open(fasta, 'r') as f:
         for record in SeqIO.parse(f, 'fasta'):
             pdict[record.id] = dict()
+            pdict[record.id]['protein_family'] = get_family(fasta)
             s = f"{record.description} "  # trailing space needed for regex
             parsed = re.findall(r'([\w]+[=][\w\", ]+)(?= )(?!=)', s)
             for item in parsed:
@@ -131,8 +155,44 @@ def parse_fasta_description(fasta, df=True):
                     key = f"{key.rstrip('0123456789_')}_{i}"
                     i += 1
                 pdict[record.id][key] = val
+            pdict[record.id]['filename'] = basename(fasta)
     if df:
         pdict = pd.DataFrame(pdict).T.reset_index().rename(
             columns={'index': 'sequence_id'}
             )
     return pdict
+
+
+def get_family(filename, regex='[a-z]{3}[A-Z]{1}', return_first=True):
+    """Extract family from filename given regular expression format.
+
+    Parameters
+    ----------
+    filename : str
+        path/to/filename.ext
+    regex : str or r-string
+        Regular expression for matching a family name
+        (default: "[a-z]{3}[A-Z]{1}").
+        The default expression looks for 3 lowercase letters followed
+            by one uppercase letter. To write a custom regular
+            expression, see https://docs.python.org/3/library/re.html
+            for more details on using the built-in re library.
+    return_first : bool
+        If True, returns only the first occurrence (default: True).
+        If False, returns a list of all occurring regex matches.
+
+    Returns
+    -------
+    str or list
+        Family name or names
+
+    """
+    # extract and simplify file basename
+    s = '_'.join(
+        basename(filename).split('.')[:-1]
+        ).replace('-', '_').replace(' ', '_')
+    # modify regex to only search between underscores
+    regex = r'(?<=_)' + r'{}'.format(regex) + r'(?=_)'
+    if return_first:
+        return re.search(regex, s).group()
+    return re.findall(regex, s)
