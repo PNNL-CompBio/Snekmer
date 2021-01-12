@@ -118,7 +118,28 @@ def get_output_kmers(filename):
             # parse kmer outputs if detected
             if re.findall(r'^KMER', line_data[0]):
                 kmers += line_data
-    return kmers
+    return [s.strip().split("-")[-1] for s in kmers]
+
+
+def output_to_df(filename):
+    """Short summary.
+
+    Parameters
+    ----------
+    filename : type
+        Description of parameter `filename`.
+
+    Returns
+    -------
+    type
+        Description of returned object.
+
+    """
+    features, vectors = output_to_npy(filename)
+    kmers = get_output_kmers(filename)
+    df = pd.DataFrame({f: v for f, v in zip(features, vectors)}).T
+    df.columns = kmers
+    return df.reset_index().rename(columns={'index': 'seq_id'})
 
 
 def parse_fasta_description(fasta, df=True):

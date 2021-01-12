@@ -1,3 +1,6 @@
+# snakemake config
+# ruleorder: generate_labels > generate_features
+
 # imports
 import glob
 import json
@@ -22,10 +25,29 @@ NONRECURS_DSETS = ['map_function', 'example_index', 'filter_list']
 DSETS = RECURS_DSETS + NONRECURS_DSETS
 
 
-# define output
+# subset files for scoring assessment
+if config['score']['random']:
+    assert config['score']['random'] > 0, "Must specify >0 files"
+    assert config['score']['random'] <= len(FNS), "Length out of range"
+    indices = np.random.choice([i for i in range(len(FNS))],
+                               size=config['score']['random'],
+                               replace=False)
+else:
+    assert config['score']['end'] > config['score']['start'], "Invalid range"
+    assert config['score']['end'] <= len(FNS), "Index out of range"
+    indices = [i for i in range(config['score']['start'],
+                                config['score']['end'])
+               if i not in list(config['score']['skip'])]
+SCOREFNS = [sorted(FNS)[i] for i in indices]
+
+
+# define workflow
 rule all:
     input:
-        expand(join(config['output']['save_dir'], "features", "{fn}.txt"), fn=FNS)
+        join(config['output']['save_dir'], "score", "kmers.json"),
+        expand(join(config['output']['save_dir'], "score", "features", "{sfn}.json"), sfn=SCOREFNS)
+        # expand(join(config['output']['save_dir'], "features", "{fn}.txt"), fn=FNS)
+        # expand(join(config['output']['save_dir'], "labels", "{fn}.txt"), )
         # expand(join(config['output']['save_dir'], "score"))  # eventually
 
 
@@ -159,17 +181,42 @@ rule preprocess:
         desc.to_pickle(output.desc)
 
 
-rule generate_features:
+rule generate_kmer_labels:
     input:
-        data=rules.preprocess.output.data
+        params=rules.preprocess.output.data
+    output:
+        labels=join(config['output']['save_dir'], "labels", "{fn}.txt")
+    log:
+        join(config['output']['save_dir'], "labels", "log", "{fn}.log")
+    run:
+        # read processed features
+        with open(input.params, 'r') as f:
+            params = json.load(f)
+
+        # generate labels only
+        labels = kmf.transform.generate_labels(
+            config['kmer']['k'],
+            map_function=params['map_function'],
+            residues=params['residues'],
+            filter_list=params['filter_list']
+            )
+        if config['output']['format'] == "simple":
+            kmf.features.output_features(output.labels,
+                                         "matrix",
+                                         labels=labels)
+
+rule generate_kmer_features:
+    input:
+        params=rules.preprocess.output.data,
+        labels=rules.generate_kmer_labels.output.labels
     output:
         features=join(config['output']['save_dir'], "features", "{fn}.txt")
     log:
         join(config['output']['save_dir'], "features", "log", "{fn}.log")
     run:
         # read processed features
-        with open(input.data, 'r') as f:
-            data = json.load(f)
+        with open(input.params, 'r') as f:
+            params = json.load(f)
 
         # apply user-specified save name, if it exists
         # if config['output']['filename'] is None:
@@ -177,11 +224,11 @@ rule generate_features:
 
         # generate features for each sequence and output features
         first = True
-        for i in range(len(data['sequences'])):
-            seq = data['sequences'][i]
-            seq_id = data['ids'][i]
+        for i in range(len(params['sequences'])):
+            seq = params['sequences'][i]
+            seq_id = params['ids'][i]
 
-            labels = []
+            # labels = []
 
             if config['output']['verbose']:
                 with open(log[0], 'a') as f:
@@ -194,9 +241,8 @@ rule generate_features:
                 k=config['kmer']['k'],
                 start=config['kmer']['start'],
                 end=config['kmer']['end'],
-                map_function=data['map_function'],
-                # residues=data['residues'],
-                filter_list=data['filter_list'],
+                map_function=params['map_function'],
+                filter_list=kmf.utils.get_output_kmers(input.labels),  # params['filter_list'],
                 verbose=config['output']['verbose'],
                 log_file=log[0]
                 )
@@ -205,12 +251,13 @@ rule generate_features:
 
             # record labels for first sequence only
             if first:
-                labels += kmf.transform.generate_labels(
-                    config['kmer']['k'],
-                    map_function=data['map_function'],
-                    residues=data['residues'],
-                    filter_list=data['filter_list']
-                    )
+                labels = kmf.utils.get_output_kmers(input.labels)
+                # labels += kmf.transform.generate_labels(
+                #     config['kmer']['k'],
+                #     map_function=params['map_function'],
+                #     residues=params['residues'],
+                #     filter_list=params['filter_list']
+                #     )
                 if config['output']['format'] == "simple":
                     kmf.features.output_features(output.features,
                                                  "matrix",
@@ -231,7 +278,7 @@ rule generate_features:
             if config['output']['format'] in ("sieve", "both"):
                 kmf.features.output_features(
                     output.features, "sieve", feature_sets=[features],
-                    mode="a", example_index=data['example_index']
+                    mode="a", example_index=params['example_index']
                     )
 
             # only append features if not dumping into file
@@ -241,17 +288,69 @@ rule generate_features:
                     output.features,
                     config['output']['format'],
                     feature_sets=feature_sets,
-                    example_index=data['example_index'],
+                    example_index=params['example_index'],
                     labels=labels)
+
+
+rule aggregate_kmers:
+    input:
+        files=expand(join(config['output']['save_dir'], "features", "{sfn}.txt"),
+                     sfn=SCOREFNS)
+    output:
+        kmers=join(config['output']['save_dir'], "score", "kmers.json")
+    run:
+        # collect all kmers (without duplicates)
+        kmers = list()
+        for i, filename in enumerate(input.files):
+            ks = kmf.utils.get_output_kmers(filename)
+            if i == 0:
+                kmers = ks
+            else:
+                kmers += list(set(ks) - set(kmers))
+
+
+        # save all parameters into json
+        with open(output.kmers, 'w') as f:
+            json.dump(kmers, f)
 
 
 rule score_features:
     input:
-        rules.generate_features.output.data
+        params=rules.preprocess.output.data,
+        kmers=join(config['output']['save_dir'], "score", "kmers.json"),
+        fasta=join(config['input']['fasta_dir'], "{fn}.fasta")
     output:
-        join(config['output']['save_dir'], "score", "{fn}.hdf5")
+        features=join(config['output']['save_dir'], "score", "features", "{fn}.json")
+    log:
+        join(config['output']['save_dir'], "score", "log", "{fn}.log")
     run:
-        matrix = kmf.score.connection_matrix_from_features(input[0])
-        clusters = kmf.score.cluster_feature_matrix(matrix)
+        # read processed features
+        with open(input.params, 'r') as f:
+            params = json.load(f)
+        # read aggregated kmers
+        with open(input.kmers, 'r') as f:
+            kmers = json.load(f)
 
-        clusters.to_hdf(output[0], 'cluster_matrix')
+        # revectorize based on full kmer list
+        results = {'seq_id': [], 'vector': []}
+        seq_list, id_list = kmf.utils.read_fasta(input.fasta)
+        for seq, sid in zip(seq_list, id_list):
+            results['seq_id'] += [sid]
+            results['vector'] += [kmf.transform.vectorize_string(
+                seq,
+                k=config['kmer']['k'],
+                start=config['kmer']['start'],
+                end=config['kmer']['end'],
+                map_function=params['map_function'],
+                filter_list=kmers,  # params['filter_list'],
+                verbose=False,  # way too noisy for batch process
+                log_file=log[0]
+            )]
+
+        with open(output.features, 'w') as f:
+            json.dump(results, f)
+
+        # matrix = kmf.score.connection_matrix_from_features(input[0])
+        # clusters = kmf.score.cluster_feature_matrix(matrix)
+
+        # clusters.to_hdf(output[0], 'cluster_matrix')

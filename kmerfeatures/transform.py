@@ -76,7 +76,7 @@ def baseconvert(n, k, digits="ACDEFGHIKLMNPQRSTVWY"):
     # parse integer by digits base to populate sequence backwards
     s = ""
     while n != 0:
-        r = n % base
+        r = int(n % base)
         s = digits[r] + s
         n = n / base
 
