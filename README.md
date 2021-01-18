@@ -46,6 +46,7 @@ git clone https://github.com/biodataganache/KmerPipeline.git
 
 # install from cloned repository
 cd KmerPipeline
+git pull    # get latest version
 pip install .
 ```
 
