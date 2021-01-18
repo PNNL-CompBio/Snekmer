@@ -46,7 +46,6 @@ git clone https://github.com/biodataganache/KmerPipeline.git
 
 # install from cloned repository
 cd KmerPipeline
-git checkout christine
 pip install .
 ```
 
