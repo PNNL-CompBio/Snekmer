@@ -7,12 +7,13 @@ from kmerfeatures.utils import read_fasta
 from kmerfeatures.transform import vectorize_string
 
 # functions
-def kmer_walk(fastafile, max_k=20, seq_dump=False, min_thresh=10):
+def kmer_walk(fasta, max_k=20, seq_dump=False, min_thresh=10,
+              map_function='reduced_alphabet_0'):
     """Short summary.
 
     Parameters
     ----------
-    fastafile : type
+    fasta : type
         Description of parameter `fastafile`.
     max_k : type
         Description of parameter `max_k`.
@@ -30,7 +31,7 @@ def kmer_walk(fastafile, max_k=20, seq_dump=False, min_thresh=10):
 
     """
     # read sequences from fasta file
-    seq_list, id_list = read_fasta(fastafile)
+    seq_list, id_list = read_fasta(fasta)
 
     exclusion_list = None
     for kmer in range(1, max_k):
@@ -39,14 +40,14 @@ def kmer_walk(fastafile, max_k=20, seq_dump=False, min_thresh=10):
 
         # short-circuit the exclusion list (very slow) but allow it to count
         exclusion_list = []
-        for i in range(len(seq_list)):
-            seq = seq_list[i]
+        for i, seq in enumerate(seq_list):
+            # seq = seq_list[i]
             seq_id = id_list[i]
 
-            feature_dict = vectorize_string(sequence=seq, kmer=kmer,
-                                            map_function="reduced_alphabet_0",
+            feature_dict = vectorize_string(seq, kmer,
+                                            map_function=map_function,
                                             feature_dict=feature_dict,
-                                            exclusion_list=exclusion_list,
+                                            exclude=exclusion_list,
                                             return_dict=True)
 
         exclusion_list = []

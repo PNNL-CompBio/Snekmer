@@ -14,39 +14,49 @@ import numpy as np
 from Bio import SeqIO
 from os import makedirs
 from os.path import (basename, dirname, exists, join, splitext)
-from Util.SIEVEInit import get_alphabets
+# from sieveinit import get_alphabets
 
 
 # pull config params
-files = glob.glob(join(config['input']['fasta_dir'], "*.fasta"))
+exts = ['fasta', 'fna', 'faa', 'fa']
+compression_exts = ['gz', 'gzip', 'bz', 'bz2', 'bzip', 'zip']
+files = [glob.glob(join(config['input']['fasta_dir'], f"*.{ext}*"))
+         for ext in exts]
 FNS = [splitext(basename(f))[0] for f in files]
 RECURS_DSETS = ['sequences', 'ids', 'residues']
 NONRECURS_DSETS = ['map_function', 'example_index', 'filter_list']
 DSETS = RECURS_DSETS + NONRECURS_DSETS
 
+# validity check
+if config['kmer']['map_function'] not in kmf.ALPHABETS.keys():
+    raise ValueError("Invalid alphabet specified; alphabet must be a"
+                     " string in the form 'reduced_alphabet_n' where"
+                     " n is an integer between 0 and"
+                     f" {len(kmf.ALPHABETS)}.")
+
 
 # subset files for scoring assessment
-if config['score']['random']:
-    assert config['score']['random'] > 0, "Must specify >0 files"
-    assert config['score']['random'] <= len(FNS), "Length out of range"
+if config['score']['multifile']['random']:
+    assert config['score']['multifile']['random'] > 0, "Must specify >0 files"
+    assert config['score']['multifile']['random'] <= len(FNS), "Length out of range"
     indices = np.random.choice([i for i in range(len(FNS))],
-                               size=config['score']['random'],
+                               size=config['score']['multifile']['random'],
                                replace=False)
 else:
-    assert config['score']['end'] > config['score']['start'], "Invalid range"
-    assert config['score']['end'] <= len(FNS), "Index out of range"
-    indices = [i for i in range(config['score']['start'],
-                                config['score']['end'])
-               if i not in list(config['score']['skip'])]
+    assert config['score']['multifile']['end'] > config['score']['multifile']['start'], "Invalid range"
+    assert config['score']['multifile']['end'] <= len(FNS), "Index out of range"
+    indices = [i for i in range(config['score']['multifile']['start'],
+                                config['score']['multifile']['end'])
+               if i not in list(config['score']['multifile']['skip'])]
 SCOREFNS = [sorted(FNS)[i] for i in indices]
 
 
 # define workflow
 rule all:
     input:
-        join(config['output']['save_dir'], "score", "kmers.json"),
-        expand(join(config['output']['save_dir'], "score", "features", "{sfn}.json"), sfn=SCOREFNS)
-        # expand(join(config['output']['save_dir'], "features", "{fn}.txt"), fn=FNS)
+        # join(config['output']['save_dir'], "score", "kmers.json"),
+        # expand(join(config['output']['save_dir'], "score", "features", "{sfn}.json"), sfn=SCOREFNS)
+        expand(join(config['output']['save_dir'], "features", "{fn}.txt"), fn=FNS)
         # expand(join(config['output']['save_dir'], "labels", "{fn}.txt"), )
         # expand(join(config['output']['save_dir'], "score"))  # eventually
 
@@ -59,6 +69,15 @@ if config['input']['walk']:
             # need to fix code to properly generate an output...
         run:
             kmf.walk.kmer_walk(input.fasta)
+
+
+def merge_fastas(wildcards):
+    files = expand(join(config['input']['fasta_dir'],
+                        wildcards.fn + f'.{ext}'),
+                   fn=FNS)
+    return files
+
+if any([fn.split('.')[-1] not in exts for fn in files])
 
 
 rule preprocess:

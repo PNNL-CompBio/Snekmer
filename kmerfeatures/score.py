@@ -3,6 +3,7 @@
 author: @christinehc / @biodataganache
 """
 # imports
+import numpy as np
 import pandas as pd
 
 from sklearn.cluster import AgglomerativeClustering
@@ -35,7 +36,7 @@ def connection_matrix_from_features(feature_matrix, metric="jaccard"):
     return sim
 
 
-def cluster_feature_matrix(feature_matrix, method="agglomerative", **kwargs):
+def cluster_feature_matrix(feature_matrix, method="agglomerative", n_clusters=2):
     """Calculate clusters based on the feature matrix.
 
     Note: sklearn has a wide range of clustering options.
@@ -65,16 +66,20 @@ def cluster_feature_matrix(feature_matrix, method="agglomerative", **kwargs):
     return clusters
 
 
-def feature_class_probabilities(feature_matrix, example_labels, df=True):
+def feature_class_probabilities(feature_matrix, labels, df=True):
     """Calculate probabilities for features being in a defined class.
+
+    Note: only coded to work for the binary case (2 classes).
 
     Parameters
     ----------
     feature_matrix : type
-        Feature matrix.
-    example_labels : type
-        Example classes vector which has as many entries as the
-        number of examples and indicates a class.
+        Feature matrix, where each row represents a kmer and each
+        column represents a sequence
+        In other words, len(feature_matrix.T) must equal len(labels)
+    labels : list or numpy.ndarray or pandas.Series
+        Class labels describing feature matrix.
+        Must have as many entries as the number of feature columns.
     df : bool
         If True, returns output as a pandas DataFrame;
         if False, returns output as a dictionary (default: True).
@@ -85,38 +90,43 @@ def feature_class_probabilities(feature_matrix, example_labels, df=True):
         Description of returned object.
 
     """
-    # coding this first for the binary case - in class or not
-
-    # check to make sure the labels are the same size as number of examples
     # check labels to make sure they contain two classes
-    #  TBD
+    if isinstance(labels, (np.ndarray, list, pd.Series)):
+        labels = np.array(labels)
+        if len(np.unique(labels)) != 2:
+            raise ValueError("Labels must only contain 2 classes.")
+        # tbd: use LabelEncoder to ensure binary 0, 1 representation
+    else:
+        raise TypeError("Labels must be list- or array-like.")
+
+    # check that labels are the same size as number of examples
+    if len(feature_matrix.T) != len(labels):
+        raise ValueError("Input shapes are mismatched.")
 
     # convert the feature count matrix into binary presence/absence
     feature_matrix = (feature_matrix > 0) * 1.0
 
-    cols = ["count_pos", "prob_pos", "count_neg", "prob_neg", "score"]
+    # iterate through every feature in the input matrix
+    results = {l: {'length': len(np.hstack(np.where(labels == l)))}
+               for l in np.unique(labels)}
+    for l in np.unique(labels):
+        presence, probability = list(), list()
+        for kmer in feature_matrix:
+            p = [(kmer[i] == 1) * 1 * (labels[i] == l)
+                 for i in range(len(kmer))]
+            presence.append(p)
+            probability.append(sum(p) / results[l]['length'])
+        results[l]['presence'] = np.asarray(presence)
+        results[l]['probability'] = np.asarray(probability)
 
-    # count label totals in each category
-    pos_total = sum(example_labels)
-    neg_total = len(example_labels) - pos_total
-
-    results = {key: [] for key in cols}
-    # for every feature in the input matrix
-    for i, features in enumerate(feature_matrix):
-        pos_score = example_labels[i] * features
-        neg_score = ((example_labels[i] == 0) * 1) * features
-
-        # probability that presence of this kmer maps to positive examples
-        pos_prob_score = sum(pos_score) / pos_total
-        neg_prob_score = sum(neg_score) / neg_total
-
-        results['count_pos'] = results['count_pos'] + [sum(pos_score)]
-        results['prob_pos'] = results['prob_pos'] + [pos_prob_score]
-        results['count_neg'] = results['count_neg'] + [sum(neg_score)]
-        results['prob_neg'] = results['prob_neg'] + [neg_prob_score]
-        results['score'] = results['score'] + [pos_prob_score - neg_prob_score]
+    # compute score
+    for l in np.unique(labels):
+        o = np.unique(labels)[np.unique(labels) != l][0]
+        results[l]['score'] = (results[l]['probability']
+                               - results[o]['probability'])
 
     if df:
-        return pd.DataFrame(results)
+        return pd.DataFrame(results).T.reset_index().rename(
+            columns={'index': 'label'})
 
     return results
