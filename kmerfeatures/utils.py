@@ -4,12 +4,12 @@ author: @christinehc
 """
 # imports
 import re
+from os.path import basename
 
 import numpy as np
 import pandas as pd
 
 from Bio import SeqIO
-from os.path import basename
 
 
 # functions
