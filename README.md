@@ -52,6 +52,14 @@ pip install .
 
 The package should now be ready to use!
 
+#### Troubleshooting Notes
+
+For Windows users: If you are running into conflicts/errors when creating the conda environment in Windows, you may need to install the minimal version of snakemake instead:
+
+```
+conda create -n kmers -c conda-forge -c bioconda biopython numpy pandas snakemake-minimal scikit-learn
+```
+
 ## Command-Line Interface
 
 To run `kmerfeatures`, make sure to modify `kmerfeatures/config.yaml` to set
