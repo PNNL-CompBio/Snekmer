@@ -216,7 +216,7 @@ def generate_labels(k, map_function=None, residues=StandardAlphabet,
     # if residues or map_function not specified, set generically
     map_function = map_function or identity
 
-    residues, map_name, map_function, mapping = parse_map_function(map_function)
+    residues, map_name, map_function, _ = parse_map_function(map_function)
 
     # we should provide the ability to include a bunch of strings
     # that can be used to vectorize
@@ -342,7 +342,7 @@ def vectorize_string(sequence, k=3, start=0, end=False,
     """
     # if residues or map_function not specified, set generically
     map_function = map_function or identity
-    residues, map_name, map_function, mapping = parse_map_function(map_function)
+    _, _, map_function, mapping = parse_map_function(map_function)
 
     # we should provide the ability to include a bunch of strings
     # that can be used to vectorize
@@ -368,7 +368,7 @@ def vectorize_string(sequence, k=3, start=0, end=False,
             with open(log_file, 'a') as f:
                 f.write(f"{i}\t{k_map}\t{k_string}\t1\n")
         elif verbose and not log_file:
-            print(i, "\t", k_map, "\t", k_string, "\t1", )
+            print(f"{i}\t{k_map}\t{k_string}\t1", )
 
         # filter unrecognized characters or filter from list
         if (len(k_string) < k) or (filter_list and k_string
@@ -440,7 +440,7 @@ def scramble_sequence(sequence_id, sequence, n=1, id_modifier=False,
         scrambled_seqs.append(shuffled)
 
         # change indices to -1 for shuffled
-        example_index[sid] = -1.0  # this confuses me-- is this mistakenly written?
+        example_index[sid] = -1.0  # this confuses me-- mistake?
 
     return id_list, scrambled_seqs, example_index
 
@@ -466,7 +466,7 @@ def make_n_terminal_fusions(sequence_id, filename):
     sequence_list, id_list = [], []
     with open(filename, "r") as f:
         for record in SeqIO.parse(f, "fasta"):
-            id_string = "%s-%s" % (record.id, sequence_id)
+            id_string = f"{record.id}-{sequence_id}"
             id_list.append(id_string)
             sequence_list.append(str(record.seq))
 

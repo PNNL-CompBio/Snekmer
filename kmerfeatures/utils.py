@@ -194,7 +194,7 @@ def get_family(filename, regex='[a-z]{3}[A-Z]{1}', return_first=True):
     regex : str or r-string
         Regular expression for matching a family name
         (default: "[a-z]{3}[A-Z]{1}").
-        The default expression looks for 3 lowercase letters followed
+        The default expression is 3 lowercase letters followed
             by one uppercase letter. To write a custom regular
             expression, see https://docs.python.org/3/library/re.html
             for more details on using the built-in re library.
