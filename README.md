@@ -60,6 +60,8 @@ For Windows users: If you are running into conflicts/errors when creating the co
 conda create -n kmers -c conda-forge -c bioconda biopython numpy pandas snakemake-minimal scikit-learn
 ```
 
+Then run all subsequent steps as normal.
+
 ## Command-Line Interface
 
 To run `kmerfeatures`, make sure to modify `kmerfeatures/config.yaml` to set
