@@ -3,6 +3,7 @@
 
 # imports
 import glob
+import itertools
 import json
 import random
 import sys
@@ -17,12 +18,17 @@ from os.path import (basename, dirname, exists, join, splitext)
 # from sieveinit import get_alphabets
 
 
-# pull config params
-exts = ['fasta', 'fna', 'faa', 'fa']
-compression_exts = ['gz', 'gzip', 'bz', 'bz2', 'bzip', 'zip']
-files = [glob.glob(join(config['input']['fasta_dir'], f"*.{ext}*"))
-         for ext in exts]
-FNS = [splitext(basename(f))[0] for f in files]
+# collect all fasta-like files and unzipped version of filenames
+exts = ['.fasta', '.fna', '.faa', '.fa']
+all_files = glob.glob(join(config['input']['fasta_dir'], "*"))
+compressed = [fa for fa in all_files if fa.endswith('.gz')]
+files = [
+    fa.rstrip('.gz') for fa, ext in itertools.product(all_files, exts)
+    if fa.rstrip('.gz').endswith(ext)
+    ]
+
+UZS = [splitext(basename(f))[0] for f in compressed]
+FAS = [splitext(basename(f))[0] for f in files]
 RECURS_DSETS = ['sequences', 'ids', 'residues']
 NONRECURS_DSETS = ['map_function', 'example_index', 'filter_list']
 DSETS = RECURS_DSETS + NONRECURS_DSETS
@@ -38,56 +44,59 @@ if config['kmer']['map_function'] not in kmf.ALPHABETS.keys():
 # subset files for scoring assessment
 if config['score']['multifile']['random']:
     assert config['score']['multifile']['random'] > 0, "Must specify >0 files"
-    assert config['score']['multifile']['random'] <= len(FNS), "Length out of range"
-    indices = np.random.choice([i for i in range(len(FNS))],
+    assert config['score']['multifile']['random'] <= len(FAS), "Length out of range"
+    indices = np.random.choice([i for i in range(len(FAS))],
                                size=config['score']['multifile']['random'],
                                replace=False)
 else:
     assert config['score']['multifile']['end'] > config['score']['multifile']['start'], "Invalid range"
-    assert config['score']['multifile']['end'] <= len(FNS), "Index out of range"
+    assert config['score']['multifile']['end'] <= len(FAS), "Index out of range"
     indices = [i for i in range(config['score']['multifile']['start'],
                                 config['score']['multifile']['end'])
                if i not in list(config['score']['multifile']['skip'])]
-SCOREFNS = [sorted(FNS)[i] for i in indices]
+SCOREFAS = [sorted(FAS)[i] for i in indices]
 
 
 # define workflow
 rule all:
     input:
-        # join(config['output']['save_dir'], "score", "kmers.json"),
-        # expand(join(config['output']['save_dir'], "score", "features", "{sfn}.json"), sfn=SCOREFNS)
-        expand(join(config['output']['save_dir'], "features", "{fn}.txt"), fn=FNS)
-        # expand(join(config['output']['save_dir'], "labels", "{fn}.txt"), )
+        expand(join(config['input']['fasta_dir'], '{uz}'), uz=UZS),
+        expand(join(config['output']['save_dir'], "features", "{fa}.txt"), fa=FAS)
+        # expand(join(config['output']['save_dir'], "labels", "{fa}.txt"), )
         # expand(join(config['output']['save_dir'], "score"))  # eventually
 
 
+# [in-progress] kmer walk
 if config['input']['walk']:
     rule perform_kmer_walk:
         input:
-            fasta=join(config['input']['fasta_dir'], "{fn}.fasta")
+            fasta=join(config['input']['fasta_dir'], "{fa}.fasta")
         output:
             # need to fix code to properly generate an output...
         run:
             kmf.walk.kmer_walk(input.fasta)
 
 
-def merge_fastas(wildcards):
-    files = expand(join(config['input']['fasta_dir'],
-                        wildcards.fn + f'.{ext}'),
-                   fn=FNS)
-    return files
-
-if any([fn.split('.')[-1] not in exts for fn in files])
+# if any files are gzip compressed, unzip them
+rule unzip:
+    input:
+        join(config['input']['fasta_dir'], '{uz}.gz')
+    output:
+        join(config['input']['fasta_dir'], '{uz}')
+    params:
+        outdir=join(config['input']['fasta_dir'], 'compressed')
+    shell:
+        "gunzip {input} && mkdir {params.outdir} && mv {input} {params.outdir}"
 
 
 rule preprocess:
     input:
-        fasta=join(config['input']['fasta_dir'], "{fn}.fasta")
+        fasta=join(config['input']['fasta_dir'], "{fa}.fasta")
     output:
-        data=join(config['output']['save_dir'], "processed", "{fn}.json"),
-        desc=join(config['output']['save_dir'], "processed", "{fn}.pkl")
+        data=join(config['output']['save_dir'], "processed", "{fa}.json"),
+        desc=join(config['output']['save_dir'], "processed", "{fa}.pkl")
     log:
-        join(config['output']['save_dir'], "processed", "log", "{fn}.log")
+        join(config['output']['save_dir'], "processed", "log", "{fa}.log")
     run:
         # read fasta file
         seq_list, id_list = kmf.utils.read_fasta(input.fasta)
@@ -159,7 +168,7 @@ rule preprocess:
                 # include shuffled sequences in output
                 if config['output']['shuffle_sequences']:
                     filename = join(config['output']['save_dir'], 'shuffled',
-                                    wildcards.fn, "%s_shuffled.fasta" % sid)
+                                    wildcards.fa, "%s_shuffled.fasta" % sid)
                     if not exists(dirname(filename)):
                         makedirs(dirname(filename))
                     with open(filename, "w") as f:
@@ -204,9 +213,9 @@ rule generate_kmer_labels:
     input:
         params=rules.preprocess.output.data
     output:
-        labels=join(config['output']['save_dir'], "labels", "{fn}.txt")
+        labels=join(config['output']['save_dir'], "labels", "{fa}.txt")
     log:
-        join(config['output']['save_dir'], "labels", "log", "{fn}.log")
+        join(config['output']['save_dir'], "labels", "log", "{fa}.log")
     run:
         # read processed features
         with open(input.params, 'r') as f:
@@ -229,9 +238,9 @@ rule generate_kmer_features:
         params=rules.preprocess.output.data,
         labels=rules.generate_kmer_labels.output.labels
     output:
-        features=join(config['output']['save_dir'], "features", "{fn}.txt")
+        features=join(config['output']['save_dir'], "features", "{fa}.txt")
     log:
-        join(config['output']['save_dir'], "features", "log", "{fn}.log")
+        join(config['output']['save_dir'], "features", "log", "{fa}.log")
     run:
         # read processed features
         with open(input.params, 'r') as f:
@@ -239,7 +248,7 @@ rule generate_kmer_features:
 
         # apply user-specified save name, if it exists
         # if config['output']['filename'] is None:
-        #     output_file = wildcards.fn
+        #     output_file = wildcards.fa
 
         # generate features for each sequence and output features
         first = True
@@ -313,8 +322,8 @@ rule generate_kmer_features:
 
 rule aggregate_kmers:
     input:
-        files=expand(join(config['output']['save_dir'], "features", "{sfn}.txt"),
-                     sfn=SCOREFNS)
+        files=expand(join(config['output']['save_dir'], "features", "{sfa}.txt"),
+                     sfa=SCOREFAS)
     output:
         kmers=join(config['output']['save_dir'], "score", "kmers.json")
     run:
@@ -337,11 +346,11 @@ rule score_features:
     input:
         params=rules.preprocess.output.data,
         kmers=join(config['output']['save_dir'], "score", "kmers.json"),
-        fasta=join(config['input']['fasta_dir'], "{fn}.fasta")
+        fasta=join(config['input']['fasta_dir'], "{fa}.fasta")
     output:
-        features=join(config['output']['save_dir'], "score", "features", "{fn}.json")
+        features=join(config['output']['save_dir'], "score", "features", "{fa}.json")
     log:
-        join(config['output']['save_dir'], "score", "log", "{fn}.log")
+        join(config['output']['save_dir'], "score", "log", "{fa}.log")
     run:
         # read processed features
         with open(input.params, 'r') as f:
