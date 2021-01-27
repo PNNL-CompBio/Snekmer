@@ -86,7 +86,7 @@ rule unzip:
     params:
         outdir=join(config['input']['fasta_dir'], 'compressed')
     shell:
-        "gunzip {input} && mkdir {params.outdir} && mv {input} {params.outdir}"
+        "mkdir {params.outdir} && cp {input} {params.outdir} && gunzip {input}"
 
 
 rule preprocess:
