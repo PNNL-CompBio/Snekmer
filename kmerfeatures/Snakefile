@@ -27,7 +27,7 @@ files = [
     if fa.rstrip('.gz').endswith(ext)
     ]
 
-UZS = [splitext(basename(f))[0] for f in compressed]
+UNZIPPED = [splitext(basename(f))[0] for f in compressed]
 FAS = [splitext(basename(f))[0] for f in files]
 RECURS_DSETS = ['sequences', 'ids', 'residues']
 NONRECURS_DSETS = ['map_function', 'example_index', 'filter_list']
@@ -49,10 +49,14 @@ if config['score']['multifile']['random']:
                                size=config['score']['multifile']['random'],
                                replace=False)
 else:
-    assert config['score']['multifile']['end'] > config['score']['multifile']['start'], "Invalid range"
-    assert config['score']['multifile']['end'] <= len(FAS), "Index out of range"
+    if str(config['score']['multifile']['end']) == 'None':
+        i_end = len(FAS)
+    else:
+        i_end = config['score']['multifile']['end']
+        assert i_end > config['score']['multifile']['start'], "Invalid range"
+        assert i_end <= len(FAS), "Index out of range"
     indices = [i for i in range(config['score']['multifile']['start'],
-                                config['score']['multifile']['end'])
+                                i_end)
                if i not in list(config['score']['multifile']['skip'])]
 SCOREFAS = [sorted(FAS)[i] for i in indices]
 
@@ -60,8 +64,9 @@ SCOREFAS = [sorted(FAS)[i] for i in indices]
 # define workflow
 rule all:
     input:
-        expand(join(config['input']['fasta_dir'], '{uz}'), uz=UZS),
-        expand(join(config['output']['save_dir'], "features", "{fa}.txt"), fa=FAS)
+        expand(join(config['input']['fasta_dir'], '{uz}'), uz=UNZIPPED),
+        expand(join(config['output']['save_dir'], "features", "{fa}.txt"), fa=FAS),
+        expand(join(config['output']['save_dir'], "score", "features", "{sfa}.json"), sfa=SCOREFAS)
         # expand(join(config['output']['save_dir'], "labels", "{fa}.txt"), )
         # expand(join(config['output']['save_dir'], "score"))  # eventually
 
@@ -322,10 +327,12 @@ rule generate_kmer_features:
 
 rule aggregate_kmers:
     input:
-        files=expand(join(config['output']['save_dir'], "features", "{sfa}.txt"),
+        files=expand(join(config['output']['save_dir'], "labels", "{sfa}.txt"),
                      sfa=SCOREFAS)
     output:
         kmers=join(config['output']['save_dir'], "score", "kmers.json")
+    log:
+        join(config['output']['save_dir'], "score", "log", "kmers.log")
     run:
         # collect all kmers (without duplicates)
         kmers = list()
@@ -336,21 +343,29 @@ rule aggregate_kmers:
             else:
                 kmers += list(set(ks) - set(kmers))
 
+        # if labels are improperly captured, try again
+        if len(kmers) == 0:
+            with open(log[0], 'a') as f:
+                logf.write('no kmers parsed from files')
 
         # save all parameters into json
         with open(output.kmers, 'w') as f:
             json.dump(kmers, f)
 
+        with open(log[0], 'a') as logf:
+            logf.write('input files:\n')
+            logf.write(str(input.files))
+
 
 rule score_features:
     input:
-        params=rules.preprocess.output.data,
+        params=join(config['output']['save_dir'], "processed", "{sfa}.json"),
         kmers=join(config['output']['save_dir'], "score", "kmers.json"),
-        fasta=join(config['input']['fasta_dir'], "{fa}.fasta")
+        fasta=join(config['input']['fasta_dir'], "{sfa}.fasta")
     output:
-        features=join(config['output']['save_dir'], "score", "features", "{fa}.json")
+        features=join(config['output']['save_dir'], "score", "features", "{sfa}.json")
     log:
-        join(config['output']['save_dir'], "score", "log", "{fa}.log")
+        join(config['output']['save_dir'], "score", "log", "{sfa}.log")
     run:
         # read processed features
         with open(input.params, 'r') as f:
