@@ -1,0 +1,7 @@
+__default__:
+  name: kmerpipeline
+  account:
+  time: "72:00:00"
+  partition: slurm,gpu
+  nodes: 1
+  ntasks: 16

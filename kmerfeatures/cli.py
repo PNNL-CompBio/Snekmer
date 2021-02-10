@@ -8,7 +8,9 @@ from pkg_resources import resource_filename
 from snakemake import snakemake
 
 # define options
-MAP_FN_DESC = ["Hydrophobic/hydrophilic", "Standard 7", "Solvent accessibility", "LoveHateCharge", "LoveHateBadstruct"]
+MAP_FN_DESC = ["Hydrophobic/hydrophilic", "Standard 7",
+               "Solvent accessibility", "LoveHateCharge",
+               "LoveHateBadstruct"]
 MAP_FNS = {f'reduced_alphabet_{n}': MAP_FN_DESC[n] for n in range(5)}
 FEAT_OUT_FMTS = {'simple': 'Simple tab-delimited format',
                  'gist': 'Input for gist',
