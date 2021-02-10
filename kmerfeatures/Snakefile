@@ -11,11 +11,10 @@ import sys
 import kmerfeatures as kmf
 import numpy as np
 
-# from types import *
+from pandas import DataFrame
 from Bio import SeqIO
 from os import makedirs
 from os.path import (basename, dirname, exists, join, splitext)
-# from sieveinit import get_alphabets
 
 
 # collect all fasta-like files and unzipped version of filenames
@@ -34,11 +33,11 @@ NONRECURS_DSETS = ['map_function', 'example_index', 'filter_list']
 DSETS = RECURS_DSETS + NONRECURS_DSETS
 
 # validity check
-if config['kmer']['map_function'] not in kmf.ALPHABETS.keys():
+if config['kmer']['map_function'] not in kmf.alphabet.ALPHABETS.keys():
     raise ValueError("Invalid alphabet specified; alphabet must be a"
                      " string in the form 'reduced_alphabet_n' where"
                      " n is an integer between 0 and"
-                     f" {len(kmf.ALPHABETS)}.")
+                     f" {len(kmf.alphabet.ALPHABETS)}.")
 
 
 # subset files for scoring assessment
@@ -210,11 +209,11 @@ rule preprocess:
             json.dump(save_data, f)
 
         # read and save fasta descriptions into dataframe
-        desc = kmf.utils.parse_fasta_description(input.fasta)
-        if desc is not None:
+        try:
+            desc = kmf.utils.parse_fasta_description(input.fasta)
             desc.to_pickle(output.desc)
-        else:
-            pd.DataFrame([]).to_pickle(output.desc)
+        except AttributeError:  # if no description exists > empty df
+            DataFrame([]).to_pickle(output.desc)
 
 
 rule generate_kmer_labels:

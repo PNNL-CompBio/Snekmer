@@ -8,7 +8,7 @@ import random
 import re
 
 from Bio import SeqIO
-from kmerfeatures import (StandardAlphabet, get_alphabets)
+from kmerfeatures.alphabet import (StandardAlphabet, get_alphabets)
 
 
 # global variables and dictionary mappings
