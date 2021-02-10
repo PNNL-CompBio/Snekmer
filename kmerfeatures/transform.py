@@ -8,8 +8,7 @@ import random
 import re
 
 from Bio import SeqIO
-from Util.SIEVEInit import StandardAlphabet
-from Util.SIEVEInit import get_alphabets
+from kmerfeatures import (StandardAlphabet, get_alphabets)
 
 
 # global variables and dictionary mappings

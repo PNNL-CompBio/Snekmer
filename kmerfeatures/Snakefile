@@ -211,7 +211,10 @@ rule preprocess:
 
         # read and save fasta descriptions into dataframe
         desc = kmf.utils.parse_fasta_description(input.fasta)
-        desc.to_pickle(output.desc)
+        if desc is not None:
+            desc.to_pickle(output.desc)
+        else:
+            pd.DataFrame([]).to_pickle(output.desc)
 
 
 rule generate_kmer_labels:
