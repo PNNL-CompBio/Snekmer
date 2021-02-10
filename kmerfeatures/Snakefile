@@ -93,6 +93,9 @@ rule unzip:
         "mkdir {params.outdir} && cp {input} {params.outdir} && gunzip {input}"
 
 
+# possible rule: fasta chunker
+
+
 rule preprocess:
     input:
         fasta=join(config['input']['fasta_dir'], "{fa}.fasta")

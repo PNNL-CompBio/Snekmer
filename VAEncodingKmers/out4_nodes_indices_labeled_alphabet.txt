@@ -1,6 +1,0 @@
-tensor([A, F, A, F, A, A, C, J, J, E, A, C, A, A, H, A, F, A, J, A, A, A, A, A,
-        A, A, C, F, C, I, A, J, A, A, C, I, I, A, F, A, A, J, A, A, I, J, A, J,
-        A, A, H, B, A, I, I, I, C, B, A, A, E, B, A, A, H, A, E, A, A, C, A, C,
-        A, I, I, A, A, I, A, E, D, E, C, A, H, A, A, A, A, A, I, F, E, A, G, J,
-        A, A, A, J, D, A, A, I, C, I, I, D, E, F, I, A, E, A, I, A, A, I, A, A,
-        I, A, I, I, A, A, J, A])
