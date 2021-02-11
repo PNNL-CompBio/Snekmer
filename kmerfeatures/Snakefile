@@ -65,7 +65,8 @@ rule all:
     input:
         expand(join(config['input']['fasta_dir'], '{uz}'), uz=UNZIPPED),
         expand(join(config['output']['save_dir'], "features", "{fa}.txt"), fa=FAS),
-        expand(join(config['output']['save_dir'], "score", "features", "{sfa}.json"), sfa=SCOREFAS)
+        expand(join(config['output']['save_dir'], "score", "features", "{sfa}.json"), sfa=SCOREFAS),
+        expand(join(config['output']['save_dir'], "standardized", "{fa}", "{fa2}.json"), fa=FAS, fa2=FAS)
         # expand(join(config['output']['save_dir'], "labels", "{fa}.txt"), )
         # expand(join(config['output']['save_dir'], "score"))  # eventually
 
@@ -328,6 +329,51 @@ rule generate_kmer_features:
                     feature_sets=feature_sets,
                     example_index=params['example_index'],
                     labels=labels)
+
+
+rule standardize_kmers:
+    input:
+        kmers=join(config['output']['save_dir'], 'labels', '{fa}.txt'),
+        params=join(config['output']['save_dir'], "processed", "{fa}.json"),
+        fastas=expand(join(config['input']['fasta_dir'], "{fa2}.fasta"),
+                      fa2=FAS)
+    log:
+        join(config['output']['save_dir'], 'standardized', 'log', '{fa}.log')
+    output:
+        files=expand(join(config['output']['save_dir'],
+                          "standardized", "{{fa}}", "{fa2}.json"),
+                     fa2=FAS)
+    run:
+        # get kmers for this particular set of sequences
+        kmers = kmf.utils.get_output_kmers(input.kmers)
+
+        # read processed features
+        with open(input.params, 'r') as f:
+            params = json.load(f)
+
+        # sort i/o lists to match wildcard order
+        fastas = sorted(input.fastas)
+        outfiles = sorted(output.files)
+
+        # revectorize based on full kmer list
+        results = {'seq_id': [], 'vector': []}
+        for i, fa in enumerate(fastas):
+            seq_list, id_list = kmf.utils.read_fasta(fa)
+            for seq, sid in zip(seq_list, id_list):
+                results['seq_id'] += [sid]
+                results['vector'] += [kmf.transform.vectorize_string(
+                    seq,
+                    k=config['kmer']['k'],
+                    start=config['kmer']['start'],
+                    end=config['kmer']['end'],
+                    map_function=params['map_function'],
+                    filter_list=kmers,  # params['filter_list'],
+                    verbose=False,  # way too noisy for batch process
+                    log_file=log[0]
+                )]
+
+            with open(outfiles[i], 'w') as f:
+                json.dump(results, f)
 
 
 rule aggregate_kmers:
