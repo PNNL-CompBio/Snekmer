@@ -1,6 +1,6 @@
 __default__:
   name: kmerpipeline
-  account:
+  account: sbd_sfa
   time: "72:00:00"
   partition: slurm,gpu
   nodes: 1
