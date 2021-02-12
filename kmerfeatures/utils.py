@@ -3,6 +3,7 @@
 author: @christinehc
 """
 # imports
+import json
 import re
 from os.path import basename
 
@@ -217,3 +218,38 @@ def get_family(filename, regex='[a-z]{3}[A-Z]{1}', return_first=True):
     if return_first:
         return re.search(regex, s).group()
     return re.findall(regex, s)
+
+
+def vecfiles_to_df(files, labels=None, label_name='label'):
+    """Load multiple sequence files and parse into common dataframe.
+
+    Parameters
+    ----------
+    files : list
+        Description of parameter `files`.
+    labels : list or None (default: None)
+        Description of parameter `labels`.
+    label_name : str (default: 'label')
+        Description of parameter `label_name`.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Description of returned object.
+
+    """
+    data = {'filename': [], 'seq_id': [], 'vector': [], 'vec_shape': []}
+    for afile in files:
+        with open(afile, 'r') as f:
+            tmp = json.load(f)
+            data['filename'] += [basename(afile)] * len(tmp['seq_id'])
+            data['seq_id'] += tmp['seq_id']
+            data['vector'] += tmp['vector']
+            data['vec_shape'] += [np.array(arr).shape for arr in tmp['vector']]
+    if str(labels) != "None":
+        if len(labels) != len(data):
+            raise ValueError(
+                'Number of labels must equal number of sequences.'
+                )
+        data[label_name] = labels
+    return pd.DataFrame(data)

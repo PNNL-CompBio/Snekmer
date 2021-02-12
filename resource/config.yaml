@@ -23,3 +23,7 @@ output:
   shuffle_n: False
   shuffle_sequences: False
   kmer_output: True
+
+score:
+  labels: None
+  lname: None  # label name

@@ -64,9 +64,10 @@ SCOREFAS = [sorted(FAS)[i] for i in indices]
 rule all:
     input:
         expand(join(config['input']['fasta_dir'], '{uz}'), uz=UNZIPPED),
-        expand(join(config['output']['save_dir'], "features", "{fa}.txt"), fa=FAS),
-        expand(join(config['output']['save_dir'], "score", "features", "{sfa}.json"), sfa=SCOREFAS),
-        expand(join(config['output']['save_dir'], "standardized", "{fa}", "{fa2}.json"), fa=FAS, fa2=FAS)
+        expand(join(config['output']['save_dir'], "standardized", "data", "{fa}", "{fa2}.json"), fa=FAS, fa2=FAS),
+        expand(join(config['output']['save_dir'], "standardized", "agg", "{fa}.json"), fa=FAS)
+        # expand(join(config['output']['save_dir'], "features", "{fa}.txt"), fa=FAS),
+        # expand(join(config['output']['save_dir'], "score", "features", "{sfa}.json"), sfa=SCOREFAS),
         # expand(join(config['output']['save_dir'], "labels", "{fa}.txt"), )
         # expand(join(config['output']['save_dir'], "score"))  # eventually
 
@@ -333,15 +334,15 @@ rule generate_kmer_features:
 
 rule standardize_kmers:
     input:
-        kmers=join(config['output']['save_dir'], 'labels', '{fa}.txt'),
+        kmers=join(config['output']['save_dir'], "labels", '{fa}.txt'),
         params=join(config['output']['save_dir'], "processed", "{fa}.json"),
         fastas=expand(join(config['input']['fasta_dir'], "{fa2}.fasta"),
                       fa2=FAS)
     log:
-        join(config['output']['save_dir'], 'standardized', 'log', '{fa}.log')
+        join(config['output']['save_dir'], "standardized", "log", "{fa}.log")
     output:
         files=expand(join(config['output']['save_dir'],
-                          "standardized", "{{fa}}", "{fa2}.json"),
+                          "standardized", "data", "{{fa}}", "{fa2}.json"),
                      fa2=FAS)
     run:
         # get kmers for this particular set of sequences
@@ -376,75 +377,119 @@ rule standardize_kmers:
                 json.dump(results, f)
 
 
-rule aggregate_kmers:
-    input:
-        files=expand(join(config['output']['save_dir'], "labels", "{sfa}.txt"),
-                     sfa=SCOREFAS)
-    output:
-        kmers=join(config['output']['save_dir'], "score", "kmers.json")
-    log:
-        join(config['output']['save_dir'], "score", "log", "kmers.log")
-    run:
-        # collect all kmers (without duplicates)
-        kmers = list()
-        for i, filename in enumerate(input.files):
-            ks = kmf.utils.get_output_kmers(filename)
-            if i == 0:
-                kmers = ks
-            else:
-                kmers += list(set(ks) - set(kmers))
-
-        # if labels are improperly captured, try again
-        if len(kmers) == 0:
-            with open(log[0], 'a') as f:
-                logf.write('no kmers parsed from files')
-
-        # save all parameters into json
-        with open(output.kmers, 'w') as f:
-            json.dump(kmers, f)
-
-        with open(log[0], 'a') as logf:
-            logf.write('input files:\n')
-            logf.write(str(input.files))
+# rule aggregate_kmers:
+#     input:
+#         files=expand(join(config['output']['save_dir'], "labels", "{sfa}.txt"),
+#                      sfa=SCOREFAS)
+#     output:
+#         kmers=join(config['output']['save_dir'], "score", "kmers.json")
+#     log:
+#         join(config['output']['save_dir'], "score", "log", "kmers.log")
+#     run:
+#         # collect all kmers (without duplicates)
+#         kmers = list()
+#         for i, filename in enumerate(input.files):
+#             ks = kmf.utils.get_output_kmers(filename)
+#             if i == 0:
+#                 kmers = ks
+#             else:
+#                 kmers += list(set(ks) - set(kmers))
+#
+#         # if labels are improperly captured, try again
+#         if len(kmers) == 0:
+#             with open(log[0], 'a') as f:
+#                 logf.write('no kmers parsed from files')
+#
+#         # save all parameters into json
+#         with open(output.kmers, 'w') as f:
+#             json.dump(kmers, f)
+#
+#         with open(log[0], 'a') as logf:
+#             logf.write('input files:\n')
+#             logf.write(str(input.files))
 
 
 rule score_features:
     input:
-        params=join(config['output']['save_dir'], "processed", "{sfa}.json"),
-        kmers=join(config['output']['save_dir'], "score", "kmers.json"),
-        fasta=join(config['input']['fasta_dir'], "{sfa}.fasta")
+        files=expand(join(config['output']['save_dir'],
+                          "standardized", "data", "{{fa}}", "{fa2}.json"),
+                     fa2=FAS),
+        fasta=join(config['input']['fasta_dir'], "{fa}.fasta")
     output:
-        features=join(config['output']['save_dir'], "score", "features", "{sfa}.json")
+        df=join(config['output']['save_dir'], "standardized", "agg", "{fa}.json"),
+        npy=join(config['output']['save_dir'], "standardized", "agg", "{fa}_matrix.npy"),
+        scores=join(config['output']['save_dir'], "score", "{fa}.json")
     log:
-        join(config['output']['save_dir'], "score", "log", "{sfa}.log")
+        join(config['output']['save_dir'], "score", "log", "{fa}.log")
     run:
-        # read processed features
-        with open(input.params, 'r') as f:
-            params = json.load(f)
-        # read aggregated kmers
-        with open(input.kmers, 'r') as f:
-            kmers = json.load(f)
+        # parse all data
+        label = config['score']['lname']
+        data = kmf.utils.vecfiles_to_df(input.files,
+                                        labels=config['score']['labels'],
+                                        label_name=label)
 
-        # revectorize based on full kmer list
-        results = {'seq_id': [], 'vector': []}
-        seq_list, id_list = kmf.utils.read_fasta(input.fasta)
-        for seq, sid in zip(seq_list, id_list):
-            results['seq_id'] += [sid]
-            results['vector'] += [kmf.transform.vectorize_string(
-                seq,
-                k=config['kmer']['k'],
-                start=config['kmer']['start'],
-                end=config['kmer']['end'],
-                map_function=params['map_function'],
-                filter_list=kmers,  # params['filter_list'],
-                verbose=False,  # way too noisy for batch process
-                log_file=log[0]
-            )]
+        # parse family names and only add if some are valid
+        families = [kmf.utils.get_family(fn) for fn in data['filename']]
+        if any(families):
+            label = 'family'
+            data[label] = families
 
-        with open(output.features, 'w') as f:
-            json.dump(results, f)
+        # define feature matrix of kmer vectors
+        feature_matrix = kmf.score.to_feature_matrix(data['vector'].values)
+
+        # compute class probabilities
+        labels = data[label].values
+        class_probabilities = kmf.score.feature_class_probabilities(
+            feature_matrix.T, labels
+            )
+
+        # [IN PROGRESS] compute clusters
+        clusters = kmf.score.cluster_feature_matrix(feature_matrix)
+        data['cluster'] = clusters
+
+        # save all files to respective outputs
+        data.to_json(output.df)
+        np.save(output.npy, feature_matrix)
+        class_probabilities.to_json(output.scores)
+
+        # # revectorize based on full kmer list
+        # results = {'seq_id': [], 'vector': []}
+        # seq_list, id_list = kmf.utils.read_fasta(input.fasta)
+        # for seq, sid in zip(seq_list, id_list):
+        #     results['seq_id'] += [sid]
+        #     results['vector'] += [kmf.transform.vectorize_string(
+        #         seq,
+        #         k=config['kmer']['k'],
+        #         start=config['kmer']['start'],
+        #         end=config['kmer']['end'],
+        #         map_function=params['map_function'],
+        #         filter_list=kmers,  # params['filter_list'],
+        #         verbose=False,  # way too noisy for batch process
+        #         log_file=log[0]
+        #     )]
+        #
+        # with open(output.features, 'w') as f:
+        #     json.dump(results, f)
 
         # matrix = kmf.score.connection_matrix_from_features(input[0])
         # clusters = kmf.score.cluster_feature_matrix(matrix)
 
         # clusters.to_hdf(output[0], 'cluster_matrix')
+
+# rule cluster_features:
+#     input:
+#         npy=join(config['output']['save_dir'], "standardized", "feature_matrix", "{fa}.npy"),
+#         scores=join(config['output']['save_dir'], "score", "{fa}.json")
+#     output:
+#         join(config['output']['save_dir'], "cluster", "{fa}.json")
+#     run:
+#         # load feature matrix and computed class weight scores
+#         feature_matrix = np.load(input.npy)
+#         class_probabilities = pd.read_json(input.scores)
+#
+#         # connection matrix -- not currently used by anything
+#         connection_matrix = kmf.score.connection_matrix_from_features(
+#             feature_matrix
+#             )
+#
+#         #

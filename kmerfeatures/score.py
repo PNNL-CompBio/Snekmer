@@ -11,13 +11,31 @@ from sklearn.metrics.pairwise import pairwise_distances
 
 
 # functions
+def to_feature_matrix(array):
+    """Create properly shaped feature matrix for kmer scoring.
+
+    Parameters
+    ----------
+    array : numpy.ndarray or list or array-like
+        2-D array-like collection of kmer vectors.
+        The assumed format is rows = sequences, cols = kmers.
+
+    Returns
+    -------
+    numpy.ndarray of numpy.ndarrays
+        2D array version of the 2D array-like input.
+
+    """
+    return np.array([np.array(a, dtype=int) for a in array])
+
+
 def connection_matrix_from_features(feature_matrix, metric="jaccard"):
     """Calculate similarities based on features output from main().
 
     Parameters
     ----------
     feature_matrix : numpy.ndarray
-        feature_matrix in the form of rows (proteins), columns (kmers),
+        feature_matrix in the form of rows (sequences), columns (kmers),
         where values are the counts of the kmers for each protein.
     metric : str
         description.
@@ -36,7 +54,9 @@ def connection_matrix_from_features(feature_matrix, metric="jaccard"):
     return sim
 
 
-def cluster_feature_matrix(feature_matrix, method="agglomerative", n_clusters=2):
+def cluster_feature_matrix(feature_matrix,
+                           method="agglomerative",
+                           n_clusters=2):
     """Calculate clusters based on the feature matrix.
 
     Note: sklearn has a wide range of clustering options.
@@ -90,12 +110,9 @@ def feature_class_probabilities(feature_matrix, labels, df=True):
         Description of returned object.
 
     """
-    # check labels to make sure they contain two classes
+    # ensure labels are given as a numpy array
     if isinstance(labels, (np.ndarray, list, pd.Series)):
         labels = np.array(labels)
-        if len(np.unique(labels)) != 2:
-            raise ValueError("Labels must only contain 2 classes.")
-        # tbd: use LabelEncoder to ensure binary 0, 1 representation
     else:
         raise TypeError("Labels must be list- or array-like.")
 
@@ -107,7 +124,7 @@ def feature_class_probabilities(feature_matrix, labels, df=True):
     feature_matrix = (feature_matrix > 0) * 1.0
 
     # iterate through every feature in the input matrix
-    results = {l: {'length': len(np.hstack(np.where(labels == l)))}
+    results = {l: {'n_sequences': len(np.hstack(np.where(labels == l)))}
                for l in np.unique(labels)}
     for l in np.unique(labels):
         presence, probability = list(), list()
@@ -115,15 +132,16 @@ def feature_class_probabilities(feature_matrix, labels, df=True):
             p = [(kmer[i] == 1) * 1 * (labels[i] == l)
                  for i in range(len(kmer))]
             presence.append(p)
-            probability.append(sum(p) / results[l]['length'])
-        results[l]['presence'] = np.asarray(presence)
-        results[l]['probability'] = np.asarray(probability)
+            probability.append(sum(p) / results[l]['n_sequences'])
+        results[l]['presence'] = np.asarray(presence, dtype=int)
+        results[l]['probability'] = np.asarray(probability, dtype=float)
 
     # compute score
+    weight = 1 / (len(np.unique(labels)) - 1)
     for l in np.unique(labels):
-        o = np.unique(labels)[np.unique(labels) != l][0]
-        results[l]['score'] = (results[l]['probability']
-                               - results[o]['probability'])
+        o = np.unique(labels)[np.unique(labels) != l][0]  # other labels
+        results[l]['score'] = ((results[l]['probability'])
+                               - (results[o]['probability'] * (weight)))
 
     if df:
         return pd.DataFrame(results).T.reset_index().rename(
