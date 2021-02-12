@@ -64,8 +64,8 @@ SCOREFAS = [sorted(FAS)[i] for i in indices]
 rule all:
     input:
         expand(join(config['input']['fasta_dir'], '{uz}'), uz=UNZIPPED),
-        expand(join(config['output']['save_dir'], "standardized", "data", "{fa}", "{fa2}.json"), fa=FAS, fa2=FAS),
-        expand(join(config['output']['save_dir'], "standardized", "agg", "{fa}.json"), fa=FAS)
+        expand(join(config['output']['save_dir'], "features", "{fa}", "{fa2}.json"), fa=FAS, fa2=FAS),
+        expand(join(config['output']['save_dir'], "features", "{fa}.json"), fa=FAS)
         # expand(join(config['output']['save_dir'], "features", "{fa}.txt"), fa=FAS),
         # expand(join(config['output']['save_dir'], "score", "features", "{sfa}.json"), sfa=SCOREFAS),
         # expand(join(config['output']['save_dir'], "labels", "{fa}.txt"), )
@@ -339,10 +339,10 @@ rule standardize_kmers:
         fastas=expand(join(config['input']['fasta_dir'], "{fa2}.fasta"),
                       fa2=FAS)
     log:
-        join(config['output']['save_dir'], "standardized", "log", "{fa}.log")
+        join(config['output']['save_dir'], "features", "log", "{fa}.log")
     output:
         files=expand(join(config['output']['save_dir'],
-                          "standardized", "data", "{{fa}}", "{fa2}.json"),
+                          "features", "{{fa}}", "{fa2}.json"),
                      fa2=FAS)
     run:
         # get kmers for this particular set of sequences
@@ -412,12 +412,12 @@ rule standardize_kmers:
 rule score_features:
     input:
         files=expand(join(config['output']['save_dir'],
-                          "standardized", "data", "{{fa}}", "{fa2}.json"),
+                          "features", "{{fa}}", "{fa2}.json"),
                      fa2=FAS),
         fasta=join(config['input']['fasta_dir'], "{fa}.fasta")
     output:
-        df=join(config['output']['save_dir'], "standardized", "agg", "{fa}.json"),
-        npy=join(config['output']['save_dir'], "standardized", "agg", "{fa}_matrix.npy"),
+        df=join(config['output']['save_dir'], "features", "{fa}.json"),
+        npy=join(config['output']['save_dir'], "features", "{fa}_matrix.npy"),
         scores=join(config['output']['save_dir'], "score", "{fa}.json")
     log:
         join(config['output']['save_dir'], "score", "log", "{fa}.log")
