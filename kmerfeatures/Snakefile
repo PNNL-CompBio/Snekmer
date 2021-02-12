@@ -29,7 +29,7 @@ files = [
 UNZIPPED = [splitext(basename(f))[0] for f in compressed]
 FAS = [splitext(basename(f))[0] for f in files]
 RECURS_DSETS = ['sequences', 'ids', 'residues']
-NONRECURS_DSETS = ['map_function', 'example_index', 'filter_list']
+NONRECURS_DSETS = ['map_function', 'k', 'example_index', 'filter_list']
 DSETS = RECURS_DSETS + NONRECURS_DSETS
 
 # validity check
@@ -103,7 +103,7 @@ rule preprocess:
         fasta=join(config['input']['fasta_dir'], "{fa}.fasta")
     output:
         data=join(config['output']['save_dir'], "processed", "{fa}.json"),
-        desc=join(config['output']['save_dir'], "processed", "{fa}.pkl")
+        desc=join(config['output']['save_dir'], "processed", "{fa}_description.json")
     log:
         join(config['output']['save_dir'], "processed", "log", "{fa}.log")
     run:
@@ -205,8 +205,10 @@ rule preprocess:
                     save_data[label] = dset
 
         # save variables not generated in loop
-        for dset, label in zip([map_function, example_index, filter_list],
-                               NONRECURS_DSETS):
+        for dset, label in zip(
+            [map_function, config['kmer']['k'], example_index, filter_list],
+            NONRECURS_DSETS
+        ):
             save_data[label] = dset
 
         # save all parameters into json
@@ -216,9 +218,9 @@ rule preprocess:
         # read and save fasta descriptions into dataframe
         try:
             desc = kmf.utils.parse_fasta_description(input.fasta)
-            desc.to_pickle(output.desc)
+            desc.to_json(output.desc)
         except AttributeError:  # if no description exists > empty df
-            DataFrame([]).to_pickle(output.desc)
+            DataFrame([]).to_json(output.desc)
 
 
 rule generate_kmer_labels:
@@ -452,44 +454,5 @@ rule score_features:
         np.save(output.npy, feature_matrix)
         class_probabilities.to_json(output.scores)
 
-        # # revectorize based on full kmer list
-        # results = {'seq_id': [], 'vector': []}
-        # seq_list, id_list = kmf.utils.read_fasta(input.fasta)
-        # for seq, sid in zip(seq_list, id_list):
-        #     results['seq_id'] += [sid]
-        #     results['vector'] += [kmf.transform.vectorize_string(
-        #         seq,
-        #         k=config['kmer']['k'],
-        #         start=config['kmer']['start'],
-        #         end=config['kmer']['end'],
-        #         map_function=params['map_function'],
-        #         filter_list=kmers,  # params['filter_list'],
-        #         verbose=False,  # way too noisy for batch process
-        #         log_file=log[0]
-        #     )]
-        #
-        # with open(output.features, 'w') as f:
-        #     json.dump(results, f)
 
-        # matrix = kmf.score.connection_matrix_from_features(input[0])
-        # clusters = kmf.score.cluster_feature_matrix(matrix)
-
-        # clusters.to_hdf(output[0], 'cluster_matrix')
-
-# rule cluster_features:
-#     input:
-#         npy=join(config['output']['save_dir'], "standardized", "feature_matrix", "{fa}.npy"),
-#         scores=join(config['output']['save_dir'], "score", "{fa}.json")
-#     output:
-#         join(config['output']['save_dir'], "cluster", "{fa}.json")
-#     run:
-#         # load feature matrix and computed class weight scores
-#         feature_matrix = np.load(input.npy)
-#         class_probabilities = pd.read_json(input.scores)
-#
-#         # connection matrix -- not currently used by anything
-#         connection_matrix = kmf.score.connection_matrix_from_features(
-#             feature_matrix
-#             )
-#
-#         #
+rule 
