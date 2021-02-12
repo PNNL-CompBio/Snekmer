@@ -1,10 +1,10 @@
 input:
+  # location of all input fasta files
   fasta_dir: "../example"
   example_index_file: False
-  walk: False
   feature_set: '../example/model_features.txt'
 
-kmer:
+params:
   k: 14
   start: False
   end: False
@@ -12,6 +12,7 @@ kmer:
   map_function: 'reduced_alphabet_0'  # choices: 0-5
   randomize_alphabet: False
   min_rep_thresh: 1
+  walk: False
 
 output:
   save_dir: "../../output"
