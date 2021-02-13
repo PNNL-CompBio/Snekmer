@@ -10,7 +10,7 @@ import sys
 
 import kmerfeatures as kmf
 import numpy as np
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 from pandas import DataFrame
 from Bio import SeqIO
