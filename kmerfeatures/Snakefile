@@ -35,35 +35,15 @@ DSETS = RECURS_DSETS + NONRECURS_DSETS
 
 # define output directory (helpful for multiple runs)
 out_dir = join(config['output']['save_dir'],
-               config['params']['map_function'],
-               f"k-{config['params']['k']:02}")
+               config['map_function'],
+               f"k-{config['k']:02}")
 
 # validity check
-if config['params']['map_function'] not in kmf.alphabet.ALPHABETS.keys():
+if config['map_function'] not in kmf.alphabet.ALPHABETS.keys():
     raise ValueError("Invalid alphabet specified; alphabet must be a"
                      " string in the form 'reduced_alphabet_n' where"
                      " n is an integer between 0 and"
                      f" {len(kmf.alphabet.ALPHABETS)}.")
-
-
-# # subset files for scoring assessment
-# if config['score']['multifile']['random']:
-#     assert config['score']['multifile']['random'] > 0, "Must specify >0 files"
-#     assert config['score']['multifile']['random'] <= len(FAS), "Length out of range"
-#     indices = np.random.choice([i for i in range(len(FAS))],
-#                                size=config['score']['multifile']['random'],
-#                                replace=False)
-# else:
-#     if str(config['score']['multifile']['end']) == 'None':
-#         i_end = len(FAS)
-#     else:
-#         i_end = config['score']['multifile']['end']
-#         assert i_end > config['score']['multifile']['start'], "Invalid range"
-#         assert i_end <= len(FAS), "Index out of range"
-#     indices = [i for i in range(config['score']['multifile']['start'],
-#                                 i_end)
-#                if i not in list(config['score']['multifile']['skip'])]
-# SCOREFAS = [sorted(FAS)[i] for i in indices]
 
 
 # define workflow
@@ -72,14 +52,10 @@ rule all:
         expand(join(config['input']['fasta_dir'], '{uz}'), uz=UNZIPPED),
         expand(join(out_dir, "features", "{fa}", "{fa2}.json"), fa=FAS, fa2=FAS),
         expand(join(out_dir, "features", "{fa}.json"), fa=FAS)
-        # expand(join(out_dir, "features", "{fa}.txt"), fa=FAS),
-        # expand(join(out_dir, "score", "features", "{sfa}.json"), sfa=SCOREFAS),
-        # expand(join(out_dir, "labels", "{fa}.txt"), )
-        # expand(join(out_dir, "score"))  # eventually
 
 
 # [in-progress] kmer walk
-if config['params']['walk']:
+if config['walk']:
     rule perform_kmer_walk:
         input:
             fasta=join(config['input']['fasta_dir'], "{fa}.fasta")
@@ -117,22 +93,22 @@ rule preprocess:
         seq_list, id_list = kmf.utils.read_fasta(input.fasta)
 
         # if random alphabet specified, implement randomization
-        if config['params']['randomize_alphabet']:
+        if config['randomize_alphabet']:
             rand_alphabet = kmf.transform.randomize_alphabet(config['input']['map_function'])
             map_function = [residues, map_name, rand_alphabet]
         else:
-            map_function = config['params']['map_function']
+            map_function = config['map_function']
 
         # if no feature set is specified, define feature space
         if not config['input']['feature_set']:
             # prefilter fasta to cut down on the size of feature set
             filter_dict = kmf.features.define_feature_space(
                 {k: v for k, v in zip(id_list, seq_list)},
-                config['params']['k'],
+                config['k'],
                 map_function=map_function,
-                start=config['params']['start'],
-                end=config['params']['end'],
-                min_rep_thresh=config['params']['min_rep_thresh'],
+                start=config['start'],
+                end=config['end'],
+                min_rep_thresh=config['min_rep_thresh'],
                 verbose=config['output']['verbose'],
                 log_file=log[0]
                 )
@@ -198,7 +174,7 @@ rule preprocess:
                 seqs += seqs_n
                 sids += sids_n
             residues = None
-            if config['params']['nucleotide']:
+            if config['nucleotide']:
                 residues = "ACGT"
 
             # populate dictionary for json save file
@@ -212,7 +188,7 @@ rule preprocess:
 
         # save variables not generated in loop
         for dset, label in zip(
-            [map_function, config['params']['k'], example_index, filter_list],
+            [map_function, config['k'], example_index, filter_list],
             NONRECURS_DSETS
         ):
             save_data[label] = dset
@@ -243,7 +219,7 @@ rule generate_kmer_labels:
 
         # generate labels only
         labels = kmf.transform.generate_labels(
-            config['params']['k'],
+            config['k'],
             map_function=params['map_function'],
             residues=params['residues'],
             filter_list=params['filter_list']
@@ -286,9 +262,9 @@ rule generate_kmer_features:
 
             features += kmf.transform.vectorize_string(
                 seq,
-                k=config['params']['k'],
-                start=config['params']['start'],
-                end=config['params']['end'],
+                k=config['k'],
+                start=config['start'],
+                end=config['end'],
                 map_function=params['map_function'],
                 filter_list=kmf.utils.get_output_kmers(input.labels),  # params['filter_list'],
                 verbose=config['output']['verbose'],
@@ -301,7 +277,7 @@ rule generate_kmer_features:
             if first:
                 labels = kmf.utils.get_output_kmers(input.labels)
                 # labels += kmf.transform.generate_labels(
-                #     config['params']['k'],
+                #     config['k'],
                 #     map_function=params['map_function'],
                 #     residues=params['residues'],
                 #     filter_list=params['filter_list']
@@ -372,9 +348,9 @@ rule standardize_kmers:
                 results['seq_id'] += [sid]
                 results['vector'] += [kmf.transform.vectorize_string(
                     seq,
-                    k=config['params']['k'],
-                    start=config['params']['start'],
-                    end=config['params']['end'],
+                    k=config['k'],
+                    start=config['start'],
+                    end=config['end'],
                     map_function=params['map_function'],
                     filter_list=kmers,  # params['filter_list'],
                     verbose=False,  # way too noisy for batch process

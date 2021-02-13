@@ -5,7 +5,7 @@ import argparse
 
 from multiprocessing import cpu_count
 from pkg_resources import resource_filename
-from snakemake import snakemake
+from snakemake import snakemake, parse_config
 
 # define options
 MAP_FN_DESC = ["Hydrophobic/hydrophilic", "Standard 7",
@@ -41,7 +41,16 @@ def main():
 
     # snakemake options
     parser.add_argument('--dryrun', action='store_true', help='perform a dry run')
-    parser.add_argument('--config', metavar='PATH', default='config.yaml', help='path to yaml configuration file')
+    parser.add_argument('--configfile', metavar='PATH', default='config.yaml', help='path to yaml configuration file')
+    parser.add_argument('--config', nargs="*", metavar="KEY=VALUE",
+                        help=("Set or overwrite values in the"
+                              " workflow config object. The workflow"
+                              " config object is accessible as"
+                              " variable config inside the workflow."
+                              " Default values can be set by"
+                              " providing a JSON file."
+                              )
+                        )
     parser.add_argument('--unlock', action='store_true', help='unlock directory')
     parser.add_argument('--touch', action='store_true', help='touch output files only')
     parser.add_argument('--latency', metavar='N', type=int, default=3, help='specify filesystem latency (seconds)')
@@ -56,13 +65,15 @@ def main():
 
     # parse args
     args = parser.parse_args()
+    config = parse_config(args)
 
     # start/stop config
     if args.count is not None:
         config = {'start': args.countstart,
-                  'stop': args.countstart + args.count}
+                  'stop': args.countstart + args.count,
+                  **config}
     else:
-        config = {}
+        config = {**config}
 
     # cluster config
     if args.cluster is not None:
@@ -71,7 +82,7 @@ def main():
         cluster = None
 
     snakemake(resource_filename('kmerfeatures', 'Snakefile'),
-              configfiles=[args.config],
+              configfiles=[args.configfile],
               config=config,
               cluster_config=args.cluster,
               cluster=cluster,
