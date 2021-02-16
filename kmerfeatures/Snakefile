@@ -401,7 +401,7 @@ rule score_features:
         fasta=join(config['input']['fasta_dir'], "{fa}.fasta")
     output:
         df=join(out_dir, "features", "{fa}.json"),
-        npy=join(out_dir, "features", "{fa}_matrix.npy"),
+        # npy=join(out_dir, "features", "{fa}_matrix.npy"),
         scores=join(out_dir, "score", "{fa}.json")
     log:
         join(out_dir, "score", "log", "{fa}.log")
@@ -433,5 +433,5 @@ rule score_features:
 
         # save all files to respective outputs
         data.to_json(output.df)
-        np.save(output.npy, feature_matrix)
+        # np.save(output.npy, feature_matrix)
         class_probabilities.to_json(output.scores)
