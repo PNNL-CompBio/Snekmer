@@ -40,6 +40,22 @@ def read_fasta(fasta):
             id_list.append(record.id)
     return seq_list, id_list
 
+def count_sequences(fasta):
+    """Count the number of sequences contained in a fasta file.
+
+    Parameters
+    ----------
+    fasta : str
+        Filename or /path/to/fasta/file.
+
+    Returns
+    -------
+    int
+        Number of sequences in the input file.
+
+    """
+    return len([record for record in SeqIO.parse(fasta, "fasta")])
+
 
 def read_example_index(example_index_file):
     """Read example index file and parse into dictionary.

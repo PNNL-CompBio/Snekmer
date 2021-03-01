@@ -77,7 +77,28 @@ rule unzip:
         "mkdir {params.outdir} && cp {input} {params.outdir} && gunzip {input}"
 
 
-# possible rule: fasta chunker
+# possible rule: fasta chunker (split larger fasta files into chunks)
+rule chunk_fasta:
+    input:
+        fasta=join(config['input']['fasta_dir'], "{fa}.fasta")
+    output:
+        data=directory(join(out_dir, "processed", "{fa}"))
+    log:
+        join(out_dir, "processed", "log", "{fa}_chunk.log")
+    run:
+        # read fasta file
+        # seq_list, id_list = kmf.utils.read_fasta(input.fasta)
+        length = kmf.utils.count_sequences(input.fasta)
+        size = config['input']['max_chunk_size']
+
+        seq_records = [record for record in SeqIO.parse(fasta, "fasta")]
+        chunks = np.array_split(seq_records, np.arange(size, length, size))
+
+        if not exists(join(output.data)):
+            makedirs(output.fasta)
+
+        for i, chunk in enumerate(chunks):
+            SeqIO.write(chunk, f"example_{i}.fasta", "fasta")
 
 
 rule preprocess:
@@ -266,7 +287,7 @@ rule generate_kmer_features:
                 start=config['start'],
                 end=config['end'],
                 map_function=params['map_function'],
-                filter_list=kmf.utils.get_output_kmers(input.labels),  # params['filter_list'],
+                filter_list=params['filter_list'],  # kmf.utils.get_output_kmers(input.labels),
                 verbose=config['output']['verbose'],
                 log_file=log[0]
                 )

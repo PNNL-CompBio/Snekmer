@@ -3,7 +3,9 @@ input:
   fasta_dir: "../example"
   example_index_file: False
   feature_set: '../example/model_features.txt'
+  max_chunk_size: 100  # max number of sequences processed in one job
 
+# kmer pipeline parameters
 k: 14
 start: False
 end: False
@@ -12,6 +14,7 @@ map_function: 'reduced_alphabet_0'  # choices: 0-5
 randomize_alphabet: False
 min_rep_thresh: 1
 walk: False
+full_kmer_list: False
 
 output:
   save_dir: "../../output"
