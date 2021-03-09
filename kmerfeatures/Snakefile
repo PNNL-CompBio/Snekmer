@@ -3,10 +3,14 @@
 
 # imports
 import glob
-import itertools
 import json
 import random
 import sys
+from datetime import datetime
+from itertools import (product, repeat)
+from multiprocessing import Pool
+from os import makedirs
+from os.path import (basename, dirname, exists, join, splitext)
 
 import kmerfeatures as kmf
 import numpy as np
@@ -14,8 +18,6 @@ import numpy as np
 
 from pandas import DataFrame
 from Bio import SeqIO
-from os import makedirs
-from os.path import (basename, dirname, exists, join, splitext)
 
 
 # collect all fasta-like files and unzipped version of filenames
@@ -23,7 +25,7 @@ exts = ['.fasta', '.fna', '.faa', '.fa']
 all_files = glob.glob(join(config['input']['fasta_dir'], "*"))
 compressed = [fa for fa in all_files if fa.endswith('.gz')]
 files = [
-    fa.rstrip('.gz') for fa, ext in itertools.product(all_files, exts)
+    fa.rstrip('.gz') for fa, ext in product(all_files, exts)
     if fa.rstrip('.gz').endswith(ext)
     ]
 
@@ -51,7 +53,7 @@ rule all:
     input:
         expand(join(config['input']['fasta_dir'], '{uz}'), uz=UNZIPPED),
         expand(join(out_dir, "features", "{fa}", "{fa2}.json"), fa=FAS, fa2=FAS),
-        expand(join(out_dir, "features", "{fa}.json"), fa=FAS)
+        # expand(join(out_dir, "features", "{fa}.json"), fa=FAS)
 
 
 # [in-progress] kmer walk
@@ -77,30 +79,7 @@ rule unzip:
         "mkdir {params.outdir} && cp {input} {params.outdir} && gunzip {input}"
 
 
-# possible rule: fasta chunker (split larger fasta files into chunks)
-rule chunk_fasta:
-    input:
-        fasta=join(config['input']['fasta_dir'], "{fa}.fasta")
-    output:
-        data=directory(join(out_dir, "processed", "{fa}"))
-    log:
-        join(out_dir, "processed", "log", "{fa}_chunk.log")
-    run:
-        # read fasta file
-        # seq_list, id_list = kmf.utils.read_fasta(input.fasta)
-        length = kmf.utils.count_sequences(input.fasta)
-        size = config['input']['max_chunk_size']
-
-        seq_records = [record for record in SeqIO.parse(fasta, "fasta")]
-        chunks = np.array_split(seq_records, np.arange(size, length, size))
-
-        if not exists(join(output.data)):
-            makedirs(output.fasta)
-
-        for i, chunk in enumerate(chunks):
-            SeqIO.write(chunk, f"example_{i}.fasta", "fasta")
-
-
+# read and process parameters from config
 rule preprocess:
     input:
         fasta=join(config['input']['fasta_dir'], "{fa}.fasta")
@@ -110,6 +89,9 @@ rule preprocess:
     log:
         join(out_dir, "processed", "log", "{fa}.log")
     run:
+        # log step initialization
+        start_time = datetime.now()
+
         # read fasta file
         seq_list, id_list = kmf.utils.read_fasta(input.fasta)
 
@@ -131,11 +113,11 @@ rule preprocess:
                 end=config['end'],
                 min_rep_thresh=config['min_rep_thresh'],
                 verbose=config['output']['verbose'],
-                log_file=log[0]
+                log_file=log[0],
+                processes=config['processes']
                 )
             filter_list = list(filter_dict.keys())
             assert len(filter_list) > 0, "Invalid feature space; terminating."
-
         else:
             # read in list of ids to use from file; NO FORMAT CHECK
             filter_list = []
@@ -225,6 +207,13 @@ rule preprocess:
         except AttributeError:  # if no description exists > empty df
             DataFrame([]).to_json(output.desc)
 
+        # record script runtime
+        end_time = datetime.now()
+        with open(log[0], 'a') as f:
+            f.write(f"start time:\t{start_time}\n")
+            f.write(f"end time:\t{end_time}\n")
+            f.write(f"total time:\t{kmf.utils.format_timedelta(end_time - start_time)}")
+
 
 rule generate_kmer_labels:
     input:
@@ -234,6 +223,8 @@ rule generate_kmer_labels:
     log:
         join(out_dir, "labels", "log", "{fa}.log")
     run:
+        start_time = datetime.now()
+
         # read processed features
         with open(input.params, 'r') as f:
             params = json.load(f)
@@ -250,6 +241,21 @@ rule generate_kmer_labels:
                                          "matrix",
                                          labels=labels)
 
+        # record script runtime
+        end_time = datetime.now()
+        with open(log[0], 'a') as f:
+            f.write(f"start time:\t{start_time}\n")
+            f.write(f"end time:\t{end_time}\n")
+            f.write(f"total time:\t{kmf.utils.format_timedelta(end_time - start_time)}")
+
+
+# def get_fasta_chunks(wildcards):
+#     files = glob.glob(
+#         join(out_dir, "processed", f"{wildcards.fa}", f"{wildcards.fa}_*.fasta")
+#         )
+#     return files
+
+
 rule generate_kmer_features:
     input:
         params=rules.preprocess.output.data,
@@ -259,6 +265,8 @@ rule generate_kmer_features:
     log:
         join(out_dir, "features", "log", "{fa}.log")
     run:
+        start_time = datetime.now()
+
         # read processed features
         with open(input.params, 'r') as f:
             params = json.load(f)
@@ -336,6 +344,13 @@ rule generate_kmer_features:
                     example_index=params['example_index'],
                     labels=labels)
 
+        # record script runtime
+        end_time = datetime.now()
+        with open(log[0], 'a') as f:
+            f.write(f"start time:\t{start_time}\n")
+            f.write(f"end time:\t{end_time}\n")
+            f.write(f"total time:\t{kmf.utils.format_timedelta(end_time - start_time)}")
+
 
 rule standardize_kmers:
     input:
@@ -350,6 +365,8 @@ rule standardize_kmers:
                           "features", "{{fa}}", "{fa2}.json"),
                      fa2=FAS)
     run:
+        start_time = datetime.now()
+
         # get kmers for this particular set of sequences
         kmers = kmf.utils.get_output_kmers(input.kmers)
 
@@ -380,6 +397,13 @@ rule standardize_kmers:
 
             with open(outfiles[i], 'w') as f:
                 json.dump(results, f)
+
+        # record script runtime
+        end_time = datetime.now()
+        with open(log[0], 'a') as f:
+            f.write(f"start time:\t{start_time}\n")
+            f.write(f"end time:\t{end_time}\n")
+            f.write(f"total time:\t{kmf.utils.format_timedelta(end_time - start_time)}")
 
 
 # rule aggregate_kmers:
@@ -427,6 +451,8 @@ rule score_features:
     log:
         join(out_dir, "score", "log", "{fa}.log")
     run:
+        start_time = datetime.now()
+
         # parse all data
         label = config['score']['lname']
         data = kmf.utils.vecfiles_to_df(input.files,
@@ -456,3 +482,10 @@ rule score_features:
         data.to_json(output.df)
         # np.save(output.npy, feature_matrix)
         class_probabilities.to_json(output.scores)
+
+        # record script runtime
+        end_time = datetime.now()
+        with open(log[0], 'a') as f:
+            f.write(f"start time:\t{start_time}\n")
+            f.write(f"end time:\t{end_time}\n")
+            f.write(f"total time:\t{kmf.utils.format_timedelta(end_time - start_time)}")

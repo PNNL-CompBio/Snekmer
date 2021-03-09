@@ -6,6 +6,7 @@ author: @christinehc
 # imports
 import random
 import re
+from multiprocessing import Pool
 
 from Bio import SeqIO
 from kmerfeatures.alphabet import (StandardAlphabet, get_alphabets)
@@ -385,10 +386,10 @@ def vectorize_string(sequence, k=3, start=0, end=False,
             results[k_string] = 0
         results[k_string] += 1
 
+    if filter_list:
+        results = {item: results[item] for item in filter_list}
     if return_dict:
         return results
-    if filter_list:
-        return [results[item] for item in filter_list]
     return list(results.values())
 
 

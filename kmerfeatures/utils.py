@@ -3,6 +3,7 @@
 author: @christinehc
 """
 # imports
+from datetime import datetime
 import json
 import re
 from os.path import basename
@@ -269,3 +270,29 @@ def vecfiles_to_df(files, labels=None, label_name='label'):
                 )
         data[label_name] = labels
     return pd.DataFrame(data)
+
+
+def format_timedelta(timedelta):
+    """Format datetime.timedelta object as str with units.
+
+    Parameters
+    ----------
+    timedelta : datetime.timedelta object
+        A datetime.timedelta object.
+
+    Returns
+    -------
+    str
+        Formatted string with the following format:
+            %%h %%m %%.%%s
+            (e.g. '01h 41m 20.01s')
+
+    """
+    # get milliseconds and round
+    milliseconds = round(timedelta.microseconds / 1000)
+
+    # get H, M, S
+    minutes, seconds = divmod(timedelta.seconds, 60)
+    hours, minutes = divmod(minutes, 60)
+
+    return f"{hours}h {minutes:02}m {seconds:02}.{milliseconds}s"

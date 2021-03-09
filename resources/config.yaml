@@ -15,6 +15,7 @@ randomize_alphabet: False
 min_rep_thresh: 1
 walk: False
 full_kmer_list: False
+processes: 2
 
 output:
   save_dir: "../../output"

@@ -5,6 +5,9 @@ author: @christinehc
 
 # imports
 import os.path
+from collections import Counter
+from itertools import repeat
+from multiprocessing import Pool
 from kmerfeatures.transform import vectorize_string
 
 
@@ -240,7 +243,7 @@ def output_gist_class(filename, features, example_index=None, mode='w'):
 
 def define_feature_space(sequence_dict, k, map_function=None, start=None,
                          end=None, min_rep_thresh=2, verbose=False,
-                         log_file=False):
+                         log_file=False, processes=2):
     """Create a feature dictionary defined from parameters.
 
     Parameters
@@ -263,6 +266,8 @@ def define_feature_space(sequence_dict, k, map_function=None, start=None,
     log_file : str
         /path/to/log.file for verbose outputs (default: False)
         If False, pipes verbose outputs to console instead.
+    processes : int
+        (for multithreading) Number of partitions to create
 
     Returns
     -------
@@ -271,13 +276,32 @@ def define_feature_space(sequence_dict, k, map_function=None, start=None,
 
     """
     # this routine will return
-
     feature_dict = {}
-
-    for seq in sequence_dict.values():
-        feature_dict = vectorize_string(seq, k=k, map_function=map_function,
-                                        feature_dict=feature_dict, start=start,
-                                        end=end, return_dict=True)
+    with Pool(processes) as pool:
+        # kwargs = {'k': k, 'start': start, 'end': end,
+        #           'map_function': map_function, 'feature_dict': feature_dict,
+        #           'return_dict': True}
+        # map_function = partial(vectorize_string, **kwargs)
+        # feature_dict = pool.map(map_function, sequence_dict.values())
+        feature_dict = pool.starmap(
+            vectorize_string, zip(sequence_dict.values(),
+                                  repeat(k),                # k
+                                  repeat(start),            # start
+                                  repeat(end),              # end
+                                  repeat(map_function),     # map_function
+                                  repeat(feature_dict),     # feature_dict
+                                  repeat(None),             # filter_list
+                                  repeat(None),             # exclude
+                                  repeat(True),             # return_dict
+                                  repeat(False),            # verbose
+                                  repeat(False))            # log_file
+            )
+    feature_dict = dict(sum(map(Counter, feature_dict), Counter()))
+    # for seq in sequence_dict.values():
+    #     feature_dict = vectorize_string(seq, k=k, start=start, end=end,
+    #                                     map_function=map_function,
+    #                                     feature_dict=feature_dict,
+    #                                     return_dict=True)
 
     # if this is between 0 and 1 then it's a percentage
     if 0 < min_rep_thresh < 1:
