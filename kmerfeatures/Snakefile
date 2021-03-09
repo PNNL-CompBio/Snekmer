@@ -53,7 +53,8 @@ rule all:
     input:
         expand(join(config['input']['fasta_dir'], '{uz}'), uz=UNZIPPED),
         expand(join(out_dir, "features", "{fa}", "{fa2}.json"), fa=FAS, fa2=FAS),
-        # expand(join(out_dir, "features", "{fa}.json"), fa=FAS)
+        expand(join(out_dir, "features", "{fa}.json"), fa=FAS),
+        expand(join(out_dir, "score", "{fa}.json"), fa=FAS)
 
 
 # [in-progress] kmer walk
@@ -300,8 +301,6 @@ rule generate_kmer_features:
                 log_file=log[0]
                 )
 
-            # print(features)
-
             # record labels for first sequence only
             if first:
                 labels = kmf.utils.get_output_kmers(input.labels)
@@ -317,8 +316,6 @@ rule generate_kmer_features:
                                                  labels=labels)
 
             first = False
-
-            # print(features)
 
             # output as we go (esp. good for very large input files)
             if config['output']['format'] == "simple":
@@ -406,38 +403,6 @@ rule standardize_kmers:
             f.write(f"total time:\t{kmf.utils.format_timedelta(end_time - start_time)}")
 
 
-# rule aggregate_kmers:
-#     input:
-#         files=expand(join(out_dir, "labels", "{sfa}.txt"),
-#                      sfa=SCOREFAS)
-#     output:
-#         kmers=join(out_dir, "score", "kmers.json")
-#     log:
-#         join(out_dir, "score", "log", "kmers.log")
-#     run:
-#         # collect all kmers (without duplicates)
-#         kmers = list()
-#         for i, filename in enumerate(input.files):
-#             ks = kmf.utils.get_output_kmers(filename)
-#             if i == 0:
-#                 kmers = ks
-#             else:
-#                 kmers += list(set(ks) - set(kmers))
-#
-#         # if labels are improperly captured, try again
-#         if len(kmers) == 0:
-#             with open(log[0], 'a') as f:
-#                 logf.write('no kmers parsed from files')
-#
-#         # save all parameters into json
-#         with open(output.kmers, 'w') as f:
-#             json.dump(kmers, f)
-#
-#         with open(log[0], 'a') as logf:
-#             logf.write('input files:\n')
-#             logf.write(str(input.files))
-
-
 rule score_features:
     input:
         files=expand(join(out_dir,
@@ -452,12 +417,18 @@ rule score_features:
         join(out_dir, "score", "log", "{fa}.log")
     run:
         start_time = datetime.now()
+        with open(log[0], 'a') as f:
+            f.write(f"start time:\t{start_time}\n")
 
         # parse all data
         label = config['score']['lname']
         data = kmf.utils.vecfiles_to_df(input.files,
                                         labels=config['score']['labels'],
                                         label_name=label)
+
+        timepoint = datetime.now()
+        with open(log[0], 'a') as f:
+            f.write(f"vecfiles_to_df time:\t{kmf.utils.format_timedelta(timepoint - start_time)}\n")
 
         # parse family names and only add if some are valid
         families = [kmf.utils.get_family(fn) for fn in data['filename']]
@@ -471,8 +442,12 @@ rule score_features:
         # compute class probabilities
         labels = data[label].values
         class_probabilities = kmf.score.feature_class_probabilities(
-            feature_matrix.T, labels
-            )
+            feature_matrix.T, labels, processes=config['processes']
+            ).drop(columns=['presence'])
+
+        new_timepoint = datetime.now()
+        with open(log[0], 'a') as f:
+            f.write(f"class_probabilities time:\t{kmf.utils.format_timedelta(new_timepoint - timepoint)}\n")
 
         # [IN PROGRESS] compute clusters
         clusters = kmf.score.cluster_feature_matrix(feature_matrix)
@@ -486,6 +461,4 @@ rule score_features:
         # record script runtime
         end_time = datetime.now()
         with open(log[0], 'a') as f:
-            f.write(f"start time:\t{start_time}\n")
-            f.write(f"end time:\t{end_time}\n")
             f.write(f"total time:\t{kmf.utils.format_timedelta(end_time - start_time)}")

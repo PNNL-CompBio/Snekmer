@@ -296,6 +296,7 @@ def define_feature_space(sequence_dict, k, map_function=None, start=None,
                                   repeat(False),            # verbose
                                   repeat(False))            # log_file
             )
+    # combine dictionaries and sum any values with common keys
     feature_dict = dict(sum(map(Counter, feature_dict), Counter()))
     # for seq in sequence_dict.values():
     #     feature_dict = vectorize_string(seq, k=k, start=start, end=end,

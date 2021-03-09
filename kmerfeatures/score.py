@@ -3,6 +3,8 @@
 author: @christinehc / @biodataganache
 """
 # imports
+from itertools import (product, repeat)
+from multiprocessing import Pool
 import numpy as np
 import pandas as pd
 
@@ -86,7 +88,32 @@ def cluster_feature_matrix(feature_matrix,
     return clusters
 
 
-def feature_class_probabilities(feature_matrix, labels, df=True):
+def _apply_probability(kmer, label, compare_label, processes=2):
+    """Compute binary probability of a label for a kmer.
+
+    Parameters
+    ----------
+    kmer : int
+        Kmer count (assumes binary presence/absence (0, 1)).
+    label : str
+        Label value for a given kmer.
+    compare_label : str
+        Label value to assess a given kmer against.
+    processes : int
+        Number of processes for multiprocessing.
+
+    Returns
+    -------
+    list
+        Binary probability (0, 1) of valid kmer with given label
+        for all kmers in the kmer count array.
+            e.g. [0, 1, 1, 0] for an input kmer array of length 4
+
+    """
+    return (kmer == 1) * 1 * (label == compare_label)
+
+
+def feature_class_probabilities(feature_matrix, labels, df=True, processes=2):
     """Calculate probabilities for features being in a defined class.
 
     Note: only coded to work for the binary case (2 classes).
@@ -103,6 +130,8 @@ def feature_class_probabilities(feature_matrix, labels, df=True):
     df : bool
         If True, returns output as a pandas DataFrame;
         if False, returns output as a dictionary (default: True).
+    processes : int
+        Number of processes (for multiprocessing)
 
     Returns
     -------
@@ -112,7 +141,7 @@ def feature_class_probabilities(feature_matrix, labels, df=True):
     """
     # ensure labels are given as a numpy array
     if isinstance(labels, (np.ndarray, list, pd.Series)):
-        labels = np.array(labels)
+        labels = np.array(labels, dtype=object)
     else:
         raise TypeError("Labels must be list- or array-like.")
 
@@ -128,11 +157,31 @@ def feature_class_probabilities(feature_matrix, labels, df=True):
                for l in np.unique(labels)}
     for l in np.unique(labels):
         presence, probability = list(), list()
+        matching_label = np.equal(labels, l)
+
+        # for each row in feature matrix, compute each value's probability
+        # attempt to use multiprocessing -- very slow
+        # for i, kmer in enumerate(feature_matrix):
+            # with Pool(processes) as pool:
+            #     # kmer, label, compare_label, processes
+            #     p = pool.starmap(_apply_probability, zip(
+            #         kmer,
+            #         repeat(labels[i]),
+            #         repeat(l),
+            #         repeat(processes)
+            #         )
+            #                      )
+
+        # for each row in feature matrix, compute each value's probability
+        # no multiprocessing-- using numpy native parallelization
         for kmer in feature_matrix:
-            p = [(kmer[i] == 1) * 1 * (labels[i] == l)
-                 for i in range(len(kmer))]
+            matching_kmer = np.equal(kmer, 1)
+            ones = np.ones(len(kmer))
+            p = np.multiply(np.multiply(matching_kmer, matching_label), ones)
+            # p = np.array([(kmer[i] == 1) * 1 * (labels[i] == l)
+            #               for i in range(len(kmer))])
             presence.append(p)
-            probability.append(sum(p) / results[l]['n_sequences'])
+            probability.append(np.sum(p) / results[l]['n_sequences'])
         results[l]['presence'] = np.asarray(presence, dtype=int)
         results[l]['probability'] = np.asarray(probability, dtype=float)
 
