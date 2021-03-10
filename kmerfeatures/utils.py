@@ -206,6 +206,10 @@ def parse_fasta_description(fasta, df=True):
 def get_family(filename, regex='[a-z]{3}[A-Z]{1}', return_first=True):
     """Extract family from filename given regular expression format.
 
+    Note: If no family matching the given regular expression is
+    found, the original filename is returned, stripped of any file
+    extension (i.e. the file's basename).
+
     Parameters
     ----------
     filename : str
@@ -226,6 +230,7 @@ def get_family(filename, regex='[a-z]{3}[A-Z]{1}', return_first=True):
     str or list
         Family name or names
 
+
     """
     # extract and simplify file basename
     s = '_'.join(
@@ -233,9 +238,15 @@ def get_family(filename, regex='[a-z]{3}[A-Z]{1}', return_first=True):
         ).replace('-', '_').replace(' ', '_')
     # modify regex to only search between underscores
     regex = r'(?<=_)' + r'{}'.format(regex) + r'(?=_)'
-    if return_first:
+
+    # return list output
+    if not return_first:
+        re.findall(regex, s)
+
+    # return string output
+    if re.search(regex, s):
         return re.search(regex, s).group()
-    return re.findall(regex, s)
+    return basename(filename).split('.')[0]
 
 
 def vecfiles_to_df(files, labels=None, label_name='label'):

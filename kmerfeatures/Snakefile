@@ -345,12 +345,16 @@ rule generate_kmer_labels:
 #             f.write(f"end time:\t{end_time}\n")
 #             f.write(f"total time:\t{utils.format_timedelta(end_time - start_time)}")
 
+# def get_all_fasta(wildcards):
+#     files = join(config['input']['fasta_dir'],
+#                  f"{wildcards.fa2}.{fasta_ext_map[wildcards.fa2]}"))
+
 
 rule standardize_kmers:
     input:
         kmers=rules.generate_kmer_labels.output.labels,
         params=rules.preprocess.output.data,
-        fastas=lambda wildcards: join(config['input']['fasta_dir'], f"{wildcards.fa}.{fasta_ext_map[wildcards.fa]}"),
+        fastas=uncompressed
     log:
         join(out_dir, "features", "log", "{fa}.log")
     output:
@@ -368,6 +372,7 @@ rule standardize_kmers:
 
         # sort i/o lists to match wildcard order
         fastas = sorted(input.fastas)
+        # print(fastas)
         outfiles = sorted(output.files)
 
         # revectorize based on full kmer list
@@ -403,7 +408,7 @@ rule score_features:
         files=expand(join(out_dir,
                           "features", "{{fa}}", "{fa2}.json"),
                      fa2=FAS),
-        fasta=lambda wildcards: join(config['input']['fasta_dir'], f"{wildcards.fa}.{fasta_ext_map[wildcards.fa]}"),
+        # fasta=uncompressed
     output:
         df=join(out_dir, "features", "{fa}.json"),
         scores=join(out_dir, "score", "{fa}.json")
