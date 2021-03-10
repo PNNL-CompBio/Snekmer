@@ -1,39 +1,29 @@
-# snakemake config
-# ruleorder: generate_labels > generate_features
-
-# imports
+# built-in imports
 import glob
 import json
-import random
-import sys
 from datetime import datetime
 from itertools import (product, repeat)
 from multiprocessing import Pool
 from os import makedirs
 from os.path import (basename, dirname, exists, join, splitext)
 
-import kmerfeatures as kmf
+# external libraries
+from kmerfeatures import (alphabet, features, score, transform, utils, walk)
 import numpy as np
-# import matplotlib.pyplot as plt
-
 from pandas import DataFrame
 from Bio import SeqIO
 
 
-# collect all fasta-like files and unzipped version of filenames
-exts = ['.fasta', '.fna', '.faa', '.fa']
-all_files = glob.glob(join(config['input']['fasta_dir'], "*"))
-compressed = [fa for fa in all_files if fa.endswith('.gz')]
-files = [
-    fa.rstrip('.gz') for fa, ext in product(all_files, exts)
-    if fa.rstrip('.gz').endswith(ext)
-    ]
+# collect all fasta-like files, unzipped filenames, and basenames
+exts = ['fasta', 'fna', 'faa', 'fa']
+input_files = glob.glob(join(config['input']['fasta_dir'], "*"))
+compressed = [fa for fa in input_files if fa.endswith('.gz')]
+uncompressed = [fa.rstrip('.gz') for fa, ext in product(input_files, exts) if fa.rstrip('.gz').endswith(f".{ext}")]
 
-UNZIPPED = [splitext(basename(f))[0] for f in compressed]
-FAS = [splitext(basename(f))[0] for f in files]
-RECURS_DSETS = ['sequences', 'ids', 'residues']
-NONRECURS_DSETS = ['map_function', 'k', 'example_index', 'filter_list']
-DSETS = RECURS_DSETS + NONRECURS_DSETS
+unzipped_ext_map = {splitext(splitext(basename(f))[0])[0]: splitext(splitext(basename(f))[0])[1].lstrip('.') for f in compressed}
+fasta_ext_map = {splitext(basename(f))[0]: splitext(basename(f))[1].lstrip('.') for f in uncompressed}
+UZS = list(unzipped_ext_map.keys())
+FAS = list(fasta_ext_map.keys())
 
 # define output directory (helpful for multiple runs)
 out_dir = join(config['output']['save_dir'],
@@ -41,17 +31,17 @@ out_dir = join(config['output']['save_dir'],
                f"k-{config['k']:02}")
 
 # validity check
-if config['map_function'] not in kmf.alphabet.ALPHABETS.keys():
+if config['map_function'] not in alphabet.ALPHABETS.keys():
     raise ValueError("Invalid alphabet specified; alphabet must be a"
                      " string in the form 'reduced_alphabet_n' where"
                      " n is an integer between 0 and"
-                     f" {len(kmf.alphabet.ALPHABETS)}.")
+                     f" {len(alphabet.ALPHABETS)}.")
 
 
 # define workflow
 rule all:
     input:
-        expand(join(config['input']['fasta_dir'], '{uz}'), uz=UNZIPPED),
+        expand(join(config['input']['fasta_dir'], '{uz}'), uz=UZS),
         expand(join(out_dir, "features", "{fa}", "{fa2}.json"), fa=FAS, fa2=FAS),
         expand(join(out_dir, "features", "{fa}.json"), fa=FAS),
         expand(join(out_dir, "score", "{fa}.json"), fa=FAS)
@@ -61,29 +51,31 @@ rule all:
 if config['walk']:
     rule perform_kmer_walk:
         input:
-            fasta=join(config['input']['fasta_dir'], "{fa}.fasta")
+            fasta=get_fasta_files
         output:
             # need to fix code to properly generate an output...
         run:
-            kmf.walk.kmer_walk(input.fasta)
+            walk.kmer_walk(input.fasta)
 
 
 # if any files are gzip compressed, unzip them
-rule unzip:
-    input:
-        join(config['input']['fasta_dir'], '{uz}.gz')
-    output:
-        join(config['input']['fasta_dir'], '{uz}')
-    params:
-        outdir=join(config['input']['fasta_dir'], 'compressed')
-    shell:
-        "mkdir {params.outdir} && cp {input} {params.outdir} && gunzip {input}"
+if len(UZS) > 0:
+    rule unzip:
+        input:
+            # lambda wildcards: '{0}_hmm'.format(dict[wildcards.run])
+            lambda wildcards: join(config['input']['fasta_dir'], f"{wildcards.uz}.{unzipped_ext_map[wildcards.uz]}.gz")
+        output:
+            join(config['input']['fasta_dir'], "{uz}.{uzext}")
+        params:
+            outdir=join(config['input']['fasta_dir'], 'compressed')
+        shell:
+            "mkdir {params.outdir} && cp {input} {params.outdir} && gunzip -c {input} > {output}"
 
 
 # read and process parameters from config
 rule preprocess:
     input:
-        fasta=join(config['input']['fasta_dir'], "{fa}.fasta")
+        fasta=lambda wildcards: join(config['input']['fasta_dir'], f"{wildcards.fa}.{fasta_ext_map[wildcards.fa]}"),
     output:
         data=join(out_dir, "processed", "{fa}.json"),
         desc=join(out_dir, "processed", "{fa}_description.json")
@@ -94,11 +86,11 @@ rule preprocess:
         start_time = datetime.now()
 
         # read fasta file
-        seq_list, id_list = kmf.utils.read_fasta(input.fasta)
+        seq_list, id_list = utils.read_fasta(input.fasta)
 
         # if random alphabet specified, implement randomization
         if config['randomize_alphabet']:
-            rand_alphabet = kmf.transform.randomize_alphabet(config['input']['map_function'])
+            rand_alphabet = transform.randomize_alphabet(config['input']['map_function'])
             map_function = [residues, map_name, rand_alphabet]
         else:
             map_function = config['map_function']
@@ -106,7 +98,7 @@ rule preprocess:
         # if no feature set is specified, define feature space
         if not config['input']['feature_set']:
             # prefilter fasta to cut down on the size of feature set
-            filter_dict = kmf.features.define_feature_space(
+            filter_dict = features.define_feature_space(
                 {k: v for k, v in zip(id_list, seq_list)},
                 config['k'],
                 map_function=map_function,
@@ -128,7 +120,7 @@ rule preprocess:
 
         # optional indexfile with IDs of good feature output examples
         if config['input']['example_index_file']:
-            example_index = kmf.utils.read_example_index(
+            example_index = utils.read_example_index(
                 config['input']['example_index_file']
                 )
         else:
@@ -137,6 +129,11 @@ rule preprocess:
         # loop thru seqs, apply input params to preprocess seq list
         seen = []  # filter duplicates
         save_data = dict()
+
+        # define recursive and nonrecursive saving patterns for params
+        recursive = ['sequences', 'ids', 'residues']
+        nonrecursive = ['map_function', 'k', 'example_index', 'filter_list']
+        all_dsets = recursive + nonrecursive
 
         for i in range(len(seq_list)):
             seq = seq_list[i]
@@ -153,7 +150,7 @@ rule preprocess:
             # shuffle the N-terminal sequence n times
             if config['output']['shuffle_n']:
                 example_index[id] = 1.0
-                scid_list, scramble_list, example_index = kmf.transform.scramble_sequence(
+                scid_list, scramble_list, example_index = transform.scramble_sequence(
                     sid, seq[:30], n=config['output']['shuffle_n'],
                     example_index=example_index
                     )
@@ -172,7 +169,7 @@ rule preprocess:
 
             # run SIEVE on the wt and each shuffled sequence
             if config['output']['n_terminal_file']:
-                sids_n, seqs_n = kmf.transform.make_n_terminal_fusions(
+                sids_n, seqs_n = transform.make_n_terminal_fusions(
                     sid, config['output']['n_terminal_file']
                     )
                 seqs += seqs_n
@@ -183,7 +180,7 @@ rule preprocess:
 
             # populate dictionary for json save file
             to_save = [seqs, sids, residues]
-            save_label = RECURS_DSETS
+            save_label = recursive
             for dset, label in zip(to_save, save_label):
                 if label in save_data.keys() and save_data[label] is not None:
                     save_data[label] = save_data[label] + dset
@@ -193,7 +190,7 @@ rule preprocess:
         # save variables not generated in loop
         for dset, label in zip(
             [map_function, config['k'], example_index, filter_list],
-            NONRECURS_DSETS
+            nonrecursive
         ):
             save_data[label] = dset
 
@@ -203,7 +200,7 @@ rule preprocess:
 
         # read and save fasta descriptions into dataframe
         try:
-            desc = kmf.utils.parse_fasta_description(input.fasta)
+            desc = utils.parse_fasta_description(input.fasta)
             desc.to_json(output.desc)
         except AttributeError:  # if no description exists > empty df
             DataFrame([]).to_json(output.desc)
@@ -213,7 +210,7 @@ rule preprocess:
         with open(log[0], 'a') as f:
             f.write(f"start time:\t{start_time}\n")
             f.write(f"end time:\t{end_time}\n")
-            f.write(f"total time:\t{kmf.utils.format_timedelta(end_time - start_time)}")
+            f.write(f"total time:\t{utils.format_timedelta(end_time - start_time)}")
 
 
 rule generate_kmer_labels:
@@ -231,23 +228,23 @@ rule generate_kmer_labels:
             params = json.load(f)
 
         # generate labels only
-        labels = kmf.transform.generate_labels(
+        labels = transform.generate_labels(
             config['k'],
             map_function=params['map_function'],
             residues=params['residues'],
             filter_list=params['filter_list']
             )
         if config['output']['format'] == "simple":
-            kmf.features.output_features(output.labels,
-                                         "matrix",
-                                         labels=labels)
+            features.output_features(
+                output.labels, "matrix", labels=labels
+                )
 
         # record script runtime
         end_time = datetime.now()
         with open(log[0], 'a') as f:
             f.write(f"start time:\t{start_time}\n")
             f.write(f"end time:\t{end_time}\n")
-            f.write(f"total time:\t{kmf.utils.format_timedelta(end_time - start_time)}")
+            f.write(f"total time:\t{utils.format_timedelta(end_time - start_time)}")
 
 
 # def get_fasta_chunks(wildcards):
@@ -257,115 +254,113 @@ rule generate_kmer_labels:
 #     return files
 
 
-rule generate_kmer_features:
-    input:
-        params=rules.preprocess.output.data,
-        labels=rules.generate_kmer_labels.output.labels
-    output:
-        features=join(out_dir, "features", "{fa}.txt")
-    log:
-        join(out_dir, "features", "log", "{fa}.log")
-    run:
-        start_time = datetime.now()
-
-        # read processed features
-        with open(input.params, 'r') as f:
-            params = json.load(f)
-
-        # apply user-specified save name, if it exists
-        # if config['output']['filename'] is None:
-        #     output_file = wildcards.fa
-
-        # generate features for each sequence and output features
-        first = True
-        for i in range(len(params['sequences'])):
-            seq = params['sequences'][i]
-            seq_id = params['ids'][i]
-
-            # labels = []
-
-            if config['output']['verbose']:
-                with open(log[0], 'a') as f:
-                    f.write(f"Constructing features for sequence {seq_id}\n")
-
-            features = [seq_id]
-
-            features += kmf.transform.vectorize_string(
-                seq,
-                k=config['k'],
-                start=config['start'],
-                end=config['end'],
-                map_function=params['map_function'],
-                filter_list=params['filter_list'],  # kmf.utils.get_output_kmers(input.labels),
-                verbose=config['output']['verbose'],
-                log_file=log[0]
-                )
-
-            # record labels for first sequence only
-            if first:
-                labels = kmf.utils.get_output_kmers(input.labels)
-                # labels += kmf.transform.generate_labels(
-                #     config['k'],
-                #     map_function=params['map_function'],
-                #     residues=params['residues'],
-                #     filter_list=params['filter_list']
-                #     )
-                if config['output']['format'] == "simple":
-                    kmf.features.output_features(output.features,
-                                                 "matrix",
-                                                 labels=labels)
-
-            first = False
-
-            # output as we go (esp. good for very large input files)
-            if config['output']['format'] == "simple":
-                kmf.features.output_features(
-                    output.features, "matrix", feature_sets=[features],
-                    mode="a"
-                    )
-
-            # output sieve patterns as we go to provide a record
-            if config['output']['format'] in ("sieve", "both"):
-                kmf.features.output_features(
-                    output.features, "sieve", feature_sets=[features],
-                    mode="a", example_index=params['example_index']
-                    )
-
-            # only append features if not dumping into file
-            if config['output']['format'] != "simple":
-                feature_sets.append(features)
-                kmf.features.output_features(
-                    output.features,
-                    config['output']['format'],
-                    feature_sets=feature_sets,
-                    example_index=params['example_index'],
-                    labels=labels)
-
-        # record script runtime
-        end_time = datetime.now()
-        with open(log[0], 'a') as f:
-            f.write(f"start time:\t{start_time}\n")
-            f.write(f"end time:\t{end_time}\n")
-            f.write(f"total time:\t{kmf.utils.format_timedelta(end_time - start_time)}")
+# rule generate_kmer_features:
+#     input:
+#         params=rules.preprocess.output.data,
+#         labels=rules.generate_kmer_labels.output.labels
+#     output:
+#         features=join(out_dir, "features", "{fa}.txt")
+#     log:
+#         join(out_dir, "features", "log", "{fa}.log")
+#     run:
+#         start_time = datetime.now()
+#
+#         # read processed features
+#         with open(input.params, 'r') as f:
+#             params = json.load(f)
+#
+#         # apply user-specified save name, if it exists
+#         # if config['output']['filename'] is None:
+#         #     output_file = wildcards.fa
+#
+#         # generate features for each sequence and output features
+#         first = True
+#         for i in range(len(params['sequences'])):
+#             seq = params['sequences'][i]
+#             seq_id = params['ids'][i]
+#
+#             # labels = []
+#
+#             if config['output']['verbose']:
+#                 with open(log[0], 'a') as f:
+#                     f.write(f"Constructing features for sequence {seq_id}\n")
+#
+#             feature_list = [seq_id]
+#
+#             feature_list += transform.vectorize_string(
+#                 seq,
+#                 k=config['k'],
+#                 start=config['start'],
+#                 end=config['end'],
+#                 map_function=params['map_function'],
+#                 filter_list=params['filter_list'],  # utils.get_output_kmers(input.labels),
+#                 verbose=config['output']['verbose'],
+#                 log_file=log[0]
+#                 )
+#
+#             # record labels for first sequence only
+#             if first:
+#                 labels = utils.get_output_kmers(input.labels)
+#                 # labels += transform.generate_labels(
+#                 #     config['k'],
+#                 #     map_function=params['map_function'],
+#                 #     residues=params['residues'],
+#                 #     filter_list=params['filter_list']
+#                 #     )
+#                 if config['output']['format'] == "simple":
+#                     features.output_features(output.features,
+#                                                  "matrix",
+#                                                  labels=labels)
+#
+#             first = False
+#
+#             # output as we go (esp. good for very large input files)
+#             if config['output']['format'] == "simple":
+#                 features.output_features(
+#                     output.features, "matrix", feature_sets=[features],
+#                     mode="a"
+#                     )
+#
+#             # output sieve patterns as we go to provide a record
+#             if config['output']['format'] in ("sieve", "both"):
+#                 features.output_features(
+#                     output.features, "sieve", feature_sets=[features],
+#                     mode="a", example_index=params['example_index']
+#                     )
+#
+#             # only append features if not dumping into file
+#             if config['output']['format'] != "simple":
+#                 feature_sets.append(features)
+#                 features.output_features(
+#                     output.features,
+#                     config['output']['format'],
+#                     feature_sets=feature_sets,
+#                     example_index=params['example_index'],
+#                     labels=labels)
+#
+#         # record script runtime
+#         end_time = datetime.now()
+#         with open(log[0], 'a') as f:
+#             f.write(f"start time:\t{start_time}\n")
+#             f.write(f"end time:\t{end_time}\n")
+#             f.write(f"total time:\t{utils.format_timedelta(end_time - start_time)}")
 
 
 rule standardize_kmers:
     input:
-        kmers=join(out_dir, "labels", '{fa}.txt'),
-        params=join(out_dir, "processed", "{fa}.json"),
-        fastas=expand(join(config['input']['fasta_dir'], "{fa2}.fasta"),
-                      fa2=FAS)
+        kmers=rules.generate_kmer_labels.output.labels,
+        params=rules.preprocess.output.data,
+        fastas=lambda wildcards: join(config['input']['fasta_dir'], f"{wildcards.fa}.{fasta_ext_map[wildcards.fa]}"),
     log:
         join(out_dir, "features", "log", "{fa}.log")
     output:
-        files=expand(join(out_dir,
-                          "features", "{{fa}}", "{fa2}.json"),
+        files=expand(join(out_dir, "features", "{{fa}}", "{fa2}.json"),
                      fa2=FAS)
     run:
         start_time = datetime.now()
 
         # get kmers for this particular set of sequences
-        kmers = kmf.utils.get_output_kmers(input.kmers)
+        kmers = utils.get_output_kmers(input.kmers)
 
         # read processed features
         with open(input.params, 'r') as f:
@@ -378,10 +373,10 @@ rule standardize_kmers:
         # revectorize based on full kmer list
         results = {'seq_id': [], 'vector': []}
         for i, fa in enumerate(fastas):
-            seq_list, id_list = kmf.utils.read_fasta(fa)
+            seq_list, id_list = utils.read_fasta(fa)
             for seq, sid in zip(seq_list, id_list):
                 results['seq_id'] += [sid]
-                results['vector'] += [kmf.transform.vectorize_string(
+                results['vector'] += [transform.vectorize_string(
                     seq,
                     k=config['k'],
                     start=config['start'],
@@ -400,7 +395,7 @@ rule standardize_kmers:
         with open(log[0], 'a') as f:
             f.write(f"start time:\t{start_time}\n")
             f.write(f"end time:\t{end_time}\n")
-            f.write(f"total time:\t{kmf.utils.format_timedelta(end_time - start_time)}")
+            f.write(f"total time:\t{utils.format_timedelta(end_time - start_time)}")
 
 
 rule score_features:
@@ -408,10 +403,9 @@ rule score_features:
         files=expand(join(out_dir,
                           "features", "{{fa}}", "{fa2}.json"),
                      fa2=FAS),
-        fasta=join(config['input']['fasta_dir'], "{fa}.fasta")
+        fasta=lambda wildcards: join(config['input']['fasta_dir'], f"{wildcards.fa}.{fasta_ext_map[wildcards.fa]}"),
     output:
         df=join(out_dir, "features", "{fa}.json"),
-        # npy=join(out_dir, "features", "{fa}_matrix.npy"),
         scores=join(out_dir, "score", "{fa}.json")
     log:
         join(out_dir, "score", "log", "{fa}.log")
@@ -422,35 +416,35 @@ rule score_features:
 
         # parse all data
         label = config['score']['lname']
-        data = kmf.utils.vecfiles_to_df(input.files,
-                                        labels=config['score']['labels'],
-                                        label_name=label)
+        data = utils.vecfiles_to_df(
+            input.files, labels=config['score']['labels'], label_name=label
+            )
 
         timepoint = datetime.now()
         with open(log[0], 'a') as f:
-            f.write(f"vecfiles_to_df time:\t{kmf.utils.format_timedelta(timepoint - start_time)}\n")
+            f.write(f"vecfiles_to_df time:\t{utils.format_timedelta(timepoint - start_time)}\n")
 
         # parse family names and only add if some are valid
-        families = [kmf.utils.get_family(fn) for fn in data['filename']]
+        families = [utils.get_family(fn) for fn in data['filename']]
         if any(families):
             label = 'family'
             data[label] = families
 
         # define feature matrix of kmer vectors
-        feature_matrix = kmf.score.to_feature_matrix(data['vector'].values)
+        feature_matrix = score.to_feature_matrix(data['vector'].values)
 
         # compute class probabilities
         labels = data[label].values
-        class_probabilities = kmf.score.feature_class_probabilities(
+        class_probabilities = score.feature_class_probabilities(
             feature_matrix.T, labels, processes=config['processes']
             ).drop(columns=['presence'])
 
         new_timepoint = datetime.now()
         with open(log[0], 'a') as f:
-            f.write(f"class_probabilities time:\t{kmf.utils.format_timedelta(new_timepoint - timepoint)}\n")
+            f.write(f"class_probabilities time:\t{utils.format_timedelta(new_timepoint - timepoint)}\n")
 
         # [IN PROGRESS] compute clusters
-        clusters = kmf.score.cluster_feature_matrix(feature_matrix)
+        clusters = score.cluster_feature_matrix(feature_matrix)
         data['cluster'] = clusters
 
         # save all files to respective outputs
@@ -461,4 +455,4 @@ rule score_features:
         # record script runtime
         end_time = datetime.now()
         with open(log[0], 'a') as f:
-            f.write(f"total time:\t{kmf.utils.format_timedelta(end_time - start_time)}")
+            f.write(f"total time:\t{utils.format_timedelta(end_time - start_time)}")

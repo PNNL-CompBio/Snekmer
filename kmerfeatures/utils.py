@@ -41,6 +41,7 @@ def read_fasta(fasta):
             id_list.append(record.id)
     return seq_list, id_list
 
+
 def count_sequences(fasta):
     """Count the number of sequences contained in a fasta file.
 
