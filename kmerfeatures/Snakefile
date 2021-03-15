@@ -405,9 +405,10 @@ rule standardize_kmers:
 
 rule score_features:
     input:
-        files=expand(join(out_dir,
-                          "features", "{{fa}}", "{fa2}.json"),
-                     fa2=FAS),
+        files=rules.standardize_kmers.output.files
+        # expand(join(out_dir,
+            #               "features", "{{fa}}", "{fa2}.json"),
+            #          fa2=FAS),
         # fasta=uncompressed
     output:
         df=join(out_dir, "features", "{fa}.json"),
@@ -461,3 +462,12 @@ rule score_features:
         end_time = datetime.now()
         with open(log[0], 'a') as f:
             f.write(f"total time:\t{utils.format_timedelta(end_time - start_time)}")
+
+
+rule build_model:
+    input:
+        files=rules.standardize_kmers.output.files
+    output:
+        model=join(out_dir, "model", "{fa}.pkl")
+    run:
+        
