@@ -3,7 +3,7 @@ input:
   fasta_dir: "../example"
   example_index_file: False
   feature_set: '../example/model_features.txt'
-  max_chunk_size: 100  # max number of sequences processed in one job
+  file_extensions: ['fasta', 'fna', 'faa', 'fa']
 
 # kmer pipeline parameters
 k: 14
@@ -31,3 +31,7 @@ output:
 score:
   labels: None
   lname: None  # label name
+
+model:
+  use_score: False
+  n: 100
