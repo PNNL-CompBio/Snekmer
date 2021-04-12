@@ -14,7 +14,8 @@ import numpy as np
 from pandas import (DataFrame, read_json)
 from Bio import SeqIO
 from sklearn.model_selection import train_test_split
-from sklearn.ensemble import (DecisionTreeClassifier, RandomForestClassifier)
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.tree import DecisionTreeClassifier
 
 
 # collect all fasta-like files, unzipped filenames, and basenames
