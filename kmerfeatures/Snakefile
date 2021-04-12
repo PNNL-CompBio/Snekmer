@@ -14,6 +14,7 @@ import numpy as np
 from pandas import (DataFrame, read_json)
 from Bio import SeqIO
 from sklearn.model_selection import train_test_split
+from sklearn.ensemble import (DecisionTreeClassifier, RandomForestClassifier)
 
 
 # collect all fasta-like files, unzipped filenames, and basenames
@@ -394,7 +395,7 @@ rule build_model:
             Xb = scaler.transform(Xb)
 
         Xb_train, Xb_test, y_train, y_test = train_test_split(
-            Xb, y, test_size=0.25, random_state=9, stratify=y
+            Xb, y, test_size=0.25, stratify=y
             )
 
         # train and save model

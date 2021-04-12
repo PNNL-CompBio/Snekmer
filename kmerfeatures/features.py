@@ -275,14 +275,9 @@ def define_feature_space(sequence_dict, k, map_function=None, start=None,
         Filtered feature dictionary {ID: sequence}.
 
     """
-    # this routine will return
+    # use multiprocessing to parallelize kmerization step
     feature_dict = {}
     with Pool(processes) as pool:
-        # kwargs = {'k': k, 'start': start, 'end': end,
-        #           'map_function': map_function, 'feature_dict': feature_dict,
-        #           'return_dict': True}
-        # map_function = partial(vectorize_string, **kwargs)
-        # feature_dict = pool.map(map_function, sequence_dict.values())
         feature_dict = pool.starmap(
             vectorize_string, zip(sequence_dict.values(),
                                   repeat(k),                # k
@@ -298,11 +293,6 @@ def define_feature_space(sequence_dict, k, map_function=None, start=None,
             )
     # combine dictionaries and sum any values with common keys
     feature_dict = dict(sum(map(Counter, feature_dict), Counter()))
-    # for seq in sequence_dict.values():
-    #     feature_dict = vectorize_string(seq, k=k, start=start, end=end,
-    #                                     map_function=map_function,
-    #                                     feature_dict=feature_dict,
-    #                                     return_dict=True)
 
     # if this is between 0 and 1 then it's a percentage
     if 0 < min_rep_thresh < 1:

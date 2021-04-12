@@ -37,15 +37,16 @@ def connection_matrix_from_features(feature_matrix, metric="jaccard"):
     Parameters
     ----------
     feature_matrix : numpy.ndarray
-        feature_matrix in the form of rows (sequences), columns (kmers),
-        where values are the counts of the kmers for each protein.
+        Feature matrix in the form of rows (sequences), columns
+        (kmers), where values are kmer counts for each protein.
     metric : str
-        description.
+        Metric used for pairwise distance computation (see
+            sklearn.metrics.pairwise documentation).
 
     Returns
     -------
     numpy.ndarray
-        a square matrix with the similarity scores of pairwise
+        Square matrix with the similarity scores of pairwise
         relationships between proteins.
 
     """
@@ -62,11 +63,13 @@ def cluster_feature_matrix(feature_matrix,
     """Calculate clusters based on the feature matrix.
 
     Note: sklearn has a wide range of clustering options.
+    See sklearn documentation for more details.
 
     Parameters
     ----------
-    feature_matrix : pandas.DataFrame
-        Description of parameter `feature_matrix`.
+    feature_matrix : numpy.ndarray
+        Feature matrix in the form of rows (sequences), columns
+        (kmers), where values are kmer counts for each protein.
     method : type
         Description of parameter `method`.
     **kwargs : dict
@@ -74,21 +77,17 @@ def cluster_feature_matrix(feature_matrix,
 
     Returns
     -------
-    type
-        Description of returned object.
+    numpy.ndarray
+        Array of clustered labels.
 
     """
-    # another place to have HPC since the clustering can be computationally
-    #   intensive. AgglomerativeClustering may not be the best candidate
-    #   for parallelization though - not sure
-
     if method == "agglomerative":
         clusters = AgglomerativeClustering(n_clusters=n_clusters).fit_predict(feature_matrix)
 
     return clusters
 
 
-def _apply_probability(kmer, label, compare_label, processes=2):
+def _apply_probability(kmer, label, compare_label):
     """Compute binary probability of a label for a kmer.
 
     Parameters
@@ -99,8 +98,6 @@ def _apply_probability(kmer, label, compare_label, processes=2):
         Label value for a given kmer.
     compare_label : str
         Label value to assess a given kmer against.
-    processes : int
-        Number of processes for multiprocessing.
 
     Returns
     -------
@@ -135,8 +132,9 @@ def feature_class_probabilities(feature_matrix, labels, df=True, processes=2):
 
     Returns
     -------
-    type
-        Description of returned object.
+    numpy.ndarray (df=False) or pandas.DataFrame (df=True)
+        Array or DataFrame containing scoring and probability
+        results for each family.
 
     """
     # ensure labels are given as a numpy array
@@ -160,26 +158,11 @@ def feature_class_probabilities(feature_matrix, labels, df=True, processes=2):
         matching_label = np.equal(labels, l)
 
         # for each row in feature matrix, compute each value's probability
-        # attempt to use multiprocessing -- very slow
-        # for i, kmer in enumerate(feature_matrix):
-            # with Pool(processes) as pool:
-            #     # kmer, label, compare_label, processes
-            #     p = pool.starmap(_apply_probability, zip(
-            #         kmer,
-            #         repeat(labels[i]),
-            #         repeat(l),
-            #         repeat(processes)
-            #         )
-            #                      )
-
-        # for each row in feature matrix, compute each value's probability
         # no multiprocessing-- using numpy native parallelization
         for kmer in feature_matrix:
             matching_kmer = np.equal(kmer, 1)
             ones = np.ones(len(kmer))
             p = np.multiply(np.multiply(matching_kmer, matching_label), ones)
-            # p = np.array([(kmer[i] == 1) * 1 * (labels[i] == l)
-            #               for i in range(len(kmer))])
             presence.append(p)
             probability.append(np.sum(p) / results[l]['n_sequences'])
         results[l]['presence'] = np.asarray(presence, dtype=int)

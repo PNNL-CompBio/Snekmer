@@ -14,6 +14,7 @@ from .utils import get_family
 
 # define default gridsearch param dict
 MODEL_PARAMS = {
+#     'scaler__n': [None, 100],
     'clf__class_weight': [None, 'balanced'],
     'clf__min_samples_split': [2, 5, 10, 15, 20, 40],
     'clf__min_samples_leaf': [2, 5, 10, 15, 20],
@@ -27,32 +28,31 @@ class KmerScaler:
 
     Parameters
     ----------
-    model : type
+    scores : list or numpy.ndarray
         Description of parameter `model`.
+    n : int
+        Feature cutoff (top n kmer features to include)
 
     Attributes
     ----------
-    cv : type
-        Description of attribute `cv`.
-    model_params : type
-        Description of attribute `model_params`.
+    n : int
+        Feature cutoff (top n kmer features).
+    input_shape : tuple
+        Input array shape.
+    kmer_basis_idx : numpy.ndarray
+        List of indices from kmer feature vector making up the
+        specified basis set, ordered from most to least important.
+    kmer_basis_score : list of tuples
+        List of tuples for kmer feature vector making up the
+        specified basis set, ordered from most to least important.
+        Tuples are: (index, score) for each listed feature.
+    scores : numpy.ndarray
+        Array of scores for kmer features.
 
     """
 
     def __init__(self, scores, n=100):
         """Initialize KmerScaler object.
-
-        Attributes
-        ----------
-        kmer_basis_idx : numpy.ndarray
-            Description of parameter `kmer_basis_idx`.
-        kmer_basis_score : dict
-            Description of parameter `kmer_basis_score`.
-
-        Returns
-        -------
-        type
-            Description of returned object.
 
         """
         self.n = n
@@ -67,31 +67,30 @@ class KmerScaler:
 
         Parameters
         ----------
-        scores : type
-            Description of parameter `scores`.
-        threshold : type
-            Description of parameter `threshold`.
-        n : int
+        X : list or numpy.ndarray
+            Array of scores for kmer features.
+        threshold : float
+            Numerical cutoff for kmer feature scores.
 
         Returns
         -------
-        type
-            Description of returned object.
+        None
+            Fits KmerScaler() object.
 
         """
-        if not isinstance(scores, np.ndarray):
-            scores = np.array(scores)
-        self.input_shape = scores.shape
+        if not isinstance(X, np.ndarray):
+            X = np.array(X)
+        self.input_shape = X.shape
         if threshold is not None:
-            indices = np.where(np.array(scores > threshold))[0]
+            indices = np.where(np.array(X > threshold))[0]
         elif self.n is not None:
-            indices = scores.ravel().argsort()[:-self.n - 1:-1]
+            indices = X.ravel().argsort()[:-self.n - 1:-1]
         else:
             raise ValueError("One of either `threshold` or `n` must"
                              " be specified.")
         self.kmer_basis_idx = indices
         self.kmer_basis_score = [(i, score) for i, score in zip(
-            self.kmer_basis_idx, scores[self.kmer_basis_idx])]
+            self.kmer_basis_idx, X[self.kmer_basis_idx])]
         return
 
     def transform(self, array):
@@ -99,13 +98,13 @@ class KmerScaler:
 
         Parameters
         ----------
-        array : type
-            Description of parameter `array`.
+        array : list or numpy.ndarray
+            Unscaled kmer vector or matrix.
 
         Returns
         -------
-        type
-            Description of returned object.
+        numpy.ndarray
+            Scaled kmer vector or matrix.
 
         """
         if self.kmer_basis_idx is None or not any(self.kmer_basis_idx):
@@ -122,27 +121,23 @@ class KmerScaler:
         return array[self.kmer_basis_idx]
 
 
-# define default gridsearch param dict
-MODEL_PARAMS = {
-#     'scaler__n': [None, 100],
-    'clf__class_weight': [None, 'balanced'],
-    'clf__min_samples_split': [2, 5, 10, 15, 20, 40],
-    'clf__min_samples_leaf': [2, 5, 10, 15, 20],
-    'clf__max_depth': [3, 10, 25],
-  }
-
-
 class KmerModel:
     """Classify a protein family using kmer vectors as input.
 
     Attributes
     ----------
-    input_shape : numpy.ndarray
-        Shape of input kmer feature vector.
-    kmer_basis_idx : type
-        Description of attribute `kmer_basis_idx`.
-    kmer_basis_score : dict
-        Description of attribute `kmer_basis_score`.
+    scaler :  KmerScaler object or None
+        Scaler object; if None, feature vectors are not scaled
+    params : dict
+        Parameter dictionary for hyperparameter gridsearch.
+    model : Classifier object (default: DecisionTreeClassifier())
+        Type of classification model.
+    step_name : str (default: 'clf')
+        Optional custom name for classifier pipeline step.
+    pipeline : sklearn.pipeline.Pipeline object
+        Pipeline object for preprocessing and modeling.
+    search : sklearn.model_selection.GridSearchCV object
+        GridSearchCV object for hyperparameter searching.
 
     """
     def __init__(self,
@@ -154,17 +149,14 @@ class KmerModel:
 
         Parameters
         ----------
-        model : type
-            Description of parameter `model`.
-        params : type
-            Description of parameter `params`.
-        step_name : type
-            Description of parameter `step_name`.
-
-        Returns
-        -------
-        type
-            Description of returned object.
+        scaler :  KmerScaler object or None (default: None)
+            Scaler object; if None, does not scale feature vectors
+        model : Classifier object (default: DecisionTreeClassifier())
+            Type of classification model.
+        params : dict (default: MODEL_PARAMS)
+            Parameter dictionary for hyperparameter gridsearch.
+        step_name : str (default: 'clf')
+            Optional custom name for classifier pipeline step.
 
         """
         self.scaler = scaler
@@ -175,24 +167,24 @@ class KmerModel:
         self.pipeline = None
         self.search = None
 
-    def fit(self, x_train, y_train, verbose=True):
+    def fit(self, X, y, verbose=True):
         """Train model using gridsearch-tuned hyperparameters.
 
         Parameters
         ----------
-        x_train : type
-            Description of parameter `x_train`.
-        y_train : type
-            Description of parameter `y_train`.
-        scores : type
-            Description of parameter `scores`.
-        verbose : type
-            Description of parameter `verbose`.
+        X : {array-like, sparse matrix} of shape (n_samples, n_features)
+            Training input samples.
+        y : array-like of shape (n_samples,) or (n_samples, n_outputs)
+            Target values (class labels) as integers or strings.
+        scores : array-like of shape (n_features,) or (n_features, n_outputs)
+            NOT IMPLEMENTED YET-- for KmerScaler integration.
+        verbose : bool (default: True)
+            If True, prints best gridsearch CV results to console.
 
         Returns
         -------
-        type
-            Description of returned object.
+        None
+            Fits estimator.
 
         """
         # define pipeline and gridsearch
@@ -200,7 +192,7 @@ class KmerModel:
         self.search = GridSearchCV(self.pipeline, self.params)
 
         # use gridsearch on training data to find best parameter set
-        self.search.fit(x_train, y_train)
+        self.search.fit(X, y)
         if verbose:
             print("best mean cross-validation score: {:.3f}".format(
                 self.search.best_score_
@@ -209,26 +201,26 @@ class KmerModel:
 
         # fit model with best gridsearch parameters
 #         self.scaler.fit(scores)
-        self.model.fit(x_train, y_train)
+        self.model.fit(X, y)
         return
 
-    def score(self, x_test, y_test):
+    def score(self, X, y):
         """Score model on test set.
 
         Parameters
         ----------
-        x : type
-            Description of parameter `x`.
-        y : type
-            Description of parameter `y`.
+        X : array-like of shape (n_samples, n_features)
+            Test samples.
+        y : array-like of shape (n_samples,) or (n_samples, n_outputs)
+            Predicted classes, or predict values.
 
         Returns
         -------
-        type
-            Description of returned object.
+        float
+            Model prediction accuracy on test set.
 
         """
-        return self.search.score(x_test, y_test)
+        return self.search.score(X, y)
 
 
 # functions
@@ -288,49 +280,3 @@ def format_data_df(filenames, label_name='family'):
         data[topfam] = [1 if fam == topfam else 0 for fam in data[label_name]]
 
     return data
-
-
-# def train_model(model=DecisionTreeClassifier, n_splits=5):
-#
-#     # define k-fold cross validation
-#     skfold = StratifiedKFold(n_splits=n_splits, shuffle=True)
-#     scoring = ['accuracy', 'precision_macro',
-#                'recall_macro', 'f1_macro', 'roc_auc']
-#     score_dict_keys = {f"test_{score_method}": [] for score_method in scoring}
-#
-#     cv_results = {'family': [], 'norm': [],
-#                   'model_params': [], 'model': [],
-#                   # 'X_train': [],
-#                   # 'X_test': [],
-#                   # 'y_train': [],
-#                   # 'y_test': [],
-#                   **score_dict_keys}
-#     for fam in sorted_fams[:10]:
-#         Xf, yf, Yf = np.asarray([arr for arr in data['vec'].values]), data[fam].values, data['family'].values
-#         Xf = (Xf > 0) * 1
-#         # Xfs = StandardScaler().fit_transform(Xf)
-#         Xf_train, Xf_test, yf_train, yf_test = train_test_split(
-#             Xf, yf, test_size=.2, random_state=9, stratify=yf
-#         )
-#
-#         param_grid = {'n_estimators': [10, 50, 100, 200],
-#                       'criterion': ['gini', 'entropy'],
-#                       'max_depth': [3, 5, 10, 15],
-#                       'min_samples_split': [2, 5, 10, 15, 20, 25, 30, 35, 40],
-#                       'min_samples_leaf': [2, 5, 10, 15, 20],
-#                       'max_features': [None, 'auto', 'sqrt', 'log2'],
-#                       'class_weight': [None, 'balanced']}
-#         gridb = GridSearchCV(RandomForestClassifier(),
-#                              param_grid=param_grid)
-#         gridb.fit(Xf_train, yf_train)
-#         print("best mean cross-validation score: {:.3f}".format(gridb.best_score_))
-#         print("best parameters:", gridb.best_params_)
-#         print("test-set score: {:.3f}".format(gridb.score(Xf_test, yf_test)))
-#         # best_params_b = {'criterion': 'entropy',
-#         #                  'max_depth': 5,
-#         #                  'min_samples_split': 2,
-#         #                  'min_samples_leaf': 2,
-#         #                  'max_features': None,
-#         #                  'class_weight': 'balanced'}  # gridb.best_params_
-#         best_params_b = gridb.best_params_
-#         return

@@ -20,9 +20,9 @@ def show_cv_roc_curve(clf, cv, X, y, title='ROC Curve'):
     Parameters
     ----------
     clf : Classifer object
-        Description of parameter `clf`.
+        Classifier object (e.g. DecisionTreeClassifier()).
     cv : sklearn.model_selection.StratifiedKFold object
-        Description of parameter `cv`.
+        Cross-validation object.
     X : pandas.DataFrame
         Feature dataframe.
     y : pandas.DataFrame
@@ -32,8 +32,7 @@ def show_cv_roc_curve(clf, cv, X, y, title='ROC Curve'):
 
     Returns
     -------
-    type
-        Description of returned object.
+    None
 
     """
     tprs, aucs = [], []
@@ -89,10 +88,10 @@ def show_cv_pr_curve(clf, cv, X, y, title='PR Curve'):
 
     Parameters
     ----------
-    clf : Classifier object
-        Description of parameter `clf`.
+    clf : Classifer object
+        Classifier object (e.g. DecisionTreeClassifier()).
     cv : sklearn.model_selection.StratifiedKFold object
-        Description of parameter `cv`.
+        Cross-validation object.
     X : pandas.DataFrame
         Feature dataframe.
     y : pandas.DataFrame
@@ -102,8 +101,7 @@ def show_cv_pr_curve(clf, cv, X, y, title='PR Curve'):
 
     Returns
     -------
-    type
-        Description of returned object.
+    None
 
     """
     y_real, y_proba = [], []

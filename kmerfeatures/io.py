@@ -46,7 +46,7 @@ def read_example_index(example_index_file):
     Parameters
     ----------
     example_index_file : str
-        /path/to/example_indexfile
+        /path/to/file.ext
 
     Returns
     -------
@@ -89,17 +89,17 @@ def read_output_kmers(filename):
 
 
 def output_to_df(filename):
-    """Short summary.
+    """Convert kmer features and vectors into dataframe.
 
     Parameters
     ----------
-    filename : type
-        Description of parameter `filename`.
+    filename : str
+        /path/to/file.txt
 
     Returns
     -------
-    type
-        Description of returned object.
+    pandas.DataFrame
+        DataFrame containing kmer features and vectors
 
     """
     features, vectors = output_to_npy(filename)
@@ -148,16 +148,22 @@ def vecfiles_to_df(files, labels=None, label_name='label'):
     Parameters
     ----------
     files : list
-        Description of parameter `files`.
-    labels : list or None (default: None)
-        Description of parameter `labels`.
+        List of (/path/to/file1.ext1, /path/to/file2.ext2, ..., etc.)
+    labels : list of str or None (default: None)
+        Labels for specified files; if None, excludes labels.
     label_name : str (default: 'label')
-        Description of parameter `label_name`.
+        Desired name for data column containing labels.
 
     Returns
     -------
     pandas.DataFrame
-        Description of returned object.
+        Tabulated data of the form:
+
+        | filename | seq_id | vector | vec_shape |
+        |----------|--------|--------|-----------|
+        | file1    | seq1   | array1 | shape1    |
+        ...
+        ... etc.
 
     """
     data = {'filename': [], 'seq_id': [], 'vector': [], 'vec_shape': []}

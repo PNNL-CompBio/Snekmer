@@ -483,8 +483,8 @@ def randomize_alphabet(map_function):
 
     Returns
     -------
-    type
-        Description of returned object.
+    dict
+        Dictionary containing randomized residue mappings.
 
     """
     alpha = get_alphabets()[map_function]
