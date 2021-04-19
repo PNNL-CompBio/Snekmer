@@ -222,6 +222,22 @@ class KmerModel:
         """
         return self.search.score(X, y)
 
+    def predict(self, X):
+        """Assign classification based on new input vector.
+
+        Parameters
+        ----------
+        X : array-like of shape (n_samples, n_features)
+            New samples.
+
+        Returns
+        -------
+        int
+            (0,1) classification result
+
+        """
+        return self.model.predict(X)
+
 
 # functions
 def format_data_df(filenames, label_name='family'):

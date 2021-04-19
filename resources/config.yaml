@@ -4,6 +4,7 @@ input:
   example_index_file: False
   feature_set: '../example/model_features.txt'
   file_extensions: ['fasta', 'fna', 'faa', 'fa']
+  nested_dir: False
 
 # kmer pipeline parameters
 k: 14
