@@ -8,14 +8,14 @@ import numpy as np
 import pandas as pd
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
-from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import GridSearchCV, cross_validate
 from sklearn.pipeline import make_pipeline, Pipeline
 from .utils import get_family
 
 # define default gridsearch param dict
 MODEL_PARAMS = {
 #     'scaler__n': [None, 100],
-    'clf__class_weight': [None, 'balanced'],
+    'clf__class_weight': ['balanced'],
     'clf__min_samples_split': [2, 5, 10, 15, 20, 40],
     'clf__min_samples_leaf': [2, 5, 10, 15, 20],
     'clf__max_depth': [3, 10, 25],
