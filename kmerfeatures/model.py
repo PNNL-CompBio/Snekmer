@@ -21,6 +21,12 @@ MODEL_PARAMS = {
     'clf__max_depth': [3, 10, 25],
   }
 
+MODEL_NAME =  {
+    'decisiontree': DecisionTreeClassifier(),
+    'randomforest': RandomForestClassifier(),
+    'adaboost': AdaBoostClassifier()
+}
+
 
 # classes
 class KmerScaler:
@@ -130,8 +136,14 @@ class KmerModel:
         Scaler object; if None, feature vectors are not scaled
     params : dict
         Parameter dictionary for hyperparameter gridsearch.
-    model : Classifier object (default: DecisionTreeClassifier())
-        Type of classification model.
+    model : str (default: 'decisiontree')
+        String identifier for classifier model.
+        Mappings to Classifier object are:
+            {
+            'decisiontree': DecisionTreeClassifier,
+            'randomforest': RandomForestClassifier,
+            'adaboost': AdaBoostClassifier
+            }
     step_name : str (default: 'clf')
         Optional custom name for classifier pipeline step.
     pipeline : sklearn.pipeline.Pipeline object
@@ -142,7 +154,7 @@ class KmerModel:
     """
     def __init__(self,
                  scaler=None,
-                 model=DecisionTreeClassifier(),
+                 model='decisiontree',
                  params=MODEL_PARAMS,
                  step_name="clf"):
         """Initialize KmerModel object.
@@ -161,7 +173,7 @@ class KmerModel:
         """
         self.scaler = scaler
         self.params = params
-        self.model = model
+        self.model = MODEL_NAME[model]
         self.step_name = step_name
 
         self.pipeline = None

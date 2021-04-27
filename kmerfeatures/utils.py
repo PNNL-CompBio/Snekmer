@@ -103,6 +103,9 @@ def get_family(filename, regex='[a-z]{3}[A-Z]{1}', return_first=True):
     """
     # extract and simplify file basename
     filename = basename(filename)
+    # account for directories
+    if "." not in filename and filename[-1] == "/":
+        filename = f"{filename}.dir"
     s = '_'.join(
         filename.split('.')[:-1]
         ).replace('-', '_').replace(' ', '_')

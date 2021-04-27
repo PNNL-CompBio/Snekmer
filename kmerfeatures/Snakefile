@@ -400,7 +400,8 @@ rule build_model:
             )
 
         # train and save model
-        clf = kmf.model.KmerModel(scaler=None)  # scaler currently separate from model
+        clf = kmf.model.KmerModel(model=config['model']['type'], scaler=None)  # scaler currently separate from model
+        print(clf.model)
         clf.fit(Xb_train, y_train)
         print(clf.score(Xb_test, y_test))
 
