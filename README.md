@@ -81,6 +81,16 @@ When you are ready to process your files, run:
 kmerfeatures --cores 1
 ```
 
+### Partial Workflow
+
+To execute only a part of the workflow, the parameter `--until` can be invoked.
+For instance, to execute the workflow only through the kmer vector generation
+step, run:
+
+```bash
+kmerfeatures --cores 1 --until standardize_kmers
+```
+
 ### Extra Notes
 
 The `kmerfeatures` CLI is ready-to-use in the above format, but if you run `kmerfeatures --help`, you'll notice many extra parameters. Ignore these for now; these are a WIP still!
