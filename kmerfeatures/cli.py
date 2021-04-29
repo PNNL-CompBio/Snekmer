@@ -52,6 +52,7 @@ def main():
                               )
                         )
     parser.add_argument('--unlock', action='store_true', help='unlock directory')
+    parser.add_argument('--until', metavar='TARGET', nargs="+", help='run pipeline until reaching the target rule or files')
     parser.add_argument('--touch', action='store_true', help='touch output files only')
     parser.add_argument('--latency', metavar='N', type=int, default=3, help='specify filesystem latency (seconds)')
     parser.add_argument('--cores', metavar='N', type=int, default=cpu_count(), help='number of cores used for execution (local execution only)')
@@ -92,6 +93,7 @@ def main():
               nodes=args.jobs,
               dryrun=args.dryrun,
               unlock=args.unlock,
+              until=args.until,
               touch=args.touch,
               latency_wait=args.latency)
 

@@ -37,9 +37,12 @@ UZS = list(unzipped_ext_map.keys())
 FAS = list(fasta_ext_map.keys())
 
 # define output directory (helpful for multiple runs)
-out_dir = join(config['output']['save_dir'],
-               config['map_function'],
-               f"k-{config['k']:02}")
+if config['output']['nested_dir']:
+    out_dir = join(config['output']['save_dir'],
+                   config['map_function'],
+                   f"k-{config['k']:02}")
+else:
+    out_dir = config['output']['save_dir']
 
 # validity check
 if config['map_function'] not in kmf.alphabet.ALPHABETS.keys():
