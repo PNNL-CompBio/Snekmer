@@ -4,7 +4,6 @@ input:
   example_index_file: False
   feature_set: '../example/model_features.txt'
   file_extensions: ['fasta', 'fna', 'faa', 'fa']
-  nested_dir: False
 
 # kmer pipeline parameters
 k: 14
@@ -19,14 +18,17 @@ full_kmer_list: False
 processes: 2
 
 output:
+  # active params
   save_dir: "../../output"
-  verbose: True
+  nested_dir: False  # if True, saves into {save_dir}/{alphabet name}/{k}
+  verbose: True  # if True, logs verbose outputs
   format: 'simple'  # choices: ['simple', 'gist', 'sieve']
-  filename: False
   filter_duplicates: True
   n_terminal_file: False
   shuffle_n: False
   shuffle_sequences: False
+  # currently inactive
+  filename: False  # customize filename
   kmer_output: True
 
 score:
