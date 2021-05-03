@@ -353,7 +353,7 @@ rule score_features:
         labels = data[label].values
         class_probabilities = kmf.score.feature_class_probabilities(
             feature_matrix.T, labels, kmers=kmers, processes=config['processes']
-            ).drop(columns=['presence'])
+            )#.drop(columns=['count'])
 
         new_timepoint = datetime.now()
         with open(log[0], 'a') as f:

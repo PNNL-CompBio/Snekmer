@@ -171,12 +171,12 @@ def feature_class_probabilities(feature_matrix, labels, kmers=None, processes=2)
             matching_kmer = np.equal(kmer, 1)
             ones = np.ones(len(kmer))
             p = np.multiply(np.multiply(matching_kmer, matching_label), ones)
-            presence.append(p)
+            presence.append(np.sum(p))
             probability.append(np.sum(p) / n_sequences[i])
 
         # if no kmers specified, save numerical range
         results[l]['kmer'] = kmers
-        results[l]['presence'] = np.asarray(presence, dtype=int)
+        results[l]['count'] = np.asarray(presence, dtype=int)
         results[l]['probability'] = np.asarray(probability, dtype=float)
 
     # compute score
