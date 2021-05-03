@@ -110,7 +110,7 @@ def _apply_probability(kmer, label, compare_label):
     return (kmer == 1) * 1 * (label == compare_label)
 
 
-def feature_class_probabilities(feature_matrix, labels, df=True, processes=2):
+def feature_class_probabilities(feature_matrix, labels, kmers=None, processes=2):
     """Calculate probabilities for features being in a defined class.
 
     Note: only coded to work for the binary case (2 classes).
@@ -124,9 +124,9 @@ def feature_class_probabilities(feature_matrix, labels, df=True, processes=2):
     labels : list or numpy.ndarray or pandas.Series
         Class labels describing feature matrix.
         Must have as many entries as the number of feature columns.
-    df : bool
-        If True, returns output as a pandas DataFrame;
-        if False, returns output as a dictionary (default: True).
+    kmers : list or None (default: None)
+        Optional list of kmer identifiers that map to kmer columns.
+        len(kmers) must equal len(feature_matrix).
     processes : int
         Number of processes (for multiprocessing)
 
@@ -143,6 +143,12 @@ def feature_class_probabilities(feature_matrix, labels, df=True, processes=2):
     else:
         raise TypeError("Labels must be list- or array-like.")
 
+    # kmer labels
+    if kmers is None:
+        kmers = np.array([n for n in range(len(feature_matrix))])
+    if len(kmers) != len(feature_matrix):
+        raise ValueError("Kmer array shape is mismatched.")
+
     # check that labels are the same size as number of examples
     if len(feature_matrix.T) != len(labels):
         raise ValueError("Input shapes are mismatched.")
@@ -151,9 +157,11 @@ def feature_class_probabilities(feature_matrix, labels, df=True, processes=2):
     feature_matrix = (feature_matrix > 0) * 1.0
 
     # iterate through every feature in the input matrix
-    results = {l: {'n_sequences': len(np.hstack(np.where(labels == l)))}
-               for l in np.unique(labels)}
-    for l in np.unique(labels):
+    n_sequences = [
+        len(np.hstack(np.where(labels == l))) for l in np.unique(labels)
+        ]
+    results = {l: {} for l in labels}
+    for i, l in enumerate(np.unique(labels)):
         presence, probability = list(), list()
         matching_label = np.equal(labels, l)
 
@@ -164,7 +172,10 @@ def feature_class_probabilities(feature_matrix, labels, df=True, processes=2):
             ones = np.ones(len(kmer))
             p = np.multiply(np.multiply(matching_kmer, matching_label), ones)
             presence.append(p)
-            probability.append(np.sum(p) / results[l]['n_sequences'])
+            probability.append(np.sum(p) / n_sequences[i])
+
+        # if no kmers specified, save numerical range
+        results[l]['kmer'] = kmers
         results[l]['presence'] = np.asarray(presence, dtype=int)
         results[l]['probability'] = np.asarray(probability, dtype=float)
 
@@ -175,8 +186,10 @@ def feature_class_probabilities(feature_matrix, labels, df=True, processes=2):
         results[l]['score'] = ((results[l]['probability'])
                                - (results[o]['probability'] * (weight)))
 
-    if df:
-        return pd.DataFrame(results).T.reset_index().rename(
-            columns={'index': 'label'})
+    results = pd.DataFrame(results).T.reset_index().rename(
+        columns={'index': 'label'}
+        )
+
+    results = results.set_index(['label']).apply(pd.Series.explode).reset_index()
 
     return results

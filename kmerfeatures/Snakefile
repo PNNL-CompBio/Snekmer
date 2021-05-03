@@ -11,7 +11,7 @@ from os.path import (basename, dirname, exists, join, splitext)
 # external libraries
 import kmerfeatures as kmf
 import numpy as np
-from pandas import (DataFrame, read_json)
+from pandas import (DataFrame, read_csv, read_json)
 from Bio import SeqIO
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
@@ -57,7 +57,6 @@ rule all:
     input:
         expand(join(config['input']['fasta_dir'], '{uz}'), uz=UZS),
         expand(join(out_dir, "features", "{fa}", "{fa2}.json"), fa=FAS, fa2=FAS),
-        # expand(join(out_dir, "features", "{fa}.json"), fa=FAS),
         expand(join(out_dir, "model", "{fa}.pkl"), fa=FAS)
         # expand(join(out_dir, "score", "{fa}.json"), fa=FAS)
 
@@ -92,7 +91,7 @@ rule preprocess:
         fasta=lambda wildcards: join(config['input']['fasta_dir'], f"{wildcards.fa}.{fasta_ext_map[wildcards.fa]}"),
     output:
         data=join(out_dir, "processed", "{fa}.json"),
-        desc=join(out_dir, "processed", "{fa}_description.json")
+        desc=join(out_dir, "processed", "{fa}_description.csv")
     log:
         join(out_dir, "processed", "log", "{fa}.log")
     run:
@@ -215,9 +214,9 @@ rule preprocess:
         # read and save fasta descriptions into dataframe
         try:
             desc = kmf.utils.parse_fasta_description(input.fasta)
-            desc.to_json(output.desc)
+            desc.to_csv(output.desc)
         except AttributeError:  # if no description exists > empty df
-            DataFrame([]).to_json(output.desc)
+            DataFrame([]).to_csv(output.desc)
 
         # record script runtime
         end_time = datetime.now()
@@ -316,20 +315,20 @@ rule standardize_kmers:
 
 rule score_features:
     input:
+        kmers=rules.generate_kmer_labels.output.labels,
         files=rules.standardize_kmers.output.files
-        # expand(join(out_dir,
-            #               "features", "{{fa}}", "{fa2}.json"),
-            #          fa2=FAS),
-        # fasta=uncompressed
     output:
-        df=join(out_dir, "features", "{fa}.json"),
-        scores=join(out_dir, "score", "{fa}.json")
+        df=join(out_dir, "features", "{fa}.csv"),
+        scores=join(out_dir, "score", "{fa}.csv")
     log:
         join(out_dir, "score", "log", "{fa}.log")
     run:
         start_time = datetime.now()
         with open(log[0], 'a') as f:
             f.write(f"start time:\t{start_time}\n")
+
+        # get kmers for this particular set of sequences
+        kmers = kmf.io.read_output_kmers(input.kmers)
 
         # parse all data
         label = config['score']['lname']
@@ -353,7 +352,7 @@ rule score_features:
         # compute class probabilities
         labels = data[label].values
         class_probabilities = kmf.score.feature_class_probabilities(
-            feature_matrix.T, labels, processes=config['processes']
+            feature_matrix.T, labels, kmers=kmers, processes=config['processes']
             ).drop(columns=['presence'])
 
         new_timepoint = datetime.now()
@@ -365,9 +364,9 @@ rule score_features:
         data['cluster'] = clusters
 
         # save all files to respective outputs
-        data.to_json(output.df)
+        data.to_csv(output.df)
         # np.save(output.npy, feature_matrix)
-        class_probabilities.to_json(output.scores)
+        class_probabilities.to_csv(output.scores)
 
         # record script runtime
         end_time = datetime.now()
@@ -378,7 +377,7 @@ rule score_features:
 rule build_model:
     input:
         files=rules.standardize_kmers.output.files,
-        scores=join(out_dir, "score", "{fa}.json")
+        scores=rules.score_features.output.scores
     output:
         model=join(out_dir, "model", "{fa}.pkl"),
         results=join(out_dir, "model", "{fa}.csv")
