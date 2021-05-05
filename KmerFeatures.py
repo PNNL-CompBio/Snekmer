@@ -153,6 +153,29 @@ def feature_class_probabilities(feature_matrix, example_labels):
 
     return(results)
 
+# This code will apply the feature class probabilities derived in the previous functions
+#   to a new set of examples as a weighted score. The idea here is to use a very simple
+#   approach to classification.
+def apply_feature_probabilities(feature matrix, probabilities):
+    # first make sure the feature matrix is binary
+
+    # TODO: we need to check that the probabilities are the same
+    #       as the input feature matrix - that is, that they
+    #       refer to the same features in the same order
+
+    feature_matrix = (feature_matrix>0)*1
+
+    for key in feature_matrix.keys():
+        features = feature_matrix[key]
+
+        # for a first attempt we can just multiply the probability
+        #    value by the kmer presence vector which will give us
+        #    a weighted score. No idea if this will work well or not
+        #score = features * probabilities[]
+
+    return(scores)
+
+
 
 # Below is the code in R
 #     which I think should do pretty much the same thing
