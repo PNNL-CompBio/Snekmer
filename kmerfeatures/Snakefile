@@ -383,7 +383,7 @@ rule build_model:
         results=join(out_dir, "model", "{fa}.csv")
     run:
         data = kmf.model.format_data_df(input.files)
-        scores = read_json(input.scores)
+        scores = read_csv(input.scores)
         family = kmf.utils.get_family(input.scores)
 
         # define x, y matrices
