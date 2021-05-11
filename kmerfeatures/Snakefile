@@ -44,6 +44,8 @@ rule preprocess:
         fasta=join(config['input']['fasta_dir'], "{fn}.fasta")
     output:
         data=join(config['output']['save_dir'], "processed", "{fn}.json")
+    log:
+        join(config['output']['save_dir'], "processed", "log", "{fn}.log")
     run:
         # read fasta file
         seq_list, id_list = kmf.utils.read_fasta(input.fasta)
@@ -66,7 +68,8 @@ rule preprocess:
                 start=config['kmer']['start'],
                 end=config['kmer']['end'],
                 min_rep_thresh=config['kmer']['min_rep_thresh'],
-                verbose=config['output']['verbose']
+                verbose=config['output']['verbose'],
+                log_file=log[0]
                 )
             filter_list = list(filter_dict.keys())
             assert len(filter_list) > 0, "Invalid feature space; terminating."
@@ -160,7 +163,7 @@ rule generate_features:
     output:
         features=join(config['output']['save_dir'], "features", "{fn}.txt"),
     log:
-        join(config['output']['save_dir'], "logs", "{fn}.log")
+        join(config['output']['save_dir'], "features", "log", "{fn}.log")
     run:
         # read processed features
         with open(input.data, 'r') as f:
@@ -179,7 +182,8 @@ rule generate_features:
             labels = []
 
             if config['output']['verbose']:
-                print("Constructing features for sequence %s" % seq_id)
+                with open(log[0], 'a') as f:
+                    f.write(f"Constructing features for sequence {seq_id}\n")
 
             features = [seq_id]
 
@@ -189,9 +193,10 @@ rule generate_features:
                 start=config['kmer']['start'],
                 end=config['kmer']['end'],
                 map_function=data['map_function'],
-                residues=data['residues'],
+                # residues=data['residues'],
                 filter_list=data['filter_list'],
-                verbose=config['output']['verbose']
+                verbose=config['output']['verbose'],
+                log_file=log[0]
                 )
 
             # print(features)

@@ -301,7 +301,8 @@ def exclude_from_string(k_string, exclude):
 def vectorize_string(sequence, k=3, start=0, end=False,
                      map_function=None, feature_dict=None,
                      filter_list=None, exclude=None,
-                     return_dict=False, verbose=False):
+                     return_dict=False, verbose=False,
+                     log_file=False):
     """Transform a protein sequence into a vector representation.
 
     Parameters
@@ -329,6 +330,9 @@ def vectorize_string(sequence, k=3, start=0, end=False,
         If True, returns {kmer: count} for kmers (default: False).
     verbose : bool
         If True, prints verbose output during run (default: False).
+    log_file : str
+        /path/to/log.file for verbose outputs (default: False)
+        If False, pipes verbose outputs to console instead.
 
     Returns
     -------
@@ -360,7 +364,10 @@ def vectorize_string(sequence, k=3, start=0, end=False,
         # perform mapping to a reduced alphabet
         k_string = map_characters(k_map, map_function, mapping)
 
-        if verbose:
+        if verbose and log_file:
+            with open(log_file, 'a') as f:
+                f.write(f"{i}\t{k_map}\t{k_string}\t1\n")
+        elif verbose and not log_file:
             print(i, "\t", k_map, "\t", k_string, "\t1", )
 
         # filter unrecognized characters or filter from list

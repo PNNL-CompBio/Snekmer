@@ -46,11 +46,21 @@ git clone https://github.com/biodataganache/KmerPipeline.git
 
 # install from cloned repository
 cd KmerPipeline
-git checkout christine
+git pull    # get latest version
 pip install .
 ```
 
 The package should now be ready to use!
+
+#### Troubleshooting Notes
+
+For Windows users: If you are running into conflicts/errors when creating the conda environment in Windows, you may need to install the minimal version of snakemake instead:
+
+```
+conda create -n kmers -c conda-forge -c bioconda biopython numpy pandas snakemake-minimal scikit-learn
+```
+
+Then run all subsequent steps as normal.
 
 ## Command-Line Interface
 
