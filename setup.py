@@ -3,6 +3,12 @@ from kmerfeatures import __version__
 import glob
 import os
 
+with open('README.md') as f:
+    readme = f.read()
+
+with open('LICENSE') as f:
+    license = f.read()
+
 with open('requirements.txt') as f:
     required = [x for x in f.read().splitlines() if not x.startswith("#")]
 
@@ -18,10 +24,11 @@ setup(name='kmerfeatures',
       # tests_require=['pytest'],
       description=('Kmer pipeline for generating features and'
                    'running SIEVE models on input sequences'),
+      long_description=readme,
       url='http://github.com/biodataganache/KmerPipeline/',
       author='@christinehc, @biodataganache',
       author_email='christine.chang@pnnl.gov',
-      license='MIT',
+      license=license,
       packages=pkgs,
       entry_points={
           'console_scripts': ['kmerfeatures = kmerfeatures.cli:main']
