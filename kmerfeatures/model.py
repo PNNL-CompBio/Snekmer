@@ -30,7 +30,7 @@ MODEL_NAME =  {
 
 # classes
 class KmerScaler:
-    """Scale and reduce kmer vector based on scores.
+    """Scale and reduce kmer set based on scores.
 
     Parameters
     ----------
@@ -41,8 +41,10 @@ class KmerScaler:
 
     Attributes
     ----------
-    n : int
+    n : int or float
         Feature cutoff (top n kmer features).
+        Accepts either an integer of the top n features, or a float
+        indicating a percentage (n = 0.1 for the top 10% of features)
     input_shape : tuple
         Input array shape.
     kmer_basis_idx : numpy.ndarray
@@ -57,23 +59,22 @@ class KmerScaler:
 
     """
 
-    def __init__(self, scores, n=100):
+    def __init__(self, n=100):
         """Initialize KmerScaler object.
 
         """
         self.n = n
         self.input_shape = None
+        self.scores = None
         self.kmer_basis_idx = None
         self.kmer_basis_score = dict()
-        self.scores = scores
 
-
-    def fit(self, X, threshold=None):
+    def fit(self, scores):
         """Fit scaler based on list of scores.
 
         Parameters
         ----------
-        X : list or numpy.ndarray
+        scores : list or numpy.ndarray
             Array of scores for kmer features.
         threshold : float
             Numerical cutoff for kmer feature scores.
@@ -84,19 +85,35 @@ class KmerScaler:
             Fits KmerScaler() object.
 
         """
-        if not isinstance(X, np.ndarray):
-            X = np.array(X)
-        self.input_shape = X.shape
-        if threshold is not None:
-            indices = np.where(np.array(X > threshold))[0]
-        elif self.n is not None:
-            indices = X.ravel().argsort()[:-self.n - 1:-1]
+        if not isinstance(scores, np.ndarray):
+            scores = np.array(scores)
+        self.scores = scores
+        self.input_shape = scores.shape
+
+        # option 1: set score threshold as limit -- REMOVED
+        # if threshold is not None:
+        #     indices = np.where(np.array(scores > threshold))[0]
+
+        if self.n is not None:
+            # option 2: set # of features as limit
+            if (isinstance(self.n, int)) and (self.n >= 1):
+                indices = scores.ravel().argsort()[:-self.n - 1:-1]
+            # option 3: set % of features as limit
+            elif (isinstance(self.n, float)) and (self.n < 1):
+                n = int(np.floor(self.n * len(scores)))
+                indices = scores.ravel().argsort()[:-n - 1:-1]
+            else:
+                raise ValueError("Invalid input format for `n`"
+                                 " (must be either int > 1, or"
+                                 " 0.0 < float < 1.0).")
         else:
             raise ValueError("One of either `threshold` or `n` must"
                              " be specified.")
+
+        # store basis set and indices as attributes
         self.kmer_basis_idx = indices
         self.kmer_basis_score = [(i, score) for i, score in zip(
-            self.kmer_basis_idx, X[self.kmer_basis_idx])]
+            self.kmer_basis_idx, scores[self.kmer_basis_idx])]
         return
 
     def transform(self, array):

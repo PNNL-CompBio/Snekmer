@@ -352,21 +352,42 @@ rule score_features:
         # compute class probabilities
         labels = data[label].values
         class_probabilities = kmf.score.feature_class_probabilities(
-            feature_matrix.T, labels, kmers=kmers, processes=config['processes']
+            feature_matrix.T, labels, kmers=kmers,
+            processes=config['processes']
             )#.drop(columns=['count'])
+
+        # assign family probability scores
+        for fam in data[label].unique():
+            scores = class_probabilities[
+                class_probabilities['label'] == fam
+            ]['score'].values
+
+            # normalize by sum of all positive scores
+            norm = np.sum([s for s in scores if s > 0])
+
+            total_scores = kmf.score.apply_feature_probabilities(
+                feature_matrix, scores, scaler=config['score']['scaler'],
+                **config['score']['scaler_kwargs']
+            )
+
+            # assign percent score based on max positive score
+            data[f"{fam}_score"] = total_scores / norm * 100
 
         new_timepoint = datetime.now()
         with open(log[0], 'a') as f:
-            f.write(f"class_probabilities time:\t{kmf.utils.format_timedelta(new_timepoint - timepoint)}\n")
+            f.write(
+                "class_probabilities time:\t"
+                f"{kmf.utils.format_timedelta(new_timepoint - timepoint)}\n"
+                )
 
         # [IN PROGRESS] compute clusters
         clusters = kmf.score.cluster_feature_matrix(feature_matrix)
         data['cluster'] = clusters
 
         # save all files to respective outputs
-        data.to_csv(output.df)
+        data.to_csv(output.df, index=False)
         # np.save(output.npy, feature_matrix)
-        class_probabilities.to_csv(output.scores)
+        class_probabilities.to_csv(output.scores, index=False)
 
         # record script runtime
         end_time = datetime.now()

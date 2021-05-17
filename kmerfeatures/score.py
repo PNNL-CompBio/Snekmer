@@ -10,6 +10,7 @@ import pandas as pd
 
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.metrics.pairwise import pairwise_distances
+from kmerfeatures.model import KmerScaler
 
 
 # functions
@@ -110,6 +111,24 @@ def _apply_probability(kmer, label, compare_label):
     return (kmer == 1) * 1 * (label == compare_label)
 
 
+def _binarize(feature_matrix):
+    """Convert feature counts into binary presence/absence.
+
+    Parameters
+    ----------
+    feature_matrix : array (list, numpy.ndarray, pandas.Series)
+        Feature matrix, where each row represents a kmer and each
+        column represents a sequence
+
+    Returns
+    -------
+    numpy.ndarray
+        Description of returned object.
+
+    """
+    return (feature_matrix > 0) * 1.0
+
+
 def feature_class_probabilities(feature_matrix, labels, kmers=None, processes=2):
     """Calculate probabilities for features being in a defined class.
 
@@ -117,7 +136,7 @@ def feature_class_probabilities(feature_matrix, labels, kmers=None, processes=2)
 
     Parameters
     ----------
-    feature_matrix : type
+    feature_matrix : array (list, numpy.ndarray, pandas.Series)
         Feature matrix, where each row represents a kmer and each
         column represents a sequence
         In other words, len(feature_matrix.T) must equal len(labels)
@@ -154,7 +173,7 @@ def feature_class_probabilities(feature_matrix, labels, kmers=None, processes=2)
         raise ValueError("Input shapes are mismatched.")
 
     # convert the feature count matrix into binary presence/absence
-    feature_matrix = (feature_matrix > 0) * 1.0
+    feature_matrix = _binarize(feature_matrix)
 
     # iterate through every feature in the input matrix
     n_sequences = [
@@ -179,7 +198,7 @@ def feature_class_probabilities(feature_matrix, labels, kmers=None, processes=2)
         results[l]['count'] = np.asarray(presence, dtype=int)
         results[l]['probability'] = np.asarray(probability, dtype=float)
 
-    # compute score
+    # compute score based on (label, not label) assignment
     weight = 1 / (len(np.unique(labels)) - 1)
     for l in np.unique(labels):
         o = np.unique(labels)[np.unique(labels) != l][0]  # other labels
@@ -190,6 +209,50 @@ def feature_class_probabilities(feature_matrix, labels, kmers=None, processes=2)
         columns={'index': 'label'}
         )
 
+    # reformat dataframe into long form
     results = results.set_index(['label']).apply(pd.Series.explode).reset_index()
 
     return results
+
+
+# from Jason
+# This code will apply the feature class probabilities derived in the previous functions
+#   to a new set of examples as a weighted score. The idea here is to use a very simple
+#   approach to classification.
+def apply_feature_probabilities(
+    feature_matrix, scores, scaler=False, **kwargs
+):
+    """Calculate class probability scores based on kmer vectors.
+
+    Parameters
+    ----------
+    feature_matrix : array (list, numpy.ndarray, pandas.Series)
+        Feature matrix of shape (n, m), where each row represents
+        a kmer and each column represents a sequence.
+        In other words, len(feature_matrix.T) must equal len(labels)
+    scores : array (list, numpy.ndarray, pandas.Series)
+        Array of shape (m,) of kmer probability scores.
+        Scores must be in the same kmer order as in `feature_matrix`.
+    scaler : bool (default: False)
+        If True, performs scaling to reduce kmer features.
+    **kwargs : dict
+        Keyword arguments for KmerScaler().
+
+    Returns
+    -------
+    numpy.ndarray
+        Feature matrix weighted
+
+    """
+    # optionally apply scaling
+    if scaler:
+        scaler = KmerScaler(**kwargs)
+        scaler.fit(scores)
+        scores = scaler.transform(scores)
+        feature_matrix = scaler.transform(feature_matrix)
+
+    feature_matrix = _binarize(feature_matrix)
+    score_matrix = scores * feature_matrix
+    score_totals = np.array([np.sum(arr) for arr in score_matrix])
+
+    return score_totals

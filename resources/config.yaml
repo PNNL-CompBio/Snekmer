@@ -32,6 +32,8 @@ output:
   kmer_output: True
 
 score:
+  scaler: True
+  scaler_kwargs: {'n': 0.25}
   labels: None
   lname: None  # label name
 
