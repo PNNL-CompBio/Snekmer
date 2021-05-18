@@ -226,7 +226,7 @@ rule preprocess:
             f.write(f"total time:\t{kmf.utils.format_timedelta(end_time - start_time)}")
 
 
-rule generate_kmer_labels:
+rule generate_kmers:
     input:
         params=rules.preprocess.output.data
     output:
@@ -315,7 +315,7 @@ rule standardize_kmers:
 
 rule score_features:
     input:
-        kmers=rules.generate_kmer_labels.output.labels,
+        kmers=rules.generate_kmers.output.labels,
         files=rules.standardize_kmers.output.files
     output:
         df=join(out_dir, "features", "{fa}.csv"),
