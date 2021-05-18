@@ -262,7 +262,7 @@ rule generate_kmers:
 
 rule standardize_kmers:
     input:
-        kmers=rules.generate_kmer_labels.output.labels,
+        kmers=rules.generate_kmers.output.labels,
         params=rules.preprocess.output.data,
         fastas=uncompressed
     log:
