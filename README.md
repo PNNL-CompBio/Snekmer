@@ -28,7 +28,7 @@ I recommend using Anaconda to create a virtual environment. Anaconda handles dep
 Create a conda environment called `kmers`:
 
 ```
-conda create -n kmers -c conda-forge -c bioconda biopython numpy pandas snakemake scikit-learn
+conda create -n kmers -c conda-forge -c bioconda biopython numpy pandas snakemake>=6.0 scikit-learn matplotlib
 ```
 
 Activate the environment:
