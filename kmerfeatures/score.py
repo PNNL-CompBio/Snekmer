@@ -158,4 +158,4 @@ def apply_feature_probabilities(feature matrix, probabilities):
         score = features * probabilities['score']
         scores[i] = score
 
-    return(pd.DataFrame(scores))
+    return pd.DataFrame(scores)
