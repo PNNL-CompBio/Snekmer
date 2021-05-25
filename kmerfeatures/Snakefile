@@ -352,8 +352,7 @@ rule score_features:
         # compute class probabilities
         labels = data[label].values
         class_probabilities = kmf.score.feature_class_probabilities(
-            feature_matrix.T, labels, kmers=kmers,
-            processes=config['processes']
+            feature_matrix.T, labels, kmers=kmers
             )#.drop(columns=['count'])
 
         # assign family probability scores

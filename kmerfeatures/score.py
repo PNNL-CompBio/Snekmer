@@ -129,7 +129,7 @@ def _binarize(feature_matrix):
     return (feature_matrix > 0) * 1.0
 
 
-def feature_class_probabilities(feature_matrix, labels, kmers=None, processes=2):
+def feature_class_probabilities(feature_matrix, labels, kmers=None):
     """Calculate probabilities for features being in a defined class.
 
     Note: only coded to work for the binary case (2 classes).
@@ -146,8 +146,6 @@ def feature_class_probabilities(feature_matrix, labels, kmers=None, processes=2)
     kmers : list or None (default: None)
         Optional list of kmer identifiers that map to kmer columns.
         len(kmers) must equal len(feature_matrix).
-    processes : int
-        Number of processes (for multiprocessing)
 
     Returns
     -------
