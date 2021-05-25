@@ -386,7 +386,10 @@ rule score_features:
         # save all files to respective outputs
         data.to_csv(output.df, index=False)
         # np.save(output.npy, feature_matrix)
-        class_probabilities = class_probabilities.drop(columns='vector')
+        delete_cols = ['vec', 'vector']
+        for col in delete_cols:
+            if col in class_probabilities.columns:
+                class_probabilities = class_probabilities.drop(columns=col)
         class_probabilities.to_csv(output.scores, index=False)
 
         # record script runtime
