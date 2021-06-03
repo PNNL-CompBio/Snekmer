@@ -384,12 +384,13 @@ rule score_features:
         data['cluster'] = clusters
 
         # save all files to respective outputs
-        data.to_csv(output.df, index=False)
-        # np.save(output.npy, feature_matrix)
         delete_cols = ['vec', 'vector']
         for col in delete_cols:
+            if col in data.columns:
+                data = data.drop(columns=col)
             if col in class_probabilities.columns:
                 class_probabilities = class_probabilities.drop(columns=col)
+        data.to_csv(output.df, index=False)
         class_probabilities.to_csv(output.scores, index=False)
 
         # record script runtime
