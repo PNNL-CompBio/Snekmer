@@ -286,8 +286,8 @@ rule standardize_kmers:
         outfiles = sorted(output.files)
 
         # revectorize based on full kmer list
-        results = {'seq_id': [], 'vector': []}
         for i, fa in enumerate(fastas):
+            results = {'seq_id': [], 'vector': []}
             seq_list, id_list = kmf.io.read_fasta(fa)
             for seq, sid in zip(seq_list, id_list):
                 results['seq_id'] += [sid]
