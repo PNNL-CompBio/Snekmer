@@ -1,4 +1,4 @@
-# KmerPipeline
+# Snekmer
 Pipeline to apply encoded Kmer analysis to protein sequences
 
 * **Input:** fasta protein sequences
@@ -13,7 +13,7 @@ Pipeline to apply encoded Kmer analysis to protein sequences
 
 #### Evaluation pipeline:
 1. Start with well-annotated protein sequences
-2. Parse annotations from protein sequences into usable form (if neessary)
+2. Parse annotations from protein sequences into usable form (if necessary)
 3. Run pipeline above with some parameters
 4. Assess how sensitive the method is - that is how likely is it that a members of a cluster have the annotation that is the most prevalent for that cluster
 5. Assess the specificity - that is how likely is it that an annotation maps to a single cluster
@@ -37,7 +37,7 @@ Activate the environment:
 conda activate kmers
 ```
 
-Install the `kmerfeatures` package (note: git clone step is optional if you
+Install the `snekmer` package (note: git clone step is optional if you
  already have the repo cloned locally):
 
 ```bash
@@ -54,31 +54,42 @@ The package should now be ready to use!
 
 ## Command-Line Interface
 
-To run `kmerfeatures`, make sure to modify `kmerfeatures/config.yaml` to set
- the desired parameters for analysis. Then, navigate to the directory
- containing `config.yaml`. If you are using the default config file, this entails:
+To run `snekmer`, create a `config.yaml` file containing desired
+  parameters. (A template is provided at `snekmer/config.yaml`.)
+  Note that the `config.yaml` file should be stored in the same directory
+  as input files. Snekmer assumes that input files are stored in the `input`
+  directory, and automatically creates an `output` directory to save all output
+  files. An example of the assumed directory structure is shown below:
 
- ```bash
-cd kmerfeatures
- ```
+```
+.
+├── config.yaml
+├── input
+│   ├── A.fasta
+│   ├── B.fasta
+│   └── etc.
+├── output
+│   ├── ...
+│   └── ...
+```
 
-In particular, be sure to set `output: save_dir` to the desired output file
+<!-- In particular, be sure to set `output: save_dir` to the desired output file
  directory, and make sure that `input: fasta_dir` is pointing toward the
- directory containing .fasta input files.
+ directory containing .fasta input files. -->
 
-Once the config file has been updated, I recommend running the following:
+Once the `config.yaml` file has been updated, I recommend a dry run:
 
 ```bash
-kmerfeatures --dryrun
+snekmer --dryrun
 ```
 The output of the dry run shows you the files that will be created by the
- pipeline. If no files are generated, double-check `input: fasta_dir` in the
- config file, and make sure that the desired outputs are being generated.
+ pipeline. If no files are generated, double-check that your directory
+ structure matches the format specified above.
 
 When you are ready to process your files, run:
 
 ```bash
-kmerfeatures --cores 1
+snekmer --cores 1
 ```
 
 ### Partial Workflow
@@ -88,9 +99,11 @@ For instance, to execute the workflow only through the kmer vector generation
 step, run:
 
 ```bash
-kmerfeatures --cores 1 --until standardize_kmers
+snekmer --cores 1 --until standardize_kmers
 ```
 
 ### Extra Notes
 
-The `kmerfeatures` CLI is ready-to-use in the above format, but if you run `kmerfeatures --help`, you'll notice many extra parameters. Ignore these for now; these are a WIP still!
+The `snekmer` CLI is ready-to-use in the above format, but if you run
+  `snekmer --help`, you'll notice many extra parameters.
+  Ignore these for now; these are a WIP still!
