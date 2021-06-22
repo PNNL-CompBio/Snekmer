@@ -9,7 +9,7 @@ import re
 from multiprocessing import Pool
 
 from Bio import SeqIO
-from kmerfeatures.alphabet import (StandardAlphabet, get_alphabets)
+from .alphabet import (StandardAlphabet, get_alphabets)
 
 
 # global variables and dictionary mappings

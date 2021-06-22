@@ -10,7 +10,7 @@ import pandas as pd
 
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.metrics.pairwise import pairwise_distances
-from kmerfeatures.model import KmerScaler
+from .model import KmerScaler
 
 
 # functions
@@ -199,9 +199,11 @@ def feature_class_probabilities(feature_matrix, labels, kmers=None):
     # compute score based on (label, not label) assignment
     weight = 1 / (len(np.unique(labels)) - 1)
     for l in np.unique(labels):
-        o = np.unique(labels)[np.unique(labels) != l][0]  # other labels
-        results[l]['score'] = ((results[l]['probability'])
-                               - (results[o]['probability'] * (weight)))
+        o = np.unique(labels)[np.unique(labels) != l]  # other labels
+        results[l]['score'] = (
+            (results[l]['probability'])
+            - (np.sum([results[fam]['probability'] for fam in o]) * (weight))
+            )
 
     results = pd.DataFrame(results).T.reset_index().rename(
         columns={'index': 'label'}

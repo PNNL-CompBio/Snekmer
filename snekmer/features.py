@@ -8,7 +8,7 @@ import os.path
 from collections import Counter
 from itertools import repeat
 from multiprocessing import Pool
-from kmerfeatures.transform import vectorize_string
+from .transform import vectorize_string
 
 
 # functions

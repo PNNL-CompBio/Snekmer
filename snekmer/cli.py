@@ -82,7 +82,7 @@ def main():
     else:
         cluster = None
 
-    snakemake(resource_filename('kmerfeatures', 'Snakefile'),
+    snakemake(resource_filename('snekmer', 'Snakefile'),
               configfiles=[args.configfile],
               config=config,
               cluster_config=args.cluster,

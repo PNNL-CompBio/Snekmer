@@ -9,7 +9,7 @@ from os import makedirs
 from os.path import (basename, dirname, exists, join, splitext)
 
 # external libraries
-import kmerfeatures as kmf
+import snekmer as skm
 import numpy as np
 from pandas import (DataFrame, read_csv, read_json)
 from Bio import SeqIO
@@ -19,7 +19,7 @@ from sklearn.tree import DecisionTreeClassifier
 
 
 # collect all fasta-like files, unzipped filenames, and basenames
-input_files = glob(join(config['input']['fasta_dir'], "*"))
+input_files = glob(join("input", "*"))
 compressed = [fa for fa in input_files if fa.endswith('.gz')]
 uncompressed = [fa.rstrip('.gz') for fa, ext
                 in product(input_files, config['input']['file_extensions'])
@@ -38,24 +38,24 @@ FAS = list(fasta_ext_map.keys())
 
 # define output directory (helpful for multiple runs)
 if config['output']['nested_dir']:
-    out_dir = join(config['output']['save_dir'],
+    out_dir = join("output",
                    config['map_function'],
                    f"k-{config['k']:02}")
 else:
-    out_dir = config['output']['save_dir']
+    out_dir = "output"
 
 # validity check
-if config['map_function'] not in kmf.alphabet.ALPHABETS.keys():
+if config['map_function'] not in skm.alphabet.ALPHABETS.keys():
     raise ValueError("Invalid alphabet specified; alphabet must be a"
                      " string in the form 'reduced_alphabet_n' where"
                      " n is an integer between 0 and"
-                     f" {len(kmf.alphabet.ALPHABETS)}.")
+                     f" {len(skm.alphabet.ALPHABETS)}.")
 
 
 # define workflow
 rule all:
     input:
-        expand(join(config['input']['fasta_dir'], '{uz}'), uz=UZS),
+        expand(join("input", '{uz}'), uz=UZS),
         expand(join(out_dir, "features", "{fa}", "{fa2}.json"), fa=FAS, fa2=FAS),
         expand(join(out_dir, "model", "{fa}.pkl"), fa=FAS)
         # expand(join(out_dir, "score", "{fa}.json"), fa=FAS)
@@ -69,18 +69,18 @@ if config['walk']:
         output:
             # need to fix code to properly generate an output...
         run:
-            kmf.walk.kmer_walk(input.fasta)
+            skm.walk.kmer_walk(input.fasta)
 
 
 # if any files are gzip compressed, unzip them
 if len(UZS) > 0:
     rule unzip:
         input:
-            lambda wildcards: join(config['input']['fasta_dir'], f"{wildcards.uz}.{unzipped_ext_map[wildcards.uz]}.gz")
+            lambda wildcards: join("input", f"{wildcards.uz}.{unzipped_ext_map[wildcards.uz]}.gz")
         output:
-            join(config['input']['fasta_dir'], "{uz}.{uzext}")
+            join("input", "{uz}.{uzext}")
         params:
-            outdir=join(config['input']['fasta_dir'], 'compressed')
+            outdir=join("input", 'compressed')
         shell:
             "mkdir {params.outdir} && cp {input} {params.outdir} && gunzip -c {input} > {output}"
 
@@ -88,7 +88,7 @@ if len(UZS) > 0:
 # read and process parameters from config
 rule preprocess:
     input:
-        fasta=lambda wildcards: join(config['input']['fasta_dir'], f"{wildcards.fa}.{fasta_ext_map[wildcards.fa]}"),
+        fasta=lambda wildcards: join("input", f"{wildcards.fa}.{fasta_ext_map[wildcards.fa]}"),
     output:
         data=join(out_dir, "processed", "{fa}.json"),
         desc=join(out_dir, "processed", "{fa}_description.csv")
@@ -99,11 +99,11 @@ rule preprocess:
         start_time = datetime.now()
 
         # read fasta file
-        seq_list, id_list = kmf.io.read_fasta(input.fasta)
+        seq_list, id_list = skm.io.read_fasta(input.fasta)
 
         # if random alphabet specified, implement randomization
         if config['randomize_alphabet']:
-            rand_alphabet = kmf.transform.randomize_alphabet(config['input']['map_function'])
+            rand_alphabet = skm.transform.randomize_alphabet(config['input']['map_function'])
             map_function = [residues, map_name, rand_alphabet]
         else:
             map_function = config['map_function']
@@ -111,7 +111,7 @@ rule preprocess:
         # if no feature set is specified, define feature space
         if not config['input']['feature_set']:
             # prefilter fasta to cut down on the size of feature set
-            filter_dict = kmf.features.define_feature_space(
+            filter_dict = skm.features.define_feature_space(
                 {k: v for k, v in zip(id_list, seq_list)},
                 config['k'],
                 map_function=map_function,
@@ -133,7 +133,7 @@ rule preprocess:
 
         # optional indexfile with IDs of good feature output examples
         if config['input']['example_index_file']:
-            example_index = kmf.io.read_example_index(
+            example_index = skm.io.read_example_index(
                 config['input']['example_index_file']
                 )
         else:
@@ -163,7 +163,7 @@ rule preprocess:
             # shuffle the N-terminal sequence n times
             if config['output']['shuffle_n']:
                 example_index[id] = 1.0
-                scid_list, scramble_list, example_index = kmf.transform.scramble_sequence(
+                scid_list, scramble_list, example_index = skm.transform.scramble_sequence(
                     sid, seq[:30], n=config['output']['shuffle_n'],
                     example_index=example_index
                     )
@@ -182,7 +182,7 @@ rule preprocess:
 
             # run SIEVE on the wt and each shuffled sequence
             if config['output']['n_terminal_file']:
-                sids_n, seqs_n = kmf.transform.make_n_terminal_fusions(
+                sids_n, seqs_n = skm.transform.make_n_terminal_fusions(
                     sid, config['output']['n_terminal_file']
                     )
                 seqs += seqs_n
@@ -213,7 +213,7 @@ rule preprocess:
 
         # read and save fasta descriptions into dataframe
         try:
-            desc = kmf.utils.parse_fasta_description(input.fasta)
+            desc = skm.utils.parse_fasta_description(input.fasta)
             desc.to_csv(output.desc)
         except AttributeError:  # if no description exists > empty df
             DataFrame([]).to_csv(output.desc)
@@ -223,7 +223,7 @@ rule preprocess:
         with open(log[0], 'a') as f:
             f.write(f"start time:\t{start_time}\n")
             f.write(f"end time:\t{end_time}\n")
-            f.write(f"total time:\t{kmf.utils.format_timedelta(end_time - start_time)}")
+            f.write(f"total time:\t{skm.utils.format_timedelta(end_time - start_time)}")
 
 
 rule generate_kmers:
@@ -241,14 +241,14 @@ rule generate_kmers:
             params = json.load(f)
 
         # generate labels only
-        labels = kmf.transform.generate_labels(
+        labels = skm.transform.generate_labels(
             config['k'],
             map_function=params['map_function'],
             residues=params['residues'],
             filter_list=params['filter_list']
             )
         if config['output']['format'] == "simple":
-            kmf.features.output_features(
+            skm.features.output_features(
                 output.labels, "matrix", labels=labels
                 )
 
@@ -257,7 +257,7 @@ rule generate_kmers:
         with open(log[0], 'a') as f:
             f.write(f"start time:\t{start_time}\n")
             f.write(f"end time:\t{end_time}\n")
-            f.write(f"total time:\t{kmf.utils.format_timedelta(end_time - start_time)}")
+            f.write(f"total time:\t{skm.utils.format_timedelta(end_time - start_time)}")
 
 
 rule standardize_kmers:
@@ -274,7 +274,7 @@ rule standardize_kmers:
         start_time = datetime.now()
 
         # get kmers for this particular set of sequences
-        kmers = kmf.io.read_output_kmers(input.kmers)
+        kmers = skm.io.read_output_kmers(input.kmers)
 
         # read processed features
         with open(input.params, 'r') as f:
@@ -288,10 +288,10 @@ rule standardize_kmers:
         # revectorize based on full kmer list
         for i, fa in enumerate(fastas):
             results = {'seq_id': [], 'vector': []}
-            seq_list, id_list = kmf.io.read_fasta(fa)
+            seq_list, id_list = skm.io.read_fasta(fa)
             for seq, sid in zip(seq_list, id_list):
                 results['seq_id'] += [sid]
-                results['vector'] += [kmf.transform.vectorize_string(
+                results['vector'] += [skm.transform.vectorize_string(
                     seq,
                     k=config['k'],
                     start=config['start'],
@@ -310,7 +310,7 @@ rule standardize_kmers:
         with open(log[0], 'a') as f:
             f.write(f"start time:\t{start_time}\n")
             f.write(f"end time:\t{end_time}\n")
-            f.write(f"total time:\t{kmf.utils.format_timedelta(end_time - start_time)}")
+            f.write(f"total time:\t{skm.utils.format_timedelta(end_time - start_time)}")
 
 
 rule score_features:
@@ -328,30 +328,30 @@ rule score_features:
             f.write(f"start time:\t{start_time}\n")
 
         # get kmers for this particular set of sequences
-        kmers = kmf.io.read_output_kmers(input.kmers)
+        kmers = skm.io.read_output_kmers(input.kmers)
 
         # parse all data
         label = config['score']['lname']
-        data = kmf.io.vecfiles_to_df(
+        data = skm.io.vecfiles_to_df(
             input.files, labels=config['score']['labels'], label_name=label
             )
 
         timepoint = datetime.now()
         with open(log[0], 'a') as f:
-            f.write(f"vecfiles_to_df time:\t{kmf.utils.format_timedelta(timepoint - start_time)}\n")
+            f.write(f"vecfiles_to_df time:\t{skm.utils.format_timedelta(timepoint - start_time)}\n")
 
         # parse family names and only add if some are valid
-        families = [kmf.utils.get_family(fn) for fn in data['filename']]
+        families = [skm.utils.get_family(fn) for fn in data['filename']]
         if any(families):
             label = 'family'
             data[label] = families
 
         # define feature matrix of kmer vectors
-        feature_matrix = kmf.score.to_feature_matrix(data['vector'].values)
+        feature_matrix = skm.score.to_feature_matrix(data['vector'].values)
 
         # compute class probabilities
         labels = data[label].values
-        class_probabilities = kmf.score.feature_class_probabilities(
+        class_probabilities = skm.score.feature_class_probabilities(
             feature_matrix.T, labels, kmers=kmers
             )#.drop(columns=['count'])
 
@@ -364,7 +364,7 @@ rule score_features:
             # normalize by sum of all positive scores
             norm = np.sum([s for s in scores if s > 0])
 
-            total_scores = kmf.score.apply_feature_probabilities(
+            total_scores = skm.score.apply_feature_probabilities(
                 feature_matrix, scores, scaler=config['score']['scaler'],
                 **config['score']['scaler_kwargs']
             )
@@ -376,11 +376,11 @@ rule score_features:
         with open(log[0], 'a') as f:
             f.write(
                 "class_probabilities time:\t"
-                f"{kmf.utils.format_timedelta(new_timepoint - timepoint)}\n"
+                f"{skm.utils.format_timedelta(new_timepoint - timepoint)}\n"
                 )
 
         # [IN PROGRESS] compute clusters
-        clusters = kmf.score.cluster_feature_matrix(feature_matrix)
+        clusters = skm.score.cluster_feature_matrix(feature_matrix)
         data['cluster'] = clusters
 
         # save all files to respective outputs
@@ -396,7 +396,7 @@ rule score_features:
         # record script runtime
         end_time = datetime.now()
         with open(log[0], 'a') as f:
-            f.write(f"total time:\t{kmf.utils.format_timedelta(end_time - start_time)}")
+            f.write(f"total time:\t{skm.utils.format_timedelta(end_time - start_time)}")
 
 
 rule build_model:
@@ -407,9 +407,9 @@ rule build_model:
         model=join(out_dir, "model", "{fa}.pkl"),
         results=join(out_dir, "model", "{fa}.csv")
     run:
-        data = kmf.model.format_data_df(input.files)
+        data = skm.model.format_data_df(input.files)
         scores = read_csv(input.scores)
-        family = kmf.utils.get_family(input.scores)
+        family = skm.utils.get_family(input.scores)
 
         # define x, y matrices
         X, y, Y = np.asarray([arr for arr in data['vec'].values]), data[family].values, data['family'].values
@@ -417,7 +417,7 @@ rule build_model:
 
         # restrict kmer vector by score
         if config['model']['use_score']:
-            scaler = kmf.model.KmerScaler(n=config['model']['n'])
+            scaler = skm.model.KmerScaler(n=config['model']['n'])
             score_list = scores[scores['label'] == family]['score'].values[0]
             scaler.fit(score_list)
             Xb = scaler.transform(Xb)
@@ -427,7 +427,7 @@ rule build_model:
             )
 
         # train and save model
-        clf = kmf.model.KmerModel(model=config['model']['type'], scaler=None)  # scaler currently separate from model
+        clf = skm.model.KmerModel(model=config['model']['type'], scaler=None)  # scaler currently separate from model
         print(clf.model)
         clf.fit(Xb_train, y_train)
         print(clf.score(Xb_test, y_test))

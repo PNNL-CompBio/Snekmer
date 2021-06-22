@@ -5,7 +5,7 @@ author: @christinehc
 # imports
 from datetime import datetime
 import re
-from os.path import basename
+from os.path import basename, splitext
 
 import numpy as np
 import pandas as pd
@@ -146,3 +146,28 @@ def format_timedelta(timedelta):
     hours, minutes = divmod(minutes, 60)
 
     return f"{hours}h {minutes:02}m {seconds:02}.{milliseconds}s"
+
+
+def gz_to_ext(filename):
+    """Short summary.
+
+    Parameters
+    ----------
+    filename : type
+        Description of parameter `filename`.
+
+    Returns
+    -------
+    type
+        Description of returned object.
+
+    """
+    filename = basename(filename)
+    return {
+        splitext(
+            splitext(filename)[0]
+            )[0]:
+                splitext(
+                    splitext(filename)[0]
+                    )[1].lstrip('.')
+            }

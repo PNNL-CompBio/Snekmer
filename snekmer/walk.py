@@ -3,8 +3,8 @@
 author: @christinehc
 """
 # imports
-from kmerfeatures.utils import read_fasta
-from kmerfeatures.transform import vectorize_string
+from .utils import read_fasta
+from .transform import vectorize_string
 
 
 # functions
