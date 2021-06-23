@@ -192,7 +192,7 @@ def feature_class_probabilities(feature_matrix, labels, kmers=None):
             probability.append(np.sum(p) / n_sequences[i])
 
         # if no kmers specified, save numerical range
-        results[l]['kmer'] = kmers
+        results[l]['kmer'] = np.array(kmers)
         results[l]['count'] = np.asarray(presence, dtype=int)
         results[l]['probability'] = np.asarray(probability, dtype=float)
 
@@ -202,7 +202,8 @@ def feature_class_probabilities(feature_matrix, labels, kmers=None):
         o = np.unique(labels)[np.unique(labels) != l]  # other labels
         results[l]['score'] = (
             (results[l]['probability'])
-            - (np.sum([results[fam]['probability'] for fam in o]) * (weight))
+            - (np.sum([results[fam]['probability'] for fam in o], axis=0)
+               * weight)
             )
 
     results = pd.DataFrame(results).T.reset_index().rename(
