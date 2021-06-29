@@ -148,7 +148,7 @@ def format_timedelta(timedelta):
     return f"{hours}h {minutes:02}m {seconds:02}.{milliseconds}s"
 
 
-def gz_to_ext(filename):
+def split_file_ext(filename):
     """Short summary.
 
     Parameters
@@ -163,11 +163,10 @@ def gz_to_ext(filename):
 
     """
     filename = basename(filename)
-    return {
-        splitext(
-            splitext(filename)[0]
-            )[0]:
-                splitext(
-                    splitext(filename)[0]
-                    )[1].lstrip('.')
-            }
+
+    # for compressed files, returns (filename, ext) without .gz
+    if splitext(filename)[1] == '.gz':
+        return splitext(splitext(filename)[0])[0], splitext(splitext(filename)[0])[1].lstrip('.')
+
+    # otherwise, returns (filename, ext)
+    return splitext(filename)[0], splitext(filename)[1].lstrip('.')

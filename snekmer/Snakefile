@@ -20,27 +20,20 @@ from sklearn.tree import DecisionTreeClassifier
 
 # collect all fasta-like files, unzipped filenames, and basenames
 input_files = glob(join("input", "*"))
-compressed = [fa for fa in input_files if fa.endswith('.gz')]
-uncompressed = [fa.rstrip('.gz') for fa, ext
-                in product(input_files, config['input']['file_extensions'])
-                if fa.rstrip('.gz').endswith(f".{ext}")]
+zipped = [fa for fa in input_files if fa.endswith('.gz')]
+unzipped = [fa.rstrip('.gz') for fa, ext
+            in product(input_files, config['input']['file_extensions'])
+            if fa.rstrip('.gz').endswith(f".{ext}")]
 
 # map extensions to basename (basename.ext.gz -> {basename: ext})
-unzipped_ext_map = {
-    splitext(splitext(basename(f))[0])[0]: splitext(
-        splitext(basename(f))[0]
-        )[1].lstrip('.') for f in compressed
-        }
-fasta_ext_map = {splitext(basename(f))[0]: splitext(basename(f))[1].lstrip('.')
-                 for f in uncompressed}
-UZS = list(unzipped_ext_map.keys())
-FAS = list(fasta_ext_map.keys())
+uz_map = {skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in zipped}
+fa_map = {skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in unzipped}
+UZS = list(uz_map.keys())
+FAS = list(fa_map.keys())
 
 # define output directory (helpful for multiple runs)
 if config['output']['nested_dir']:
-    out_dir = join("output",
-                   config['map_function'],
-                   f"k-{config['k']:02}")
+    out_dir = join("output", config['map_function'], f"k-{config['k']:02}")
 else:
     out_dir = "output"
 
@@ -72,15 +65,15 @@ if config['walk']:
             skm.walk.kmer_walk(input.fasta)
 
 
-# if any files are gzip compressed, unzip them
+# if any files are gzip zipped, unzip them
 if len(UZS) > 0:
     rule unzip:
         input:
-            lambda wildcards: join("input", f"{wildcards.uz}.{unzipped_ext_map[wildcards.uz]}.gz")
+            lambda wildcards: join("input", f"{wildcards.uz}.{uz_map[wildcards.uz]}.gz")
         output:
             join("input", "{uz}.{uzext}")
         params:
-            outdir=join("input", 'compressed')
+            outdir=join("input", 'zipped')
         shell:
             "mkdir {params.outdir} && cp {input} {params.outdir} && gunzip -c {input} > {output}"
 
@@ -88,7 +81,7 @@ if len(UZS) > 0:
 # read and process parameters from config
 rule preprocess:
     input:
-        fasta=lambda wildcards: join("input", f"{wildcards.fa}.{fasta_ext_map[wildcards.fa]}"),
+        fasta=lambda wildcards: join("input", f"{wildcards.fa}.{fa_map[wildcards.fa]}"),
     output:
         data=join(out_dir, "processed", "{fa}.json"),
         desc=join(out_dir, "processed", "{fa}_description.csv")
@@ -264,7 +257,7 @@ rule standardize_kmers:
     input:
         kmers=rules.generate_kmers.output.labels,
         params=rules.preprocess.output.data,
-        fastas=uncompressed
+        fastas=unzipped
     log:
         join(out_dir, "features", "log", "{fa}.log")
     output:
