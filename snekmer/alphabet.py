@@ -3,6 +3,21 @@
 author(s): @biodataganache, @wichne
 """
 
+# new alphabet names
+# HYDRO
+# HYDROSTRUCT
+# HYDROCHARGE
+# SOLVACC
+# CHEMPROP
+# MIQS
+# STANDARD
+NAME2ALPHABET = {"hydro": "reduced_alphabet_0",
+                 "standard": "reduced_alphabet_1",
+                 "solvacc": "reduced_alphabet_2",
+                 "hydrocharge": "reduced_alphabet_3",
+                 "hydrostruct": "reduced_alphabet_4",
+                 } 
+
 # define alphabets (from Utils.SIEVEInit)
 ALPHABETS = {
     # 2-value hydrophobicity alphabet taken
@@ -65,6 +80,10 @@ def get_alphabets():
 
     """
     return ALPHABETS
+
+
+def add_alphabet(alphabet_name, mapping):
+    return
 
 
 ORGANISM_ORDER = [
