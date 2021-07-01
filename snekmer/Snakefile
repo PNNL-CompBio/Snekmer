@@ -32,7 +32,7 @@ UZS = list(uz_map.keys())
 FAS = list(fa_map.keys())
 
 # validity check for alphabets
-if config['map_function'] not in skm.alphabet.ALPHABETS.keys():  # and config['map_function'] != 'custom':
+if (config['map_function'] not in skm.alphabet.ALPHABETS.keys()) and (str(config['map_function']) != "None"):  # and config['map_function'] != 'custom':
     raise ValueError("Invalid alphabet specified; alphabet must be a"
                      " string in the form 'reduced_alphabet_n' where"
                      " n is an integer between 0 and"
@@ -120,6 +120,8 @@ rule preprocess:
             map_function = [residues, map_name, rand_alphabet]
         else:
             map_function = config['map_function']
+            if str(map_function) == "None":
+                map_function = None
 
         # if no feature set is specified, define feature space
         if not config['input']['feature_set']:
@@ -257,7 +259,7 @@ rule generate_kmers:
         labels = skm.transform.generate_labels(
             config['k'],
             map_function=params['map_function'],
-            residues=params['residues'],
+            # residues=params['residues'],
             filter_list=params['filter_list']
             )
         if config['output']['format'] == "simple":
@@ -305,11 +307,9 @@ rule standardize_kmers:
             for seq, sid in zip(seq_list, id_list):
                 results['seq_id'] += [sid]
                 results['vector'] += [skm.transform.vectorize_string(
-                    seq,
-                    k=config['k'],
+                    seq, config['k'], params['map_function'],
                     start=config['start'],
                     end=config['end'],
-                    map_function=params['map_function'],
                     filter_list=kmers,  # params['filter_list'],
                     verbose=False,  # way too noisy for batch process
                     log_file=log[0]

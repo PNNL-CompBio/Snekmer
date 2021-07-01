@@ -8,7 +8,7 @@ k: 14
 start: False
 end: False
 nucleotide: False
-map_function: 'reduced_alphabet_0'  # choices: 'reduced_alphabet_{0-5}' or 'custom'
+map_function: 'reduced_alphabet_0'  # choices: 'reduced_alphabet_{0-5}' or None
 custom_alphabet: {'custom_alphabet': {}}
 randomize_alphabet: False
 min_rep_thresh: 1

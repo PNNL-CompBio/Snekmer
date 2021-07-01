@@ -254,7 +254,7 @@ def define_feature_space(sequence_dict, k, map_function=None, start=None,
         Sequence length k of the kmer.
     map_function : str
         Name of the map function (e.g. "reduced_alphabet_0")
-        (default: None; applies no mapping).
+        (default: "None"; applies no mapping).
     start : int
         Start index of the sequence (for sequence slicing).
     end : int
@@ -279,11 +279,11 @@ def define_feature_space(sequence_dict, k, map_function=None, start=None,
     feature_dict = {}
     with Pool(processes) as pool:
         feature_dict = pool.starmap(
-            vectorize_string, zip(sequence_dict.values(),
+            vectorize_string, zip(sequence_dict.values(),   # sequence
                                   repeat(k),                # k
+                                  repeat(map_function),     # map_function
                                   repeat(start),            # start
                                   repeat(end),              # end
-                                  repeat(map_function),     # map_function
                                   repeat(feature_dict),     # feature_dict
                                   repeat(None),             # filter_list
                                   repeat(None),             # exclude
