@@ -76,11 +76,11 @@ ALPHABETS = {
 # generic alphabet identifiers
 ALPHABETCODE = {f"RED{n}": {v: k for k, v
                             in ALPHABETS[f"reduced_alphabet_{n}"].items()}
-                for n in range(len(ALPHABETS))}
+                for n in range(len(ALPHABETS) - 1)}
 
 # alphabet to alphabet code
 ALPHABET2CODE = {f"reduced_alphabet_{n}": f"RED{n}"
-                 for n in range(len(ALPHABETS))}
+                 for n in range(len(ALPHABETS) - 1)}
 
 # standard amino acid alphabet
 StandardAlphabet = "AILMVFYWSTQNCHDEKRGP"

@@ -130,7 +130,7 @@ def parse_map_function(map_function):
                     str, str, dict
                 Specifications for a random alphabet to use
             str : e.g. "reduced_alphabet_N"
-                Use a reduced alphabet (N = 0, 1, 2, 3, or 4)
+                Use a reduced alphabet (N = 0, 1, 2, 3, 4, or 5)
 
 
     Returns
