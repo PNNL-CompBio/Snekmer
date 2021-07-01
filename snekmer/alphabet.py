@@ -1,22 +1,20 @@
-"""alphabet: Alphabet mappings and definitions for Kmer pipeline
+"""alphabet: Alphabet mappings and definitions for Kmer pipeline.
 
 author(s): @biodataganache, @wichne
 """
 
 # new alphabet names
-# HYDRO
-# HYDROSTRUCT
-# HYDROCHARGE
-# SOLVACC
-# CHEMPROP
-# MIQS
-# STANDARD
 NAME2ALPHABET = {"hydro": "reduced_alphabet_0",
                  "standard": "reduced_alphabet_1",
                  "solvacc": "reduced_alphabet_2",
                  "hydrocharge": "reduced_alphabet_3",
                  "hydrostruct": "reduced_alphabet_4",
-                 } 
+                 "miqs": "reduced_alphabet_5"
+                 }
+
+# all amino acids
+ALL_AMINO_ACIDS = "ARNDCEQGHILKMFPSTWYV"
+AA_SELF_MAPPING = {a: a for a in "ARNDCEQGHILKMFPSTWYV"}
 
 # define alphabets (from Utils.SIEVEInit)
 ALPHABETS = {
@@ -55,7 +53,25 @@ ALPHABETS = {
     "reduced_alphabet_4": {"SFTNKYEQCWHDR": "L",
                            "VMLAI": "H",
                            "PG": "B",
-                           "_keys": "LHB"}}
+                           "_keys": "LHB"},
+
+    # MIQS alphabet
+    # from Bill
+    "reduced_alphabet_5": {"A": "A",        # Alanine
+                           "C": "C",        # Cysteine
+                           "DEN": "D",      # acidicish
+                           "FWY": "F",      # aromatic
+                           "G": "G",        # glycine
+                           "H": "H",        # histidine
+                           "ILMQV": "I",    # hydrophobicish
+                           "KR": "K",       # alkaline
+                           "P": "P",        # proline
+                           "ST": "S",       # hydroxyl
+                           "_keys": "ACDFGHIKPS"},
+
+    # identity
+    "None": {**AA_SELF_MAPPING, "_keys": ALL_AMINO_ACIDS}  # OU
+    }
 
 # generic alphabet identifiers
 ALPHABETCODE = {f"RED{n}": {v: k for k, v
@@ -63,7 +79,8 @@ ALPHABETCODE = {f"RED{n}": {v: k for k, v
                 for n in range(len(ALPHABETS))}
 
 # alphabet to alphabet code
-ALPHABET2CODE = {f"reduced_alphabet_{n}": f"RED{n}" for n in range(len(ALPHABETS))}
+ALPHABET2CODE = {f"reduced_alphabet_{n}": f"RED{n}"
+                 for n in range(len(ALPHABETS))}
 
 # standard amino acid alphabet
 StandardAlphabet = "AILMVFYWSTQNCHDEKRGP"
@@ -82,8 +99,8 @@ def get_alphabets():
     return ALPHABETS
 
 
-def add_alphabet(alphabet_name, mapping):
-    return
+# def add_alphabet(alphabet_name, mapping):
+#     return
 
 
 ORGANISM_ORDER = [

@@ -95,7 +95,7 @@ def reduce_alphabet(character, mapping):
     ----------
     character : type
         Description of parameter `character`.
-    map_function : str
+    mapping : str
         Name of map function.
 
     Returns
@@ -127,6 +127,7 @@ def parse_map_function(map_function):
                 No sequence (use generic alphabets)
             list
                 (residues, map_name, mapping)
+                    str, str, dict
                 Specifications for a random alphabet to use
             str : e.g. "reduced_alphabet_N"
                 Use a reduced alphabet (N = 0, 1, 2, 3, or 4)
@@ -138,24 +139,31 @@ def parse_map_function(map_function):
         residues, map_name, map_function
 
     """
-    # for when we create a random alphabet to apply to many sequences
-    if isinstance(map_function, list):
+    # do not reduce alphabet
+    if map_function is None:
+        mapping = get_alphabets()[str(map_function)]
+        residues = get_alphabets()[str(map_function)]["_keys"]
+        map_name = str(map_function)
+        map_function = identity
+
+    # use a random alphabet to apply to many sequences
+    elif isinstance(map_function, list):
         residues = map_function[0]
         map_name = map_function[1]
         mapping = map_function[2]
         map_function = reduce_alphabet
 
+    # use pre-existing alphabets
     elif isinstance(map_function, str):
         try:
-            mapfn = map_function
+            mapping = get_alphabets()[map_function]
+            residues = get_alphabets()[map_function]['_keys']
+            map_name = MAPFN2NAME[map_function]
             map_function = reduce_alphabet
-            mapping = get_alphabets()[mapfn]
-            residues = MAPFN2RESIDUE[mapfn]
-            map_name = MAPFN2NAME[mapfn]
         except AttributeError as e:
             raise ValueError(
-                ('map_function string must be in this format:'
-                 ' "reduced_alphabet_n", with n = 0,1,2,3,4')
+                "map_function string must be in the format:"
+                " 'reduced_alphabet_[0-5]' ."
                 ) from e
 
     return residues, map_name, map_function, mapping
