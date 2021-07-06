@@ -2,6 +2,7 @@ input:
   example_index_file: False
   feature_set: '../example/model_features.txt'
   file_extensions: ['fasta', 'fna', 'faa', 'fa']
+  background: None
 
 # kmer pipeline parameters
 k: 14
@@ -9,7 +10,7 @@ start: False
 end: False
 nucleotide: False
 map_function: 'reduced_alphabet_0'  # choices: 'reduced_alphabet_{0-5}' or None
-custom_alphabet: {'custom_alphabet': {}}
+# custom_alphabet: {'custom_alphabet': {}}
 randomize_alphabet: False
 min_rep_thresh: 1
 walk: False

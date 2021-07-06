@@ -30,6 +30,20 @@ uz_map = {skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f i
 fa_map = {skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in unzipped}
 UZS = list(uz_map.keys())
 FAS = list(fa_map.keys())
+NON_BGS, BGS = FAS, []
+
+# parse any background files
+if str(config['input']['background']) != "None":
+    bg_files = config['input']['background']
+    if isinstance(bg_files, str):
+        bg_files = [bg_files]
+    bg_files = [skm.utils.split_file_ext(basename(f))[0] for flist in
+                [glob(join("input", bg)) for bg in bg_files]
+                for f in flist]
+    NON_BGS, BGS = [f for f in FAS if f not in bg_files], bg_files
+
+print(NON_BGS, BGS)
+
 
 # validity check for alphabets
 if (config['map_function'] not in skm.alphabet.ALPHABETS.keys()) and (str(config['map_function']) != "None"):  # and config['map_function'] != 'custom':
@@ -61,8 +75,9 @@ else:
 rule all:
     input:
         expand(join("input", '{uz}'), uz=UZS),
-        expand(join(out_dir, "features", "{fa}", "{fa2}.json"), fa=FAS, fa2=FAS),
-        expand(join(out_dir, "model", "{fa}.pkl"), fa=FAS)
+        expand(join(out_dir, "features", "{nb}", "{fa}.json"), nb=NON_BGS, fa=FAS),
+        # expand(join(out_dir), "score", "{nb}.csv", nb=NON_BGS),
+        expand(join(out_dir, "model", "{nb}.pkl"), nb=NON_BGS)
         # expand(join(out_dir, "score", "{fa}.json"), fa=FAS)
 
 
@@ -101,12 +116,12 @@ if len(UZS) > 0:
 # read and process parameters from config
 rule preprocess:
     input:
-        fasta=lambda wildcards: join("input", f"{wildcards.fa}.{fa_map[wildcards.fa]}"),
+        fasta=lambda wildcards: join("input", f"{wildcards.nb}.{fa_map[wildcards.nb]}"),
     output:
-        data=join(out_dir, "processed", "{fa}.json"),
-        desc=join(out_dir, "processed", "{fa}_description.csv")
+        data=join(out_dir, "processed", "{nb}.json"),
+        desc=join(out_dir, "processed", "{nb}_description.csv")
     log:
-        join(out_dir, "processed", "log", "{fa}.log")
+        join(out_dir, "processed", "log", "{nb}.log")
     run:
         # log step initialization
         start_time = datetime.now()
@@ -245,9 +260,9 @@ rule generate_kmers:
     input:
         params=rules.preprocess.output.data
     output:
-        labels=join(out_dir, "labels", "{fa}.txt")
+        labels=join(out_dir, "labels", "{nb}.txt")
     log:
-        join(out_dir, "labels", "log", "{fa}.log")
+        join(out_dir, "labels", "log", "{nb}.log")
     run:
         start_time = datetime.now()
 
@@ -281,10 +296,10 @@ rule standardize_kmers:
         params=rules.preprocess.output.data,
         fastas=unzipped
     log:
-        join(out_dir, "features", "log", "{fa}.log")
+        join(out_dir, "features", "log", "{nb}.log")
     output:
-        files=expand(join(out_dir, "features", "{{fa}}", "{fa2}.json"),
-                     fa2=FAS)
+        files=expand(join(out_dir, "features", "{{nb}}", "{fa}.json"),
+                     fa=FAS)
     run:
         start_time = datetime.now()
 
@@ -331,10 +346,10 @@ rule score_features:
         kmers=rules.generate_kmers.output.labels,
         files=rules.standardize_kmers.output.files
     output:
-        df=join(out_dir, "features", "{fa}.csv"),
-        scores=join(out_dir, "score", "{fa}.csv")
+        df=join(out_dir, "features", "{nb}.csv"),
+        scores=join(out_dir, "score", "{nb}.csv")
     log:
-        join(out_dir, "score", "log", "{fa}.log")
+        join(out_dir, "score", "log", "{nb}.log")
     run:
         start_time = datetime.now()
         with open(log[0], 'a') as f:
@@ -343,11 +358,12 @@ rule score_features:
         # get kmers for this particular set of sequences
         kmers = skm.io.read_output_kmers(input.kmers)
 
-        # parse all data
+        # parse all data and label background files
         label = config['score']['lname']
         data = skm.io.vecfiles_to_df(
             input.files, labels=config['score']['labels'], label_name=label
             )
+        data['background'] = [skm.utils.split_file_ext(f)[0] in BGS for f in data['filename']]
 
         timepoint = datetime.now()
         with open(log[0], 'a') as f:
@@ -359,17 +375,18 @@ rule score_features:
             label = 'family'
             data[label] = families
 
-        # define feature matrix of kmer vectors
-        feature_matrix = skm.score.to_feature_matrix(data['vector'].values)
+        # define feature matrix of kmer vectors not from background set
+        non_bg = data[~data['background']]
+        feature_matrix = skm.score.to_feature_matrix(non_bg['vector'].values)
 
         # compute class probabilities
-        labels = data[label].values
+        labels = non_bg[label].values
         class_probabilities = skm.score.feature_class_probabilities(
             feature_matrix.T, labels, kmers=kmers
             )#.drop(columns=['count'])
 
         # assign family probability scores
-        for fam in data[label].unique():
+        for fam in non_bg[label].unique():
             scores = class_probabilities[
                 class_probabilities['label'] == fam
             ]['score'].values
@@ -377,8 +394,10 @@ rule score_features:
             # normalize by sum of all positive scores
             norm = np.sum([s for s in scores if s > 0])
 
+            # include background sequences for score generation
+            full_feature_matrix = skm.score.to_feature_matrix(data['vector'].values)
             total_scores = skm.score.apply_feature_probabilities(
-                feature_matrix, scores, scaler=config['score']['scaler'],
+                full_feature_matrix, scores, scaler=config['score']['scaler'],
                 **config['score']['scaler_kwargs']
             )
 
@@ -393,7 +412,7 @@ rule score_features:
                 )
 
         # [IN PROGRESS] compute clusters
-        clusters = skm.score.cluster_feature_matrix(feature_matrix)
+        clusters = skm.score.cluster_feature_matrix(full_feature_matrix)
         data['cluster'] = clusters
 
         # save all files to respective outputs
@@ -417,8 +436,8 @@ rule build_model:
         files=rules.standardize_kmers.output.files,
         scores=rules.score_features.output.scores
     output:
-        model=join(out_dir, "model", "{fa}.pkl"),
-        results=join(out_dir, "model", "{fa}.csv")
+        model=join(out_dir, "model", "{nb}.pkl"),
+        results=join(out_dir, "model", "{nb}.csv")
     run:
         data = skm.model.format_data_df(input.files)
         scores = read_csv(input.scores)
