@@ -129,7 +129,45 @@ def _binarize(feature_matrix):
     return (feature_matrix > 0) * 1.0
 
 
-def feature_class_probabilities(feature_matrix, labels, kmers=None):
+def _kmer_presence_probability(feature_matrix, label_match, weight):
+    """Compute kmer presence and probability arrays.
+
+    Parameters
+    ----------
+    feature_matrix : array (list, numpy.ndarray, pandas.Series)
+        Feature matrix of shape (n, m), where each row represents
+        a kmer and each column represents a sequence.
+        In other words, m must equal len(labels).
+    label_match : list or numpy.ndarray or pandas.Series
+        Array of shape (m, ) describing label matches.
+        e.g. contains 1 when kmer matches a label, and 0 otherwise
+    weight : float
+        Weight to apply to kmer presence score.
+
+    Returns
+    -------
+    (numpy.ndarray, numpy.ndarray)
+        (kmer presence array, kmer probability array)
+
+    """
+    # convert feature count matrix into binary presence/absence
+    feature_matrix = _binarize(feature_matrix)
+
+    # for each row in feature matrix, compute each value's probability
+    # no multiprocessing-- using numpy native parallelization
+    presence, probability = list(), list()
+    for kmer in feature_matrix:
+        kmer_match = np.equal(kmer, 1)  # array of presence matches
+        ones = np.ones(len(kmer))
+        match = np.multiply(np.multiply(kmer_match, label_match), ones)
+        presence.append(np.sum(match))
+        probability.append(np.sum(match) * weight)
+    return presence, probability
+
+
+def feature_class_probabilities(feature_matrix, labels,
+                                kmers=None, method="default",
+                                bg=None):
     """Calculate probabilities for features being in a defined class.
 
     Note: only coded to work for the binary case (2 classes).
@@ -137,15 +175,25 @@ def feature_class_probabilities(feature_matrix, labels, kmers=None):
     Parameters
     ----------
     feature_matrix : array (list, numpy.ndarray, pandas.Series)
-        Feature matrix, where each row represents a kmer and each
-        column represents a sequence
-        In other words, len(feature_matrix.T) must equal len(labels)
+        Feature matrix of shape (n, m), where each row represents
+        a kmer and each column represents a sequence.
+        In other words, m must equal len(labels).
     labels : list or numpy.ndarray or pandas.Series
-        Class labels describing feature matrix.
+        Class labels of shape (m, ) describing feature matrix.
         Must have as many entries as the number of feature columns.
     kmers : list or None (default: None)
-        Optional list of kmer identifiers that map to kmer columns.
-        len(kmers) must equal len(feature_matrix).
+        Optional kmer identifiers mapping to kmer columns (shape (n,)).
+    method : str (default: "default")
+        Specify scoring method:
+            "default" : Score in-family vs. out-of-family assignment
+                P(family) - (weight * P(out of family))
+            "bg_only" : Score in-family vs. background
+                P(family) - P(background)
+            "both" : Score in-family vs. out-of-family and background
+                P(family) - P(background) - (weight * P(out of family))
+    bg : list or None (default: None)
+        One-dimensional array of shape (n,).
+        If method="bg_only" or "both", bg cannot be None.
 
     Returns
     -------
@@ -160,6 +208,18 @@ def feature_class_probabilities(feature_matrix, labels, kmers=None):
     else:
         raise TypeError("Labels must be list- or array-like.")
 
+    # restrict method options
+    if method not in ["default", "bg_only", "both"]:
+        raise ValueError("Parameter `method` must be one of the"
+                         " following: 'default', 'bg_only', 'both'.")
+
+    # check that background is provided when required
+    if (method in ["bg_only", "both"]) and (bg is None):
+        raise ValueError("Background sequence vectors must be"
+                         " provided if `method`='bg_only' or"
+                         " 'both'.")
+    # if
+
     # kmer labels
     if kmers is None:
         kmers = np.array([n for n in range(len(feature_matrix))])
@@ -170,26 +230,19 @@ def feature_class_probabilities(feature_matrix, labels, kmers=None):
     if len(feature_matrix.T) != len(labels):
         raise ValueError("Input shapes are mismatched.")
 
-    # convert the feature count matrix into binary presence/absence
-    feature_matrix = _binarize(feature_matrix)
-
-    # iterate through every feature in the input matrix
+    # iterate scoring through every feature in input matrix
     n_sequences = [
         len(np.hstack(np.where(labels == l))) for l in np.unique(labels)
         ]
     results = {l: {} for l in labels}
     for i, l in enumerate(np.unique(labels)):
-        presence, probability = list(), list()
-        matching_label = np.equal(labels, l)
+        label_match = np.equal(labels, l)
+        weight = 1 / n_sequences[i]
 
-        # for each row in feature matrix, compute each value's probability
-        # no multiprocessing-- using numpy native parallelization
-        for kmer in feature_matrix:
-            matching_kmer = np.equal(kmer, 1)
-            ones = np.ones(len(kmer))
-            p = np.multiply(np.multiply(matching_kmer, matching_label), ones)
-            presence.append(np.sum(p))
-            probability.append(np.sum(p) / n_sequences[i])
+        # get score arrays based on label match
+        presence, probability = _kmer_presence_probability(
+            feature_matrix, label_match, weight
+            )
 
         # if no kmers specified, save numerical range
         results[l]['kmer'] = np.array(kmers)
