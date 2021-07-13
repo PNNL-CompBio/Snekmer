@@ -513,7 +513,7 @@ rule build_model:
         results['family'] += [family] * config['model']['cv']
         results['alphabet'] += [alphabet] * config['model']['cv']
         results['k'] += [config['k']] * config['model']['cv']
-        results['scoring'] += ['aupr'] * config['model']['cv']
+        results['scoring'] += ['pr_auc'] * config['model']['cv']
         results['score'] += list(cross_val_score(clf, X, y, cv=cv, scoring='average_precision'))
         results['cv_split'] += [i + 1 for i in range(config['model']['cv'])]
 
