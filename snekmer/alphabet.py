@@ -12,6 +12,8 @@ NAME2ALPHABET = {"hydro": "reduced_alphabet_0",
                  "miqs": "reduced_alphabet_5"
                  }
 
+ALPHABET2NAME = {v: k for k, v in NAME2ALPHABET.items()}
+
 # all amino acids
 ALL_AMINO_ACIDS = "ARNDCEQGHILKMFPSTWYV"
 AA_SELF_MAPPING = {a: a for a in "ARNDCEQGHILKMFPSTWYV"}

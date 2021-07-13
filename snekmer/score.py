@@ -129,8 +129,8 @@ def _binarize(feature_matrix):
     return (feature_matrix > 0) * 1.0
 
 
-def _kmer_presence_probability(feature_matrix, label_match, weight):
-    """Compute kmer presence and probability arrays.
+def _get_kmer_presence(feature_matrix, label_match):
+    """Compute kmer presence of a given label in sequences.
 
     Parameters
     ----------
@@ -141,13 +141,11 @@ def _kmer_presence_probability(feature_matrix, label_match, weight):
     label_match : list or numpy.ndarray or pandas.Series
         Array of shape (m, ) describing label matches.
         e.g. contains 1 when kmer matches a label, and 0 otherwise
-    weight : float
-        Weight to apply to kmer presence score.
 
     Returns
     -------
-    (numpy.ndarray, numpy.ndarray)
-        (kmer presence array, kmer probability array)
+    numpy.ndarray
+        Array describing kmer presence of a given label
 
     """
     # convert feature count matrix into binary presence/absence
@@ -155,14 +153,72 @@ def _kmer_presence_probability(feature_matrix, label_match, weight):
 
     # for each row in feature matrix, compute each value's probability
     # no multiprocessing-- using numpy native parallelization
-    presence, probability = list(), list()
+    result = list()
     for kmer in feature_matrix:
         kmer_match = np.equal(kmer, 1)  # array of presence matches
         ones = np.ones(len(kmer))
         match = np.multiply(np.multiply(kmer_match, label_match), ones)
-        presence.append(np.sum(match))
-        probability.append(np.sum(match) * weight)
-    return presence, probability
+        result.append(np.sum(match))
+    return result
+
+
+def _score(p_pos, p_neg, w_neg):
+    """Score probability vs. weighted negative probability.
+
+    e.g. P(pos) - (w_neg * P(neg))
+
+    Parameters
+    ----------
+    p_pos : float
+        Probability of positive assignment.
+    p_neg : float
+        Probability of negative assignment.
+    w_neg : float
+        Weight for negative assignment probability.
+
+    Returns
+    -------
+    float
+        Total probability of positive identification, minus
+        contribution to negative identification.
+
+    """
+    # p_in = results[in_label][col]
+    # p_out = np.sum([results[fam]['probability'] for fam in out_labels], axis=0)
+    # p_bg = bg_labels
+    return p_pos - (w_neg * p_neg)  # - (w_bg * p_bg)
+
+
+def score(results, in_label, out_labels, w_out=1.0, col='probability'):
+    """Score kmer from kmer family probabilities.
+
+    The scoring method used is as follows:
+        Score = P(in family) - (w_out * P(out of family)) - P(bg)
+
+    Parameters
+    ----------
+    results : dict or pandas.DataFrame
+        Prior results containing all kmer family probabilities.
+        Requires nested dict or multi-index, e.g.:
+            results[family][`col`] = pos kmer family probability
+    in_label : str
+        Name of "in-family" label.
+    out_labels : list or array-like
+        Array of "out-of-family" labels.
+    w_out : float
+        Multiplier for out-of-family probability subtraction.
+    col : str (default: 'probability')
+        Name of column containing kmer probabilities.
+
+    Returns
+    -------
+    float
+        Score for in-family kmer assignment.
+
+    """
+    p_in = results[in_label][col]
+    p_out = np.sum([results[fam]['probability'] for fam in out_labels], axis=0)
+    return
 
 
 def feature_class_probabilities(feature_matrix, labels,
@@ -230,42 +286,35 @@ def feature_class_probabilities(feature_matrix, labels,
     if len(feature_matrix.T) != len(labels):
         raise ValueError("Input shapes are mismatched.")
 
-    # iterate scoring through every feature in input matrix
-    n_sequences = [
-        len(np.hstack(np.where(labels == l))) for l in np.unique(labels)
-        ]
-    results = {l: {} for l in labels}
-    for i, l in enumerate(np.unique(labels)):
-        label_match = np.equal(labels, l)
-        weight = 1 / n_sequences[i]
+    # get only unique labels
+    unique_labels = np.unique(labels)
 
-        # get score arrays based on label match
-        presence, probability = _kmer_presence_probability(
-            feature_matrix, label_match, weight
-            )
+    # iteratively score all feature in input matrix
+    n_seqs = [len(np.hstack(np.where(labels == lname))) for lname in unique_labels]
+    results = {label_name: {} for label_name in labels}
+    for i, l in enumerate(unique_labels):
+        label_match = np.equal(labels, l)
+
+        # get score arrays based on label match, normalized by #seqs
+        presence = _get_kmer_presence(feature_matrix, label_match)
+        norms = (1 / n_seqs[i]) * np.ones(len(presence))
 
         # if no kmers specified, save numerical range
         results[l]['kmer'] = np.array(kmers)
         results[l]['count'] = np.asarray(presence, dtype=int)
-        results[l]['probability'] = np.asarray(probability, dtype=float)
+        results[l]['probability'] = np.asarray(presence * norms, dtype=float)
 
     # compute score based on (label, not label) assignment
-    weight = 1 / (len(np.unique(labels)) - 1)
-    for l in np.unique(labels):
-        o = np.unique(labels)[np.unique(labels) != l]  # other labels
-        results[l]['score'] = (
-            (results[l]['probability'])
-            - (np.sum([results[fam]['probability'] for fam in o], axis=0)
-               * weight)
-            )
+    weight = 1 / (len(unique_labels) - 1)
+    for l in unique_labels:
+        o = unique_labels[unique_labels != l]  # other labels
+        results[l]['score'] = _score(results, l, o, weight=weight)
 
+    # reformat as long-form dataframe
     results = pd.DataFrame(results).T.reset_index().rename(
         columns={'index': 'label'}
         )
-
-    # reformat dataframe into long form
     results = results.set_index(['label']).apply(pd.Series.explode).reset_index()
-
     return results
 
 
