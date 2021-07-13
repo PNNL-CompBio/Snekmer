@@ -39,3 +39,5 @@ score:
 model:
   use_score: False
   n: 100
+  cv: 5
+  random_state: None

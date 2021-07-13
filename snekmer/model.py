@@ -4,13 +4,17 @@ author: @christinehc
 """
 # imports
 import json
+
 import numpy as np
 import pandas as pd
+
+from .utils import get_family
+from .plot import show_cv_roc_curve, show_cv_pr_curve
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
+from sklearn.linear_model import LogisticRegressionCV
 from sklearn.model_selection import GridSearchCV, cross_validate
 from sklearn.pipeline import make_pipeline, Pipeline
-from .utils import get_family
 
 # define default gridsearch param dict
 MODEL_PARAMS = {
@@ -325,3 +329,8 @@ def format_data_df(filenames, label_name='family'):
         data[topfam] = [1 if fam == topfam else 0 for fam in data[label_name]]
 
     return data
+
+
+# class KmerScoreModel:
+#     def __init__(self):
+#         return
