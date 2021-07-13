@@ -155,5 +155,5 @@ def show_cv_pr_curve(clf, cv, X, y, title='PR Curve', ax=None, dpi=400):
     ax.set_xlabel('Recall')
     ax.set_ylabel('Precision')
     ax.set_title(title)
-    ax.legend(loc="lower right")
+    ax.legend(bbox_to_anchor=(1.05, 0.5), loc='center left', borderaxespad=0.)
     return fig, ax
