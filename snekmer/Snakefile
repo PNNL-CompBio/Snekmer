@@ -460,6 +460,10 @@ rule build_model:
         family = skm.utils.get_family(input.scores)
         all_families = [skm.utils.get_family(f) for f in input.files]
 
+        # prevent kmer NA being read as np.nan
+        if config['k'] == 2:
+            scores['kmer'] = scores['kmer'].fillna('NA')
+
         # get alphabet name
         if config['map_function'] in skm.alphabet.ALPHABET2NAME.keys():
             alphabet = skm.alphabet.ALPHABET2NAME[config['map_function']].capitalize()
