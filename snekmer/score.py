@@ -162,10 +162,10 @@ def _get_kmer_presence(feature_matrix, label_match):
     return result
 
 
-def _score(p_pos, p_neg, w_neg):
+def _score(p_pos, p_neg, w=1.0):
     """Score probability vs. weighted negative probability.
 
-    e.g. P(pos) - (w_neg * P(neg))
+    e.g. P(pos) - (w * P(neg))
 
     Parameters
     ----------
@@ -173,7 +173,7 @@ def _score(p_pos, p_neg, w_neg):
         Probability of positive assignment.
     p_neg : float
         Probability of negative assignment.
-    w_neg : float
+    w : float (default: 1.0)
         Weight for negative assignment probability.
 
     Returns
@@ -186,10 +186,10 @@ def _score(p_pos, p_neg, w_neg):
     # p_in = results[in_label][col]
     # p_out = np.sum([results[fam]['probability'] for fam in out_labels], axis=0)
     # p_bg = bg_labels
-    return p_pos - (w_neg * p_neg)  # - (w_bg * p_bg)
+    return p_pos - (w * p_neg)  # - (w_bg * p_bg)
 
 
-def score(results, in_label, out_labels, w_out=1.0, col='probability'):
+def score(results, in_label, out_labels, w=1.0, col='probability'):
     """Score kmer from kmer family probabilities.
 
     The scoring method used is as follows:
@@ -205,7 +205,7 @@ def score(results, in_label, out_labels, w_out=1.0, col='probability'):
         Name of "in-family" label.
     out_labels : list or array-like
         Array of "out-of-family" labels.
-    w_out : float
+    w : float (default: 1.0)
         Multiplier for out-of-family probability subtraction.
     col : str (default: 'probability')
         Name of column containing kmer probabilities.
@@ -218,7 +218,7 @@ def score(results, in_label, out_labels, w_out=1.0, col='probability'):
     """
     p_in = results[in_label][col]
     p_out = np.sum([results[fam]['probability'] for fam in out_labels], axis=0)
-    return
+    return _score(p_in, p_out, w=w)
 
 
 def feature_class_probabilities(feature_matrix, labels,
@@ -308,7 +308,7 @@ def feature_class_probabilities(feature_matrix, labels,
     weight = 1 / (len(unique_labels) - 1)
     for l in unique_labels:
         o = unique_labels[unique_labels != l]  # other labels
-        results[l]['score'] = _score(results, l, o, weight=weight)
+        results[l]['score'] = score(results, l, o, w=weight)
 
     # reformat as long-form dataframe
     results = pd.DataFrame(results).T.reset_index().rename(
