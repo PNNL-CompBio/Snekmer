@@ -189,7 +189,7 @@ def _score(p_pos, p_neg, w=1.0):
     return p_pos - (w * p_neg)  # - (w_bg * p_bg)
 
 
-def score(results, in_label, out_labels, w=1.0, col='probability'):
+def score(results, in_label, out_labels, w=1.0, col='probability', neg_only=False):
     """Score kmer from kmer family probabilities.
 
     The scoring method used is as follows:
@@ -209,6 +209,8 @@ def score(results, in_label, out_labels, w=1.0, col='probability'):
         Multiplier for out-of-family probability subtraction.
     col : str (default: 'probability')
         Name of column containing kmer probabilities.
+    neg_only : bool (default: False)
+        If True, only returns the negative probability (-w * P_out).
 
     Returns
     -------
@@ -218,12 +220,47 @@ def score(results, in_label, out_labels, w=1.0, col='probability'):
     """
     p_in = results[in_label][col]
     p_out = np.sum([results[fam]['probability'] for fam in out_labels], axis=0)
+
+    # negative probability only
+    if neg_only:
+        return _score(0, p_out, w=w)
+
     return _score(p_in, p_out, w=w)
 
 
+def _parse_score_method(method, bg=None, **kwargs):
+    # restrict method options
+    if method not in ["default", "bg_only", "both"]:
+        raise ValueError("Parameter `method` must be one of the"
+                         " following: 'default', 'bg_only', 'both'.")
+
+    # check that background is provided when required
+    if (method in ["bg_only", "both"]) and (bg is None):
+        raise ValueError("Background sequence vectors must be"
+                         " provided if `method`='bg_only' or"
+                         " 'both'.")
+
+    # define score methods
+    method2name = {"default": "default_score",
+                   "bg": "bg_subtracted_score",
+                   "both": ["default_score", "bg_subtracted_score", "combined_score"]}
+
+    # parse scoring methods
+    if method == "default":
+        # compute score based on (label, not label) assignment
+        # weight = 1 / (len(labels) - 1)
+        # for l in labels:
+        #     o = labels[labels != l]  # other labels
+        #     results[l]['score'] = score(results, l, o, w=weight)
+        return "default_score", score
+    elif method == "bg_only":
+        return "bg_subtracted_score", score
+    return "combined_score", score
+
+
 def feature_class_probabilities(feature_matrix, labels,
-                                kmers=None, method="default",
-                                bg=None):
+                                kmers=None, bg_matrix=None,
+                                method="default"):
     """Calculate probabilities for features being in a defined class.
 
     Note: only coded to work for the binary case (2 classes).
@@ -247,9 +284,9 @@ def feature_class_probabilities(feature_matrix, labels,
                 P(family) - P(background)
             "both" : Score in-family vs. out-of-family and background
                 P(family) - P(background) - (weight * P(out of family))
-    bg : list or None (default: None)
-        One-dimensional array of shape (n,).
-        If method="bg_only" or "both", bg cannot be None.
+    bg_matrix : array or None (default: None)
+        Feature matrix of shape (n, o), where each row represents
+        a kmer and each column represents a background sequence.
 
     Returns
     -------
@@ -264,17 +301,8 @@ def feature_class_probabilities(feature_matrix, labels,
     else:
         raise TypeError("Labels must be list- or array-like.")
 
-    # restrict method options
-    if method not in ["default", "bg_only", "both"]:
-        raise ValueError("Parameter `method` must be one of the"
-                         " following: 'default', 'bg_only', 'both'.")
-
-    # check that background is provided when required
-    if (method in ["bg_only", "both"]) and (bg is None):
-        raise ValueError("Background sequence vectors must be"
-                         " provided if `method`='bg_only' or"
-                         " 'both'.")
-    # if
+    # parse score function
+    method_name, score_function = _parse_score_method(method)
 
     # kmer labels
     if kmers is None:
@@ -305,7 +333,10 @@ def feature_class_probabilities(feature_matrix, labels,
         results[l]['probability'] = np.asarray(presence * norms, dtype=float)
 
     # compute score based on (label, not label) assignment
-    weight = 1 / (len(unique_labels) - 1)
+    label_weight = len(unique_labels)  # if 1 label, no weight (w=1)
+    if len(unique_labels) > 1:  # if >1 label, weight = 1 / (n - 1)
+        label_weight = label_weight - 1
+    weight = 1 / label_weight
     for l in unique_labels:
         o = unique_labels[unique_labels != l]  # other labels
         results[l]['score'] = score(results, l, o, w=weight)

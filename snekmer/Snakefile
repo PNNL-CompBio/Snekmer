@@ -384,8 +384,10 @@ rule score_features:
 
         # define feature matrix of kmer vectors not from background set
         bg, non_bg = data[data['background']], data[~data['background']]
+        full_feature_matrix = skm.score.to_feature_matrix(data['vector'].values)
         feature_matrix = skm.score.to_feature_matrix(non_bg['vector'].values)
         bg_feature_matrix = skm.score.to_feature_matrix(bg['vector'].values)
+        # print(feature_matrix.T.shape, bg_feature_matrix.T.shape, np.array(kmers).shape)
 
         # compute class probabilities
         labels = non_bg[label].values
@@ -393,10 +395,13 @@ rule score_features:
             feature_matrix.T, labels, kmers=kmers
         )  #.drop(columns=['count'])
 
-        # # compute background sequence probabilities
-        # bg_probabilities = skm.score.feature_class_probabilities(
-        #     bg_feature_matrix, labels, kmers=kmers
-        # )
+        # compute background sequence probabilities
+        bg_labels = bg[label].values
+        # print(labels)
+        # print(bg_labels)
+        bg_probabilities = skm.score.feature_class_probabilities(
+            bg_feature_matrix.T, bg_labels, kmers=kmers
+        )
 
         # assign family probability scores
         for fam in non_bg[label].unique():
@@ -405,17 +410,43 @@ rule score_features:
             ]['score'].values
 
             # normalize by sum of all positive scores
-            norm = np.sum([s for s in scores if s > 0])
+            # norm = np.sum([s for s in scores if s > 0])
 
             # include background sequences for score generation
-            full_feature_matrix = skm.score.to_feature_matrix(data['vector'].values)
             total_scores = skm.score.apply_feature_probabilities(
                 full_feature_matrix, scores, scaler=config['score']['scaler'],
                 **config['score']['scaler_kwargs']
             )
 
             # assign percent score based on max positive score
-            data[f"{fam}_score"] = total_scores / norm * 100
+            data[f"{fam}_score"] = total_scores
+
+        # background family probability scores
+        for fam in bg[label].unique():
+            bg_scores = bg_probabilities[
+                bg_probabilities['label'] == fam
+            ]['score'].values
+
+            # normalize by sum of all positive scores
+            # bg_norm = np.sum([s for s in bg_scores if s > 0])
+
+            # background scores
+            bg_only_scores = skm.score.apply_feature_probabilities(
+                full_feature_matrix, bg_scores, scaler=config['score']['scaler'],
+                **config['score']['scaler_kwargs']
+            )
+
+            data[f"{fam}_background_score"] = bg_only_scores
+
+        for fam in non_bg[label].unique():
+            if fam in bg[label].unique():
+                data[f"{fam}_background_subtracted_score"] = [
+                    total - bg for total, bg in zip(
+                        data[f"{fam}_score"], data[f"{fam}_background_score"]
+                    )
+                ]
+
+            # norm = np.sum([s for s in scores if s > 0])
 
         new_timepoint = datetime.now()
         with open(log[0], 'a') as f:
