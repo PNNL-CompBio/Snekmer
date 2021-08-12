@@ -50,18 +50,30 @@ if str(config['input']['background']) != "None":
 
 # print(NON_BGS, BGS)
 
-# validity check for alphabets
-if (config['map_function'] not in skm.alphabet.ALPHABETS.keys()) and (str(config['map_function']) != "None"):  # and config['map_function'] != 'custom':
+# check alphabet validity
+if (
+    # raise error if alphabet not included in pre-defined set
+    (
+        # doesn't match integer designations
+        (config['alphabet'] not in range(len(skm.alphabet.ALPHABETS)))
+        # doesn't match str name designations
+        and (config['alphabet'] not in skm.alphabet.ALPHABETS))
+    # or doesn't match None (no mapping)
+    and (str(config['alphabet']) != "None")
+):  # and config['alphabet'] != 'custom':
     raise ValueError("Invalid alphabet specified; alphabet must be a"
-                     " string in the form 'reduced_alphabet_n' where"
-                     " n is an integer between 0 and"
-                     f" {len(skm.alphabet.ALPHABETS)}.")
-# elif config['map_function'] == 'custom':
+                     " string (see snekmer.alphabet) or integer"
+                     " n between"
+                     f" {np.min(list(skm.alphabet.ALPHABET_ORDER.keys()))}"
+                     " and"
+                     f" {np.max(list(skm.alphabet.ALPHABET_ORDER.keys()))}"
+                     ".")
+# elif config['alphabet'] == 'custom':
 
 
 # define output directory (helpful for multiple runs)
 if config['output']['nested_dir']:
-    out_dir = join("output", config['map_function'], f"k-{config['k']:02}")
+    out_dir = join("output", config['alphabet'], f"k-{config['k']:02}")
 else:
     out_dir = "output"
 
@@ -136,12 +148,12 @@ rule preprocess:
 
         # if random alphabet specified, implement randomization
         if config['randomize_alphabet']:
-            rand_alphabet = skm.transform.randomize_alphabet(config['input']['map_function'])
-            map_function = [residues, map_name, rand_alphabet]
+            rand_alphabet = skm.transform.randomize_alphabet(config['input']['alphabet'])
+            alphabet = [residues, map_name, rand_alphabet]
         else:
-            map_function = config['map_function']
-            if str(map_function) == "None":
-                map_function = None
+            alphabet = config['alphabet']
+            if alphabet == "None":
+                alphabet = None
 
         # if no feature set is specified, define feature space
         if not config['input']['feature_set']:
@@ -149,7 +161,7 @@ rule preprocess:
             filter_dict = skm.features.define_feature_space(
                 {k: v for k, v in zip(id_list, seq_list)},
                 config['k'],
-                map_function=map_function,
+                alphabet=alphabet,
                 start=config['start'],
                 end=config['end'],
                 min_rep_thresh=config['min_rep_thresh'],
@@ -180,7 +192,7 @@ rule preprocess:
 
         # define recursive and nonrecursive saving patterns for params
         recursive = ['sequences', 'ids', 'residues']
-        nonrecursive = ['map_function', 'k', 'example_index', 'filter_list']
+        nonrecursive = ['alphabet', 'k', 'example_index', 'filter_list']
         all_dsets = recursive + nonrecursive
 
         for i in range(len(seq_list)):
@@ -237,7 +249,7 @@ rule preprocess:
 
         # save variables not generated in loop
         for dset, label in zip(
-            [map_function, config['k'], example_index, filter_list],
+            [alphabet, config['k'], example_index, filter_list],
             nonrecursive
         ):
             save_data[label] = dset
@@ -278,7 +290,7 @@ rule generate_kmers:
         # generate labels only
         labels = skm.transform.generate_labels(
             config['k'],
-            map_function=params['map_function'],
+            alphabet=params['alphabet'],
             # residues=params['residues'],
             filter_list=params['filter_list']
         )
@@ -328,7 +340,7 @@ rule standardize_kmers:
                 results['seq_id'] += [sid]
                 results['vector'] += [
                     skm.transform.vectorize_string(
-                        seq, config['k'], params['map_function'],
+                        seq, config['k'], params['alphabet'],
                         start=config['start'],
                         end=config['end'],
                         filter_list=kmers,  # params['filter_list'],
@@ -377,7 +389,10 @@ rule score_features:
             f.write(f"vecfiles_to_df time:\t{skm.utils.format_timedelta(timepoint - start_time)}\n")
 
         # parse family names and only add if some are valid
-        families = [skm.utils.get_family(fn) for fn in data['filename']]
+        families = [
+            skm.utils.get_family(fn, regex=config['input']['regex'])
+            for fn in data['filename']
+            ]
         if any(families):
             label = 'family'
             data[label] = families
@@ -403,6 +418,27 @@ rule score_features:
             bg_feature_matrix.T, bg_labels, kmers=kmers
         )
 
+        # background family probability scores
+        for fam in bg[label].unique():
+            bg_scores = bg_probabilities[
+                bg_probabilities['label'] == fam
+            ]['score'].values
+
+            # normalize by max bg score
+            # bg_norm = np.max(bg_scores)
+
+            # get background scores for sequences
+            bg_only_scores = skm.score.apply_feature_probabilities(
+                full_feature_matrix, bg_scores, scaler=config['score']['scaler'],
+                **config['score']['scaler_kwargs']
+            )
+
+            # normalize by max bg score attained by a sequence
+            bg_norm = np.max(bg_only_scores)
+            print("bg_norm", bg_norm)
+
+            data[f"{fam}_background_score"] = bg_only_scores / bg_norm
+
         # assign family probability scores
         for fam in non_bg[label].unique():
             scores = class_probabilities[
@@ -418,35 +454,29 @@ rule score_features:
                 **config['score']['scaler_kwargs']
             )
 
+            # normalize by max score
+            norm = np.max(total_scores)
+            if norm == 0:
+                norm = 1.0
+            print("norm", norm)
+
             # assign percent score based on max positive score
-            data[f"{fam}_score"] = total_scores
+            data[f"{fam}_score"] = total_scores / norm
 
-        # background family probability scores
-        for fam in bg[label].unique():
-            bg_scores = bg_probabilities[
-                bg_probabilities['label'] == fam
-            ]['score'].values
-
-            # normalize by sum of all positive scores
-            # bg_norm = np.sum([s for s in bg_scores if s > 0])
-
-            # background scores
-            bg_only_scores = skm.score.apply_feature_probabilities(
-                full_feature_matrix, bg_scores, scaler=config['score']['scaler'],
-                **config['score']['scaler_kwargs']
-            )
-
-            data[f"{fam}_background_score"] = bg_only_scores
-
-        for fam in non_bg[label].unique():
+            # weight family score by (1 - normalized bg score)
             if fam in bg[label].unique():
+                data[f"{fam}_score_background_weighted"] = [
+                    total * (1 - bg) for total, bg in zip(
+                        data[f"{fam}_score"], data[f"{fam}_background_score"]
+                    )
+                ]
+
+                # old scoring method
                 data[f"{fam}_background_subtracted_score"] = [
                     total - bg for total, bg in zip(
                         data[f"{fam}_score"], data[f"{fam}_background_score"]
                     )
                 ]
-
-            # norm = np.sum([s for s in scores if s > 0])
 
         new_timepoint = datetime.now()
         with open(log[0], 'a') as f:
@@ -488,21 +518,21 @@ rule build_model:
         # data = skm.model.format_data_df(input.files)
         data = read_csv(input.data)
         scores = read_csv(input.scores)
-        family = skm.utils.get_family(input.scores)
-        all_families = [skm.utils.get_family(f) for f in input.files]
+        family = skm.utils.get_family(input.scores, regex=config['input']['regex'])
+        all_families = [skm.utils.get_family(f, regex=config['input']['regex']) for f in input.files]
 
         # prevent kmer NA being read as np.nan
         if config['k'] == 2:
             scores['kmer'] = scores['kmer'].fillna('NA')
 
         # get alphabet name
-        if config['map_function'] in skm.alphabet.ALPHABET2NAME.keys():
-            alphabet = skm.alphabet.ALPHABET2NAME[config['map_function']].capitalize()
+        if config['alphabet'] in skm.alphabet.ALPHABET_ORDER.keys():
+            alphabet_name = skm.alphabet.ALPHABET_ORDER[config['alphabet']].capitalize()
         else:
-            alphabet = str(config['map_function'])
+            alphabet_name = str(config['alphabet']).capitalize()
 
         # AUC per family
-        results = {'family': [], 'alphabet': [], 'k': [], 'scoring': [], 'score': [],  'cv_split': []}
+        results = {'family': [], 'alphabet_name': [], 'k': [], 'scoring': [], 'score': [],  'cv_split': []}
         binary_labels = [True if value == family else False for value in data['family']]
 
         le = LabelEncoder()
@@ -521,12 +551,12 @@ rule build_model:
 
         # ROC-AUC figure
         fig, ax = skm.plot.show_cv_roc_curve(
-            clf, cv, X, y, title=f"{family} ROC Curve ({alphabet}, k = {config['k']})"
+            clf, cv, X, y, title=f"{family} ROC Curve ({alphabet_name}, k = {config['k']})"
         )
 
         # collate ROC-AUC results
         results['family'] += [family] * config['model']['cv']
-        results['alphabet'] += [alphabet] * config['model']['cv']
+        results['alphabet_name'] += [alphabet_name] * config['model']['cv']
         results['k'] += [config['k']] * config['model']['cv']
         results['scoring'] += ['roc_auc'] * config['model']['cv']
         results['score'] += list(cross_val_score(clf, X, y, cv=cv, scoring='roc_auc'))
@@ -536,17 +566,17 @@ rule build_model:
         plt.tight_layout()
         if not exists(output.figs):
             makedirs(output.figs)
-        fig.savefig(join(output.figs, f"{family}_roc-auc-curve_{alphabet.lower()}_k-{config['k']:02d}.png"))
+        fig.savefig(join(output.figs, f"{family}_roc-auc-curve_{alphabet_name.lower()}_k-{config['k']:02d}.png"))
         plt.close("all")
 
         # PR-AUC figure
         fig, ax = skm.plot.show_cv_pr_curve(
-            clf, cv, X, y, title=f"{family} PR Curve ({alphabet}, k = {config['k']})"
+            clf, cv, X, y, title=f"{family} PR Curve ({alphabet_name}, k = {config['k']})"
         )
 
         # collate PR-AUC results
         results['family'] += [family] * config['model']['cv']
-        results['alphabet'] += [alphabet] * config['model']['cv']
+        results['alphabet_name'] += [alphabet_name] * config['model']['cv']
         results['k'] += [config['k']] * config['model']['cv']
         results['scoring'] += ['pr_auc'] * config['model']['cv']
         results['score'] += list(cross_val_score(clf, X, y, cv=cv, scoring='average_precision'))
@@ -556,7 +586,7 @@ rule build_model:
         plt.tight_layout()
         if not exists(output.figs):
             makedirs(output.figs)
-        fig.savefig(join(output.figs, f"{family}_aupr-curve_{alphabet.lower()}_k-{config['k']:02d}.png"))
+        fig.savefig(join(output.figs, f"{family}_aupr-curve_{alphabet_name.lower()}_k-{config['k']:02d}.png"))
         plt.close("all")
 
         # save model

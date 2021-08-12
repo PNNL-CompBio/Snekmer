@@ -241,7 +241,7 @@ def output_gist_class(filename, features, example_index=None, mode='w'):
         # filename.flush()
 
 
-def define_feature_space(sequence_dict, k, map_function=None, start=None,
+def define_feature_space(sequence_dict, k, alphabet=None, start=None,
                          end=None, min_rep_thresh=2, verbose=False,
                          log_file=False, processes=2):
     """Create a feature dictionary defined from parameters.
@@ -252,8 +252,8 @@ def define_feature_space(sequence_dict, k, map_function=None, start=None,
         Sequence dictionary {ID: sequence}.
     k : int
         Sequence length k of the kmer.
-    map_function : str
-        Name of the map function (e.g. "reduced_alphabet_0")
+    alphabet : str
+        Name of the alphabet (e.g. "reduced_alphabet_0")
         (default: "None"; applies no mapping).
     start : int
         Start index of the sequence (for sequence slicing).
@@ -281,7 +281,7 @@ def define_feature_space(sequence_dict, k, map_function=None, start=None,
         feature_dict = pool.starmap(
             vectorize_string, zip(sequence_dict.values(),   # sequence
                                   repeat(k),                # k
-                                  repeat(map_function),     # map_function
+                                  repeat(alphabet),         # alphabet
                                   repeat(start),            # start
                                   repeat(end),              # end
                                   repeat(feature_dict),     # feature_dict

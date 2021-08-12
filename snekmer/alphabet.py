@@ -1,91 +1,87 @@
 """alphabet: Alphabet mappings and definitions for Kmer pipeline.
 
+2021.08.11 - Alphabet names have been reworked per @wichne
+             (@christinehc)
+
 author(s): @biodataganache, @wichne
 """
+# define standard amino acid alphabet
+StandardAlphabet = "AILMVFYWSTQNCHDEKRGP"
+AA_SELF_MAPPING = {a: a for a in StandardAlphabet}
 
-# new alphabet names
-NAME2ALPHABET = {"hydro": "reduced_alphabet_0",
-                 "standard": "reduced_alphabet_1",
-                 "solvacc": "reduced_alphabet_2",
-                 "hydrocharge": "reduced_alphabet_3",
-                 "hydrostruct": "reduced_alphabet_4",
-                 "miqs": "reduced_alphabet_5"
-                 }
-
-ALPHABET2NAME = {v: k for k, v in NAME2ALPHABET.items()}
-
-# all amino acids
-ALL_AMINO_ACIDS = "ARNDCEQGHILKMFPSTWYV"
-AA_SELF_MAPPING = {a: a for a in "ARNDCEQGHILKMFPSTWYV"}
+# define alphabet names and ordering
+ALPHABET_ORDER = {
+    0: "hydro", 1: "standard", 2: "solvacc",
+    3: "hydrocharge", 4: "hydrostruct", 5: "miqs"
+}
 
 # define alphabets (from Utils.SIEVEInit)
 ALPHABETS = {
     # 2-value hydrophobicity alphabet taken
     # from Arnold, et al. 2009. PLoS Pathogens 5(4): e1000376
-    "reduced_alphabet_0": {"SFTNKYEQCWPHDR": "S",
-                           "VMLAIG": "V",
-                           "_keys": "SV"},
+    "hydro": {"SFTNKYEQCWPHDR": "S",
+              "VMLAIG": "V",
+              "_keys": "SV"},
 
     # 'standard' reduction alphabet taken
     # from Arnold, et al. 2009. PLoS Pathogens 5(4): e1000376
-    "reduced_alphabet_1": {"AGILMV": "A",   # hydrophobic
-                           "PH": "P",       # hydrophilic
-                           "FWY": "F",      # aromatic
-                           "NQST": "N",     # polar
-                           "DE": "D",       # acidic
-                           "KR": "K",       # alkaline
-                           "C": "C",        # ionizable
-                           "_keys": "APFNDKC"},
+    "standard": {"AGILMV": "A",   # hydrophobic
+                 "PH": "P",       # hydrophilic
+                 "FWY": "F",      # aromatic
+                 "NQST": "N",     # polar
+                 "DE": "D",       # acidic
+                 "KR": "K",       # alkaline
+                 "C": "C",        # ionizable
+                 "_keys": "APFNDKC"},
 
     # Solvent accessibility alphabet
     # from Bacardit, et al. 2009. BMC Bioinformatics 10:6
-    "reduced_alphabet_2": {"CILMVFWY": "C",
-                           "AGHST": "A",
-                           "PDEKNQR": "P",
-                           "_keys": "CAP"},
+    "solvacc": {"CILMVFWY": "C",
+                "AGHST": "A",
+                "PDEKNQR": "P",
+                "_keys": "CAP"},
+
     # 2-value hydrophobicity with charged residues as a third
-    # category. Made by me.
-    "reduced_alphabet_3": {"SFTNYQCWPH": "L",  # hydrophilic (L-ove)
-                           "VMLAIG": "H",      # hydrophobic (H-ate)
-                           "KNDR": "C",        # charged (C-harged)
-                           "_keys": "LHC"},
+    # category. Made by @biodataganache.
+    "hydrocharge": {"SFTNYQCWPH": "L",  # hydrophilic (L-ove)
+                    "VMLAIG": "H",      # hydrophobic (H-ate)
+                    "KNDR": "C",        # charged (C-harged)
+                    "_keys": "LHC"},
 
     # 2-value hydrophobicity with structural-breakers as a third category
-    #  Made by me
-    "reduced_alphabet_4": {"SFTNKYEQCWHDR": "L",
-                           "VMLAI": "H",
-                           "PG": "B",
-                           "_keys": "LHB"},
+    # Made by @biodataganache
+    "hydrostruct": {"SFTNKYEQCWHDR": "L",
+                    "VMLAI": "H",
+                    "PG": "B",
+                    "_keys": "LHB"},
 
     # MIQS alphabet
-    # from Bill
-    "reduced_alphabet_5": {"A": "A",        # Alanine
-                           "C": "C",        # Cysteine
-                           "DEN": "D",      # acidicish
-                           "FWY": "F",      # aromatic
-                           "G": "G",        # glycine
-                           "H": "H",        # histidine
-                           "ILMQV": "I",    # hydrophobicish
-                           "KR": "K",       # alkaline
-                           "P": "P",        # proline
-                           "ST": "S",       # hydroxyl
-                           "_keys": "ACDFGHIKPS"},
+    # Made by @wichne
+    "miqs": {"A": "A",        # Alanine
+             "C": "C",        # Cysteine
+             "DEN": "D",      # acidicish
+             "FWY": "F",      # aromatic
+             "G": "G",        # glycine
+             "H": "H",        # histidine
+             "ILMQV": "I",    # hydrophobicish
+             "KR": "K",       # alkaline
+             "P": "P",        # proline
+             "ST": "S",       # hydroxyl
+             "_keys": "ACDFGHIKPS"},
 
     # # identity
     # "None": {**AA_SELF_MAPPING, "_keys": ALL_AMINO_ACIDS}  # OU
     }
 
-# generic alphabet identifiers
-ALPHABETCODE = {f"RED{n}": {v: k for k, v
-                            in ALPHABETS[f"reduced_alphabet_{n}"].items()}
-                for n in range(len(ALPHABETS))}
+# create generic alphabet identifiers
+ALPHABET_ID = {
+    f"RED{n}": {
+        v: k for k, v in ALPHABETS[ALPHABET_ORDER[n]].items()
+        } for n in range(len(ALPHABETS))
+    }
 
 # alphabet to alphabet code
-ALPHABET2CODE = {f"reduced_alphabet_{n}": f"RED{n}"
-                 for n in range(len(ALPHABETS))}
-
-# standard amino acid alphabet
-StandardAlphabet = "AILMVFYWSTQNCHDEKRGP"
+ALPHABET2ID = {ALPHABET_ORDER[n]: f"RED{n}" for n in range(len(ALPHABETS))}
 
 
 # SIEVEInit alphabet grabbing function

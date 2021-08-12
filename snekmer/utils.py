@@ -72,7 +72,7 @@ def parse_fasta_description(fasta, df=True):
     return pdict
 
 
-def get_family(filename, regex='_[a-z]{3}[A-Z]{1}_', return_first=True):
+def get_family(filename, regex=r"[a-z]{3}[A-Z]{1}", return_first=True):
     """Extract family from filename given regular expression format.
 
     Note: If no family matching the given regular expression is
@@ -109,6 +109,8 @@ def get_family(filename, regex='_[a-z]{3}[A-Z]{1}_', return_first=True):
     s = '_'.join(
         filename.split('.')[:-1]
         ).replace('-', '_').replace(' ', '_')
+    # explicitly define regex as an r-string
+    regex = r"{regex}"
     # modify regex to only search between underscores
     # regex = r'(?<=_)' + r'{}'.format(regex) + r'(?=_)'
 

@@ -9,14 +9,14 @@ import re
 from multiprocessing import Pool
 
 from Bio import SeqIO
-from .alphabet import (StandardAlphabet, get_alphabets)
+from .alphabet import (ALPHABETS, ALPHABET_ORDER, StandardAlphabet, get_alphabets)
 
 
 # global variables and dictionary mappings
 # RESIDUES = {0: "SV", 1: "APFNDKC", 2: "CAP", 3: "LHC", 4: "LHB"}
 # MAPFN2RESIDUE = {f"reduced_alphabet_{n}": RESIDUES[n] for n in range(5)}
-MAPFN2NAME = {f"reduced_alphabet_{n}": f"RED{n}" for n in range(5)}
-MAPFN2MAPPING = {k: get_alphabets()[k] for k in MAPFN2NAME.keys()}
+# MAPFN2NAME = {f"reduced_alphabet_{n}": f"RED{n}" for n in range(5)}
+# MAPFN2MAPPING = {k: get_alphabets()[k] for k in MAPFN2NAME.keys()}
 
 
 # functions
@@ -110,8 +110,8 @@ def reduce_alphabet(character, mapping):
     return None
 
 
-def parse_map_function(map_function):
-    """Parse map function input into mapping parameters.
+def parse_mapping(alphabet):
+    """Parse alphabet input into mapping parameters.
 
     Mappings are created as follows:
         If the input map function is a list, this format is assumed:
@@ -121,8 +121,8 @@ def parse_map_function(map_function):
 
     Parameters
     ----------
-    map_function : None or list or str
-        Map function for sequences. Can be one of the following:
+    alphabet : None or list or str
+        Alphabet for sequences. Can be one of the following:
             None
                 No sequence (use generic alphabets)
             list
@@ -136,58 +136,76 @@ def parse_map_function(map_function):
     Returns
     -------
     type
-        residues, map_name, map_function
+        residues, map_name, alphabet
 
     """
     success = 0
 
     # do not reduce alphabet
-    if (map_function == "None") or (map_function is None):
+    if (alphabet == "None") or (alphabet is None):
         mapping = {c: c for c in StandardAlphabet}
         residues = StandardAlphabet
-        map_name = str(map_function)
-        map_function = identity
+        map_name = str(alphabet)
+        alphabet_map = identity
         success += 1
 
     # use pre-existing alphabets
-    if (isinstance(map_function, str)) and (map_function.split("_")[0] == "reduced"):
+    if (alphabet in ALPHABETS) or (alphabet in range(len(ALPHABETS))):
+        if (isinstance(alphabet, int)):
+            alphabet = ALPHABET_ORDER[alphabet]
+    # if (isinstance(alphabet, str)) and (alphabet in ALPHABETS):
         try:
-            mapping = get_alphabets()[map_function]
-            residues = get_alphabets()[map_function]['_keys']
-            map_name = MAPFN2NAME[map_function]
-            map_function = reduce_alphabet
+            mapping = get_alphabets()[alphabet]
+            residues = get_alphabets()[alphabet]['_keys']
+            map_name = alphabet.upper()
+            alphabet_map = reduce_alphabet
             success += 1
         except AttributeError as e:
             raise ValueError(
-                "map_function string must be in the format:"
-                " 'reduced_alphabet_[0-5]' ."
+                "alphabet string must be one of the following:"
+                f" {list(ALPHABETS.keys())}."
                 ) from e
 
+    # use alphabet numerical identifier
+    # if (isinstance(alphabet, int)) and (alphabet in range(len(ALPHABETS))):
+    #     alphabet =
+    #     try:
+    #         mapping = get_alphabets()[alphabet]
+    #         residues = get_alphabets()[alphabet]['_keys']
+    #         map_name = alphabet.upper()
+    #         alphabet_map = reduce_alphabet
+    #         success += 1
+    #     except AttributeError as e:
+    #         raise ValueError(
+    #             "alphabet string must be one of the following:"
+    #             f" {list(ALPHABETS.keys())}."
+    #             ) from e
+
     # use a random alphabet to apply to many sequences
-    elif isinstance(map_function, list):
-        residues = map_function[0]
-        map_name = map_function[1]
-        mapping = map_function[2]
-        map_function = reduce_alphabet
+    elif isinstance(alphabet, list):
+        residues = alphabet[0]
+        map_name = alphabet[1]
+        mapping = alphabet[2]
+        alphabet_map = reduce_alphabet
         success += 1
 
     # if all else fails
     if success == 0:
-        print("map_function:\t", map_function)
+        print("alphabet_map:\t", alphabet_map)
         raise ValueError("Invalid map function specified.")
 
-    return residues, map_name, map_function, mapping
+    return residues, map_name, alphabet_map, mapping
 
 
-def map_characters(k_map, map_function, mapping):
+def map_characters(k_map, alphabet_map, mapping):
     """Apply character mapping as specified.
 
     Parameters
     ----------
     k_map : str
         String of mapped characters.
-    map_function : type
-        Description of parameter `map_function`.
+    alphabet_map : type
+        Description of parameter `alphabet_map`.
     mapping : type
         Description of parameter `mapping`.
 
@@ -199,7 +217,7 @@ def map_characters(k_map, map_function, mapping):
     """
     k_string = ""
     for char in k_map:
-        map_char = map_function(char, mapping)
+        map_char = alphabet_map(char, mapping)
 
         # omits unrecognized characters (may be undesireable in some cases)
         if map_char is None:
@@ -208,15 +226,15 @@ def map_characters(k_map, map_function, mapping):
     return k_string
 
 
-def generate_labels(k, map_function, filter_list=None):
+def generate_labels(k, alphabet, filter_list=None):
     """Generate labels for mapped residues.
 
     Parameters
     ----------
     k : int
         Sequence length k of the kmer.
-    map_function : str
-        Name of map function (default: None). If None, no mapping is
+    alphabet : str
+        Name of alphabet (default: None). If None, no mapping is
         applied.
     residues : str or iterable
         Residues alphabet; the default standard alphabet is below.
@@ -230,10 +248,10 @@ def generate_labels(k, map_function, filter_list=None):
         List of labels in the format 'KMER-{k}-{map_name}-{mapped residues}'.
 
     """
-    # if residues or map_function not specified, set generically
-    # map_function = map_function or identity
+    # if residues or alphabet not specified, set generically
+    # alphabet = alphabet or identity
 
-    residues, map_name, map_function, _ = parse_map_function(map_function)
+    residues, map_name, _, _ = parse_mapping(alphabet)
 
     # we should provide the ability to include a bunch of strings
     # that can be used to vectorize
@@ -315,7 +333,7 @@ def exclude_from_string(k_string, exclude):
     return False
 
 
-def vectorize_string(sequence, k, map_function, start=0, end=False,
+def vectorize_string(sequence, k, alphabet, start=0, end=False,
                      feature_dict=None, filter_list=None, exclude=None,
                      return_dict=False, verbose=False, log_file=False):
     """Transform a protein sequence into a vector representation.
@@ -330,7 +348,7 @@ def vectorize_string(sequence, k, map_function, start=0, end=False,
         Start index of the sequence (for sequence slicing).
     end : int
         End index of the sequence (for sequence slicing).
-    map_function : str
+    alphabet : str
         Name of the map function (e.g. "reduced_alphabet_0")
         (default: "None").
     feature_dict : dict
@@ -355,12 +373,12 @@ def vectorize_string(sequence, k, map_function, start=0, end=False,
         List containing kmer counts.
 
     """
-    if map_function == "None":
-        map_function = None
+    if alphabet == "None":
+        alphabet = None
 
-    # if residues or map_function not specified, set generically
-    # map_function = map_function or identity
-    _, _, map_function, mapping = parse_map_function(map_function)
+    # if residues or alphabet not specified, set generically
+    # alphabet = alphabet or identity
+    _, _, alphabet_map, mapping = parse_mapping(alphabet)
 
     # we should provide the ability to include a bunch of strings
     # that can be used to vectorize
@@ -380,7 +398,7 @@ def vectorize_string(sequence, k, map_function, start=0, end=False,
         k_map = sequence[i: i + k]
 
         # perform mapping to a reduced alphabet
-        k_string = map_characters(k_map, map_function, mapping)
+        k_string = map_characters(k_map, alphabet_map, mapping)
 
         if verbose and log_file:
             with open(log_file, 'a') as f:
@@ -491,12 +509,12 @@ def make_n_terminal_fusions(sequence_id, filename):
     return id_list, sequence_list
 
 
-def randomize_alphabet(map_function):
+def randomize_alphabet(alphabet):
     """Create a randomized residue alphabet.
 
     Parameters
     ----------
-    map_function : str
+    alphabet : str
         Name of the map function (e.g. "reduced_alphabet_0").
 
     Returns
@@ -505,7 +523,7 @@ def randomize_alphabet(map_function):
         Dictionary containing randomized residue mappings.
 
     """
-    alpha = get_alphabets()[map_function]
+    alpha = get_alphabets()[alphabet]
 
     rand_alphabet = {}
     # this gives us a non-repeating string for use as new keys
