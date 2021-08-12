@@ -12,13 +12,6 @@ from Bio import SeqIO
 from .alphabet import (ALPHABETS, ALPHABET_ORDER, StandardAlphabet, get_alphabets)
 
 
-# global variables and dictionary mappings
-# RESIDUES = {0: "SV", 1: "APFNDKC", 2: "CAP", 3: "LHC", 4: "LHB"}
-# MAPFN2RESIDUE = {f"reduced_alphabet_{n}": RESIDUES[n] for n in range(5)}
-# MAPFN2NAME = {f"reduced_alphabet_{n}": f"RED{n}" for n in range(5)}
-# MAPFN2MAPPING = {k: get_alphabets()[k] for k in MAPFN2NAME.keys()}
-
-
 # functions
 def identity(character, mapping):
     """Return self.
