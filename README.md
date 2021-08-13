@@ -89,7 +89,7 @@ The output of the dry run shows you the files that will be created by the
 When you are ready to process your files, run:
 
 ```bash
-snekmer --cores 1
+snekmer
 ```
 
 ### Partial Workflow
@@ -99,7 +99,7 @@ For instance, to execute the workflow only through the kmer vector generation
 step, run:
 
 ```bash
-snekmer --cores 1 --until standardize_kmers
+snekmer --until standardize_kmers
 ```
 
 ### Extra Notes
