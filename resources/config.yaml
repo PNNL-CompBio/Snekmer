@@ -10,7 +10,7 @@ k: 14
 start: False
 end: False
 nucleotide: False
-alphabet: 'reduced_alphabet_0'  # choices 0-5 or names (see snekmer.alphabet),  or None
+alphabet: 0  # choices 0-5 or names (see snekmer.alphabet),  or None
 # custom_alphabet: {'custom_alphabet': {}}
 randomize_alphabet: False
 min_rep_thresh: 1
