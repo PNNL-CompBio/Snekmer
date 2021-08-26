@@ -151,17 +151,17 @@ def format_timedelta(timedelta):
 
 
 def split_file_ext(filename):
-    """Short summary.
+    """Split file.ext into (file, ext).
 
     Parameters
     ----------
-    filename : type
-        Description of parameter `filename`.
+    filename : str
+        /path/to/file.ext.
 
     Returns
     -------
-    type
-        Description of returned object.
+    (str, str)
+        Tuple containing (file, ext) for file.ext.
 
     """
     filename = basename(filename)
