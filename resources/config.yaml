@@ -2,7 +2,6 @@ input:
   example_index_file: False
   feature_set: '../example/model_features.txt'
   file_extensions: ['fasta', 'fna', 'faa', 'fa']
-  background: None
   regex: "[a-z]{3}[A-Z]{1}"  # regex to parse family from filename
 
 # kmer pipeline parameters

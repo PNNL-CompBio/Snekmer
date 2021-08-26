@@ -36,17 +36,13 @@ uz_map = {skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f i
 fa_map = {skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in unzipped}
 UZS = list(uz_map.keys())
 FAS = list(fa_map.keys())
-NON_BGS, BGS = FAS, []
+# NON_BGS, BGS = FAS, []
 
 # parse any background files
-if str(config['input']['background']) != "None":
-    bg_files = config['input']['background']
-    if isinstance(bg_files, str):
-        bg_files = [bg_files]
-    bg_files = [skm.utils.split_file_ext(basename(f))[0] for flist in
-                [glob(join("input", bg)) for bg in bg_files]
-                for f in flist]
-    NON_BGS, BGS = [f for f in FAS if f not in bg_files], bg_files
+bg_files = glob(join("input", "background", "*"))
+if len(bg_files) > 0:
+    bg_files = [skm.utils.split_file_ext(basename(f))[0] for f in bg_files]
+NON_BGS, BGS = [f for f in FAS if f not in bg_files], bg_files
 
 # print(NON_BGS, BGS)
 
