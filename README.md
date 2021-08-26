@@ -56,15 +56,21 @@ The package should now be ready to use!
 
 To run `snekmer`, create a `config.yaml` file containing desired
   parameters. (A template is provided at `snekmer/config.yaml`.)
-  Note that the `config.yaml` file should be stored in the same directory
-  as input files. Snekmer assumes that input files are stored in the `input`
-  directory, and automatically creates an `output` directory to save all output
-  files. An example of the assumed directory structure is shown below:
+  Note that the `config.yaml` file should be stored in the same
+  directory as input files. Snekmer assumes that input files are
+  stored in the `input` directory, and automatically creates an
+  `output` directory to save all output files. Snekmer also assumes
+  background files, if any, are stored in `input/background/`.
+  An example of the assumed directory structure is shown below:
 
 ```
 .
 ├── config.yaml
 ├── input
+|   ├── background
+|   |   ├── X.fasta
+|   |   ├── Y.fasta
+|   │   └── etc.
 │   ├── A.fasta
 │   ├── B.fasta
 │   └── etc.
