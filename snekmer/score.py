@@ -308,6 +308,7 @@ def feature_class_probabilities(feature_matrix, labels,
     if kmers is None:
         kmers = np.array([n for n in range(len(feature_matrix))])
     if len(kmers) != len(feature_matrix):
+        # print(len(kmers), len(feature_matrix), feature_matrix.shape)
         raise ValueError("Kmer array shape is mismatched.")
 
     # check that labels are the same size as number of examples

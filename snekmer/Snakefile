@@ -411,33 +411,33 @@ rule score_features:
         )  #.drop(columns=['count'])
 
         # compute background sequence probabilities
-        bg_labels = bg[label].values
-        # print(labels)
-        # print(bg_labels)
-        bg_probabilities = skm.score.feature_class_probabilities(
-            bg_feature_matrix.T, bg_labels, kmers=kmers
-        )
-
-        # background family probability scores
-        for fam in bg[label].unique():
-            bg_scores = bg_probabilities[
-                bg_probabilities['label'] == fam
-            ]['score'].values
-
-            # normalize by max bg score
-            # bg_norm = np.max(bg_scores)
-
-            # get background scores for sequences
-            bg_only_scores = skm.score.apply_feature_probabilities(
-                full_feature_matrix, bg_scores, scaler=config['score']['scaler'],
-                **config['score']['scaler_kwargs']
+        if len(bg) > 0:
+            bg_labels = bg[label].values
+            # print(labels)
+            # print(bg_labels)
+            bg_probabilities = skm.score.feature_class_probabilities(
+                bg_feature_matrix.T, bg_labels, kmers=kmers
             )
 
-            # normalize by max bg score attained by a sequence
-            bg_norm = np.max(bg_only_scores)
-            print("bg_norm", bg_norm)
+            # background family probability scores
+            for fam in bg[label].unique():
+                bg_scores = bg_probabilities[
+                    bg_probabilities['label'] == fam
+                ]['score'].values
 
-            data[f"{fam}_background_score"] = bg_only_scores / bg_norm
+                # normalize by max bg score
+                # bg_norm = np.max(bg_scores)
+
+                # get background scores for sequences
+                bg_only_scores = skm.score.apply_feature_probabilities(
+                    full_feature_matrix, bg_scores, scaler=config['score']['scaler'],
+                    **config['score']['scaler_kwargs']
+                )
+
+                # normalize by max bg score attained by a sequence
+                bg_norm = np.max(bg_only_scores)
+
+                data[f"{fam}_background_score"] = bg_only_scores / bg_norm
 
         # assign family probability scores
         for fam in non_bg[label].unique():
@@ -458,7 +458,6 @@ rule score_features:
             norm = np.max(total_scores)
             if norm == 0:
                 norm = 1.0
-            print("norm", norm)
 
             # assign percent score based on max positive score
             data[f"{fam}_score"] = total_scores / norm
