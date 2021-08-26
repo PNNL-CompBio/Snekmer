@@ -69,7 +69,10 @@ if (
 
 # define output directory (helpful for multiple runs)
 if config['output']['nested_dir']:
-    out_dir = join("output", config['alphabet'], f"k-{config['k']:02}")
+    alphabet_name = config['alphabet']
+    if not isinstance(config['alphabet'], str):
+        alphabet_name = skm.alphabet.ALPHABET_ORDER[alphabet_name]
+    out_dir = join("output", alphabet_name, f"k-{config['k']:02}")
 else:
     out_dir = "output"
 
@@ -507,7 +510,7 @@ rule build_model:
         scores=rules.score_features.output.scores
     output:
         model=join(out_dir, "model", "{nb}.pkl"),
-        results=join(out_dir, "model", "{nb}.csv"),
+        results=join(out_dir, "model", "results", "{nb}.csv"),
         figs=directory(join(out_dir, "model", "figures", "{nb}"))
     run:
         # data = skm.model.format_data_df(input.files)
