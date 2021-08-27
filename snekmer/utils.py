@@ -104,13 +104,14 @@ def get_family(filename, regex=r"[a-z]{3}[A-Z]{1}", return_first=True):
     # extract and simplify file basename
     filename = basename(filename)
     # account for directories
-    if "." not in filename and filename[-1] == "/":
+    if "." not in filename:  #  and filename[-1] == "/"
         filename = f"{filename}.dir"
     s = '_'.join(
         filename.split('.')[:-1]
         ).replace('-', '_').replace(' ', '_')
     # explicitly define regex as an r-string
-    regex = r"{regex}"
+    regex = r"{}".format(regex)
+    search = re.search(regex, s)
     # modify regex to only search between underscores
     # regex = r'(?<=_)' + r'{}'.format(regex) + r'(?=_)'
 
@@ -119,8 +120,8 @@ def get_family(filename, regex=r"[a-z]{3}[A-Z]{1}", return_first=True):
         re.findall(regex, s)
 
     # return string output
-    if re.search(regex, s):
-        return re.search(regex, s).group()
+    if search is not None:
+        return search.group()
     return filename.split('.')[0]
 
 
