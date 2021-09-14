@@ -174,8 +174,7 @@ rule preprocess:
             # read in list of ids to use from file; NO FORMAT CHECK
             filter_list = []
             with open(config['input']['feature_set'], "r") as f:
-                for line in f.readlines():
-                    filter_list.append(line.split()[0])
+                filter_list = skm.io.read_output_kmers(config['input']['feature_set'])
 
         # optional indexfile with IDs of good feature output examples
         if config['input']['example_index_file']:
@@ -569,7 +568,7 @@ rule build_model:
 
         # PR-AUC figure
         fig, ax = skm.plot.show_cv_pr_curve(
-            clf, cv, X, y, title=f"{family} PR Curve ({alphabet_name}, k = {config['k']})"
+            clf, cv, X, y, title=f"{family} PR Curve ({alphabet_name}, k={config['k']})"
         )
 
         # collate PR-AUC results
