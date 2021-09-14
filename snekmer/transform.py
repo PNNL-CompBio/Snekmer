@@ -13,7 +13,7 @@ from .alphabet import (ALPHABETS, ALPHABET_ORDER, StandardAlphabet, get_alphabet
 
 
 # functions
-def identity(character, mapping):
+def identity(character, mapping=None):
     """Return self.
 
     Used as a placeholder map function when applicable.
@@ -136,7 +136,7 @@ def parse_mapping(alphabet):
 
     # do not reduce alphabet
     if (alphabet == "None") or (alphabet is None):
-        mapping = {c: c for c in StandardAlphabet}
+        mapping = None
         residues = StandardAlphabet
         map_name = str(alphabet)
         alphabet_map = identity
@@ -146,7 +146,6 @@ def parse_mapping(alphabet):
     if (alphabet in ALPHABETS) or (alphabet in range(len(ALPHABETS))):
         if (isinstance(alphabet, int)):
             alphabet = ALPHABET_ORDER[alphabet]
-    # if (isinstance(alphabet, str)) and (alphabet in ALPHABETS):
         try:
             mapping = get_alphabets()[alphabet]
             residues = get_alphabets()[alphabet]['_keys']
@@ -158,21 +157,6 @@ def parse_mapping(alphabet):
                 "alphabet string must be one of the following:"
                 f" {list(ALPHABETS.keys())}."
                 ) from e
-
-    # use alphabet numerical identifier
-    # if (isinstance(alphabet, int)) and (alphabet in range(len(ALPHABETS))):
-    #     alphabet =
-    #     try:
-    #         mapping = get_alphabets()[alphabet]
-    #         residues = get_alphabets()[alphabet]['_keys']
-    #         map_name = alphabet.upper()
-    #         alphabet_map = reduce_alphabet
-    #         success += 1
-    #     except AttributeError as e:
-    #         raise ValueError(
-    #             "alphabet string must be one of the following:"
-    #             f" {list(ALPHABETS.keys())}."
-    #             ) from e
 
     # use a random alphabet to apply to many sequences
     elif isinstance(alphabet, list):
