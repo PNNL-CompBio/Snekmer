@@ -553,7 +553,7 @@ rule build_model:
 
         # collate ROC-AUC results
         results['family'] += [family] * config['model']['cv']
-        results['alphabet_name'] += [alphabet_name] * config['model']['cv']
+        results['alphabet_name'] += [alphabet_name.lower()] * config['model']['cv']
         results['k'] += [config['k']] * config['model']['cv']
         results['scoring'] += ['roc_auc'] * config['model']['cv']
         results['score'] += list(cross_val_score(clf, X, y, cv=cv, scoring='roc_auc'))
@@ -573,7 +573,7 @@ rule build_model:
 
         # collate PR-AUC results
         results['family'] += [family] * config['model']['cv']
-        results['alphabet'] += [alphabet_name.lower()] * config['model']['cv']
+        results['alphabet_name'] += [alphabet_name.lower()] * config['model']['cv']
         results['k'] += [config['k']] * config['model']['cv']
         results['scoring'] += ['pr_auc'] * config['model']['cv']
         results['score'] += list(cross_val_score(clf, X, y, cv=cv, scoring='average_precision'))
