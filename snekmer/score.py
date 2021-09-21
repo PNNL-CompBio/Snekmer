@@ -13,6 +13,98 @@ from sklearn.metrics.pairwise import pairwise_distances
 from .model import KmerScaler
 
 
+# classes
+class KmerScorer:
+    """Score kmer vectors based on summed probability scores.
+
+    Attributes
+    ----------
+    probabilities : numpy.ndarray
+        Array of shape (n,) containing probabilities for n kmers.
+    kmers : numpy.ndarray
+        Array of shape (n, ) containing labels for n kmers.
+
+    """
+    def __init__(self):
+        """Initialize KmerScorer object.
+
+        """
+        # self.score_map = {}  # only necessary if score kmers != vec kmers
+        self.probabilities = []
+        self.kmers = []
+
+    def load(self, score_file, family):
+        """Load probabilities from score file.
+
+        Parameters
+        ----------
+        score_file : str
+            /path/to/score_file in CSV format.
+        family : str
+            Family name from which to load scores.
+
+        """
+        scores = pd.read_csv(score_file)
+        scores = scores[scores['label'] == family]
+        # self.score_map = {
+        #     kmer: score for kmer, score
+        #     in zip(scores['kmer'], scores['score'])
+        # }
+        self.probabilities = scores['score'].values#.reshape(-1, 1)
+        self.kmers = scores['kmer'].values
+
+    def score(self, vec, vec_kmers=None, scaler=False, **scaler_kwargs):
+        """Score vectors using loaded probability scores.
+
+        Parameters
+        ----------
+        vec : numpy.ndarray
+            Array of shape (p, q) of p vectors containing q kmers.
+        vec_kmers : list of str or numpy.ndarray of str
+            Array of shape (q,) containing q kmers.
+        scaler : bool (default: False)
+            If True, performs scaling to reduce kmer features.
+        **scaler_kwargs : dict
+            Keyword arguments to pass to :class: `~KmerScaler()`.
+
+        Returns
+        -------
+        numpy.ndarray
+            Array of shape (p,) containing p scores.
+
+        """
+        # note that `vec` must be an array of arrays
+
+        # this check doesn't work for single vec... why? raise err?
+        # if np.array(vec).shape[1] != len(self.score_matrix):
+        #     raise ValueError(
+        #         "Kmer vector shape mismatch:"
+        #         f" basis set shape is ({len(self.score_matrix)}, ) but"
+        #         f" input vector shape is {np.array(vec).shape}."
+        #     )
+
+        # check that score labels match vec labels
+        if vec_kmers is not None:
+            if any(
+                [
+                    vec_kmers[i] != self.kmers[i]
+                    for i in range(len(vec_kmers))
+                ]
+            ):
+            # for i, label in enumerate(vec_labels):
+                raise ValueError(
+                    "Label order mismatch - `self.kmers` order is"
+                    " not the same as `vec_labels`."
+                )
+
+        # to do: change to numpy matrix operations
+        # note that the scaler is invariant w/ vec
+        total_score = apply_feature_probabilities(
+            vec, self.probabilities, scaler=scaler, **scaler_kwargs
+        )
+        return total_score
+
+
 # functions
 def to_feature_matrix(array):
     """Create properly shaped feature matrix for kmer scoring.

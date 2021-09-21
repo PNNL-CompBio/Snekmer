@@ -8,6 +8,7 @@ import json
 import numpy as np
 import pandas as pd
 
+from .io import read_output_kmers
 from .utils import get_family
 from .plot import show_cv_roc_curve, show_cv_pr_curve
 from sklearn.tree import DecisionTreeClassifier
