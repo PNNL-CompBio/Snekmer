@@ -9,6 +9,10 @@ author(s): @biodataganache, @wichne
 StandardAlphabet = "AILMVFYWSTQNCHDEKRGP"
 AA_SELF_MAPPING = {a: a for a in StandardAlphabet}
 
+# secondary structure
+SS_CHARS = "-_!^#$@.%&"
+SS_SELF_MAPPING = {s: s for s in SS_CHARS}
+
 # define alphabet names and ordering
 ALPHABET_ORDER = {
     0: "hydro", 1: "standard", 2: "solvacc",
@@ -71,17 +75,24 @@ ALPHABETS = {
 
     # # identity
     # "None": {**AA_SELF_MAPPING, "_keys": ALL_AMINO_ACIDS}  # OU
+
+    # secondary structure alphabet
+    "sstruct": {**AA_SELF_MAPPING, **SS_SELF_MAPPING,
+                '_keys': StandardAlphabet + SS_CHARS}
+
     }
 
 # create generic alphabet identifiers
 ALPHABET_ID = {
     f"RED{n}": {
         v: k for k, v in ALPHABETS[ALPHABET_ORDER[n]].items()
-        } for n in range(len(ALPHABETS))
+        } for n in range(len(ALPHABET_ORDER))
     }
 
 # alphabet to alphabet code
-ALPHABET2ID = {ALPHABET_ORDER[n]: f"RED{n}" for n in range(len(ALPHABETS))}
+ALPHABET2ID = {
+    ALPHABET_ORDER[n]: f"RED{n}" for n in range(len(ALPHABET_ORDER))
+}
 
 
 # SIEVEInit alphabet grabbing function
