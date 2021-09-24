@@ -390,7 +390,7 @@ rule score_features:
         families = [
             skm.utils.get_family(fn, regex=config['input']['regex'])
             for fn in data['filename']
-            ]
+        ]
         if any(families):
             label = 'family'
             data[label] = families
