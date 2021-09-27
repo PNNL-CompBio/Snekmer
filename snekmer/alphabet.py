@@ -76,7 +76,7 @@ ALPHABETS = {
     # # identity
     # "None": {**AA_SELF_MAPPING, "_keys": ALL_AMINO_ACIDS}  # OU
 
-    # secondary structure alphabet
+    # post-translational modification alphabet
     "ptm": {**AA_SELF_MAPPING, **PTM_SELF_MAPPING,
             '_keys': StandardAlphabet + PTM_CHARS}
 
