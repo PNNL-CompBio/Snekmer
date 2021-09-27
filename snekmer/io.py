@@ -85,7 +85,7 @@ def read_output_kmers(filename):
             # parse kmer outputs if detected
             if re.findall(r'^KMER', line_data[0]):
                 kmers += line_data
-    prefix = re.search(r'^KMER-[\d]+-[A-Z]+-', kmers[0]).group()
+    prefix = re.search(r'^KMER-[\d]+-[A-Za-z]+-', kmers[0]).group()
     return [s.strip().replace(prefix, "") for s in kmers]
 
 
