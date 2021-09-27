@@ -9,9 +9,9 @@ author(s): @biodataganache, @wichne
 StandardAlphabet = "AILMVFYWSTQNCHDEKRGP"
 AA_SELF_MAPPING = {a: a for a in StandardAlphabet}
 
-# secondary structure
-SS_CHARS = "-_!^#$@.%&"
-SS_SELF_MAPPING = {s: s for s in SS_CHARS}
+# post-translational modification
+PTM_CHARS = "-_!^#$@.%&"
+PTM_SELF_MAPPING = {c: c for c in PTM_CHARS}
 
 # define alphabet names and ordering
 ALPHABET_ORDER = {
@@ -77,8 +77,8 @@ ALPHABETS = {
     # "None": {**AA_SELF_MAPPING, "_keys": ALL_AMINO_ACIDS}  # OU
 
     # secondary structure alphabet
-    "sstruct": {**AA_SELF_MAPPING, **SS_SELF_MAPPING,
-                '_keys': StandardAlphabet + SS_CHARS}
+    "ptm": {**AA_SELF_MAPPING, **PTM_SELF_MAPPING,
+            '_keys': StandardAlphabet + PTM_CHARS}
 
     }
 
