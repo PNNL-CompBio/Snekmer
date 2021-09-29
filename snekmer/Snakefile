@@ -358,7 +358,7 @@ rule vectorize:
             f.write(f"total time:\t{skm.utils.format_timedelta(end_time - start_time)}")
 
 
-rule score_features:
+rule score:
     input:
         kmers=rules.generate_kmers.output.labels,
         files=rules.vectorize.output.files
@@ -502,11 +502,11 @@ rule score_features:
             f.write(f"total time:\t{skm.utils.format_timedelta(end_time - start_time)}")
 
 
-rule build_model:
+rule model:
     input:
         files=rules.vectorize.output.files,
-        data=rules.score_features.output.df,
-        scores=rules.score_features.output.scores
+        data=rules.score.output.df,
+        scores=rules.score.output.scores
     output:
         model=join(out_dir, "model", "{nb}.pkl"),
         results=join(out_dir, "model", "results", "{nb}.csv"),
