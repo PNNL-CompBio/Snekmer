@@ -305,7 +305,7 @@ rule generate_kmers:
             f.write(f"total time:\t{skm.utils.format_timedelta(end_time - start_time)}")
 
 
-rule standardize_kmers:
+rule vectorize:
     input:
         kmers=rules.generate_kmers.output.labels,
         params=rules.preprocess.output.data,
@@ -361,7 +361,7 @@ rule standardize_kmers:
 rule score_features:
     input:
         kmers=rules.generate_kmers.output.labels,
-        files=rules.standardize_kmers.output.files
+        files=rules.vectorize.output.files
     output:
         df=join(out_dir, "features", "{nb}.csv"),
         scores=join(out_dir, "score", "{nb}.csv")
@@ -504,7 +504,7 @@ rule score_features:
 
 rule build_model:
     input:
-        files=rules.standardize_kmers.output.files,
+        files=rules.vectorize.output.files,
         data=rules.score_features.output.df,
         scores=rules.score_features.output.scores
     output:

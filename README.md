@@ -105,7 +105,7 @@ For instance, to execute the workflow only through the kmer vector generation
 step, run:
 
 ```bash
-snekmer --until standardize_kmers
+snekmer --until vectorize
 ```
 
 ### Extra Notes
