@@ -271,7 +271,7 @@ rule preprocess:
             f.write(f"total time:\t{skm.utils.format_timedelta(end_time - start_time)}")
 
 
-rule generate_kmers:
+rule get_kmers:
     input:
         params=rules.preprocess.output.data
     output:
@@ -307,7 +307,7 @@ rule generate_kmers:
 
 rule vectorize:
     input:
-        kmers=rules.generate_kmers.output.labels,
+        kmers=rules.get_kmers.output.labels,
         params=rules.preprocess.output.data,
         fastas=unzipped
     log:
@@ -360,7 +360,7 @@ rule vectorize:
 
 rule score:
     input:
-        kmers=rules.generate_kmers.output.labels,
+        kmers=rules.get_kmers.output.labels,
         files=rules.vectorize.output.files
     output:
         df=join(out_dir, "features", "{nb}.csv"),
