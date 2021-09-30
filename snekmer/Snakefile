@@ -543,7 +543,7 @@ rule model:
         X, y = data[f"{family}_score"].values.reshape(-1, 1), le.transform(binary_labels).ravel()
         cv = StratifiedKFold(config['model']['cv'])
         clf = LogisticRegressionCV(
-            random_state=random_state, cv=cv, solver='liblinear'
+            random_state=random_state, cv=cv, solver='liblinear', class_weight='balanced'
         )
 
         # ROC-AUC figure
