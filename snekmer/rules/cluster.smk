@@ -14,13 +14,119 @@ import numpy as np
 import matplotlib.pyplot as plt
 from pandas import (DataFrame, read_csv, read_json)
 from Bio import SeqIO
+from sklearn.linear_model import LogisticRegressionCV
+from sklearn.model_selection import train_test_split, StratifiedKFold, cross_val_score
+from sklearn.preprocessing import LabelEncoder
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.tree import DecisionTreeClassifier
 
 
 # change matplotlib backend to non-interactive
 plt.switch_backend('Agg')
 
-# include unzipping module
-include: "unzip.smk"
+# collect all fasta-like files, unzipped filenames, and basenames
+input_files = glob(join("input", "*"))
+zipped = [fa for fa in input_files if fa.endswith('.gz')]
+unzipped = [fa.rstrip('.gz') for fa, ext
+            in product(input_files, config['input']['file_extensions'])
+            if fa.rstrip('.gz').endswith(f".{ext}")]
+
+# map extensions to basename (basename.ext.gz -> {basename: ext})
+uz_map = {skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in zipped}
+fa_map = {skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in unzipped}
+UZS = list(uz_map.keys())
+FAS = list(fa_map.keys())
+# NON_BGS, BGS = FAS, []
+
+# parse any background files
+bg_files = glob(join("input", "background", "*"))
+if len(bg_files) > 0:
+    bg_files = [skm.utils.split_file_ext(basename(f))[0] for f in bg_files]
+NON_BGS, BGS = [f for f in FAS if f not in bg_files], bg_files
+
+# print(NON_BGS, BGS)
+
+# check alphabet validity
+if (
+    # raise error if alphabet not included in pre-defined set
+    (
+        # doesn't match integer designations
+        (config['alphabet'] not in range(len(skm.alphabet.ALPHABETS)))
+        # doesn't match str name designations
+        and (config['alphabet'] not in skm.alphabet.ALPHABETS))
+    # or doesn't match None (no mapping)
+    and (str(config['alphabet']) != "None")
+):  # and config['alphabet'] != 'custom':
+    raise ValueError("Invalid alphabet specified; alphabet must be a"
+                     " string (see snekmer.alphabet) or integer"
+                     " n between"
+                     f" {np.min(list(skm.alphabet.ALPHABET_ORDER.keys()))}"
+                     " and"
+                     f" {np.max(list(skm.alphabet.ALPHABET_ORDER.keys()))}"
+                     ".")
+# elif config['alphabet'] == 'custom':
+
+
+# define output directory (helpful for multiple runs)
+if config['output']['nested_dir']:
+    alphabet_name = config['alphabet']
+    if not isinstance(config['alphabet'], str):
+        alphabet_name = skm.alphabet.ALPHABET_ORDER[alphabet_name]
+    out_dir = join("output", alphabet_name, f"k-{config['k']:02}")
+else:
+    out_dir = "output"
+
+
+# import subworkflow for unzipping any zipped input files
+# subworkflow unzip:
+#     # workdir:
+#     #     join("tune")
+#     snakefile:
+#         join("rules", "unzip.smk")
+#     configfile:
+#         join("rules", "unzip_config.yaml")
+
+# '{wildcards.token}.txt'.format(wildcards=wildcards) ?
+# template for getting rule all files
+def get_input(wildcards):
+    input_list = []
+
+    # unzipped files
+    input_list.append(
+        expand(join("input", '{uz}'),
+               uz=UZS)
+        )
+
+    # different run modes
+    if config['mode'] == 'supervised':
+        input_list.append(
+            expand(join(out_dir, "features", "{nb}", "{fa}.json"),
+                   nb=NON_BGS, fa=FAS)
+        )
+        input_list.append(
+            expand(join(out_dir, "model", "{nb}.pkl"),
+                   nb=NON_BGS)
+            )
+    else:
+        input_list.append(
+            expand(join(out_dir, "features", "{nb}.json"),
+                   nb=NON_BGS)
+        )
+    return input_list
+#
+rule all:
+    input:
+        get_input
+
+
+# define main workflow
+# rule all:
+#     input:
+#         expand(join("input", '{uz}'), uz=UZS),
+#         expand(join(out_dir, "features", "{nb}", "{fa}.json"), nb=NON_BGS, fa=FAS),
+#         # expand(join(out_dir), "score", "{nb}.csv", nb=NON_BGS),
+#         expand(join(out_dir, "model", "{nb}.pkl"), nb=NON_BGS)
+#         # expand(join(out_dir, "score", "{fa}.json"), fa=FAS)
 
 
 # [in-progress] kmer walk
@@ -45,13 +151,14 @@ if len(UZS) > 0:
         params:
             outdir=join("input", 'zipped')
         run:
+
+    # shell:
+    #     "mkdir {params.outdir} && cp {input} {params.outdir} && gunzip -c {input} > {output}"
             if wildcards.sample.endswith('.fastq'):
                 shell("echo gzip {input}")
                 shell("echo mv {input}.gz {params.outdir}")
             else:
                 shell("mv {input} {params.outdir}")
-    # shell:
-    #     "mkdir {params.outdir} && cp {input} {params.outdir} && gunzip -c {input} > {output}"
 
 
 # read and process parameters from config

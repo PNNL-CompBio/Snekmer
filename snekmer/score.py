@@ -483,3 +483,17 @@ def apply_feature_probabilities(
     score_totals = np.array([np.sum(arr) for arr in score_matrix])
 
     return score_totals
+
+
+def append_cv_results(
+    data, scores, method, family=None, alphabet=None, config=None
+):
+    # collate ROC-AUC results
+    data['family'] += [family] * config['model']['cv']
+    data['alphabet_name'] += [alphabet.lower()] * config['model']['cv']
+    data['k'] += [config['k']] * config['model']['cv']
+    data['scoring'] += [method] * config['model']['cv']
+    data['score'] += score
+    # data['score'] += list(cross_val_score(clf, X, y, cv=cv, scoring='roc_auc'))
+    data['cv_split'] += [i + 1 for i in range(config['model']['cv'])]
+    return data
