@@ -515,8 +515,8 @@ rule model:
         # data = skm.model.format_data_df(input.files)
         data = read_csv(input.data)
         scores = read_csv(input.scores)
-        family = skm.utils.get_family(input.scores, regex=config['input']['regex'])
-        all_families = [skm.utils.get_family(f, regex=config['input']['regex']) for f in input.files]
+        family = splitext(basename(input.scores))[0]  # skm.utils.get_family(input.scores, regex=config['input']['regex'])
+        all_families = [splitext(basename(f))[0] for f in input.files]
 
         # prevent kmer NA being read as np.nan
         if config['k'] == 2:
