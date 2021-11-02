@@ -388,7 +388,8 @@ rule score:
 
         # parse family names and only add if some are valid
         families = [
-            skm.utils.get_family(fn, regex=config['input']['regex'])
+            # skm.utils.get_family(fn, regex=config['input']['regex'])
+            splitext(basename(fn))[0]
             for fn in data['filename']
         ]
         if any(families):
