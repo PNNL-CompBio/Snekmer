@@ -108,6 +108,40 @@ def get_alphabets():
     return ALPHABETS
 
 
+def check_valid(alphabet):
+    """Check validity of input alphabet vs. defined list.
+
+    Parameters
+    ----------
+    alphabet : str
+        Alphabet name.
+
+    Raises
+    ------
+    ValueError
+        If `alphabet` does not match a pre-defined alphabet.
+
+    """
+    if (
+        # raise error if alphabet not included in pre-defined set
+        (
+            # doesn't match integer designations
+            (alphabet not in range(len(ALPHABETS)))
+            # doesn't match str name designations
+            and (alphabet not in ALPHABETS))
+        # or doesn't match None (no mapping)
+        and (str(alphabet) != "None")
+    ):  # and config['alphabet'] != 'custom':
+        raise ValueError("Invalid alphabet specified; alphabet must be a"
+                         " string (see snekmer.alphabet) or integer"
+                         " n between"
+                         f" {min(list(ALPHABET_ORDER.keys()))}"
+                         " and"
+                         f" {max(list(ALPHABET_ORDER.keys()))}"
+                         ".")
+    return
+
+
 # def add_alphabet(alphabet_name, mapping):
 #     return
 

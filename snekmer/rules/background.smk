@@ -1,5 +1,3 @@
-configfile: "config/background.yaml"
-
 # imports
 # built-in imports
 import json

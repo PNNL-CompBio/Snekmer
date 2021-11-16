@@ -154,6 +154,9 @@ def format_timedelta(timedelta):
 def split_file_ext(filename):
     """Split file.ext into (file, ext).
 
+    Ignores ".gz" for gzipped files; e.g. "file.ext.gz" returns
+    ("file", "ext") rather than ("file.ext", "gz").
+
     Parameters
     ----------
     filename : str
@@ -173,3 +176,32 @@ def split_file_ext(filename):
 
     # otherwise, returns (filename, ext)
     return splitext(filename)[0], splitext(filename)[1].lstrip('.')
+
+
+def log_runtime(filename, start_time, step=False):
+    """Append runtimes to specified log file.
+
+    Parameters
+    ----------
+    filename : str
+        /path/to/log/file.
+    start_time : datetime.datetime object
+        Previous `datetime.now()` result.
+    step : str or False (default: False)
+        Optional name for step
+
+    Returns
+    -------
+    None
+        Appends runtime information to file and returns no output.
+
+    """
+    end_time = datetime.now()
+    if not step:
+        step = "end"
+
+    with open(filename, 'a') as f:
+        f.write(f"start time:\t{start_time}\n")
+        f.write(f"{step} time:\t{end_time}\n")
+        f.write(f"total time:\t{format_timedelta(end_time - start_time)}")
+    return

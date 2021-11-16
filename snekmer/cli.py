@@ -20,7 +20,7 @@ FEAT_OUT_FMTS = {'simple': 'Simple tab-delimited format',
 def main():
     parser = argparse.ArgumentParser(description='Snekmer: A program to generate features and run SIEVE models on input sequences')
     parser.add_argument('-v', '--version', action='version', version=__version__, help='print version and exit')
-    parser.add_argument('--mode', choices=['model', 'cluster'], help='select operation mode')
+    # parser.add_argument('--mode', choices=['model', 'cluster'], help='select operation mode')
 
     # kmer options -- remove in favor of config.yaml?
     # parser.add_argument('-v', '--verbose', action='store_false', help='verbose output')
@@ -43,6 +43,7 @@ def main():
     # parser.add_argument('-w', '--walk', action='store_true', help='perform a kmer walk on the input fasta file to get an idea of the kmer representation')
 
     # snakemake options
+    # smk_parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument('--dryrun', action='store_true', help='perform a dry run')
     parser.add_argument('--configfile', metavar='PATH', default='config.yaml', help='path to yaml configuration file')
     parser.add_argument('--config', nargs="*", metavar="KEY=VALUE",
@@ -68,7 +69,8 @@ def main():
     clust.add_argument('--cluster', metavar='PATH', help='path to cluster execution yaml configuration file')
     clust.add_argument('--jobs', metavar='N', type=int, default=1000, help='number of simultaneous jobs to submit to a slurm queue')
 
-    # add parsers for supervised and unsupervised mode
+    # create subparsers for both operation modes
+    parser.add_argument("mode", choices=['model', 'cluster'])
 
     # parse args
     args = parser.parse_args()
@@ -89,52 +91,53 @@ def main():
         cluster = None
 
     # parse operation mode
-    # if args.mode == 'model':
-    #     snakemake(resource_filename('snekmer', 'rules/model.smk'),
-    #               configfiles=[args.configfile],
-    #               config=config,
-    #               cluster_config=args.cluster,
-    #               cluster=cluster,
-    #               keepgoing=True,
-    #               force_incomplete=True,
-    #               cores=args.cores,
-    #               nodes=args.jobs,
-    #               dryrun=args.dryrun,
-    #               unlock=args.unlock,
-    #               until=args.until,
-    #               touch=args.touch,
-    #               latency_wait=args.latency)
-    #
-    # elif args.mode == 'cluster':
-    #     snakemake(resource_filename('snekmer', 'rules/cluster.smk'),
-    #                       configfiles=[args.configfile],
-    #                       config=config,
-    #                       cluster_config=args.cluster,
-    #                       cluster=cluster,
-    #                       keepgoing=True,
-    #                       force_incomplete=True,
-    #                       cores=args.cores,
-    #                       nodes=args.jobs,
-    #                       dryrun=args.dryrun,
-    #                       unlock=args.unlock,
-    #                       until=args.until,
-    #                       touch=args.touch,
-    #                       latency_wait=args.latency)
+    if args.mode == 'model':
+        snakemake(resource_filename('snekmer', 'rules/model.smk'),
+                  configfiles=[args.configfile],
+                  config=config,
+                  cluster_config=args.cluster,
+                  cluster=cluster,
+                  keepgoing=True,
+                  force_incomplete=True,
+                  cores=args.cores,
+                  nodes=args.jobs,
+                  dryrun=args.dryrun,
+                  unlock=args.unlock,
+                  until=args.until,
+                  touch=args.touch,
+                  latency_wait=args.latency)
 
-    snakemake(resource_filename('snekmer', 'Snakefile'),
-              configfiles=[args.configfile],
-              config=config,
-              cluster_config=args.cluster,
-              cluster=cluster,
-              keepgoing=True,
-              force_incomplete=True,
-              cores=args.cores,
-              nodes=args.jobs,
-              dryrun=args.dryrun,
-              unlock=args.unlock,
-              until=args.until,
-              touch=args.touch,
-              latency_wait=args.latency)
+    elif args.mode == 'cluster':
+        snakemake(resource_filename('snekmer', 'rules/cluster.smk'),
+                          configfiles=[args.configfile],
+                          config=config,
+                          cluster_config=args.cluster,
+                          cluster=cluster,
+                          keepgoing=True,
+                          force_incomplete=True,
+                          cores=args.cores,
+                          nodes=args.jobs,
+                          dryrun=args.dryrun,
+                          unlock=args.unlock,
+                          until=args.until,
+                          touch=args.touch,
+                          latency_wait=args.latency)
+
+    # singular mode only (supervised)
+    # snakemake(resource_filename('snekmer', 'rules/model.smk'),
+    #           configfiles=[args.configfile],
+    #           config=config,
+    #           cluster_config=args.cluster,
+    #           cluster=cluster,
+    #           keepgoing=True,
+    #           force_incomplete=True,
+    #           cores=args.cores,
+    #           nodes=args.jobs,
+    #           dryrun=args.dryrun,
+    #           unlock=args.unlock,
+    #           until=args.until,
+    #           touch=args.touch,
+    #           latency_wait=args.latency)
 
 
 if __name__ == '__main__':

@@ -83,19 +83,39 @@ To run `snekmer`, create a `config.yaml` file containing desired
  directory, and make sure that `input: fasta_dir` is pointing toward the
  directory containing .fasta input files. -->
 
+### Modes
+
+Snekmer has two operation modes: `model` (supervised modeling) and `cluster`
+  (unsupervised clustering). Users may choose either mode to best suit their
+  use case.
+
+The mode must be specified in the command line, e.g.:
+
+```bash
+snekmer model [--options]
+```
+or
+
+```bash
+snekmer cluster [--options]
+```
+
 Once the `config.yaml` file has been updated, I recommend a dry run:
 
 ```bash
-snekmer --dryrun
+snekmer [mode] --dryrun
 ```
+
+(For instance, in supervised mode, run `snekmer model --dryrun`.)
+
 The output of the dry run shows you the files that will be created by the
- pipeline. If no files are generated, double-check that your directory
+ pipeline. If no files are generated, double-check   that your directory
  structure matches the format specified above.
 
 When you are ready to process your files, run:
 
 ```bash
-snekmer
+snekmer [mode]
 ```
 
 ### Partial Workflow
@@ -105,7 +125,7 @@ For instance, to execute the workflow only through the kmer vector generation
 step, run:
 
 ```bash
-snekmer --until vectorize
+snekmer [mode] --until vectorize
 ```
 
 ### Extra Notes

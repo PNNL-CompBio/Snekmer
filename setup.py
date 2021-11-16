@@ -33,7 +33,7 @@ setup(name='snekmer',
       entry_points={
           'console_scripts': ['snekmer = snekmer.cli:main']
           },
-      package_data={'': ['Snakefile']},
+      package_data={'': ['rules/*.smk']},  # ['Snakefile']},
       install_requires=required,
       include_package_data=True,
       keywords=[],

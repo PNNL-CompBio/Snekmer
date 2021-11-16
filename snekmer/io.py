@@ -3,13 +3,16 @@
 author: @christinehc
 """
 # imports
+import gzip
 import json
 import re
-from os.path import basename
+from datetime import datetime
+from os.path import basename, join
 
 import numpy as np
 import pandas as pd
 from Bio import SeqIO
+from .alphabet import ALPHABET_ORDER
 
 
 # functions
@@ -169,7 +172,8 @@ def vecfiles_to_df(files, labels=None, label_name='label'):
     """
     data = {'filename': [], 'seq_id': [], 'vector': [], 'vec_shape': []}
     for afile in files:
-        with open(afile, 'r') as f:
+        with gzip.open(afile, 'rt') as f:
+        # with open(afile, 'r') as f:
             tmp = json.load(f)
             data['filename'] += [basename(afile)] * len(tmp['seq_id'])
             data['seq_id'] += tmp['seq_id']
@@ -182,3 +186,30 @@ def vecfiles_to_df(files, labels=None, label_name='label'):
                 )
         data[label_name] = labels
     return pd.DataFrame(data)
+
+
+def define_output_dir(alphabet, k, nested=False):
+    """Create output directory name using AAR parameters.
+
+    Parameters
+    ----------
+    alphabet : str or int
+        Name or numerical identifier of alphabet.
+        See `snekmer.alphabet.ALPHABETS` for descriptions.
+    k : int
+        Kmer length.
+    nested : bool (default: False)
+        If True, creates nested directories with alphabet, k.
+        If False, returns simple output directory.
+
+    Returns
+    -------
+    type
+        Description of returned object.
+
+    """
+    if not nested:
+        return "output"
+    if not isinstance(alphabet, str):
+        alphabet = ALPHABET_ORDER[alphabet]
+    return join("output", alphabet, f"k-{k:02}")
