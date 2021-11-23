@@ -73,7 +73,7 @@ rule preprocess:
                 alphabet=alphabet,
                 start=config['start'],
                 end=config['end'],
-                min_rep_thresh=min_rep_thresh,
+                min_rep_thresh=config['min_rep_thresh'],
                 verbose=config['output']['verbose'],
                 log_file=log[0],
                 processes=config['processes']
