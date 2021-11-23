@@ -13,7 +13,7 @@ processes: 2
 
 input:
   example_index_file: False
-  feature_set: '../example/model_features.txt'
+  feature_set: False
   file_extensions: ['fasta', 'fna', 'faa', 'fa']
   regex: "[a-z]{3}[A-Z]{1}"  # regex to parse family from filename
 
@@ -41,3 +41,7 @@ model:
   n: 100
   cv: 5
   random_state: None
+
+cluster:
+  method: 'correlation'
+  params: {'t': 0.75, 'criterion': 'distance', 'metric': 'correlation', 'method': 'weighted'}

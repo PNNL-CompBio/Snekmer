@@ -1,7 +1,7 @@
 __default__:
-  name: kmerpipeline
-  account: sbd_sfa
-  time: "72:00:00"
-  partition: slurm,gpu
+  name: snekmer
+  account:
+  time: "8:00:00"
+  partition:
   nodes: 1
   ntasks: 16

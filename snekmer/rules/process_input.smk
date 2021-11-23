@@ -64,12 +64,6 @@ rule preprocess:
             if alphabet == "None":
                 alphabet = None
 
-        # define minimum threshold
-        if config['mode'] == 'supervised':
-            min_rep_thresh = config['min_rep_thresh']
-        else:
-            min_rep_thresh = 0
-
         # if no feature set is specified, define feature space
         if not config['input']['feature_set']:
             # prefilter fasta to cut down on the size of feature set
