@@ -116,16 +116,19 @@ use rule vectorize_full from kmerize with:
         # output:
 
 # UNSUPERVISED WORKFLOW
-rule score:
+rule cluster:
     input:
-        kmers=join(out_dir, "labels", "{nb}.txt"),
+        # kmers=join(out_dir, "labels", "{nb}.txt"),
         files=expand(join(out_dir, "features", "full", "{fa}.json.gz"),
                      fa=NON_BGS)
     output:
-        df=join(out_dir, "features", "scores", "{nb}.csv.gz"),
-        scores=join(out_dir, "score", "{nb}.csv")
+        # df=join(out_dir, "features", "scores", "{nb}.csv.gz"),
+        # scores=join(out_dir, "score", "{nb}.csv"),
+        cluster=join(out_dir, "cluster", "{nb}.pkl"),
+        results=join(out_dir, "cluster", "results", "{nb}.csv"),
+        figs=directory(join(out_dir, "cluster", "figures", "{nb}"))
     log:
-        join(out_dir, "score", "log", "{nb}.log")
+        join(out_dir, "cluster", "log", "{nb}.log")
     run:
         # log script start time
         start_time = datetime.now()
@@ -133,7 +136,7 @@ rule score:
             f.write(f"start time:\t{start_time}\n")
 
         # get kmers for this particular set of sequences
-        kmers = skm.io.read_output_kmers(input.kmers)
+        # kmers = skm.io.read_output_kmers(input.kmers)
 
         # parse all data and label background files
         label = config['score']['lname']

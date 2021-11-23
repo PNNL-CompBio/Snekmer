@@ -1,9 +1,3 @@
-input:
-  example_index_file: False
-  feature_set: '../example/model_features.txt'
-  file_extensions: ['fasta', 'fna', 'faa', 'fa']
-  regex: "[a-z]{3}[A-Z]{1}"  # regex to parse family from filename
-
 # kmer pipeline parameters
 k: 14
 start: False
@@ -16,6 +10,12 @@ min_rep_thresh: 1
 walk: False
 full_kmer_list: False
 processes: 2
+
+input:
+  example_index_file: False
+  feature_set: '../example/model_features.txt'
+  file_extensions: ['fasta', 'fna', 'faa', 'fa']
+  regex: "[a-z]{3}[A-Z]{1}"  # regex to parse family from filename
 
 output:
   # active params
