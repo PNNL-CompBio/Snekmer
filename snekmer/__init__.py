@@ -7,5 +7,6 @@ from . import io
 from . import plot
 from . import model
 from . import score
+from . import cluster
 
 __version__ = "0.1.0"

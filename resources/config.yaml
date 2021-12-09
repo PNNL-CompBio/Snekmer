@@ -1,15 +1,17 @@
-# kmer pipeline parameters
+# required params
 k: 14
+alphabet: 0  # choices 0-5 or names (see snekmer.alphabet),  or None
+min_rep_thresh: 1
+processes: 2
+
+# optional params
 start: False
 end: False
 nucleotide: False
-alphabet: 0  # choices 0-5 or names (see snekmer.alphabet),  or None
-# custom_alphabet: {'custom_alphabet': {}}
 randomize_alphabet: False
-min_rep_thresh: 1
 walk: False
 full_kmer_list: False
-processes: 2
+# custom_alphabet: {'custom_alphabet': {}}
 
 input:
   example_index_file: False
@@ -37,9 +39,9 @@ score:
   lname: None  # label name
 
 model:
-  use_score: False
   n: 100
   cv: 5
+  use_score: False
   random_state: None
 
 cluster:

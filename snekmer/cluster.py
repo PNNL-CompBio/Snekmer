@@ -3,7 +3,7 @@
 author: @christinehc
 """
 # imports
-from numpy import full
+import numpy as np
 from sklearn.base import ClusterMixin
 from sklearn.cluster import (
     AgglomerativeClustering, DBSCAN, Birch, OPTICS, MiniBatchKMeans
@@ -77,7 +77,7 @@ class KmerClustering(ClusterMixin):
 
     def fit(self, X):
         self.model.fit(X)
-        self.labels_ = full(X.shape[0], -1, dtype=np.intp)
+        self.labels_ = np.full(X.shape[0], -1, dtype=np.intp)
 
     def predict(self, X):
         return self.model.predict(X)

@@ -6,9 +6,20 @@ author: @christinehc
 # https://stackoverflow.com/questions/29656550/how-to-plot-pr-curve-over-10-folds-of-cross-validation-in-scikit-learn
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.metrics import accuracy_score, auc, average_precision_score, roc_curve, precision_recall_curve
-from sklearn.model_selection import KFold, train_test_split, RandomizedSearchCV, StratifiedKFold
+import seaborn as sns
+from sklearn.metrics import (accuracy_score,
+                             auc,
+                             average_precision_score,
+                             roc_curve,
+                             precision_recall_curve)
+from sklearn.model_selection import (KFold,
+                                     train_test_split,
+                                     RandomizedSearchCV,
+                                     StratifiedKFold)
 from sklearn.svm import SVC
+from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
 
 
 def show_cv_roc_curve(clf, cv, X, y, title='ROC Curve', ax=None, dpi=400):
@@ -156,4 +167,31 @@ def show_cv_pr_curve(clf, cv, X, y, title='PR Curve', ax=None, dpi=400):
     ax.set_ylabel('Precision')
     ax.set_title(title)
     ax.legend(bbox_to_anchor=(1.05, 0.5), loc='center left', borderaxespad=0.)
+    return fig, ax
+
+
+# plot PCA explained variance
+def show_explained_variance_curve(feature_matrix):
+    X_scaled = StandardScaler().fit_transform(feature_matrix)
+    pca = PCA()
+    pca.fit(X_scaled)
+
+    fig, ax = plt.subplots(dpi=200, figsize=(4, 3))
+    ax.plot(
+        [0] + list(np.arange(1, pca.n_components_ + 1)),
+        [0] + list(np.cumsum(pca.explained_variance_ratio_))
+    )
+    ax.set_ylabel("PCA explained variance ratio")
+
+    return fig, ax
+
+
+# plot clusters using tsne (requires scaling + pca)
+def get_tsne_clusters(feature_matrix, clusters, **tsne_args):
+    X_scaled = StandardScaler().fit_transform(feature_matrix)
+    X_pca = PCA().fit_transform(X_scaled)
+    X_embedded = TSNE(**tsne_args).fit_transform(X_pca)#[:, :100])#_unscaled)
+
+    fig, ax = plt.subplots(dpi=200, figsize=(4, 3))
+    sns.scatterplot(x=X_embedded[:, 0], y=X_embedded[:, 1], hue=clusters, ax=ax)
     return fig, ax
