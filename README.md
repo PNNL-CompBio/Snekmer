@@ -1,4 +1,4 @@
-# KmerPipeline
+# Snekmer
 Pipeline to apply encoded Kmer analysis to protein sequences
 
 Input: fasta protein sequences
