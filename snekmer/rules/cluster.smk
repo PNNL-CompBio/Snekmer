@@ -49,7 +49,6 @@ uz_map = {skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f i
 fa_map = {skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in unzipped}
 UZS = list(uz_map.keys())
 FAS = list(fa_map.keys())
-# NON_BGS, BGS = FAS, []
 
 # parse any background files
 bg_files = glob(join("input", "background", "*"))
@@ -59,7 +58,6 @@ NON_BGS, BGS = [f for f in FAS if f not in bg_files], bg_files
 
 # terminate with error if invalid alphabet specified
 skm.alphabet.check_valid(config['alphabet'])
-# elif config['alphabet'] == 'custom':
 
 # define output directory (helpful for multiple runs)
 out_dir = skm.io.define_output_dir(config['alphabet'], config['k'],
@@ -69,16 +67,13 @@ out_dir = skm.io.define_output_dir(config['alphabet'], config['k'],
 rule all:
     input:
         expand(join("input", '{uz}'), uz=UZS),  # require unzipping
-        # expand(join(out_dir, "processed", "{nb}.json"), nb=NON_BGS),
-        # expand(join(out_dir, "features", "full", "{nb}.json.gz"), nb=NON_BGS),  # correctly build features
         expand(join(out_dir, "cluster", "{nb}.pkl"), nb=NON_BGS)  # require model-building
 
 
 # if any files are gzip zipped, unzip them
 use rule unzip from process_input with:
     output:
-        join("input", '{uz}')
-        # join("input", "{uz}.{uzext}") ?
+        join("input", '{uz}')  # or join("input", "{uz}.{uzext}") ?
 
 # read and process parameters from config
 use rule preprocess from process_input with:
@@ -122,10 +117,7 @@ rule cluster:
         files=expand(join(out_dir, "features", "full", "{fa}.json.gz"),
                      fa=NON_BGS)
     output:
-        # df=join(out_dir, "features", "scores", "{nb}.csv.gz"),
-        # scores=join(out_dir, "score", "{nb}.csv"),
         model=join(out_dir, "cluster", "{nb}.pkl"),
-        # results=join(out_dir, "cluster", "results", "{nb}.csv"),
         figs=directory(join(out_dir, "cluster", "figures", "{nb}"))
     log:
         join(out_dir, "cluster", "log", "{nb}.log")
@@ -134,9 +126,6 @@ rule cluster:
         start_time = datetime.now()
         with open(log[0], 'a') as f:
             f.write(f"start time:\t{start_time}\n")
-
-        # get kmers for this particular set of sequences
-        # kmers = skm.io.read_output_kmers(input.kmers)
 
         # parse all data and label background files
         label = config['score']['lname']
@@ -148,20 +137,11 @@ rule cluster:
         # log conversion step runtime
         skm.utils.log_runtime(log[0], start_time, step="vecfiles_to_df")
 
-        # # parse family names and only add if some are valid
-        # families = [
-        #     skm.utils.split_file_ext(fn)[0] for fn in data['filename']
-        # ]
-        # if any(families):
-        #     label = 'family'
-        #     data[label] = families
-
         # define feature matrix of kmer vectors not from background set
         bg, non_bg = data[data['background']], data[~data['background']]
         full_feature_matrix = skm.score.to_feature_matrix(data['vector'].values)
         feature_matrix = skm.score.to_feature_matrix(non_bg['vector'].values)
         bg_feature_matrix = skm.score.to_feature_matrix(bg['vector'].values)
-        # print(feature_matrix.T.shape, bg_feature_matrix.T.shape, np.array(kmers).shape)
 
         # fit and save clustering model
         model = skm.cluster.KmerClustering(config['cluster']['method'],

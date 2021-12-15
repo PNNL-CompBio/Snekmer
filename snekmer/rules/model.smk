@@ -58,7 +58,6 @@ uz_map = {skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f i
 fa_map = {skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in unzipped}
 UZS = list(uz_map.keys())
 FAS = list(fa_map.keys())
-# NON_BGS, BGS = FAS, []
 
 # parse any background files
 bg_files = glob(join("input", "background", "*"))
@@ -66,11 +65,8 @@ if len(bg_files) > 0:
     bg_files = [skm.utils.split_file_ext(basename(f))[0] for f in bg_files]
 NON_BGS, BGS = [f for f in FAS if f not in bg_files], bg_files
 
-# print(NON_BGS, BGS)
-
 # terminate with error if invalid alphabet specified
 skm.alphabet.check_valid(config['alphabet'])
-# elif config['alphabet'] == 'custom':
 
 
 # define output directory (helpful for multiple runs)
@@ -81,7 +77,6 @@ out_dir = skm.io.define_output_dir(config['alphabet'], config['k'],
 rule all:
     input:
         expand(join("input", '{uz}'), uz=UZS),  # require unzipping
-        # expand(join(out_dir, "processed", "{nb}.json"), nb=NON_BGS),
         expand(join(out_dir, "features", "{nb}", "{fa}.json.gz"), nb=NON_BGS, fa=FAS),  # correctly build features
         expand(join(out_dir, "model", "{nb}.pkl"), nb=NON_BGS)  # require model-building
 
@@ -89,8 +84,7 @@ rule all:
 # if any files are gzip zipped, unzip them
 use rule unzip from process_input with:
     output:
-        join("input", '{uz}')
-        # join("input", "{uz}.{uzext}") ?
+        join("input", '{uz}')  # or join("input", "{uz}.{uzext}") ?
 
 # read and process parameters from config
 use rule preprocess from process_input with:
@@ -172,7 +166,6 @@ rule score:
         full_feature_matrix = skm.score.to_feature_matrix(data['vector'].values)
         feature_matrix = skm.score.to_feature_matrix(non_bg['vector'].values)
         bg_feature_matrix = skm.score.to_feature_matrix(bg['vector'].values)
-        # print(feature_matrix.T.shape, bg_feature_matrix.T.shape, np.array(kmers).shape)
 
         # compute class probabilities
         labels = non_bg[label].values
@@ -276,7 +269,6 @@ rule model:
         results=join(out_dir, "model", "results", "{nb}.csv"),
         figs=directory(join(out_dir, "model", "figures", "{nb}"))
     run:
-        # data = skm.model.format_data_df(input.files)
         data = read_csv(input.data)
         scores = read_csv(input.scores)
         family = skm.utils.split_file_ext(input.scores)[0]  # skm.utils.get_family(input.scores, regex=config['input']['regex'])
@@ -304,15 +296,21 @@ rule model:
         if str(config['model']['random_state']) != "None":
             random_state = config['model']['random_state']
 
-        X, y = data[f"{family}_score"].values.reshape(-1, 1), le.transform(binary_labels).ravel()
+        # set and format input and label arrays; initialize model objs
+        X = data[f"{family}_score"].values.reshape(-1, 1)
+        y = le.transform(binary_labels).ravel()
         cv = StratifiedKFold(config['model']['cv'])
         clf = LogisticRegressionCV(
-            random_state=random_state, cv=cv, solver='liblinear', class_weight='balanced'
+            random_state=random_state,
+            cv=cv,
+            solver='liblinear',
+            class_weight='balanced'
         )
 
         # ROC-AUC figure
         fig, ax = skm.plot.show_cv_roc_curve(
-            clf, cv, X, y, title=f"{family} ROC Curve ({alphabet_name}, k = {config['k']})"
+            clf, cv, X, y,
+            title=f"{family} ROC Curve ({alphabet_name}, k = {config['k']})"
         )
 
         # collate ROC-AUC results
@@ -327,7 +325,13 @@ rule model:
         plt.tight_layout()
         if not exists(output.figs):
             makedirs(output.figs)
-        fig.savefig(join(output.figs, f"{family}_roc-auc-curve_{alphabet_name.lower()}_k-{config['k']:02d}.png"))
+        fig.savefig(
+            join(
+                output.figs,
+                (f"{family}_roc-auc-curve_{alphabet_name.lower()}"
+                 f"_k-{config['k']:02d}.png")
+                )
+            )
         plt.close("all")
 
         # PR-AUC figure
@@ -345,9 +349,13 @@ rule model:
 
         # save PR-AUC figure
         plt.tight_layout()
-        if not exists(output.figs):
-            makedirs(output.figs)
-        fig.savefig(join(output.figs, f"{family}_aupr-curve_{alphabet_name.lower()}_k-{config['k']:02d}.png"))
+        fig.savefig(
+            join(
+                output.figs,
+                (f"{family}_aupr-curve_{alphabet_name.lower()}"
+                 f"_k-{config['k']:02d}.png")
+                )
+            )
         plt.close("all")
 
         # save model
@@ -357,29 +365,3 @@ rule model:
 
         # save full results
         DataFrame(results).to_csv(output.results, index=False)
-
-        # # define x, y matrices
-        # X, y, Y = np.asarray([arr for arr in data['vec'].values]), data[family].values, data['family'].values
-        # Xb = (X > 0) * 1  # binary presence/absence
-        #
-        # # restrict kmer vector by score
-        # if config['model']['use_score']:
-        #     scaler = skm.model.KmerScaler(n=config['model']['n'])
-        #     score_list = scores[scores['label'] == family]['score'].values[0]
-        #     scaler.fit(score_list)
-        #     Xb = scaler.transform(Xb)
-        #
-        # Xb_train, Xb_test, y_train, y_test = train_test_split(
-        #     Xb, y, test_size=0.25, stratify=y
-        # )
-        #
-        # # train and save model
-        # clf = skm.model.KmerModel(model=config['model']['type'], scaler=None)  # scaler currently separate from model
-        # print(clf.model)
-        # clf.fit(Xb_train, y_train)
-        # print(clf.score(Xb_test, y_test))
-        #
-        # # save cv results and model
-        # DataFrame(clf.search.cv_results_).to_csv(output.results, index=False)
-        # with open(output.model, 'wb') as f:
-        #     pickle.dump(clf, f, protocol=pickle.HIGHEST_PROTOCOL)
