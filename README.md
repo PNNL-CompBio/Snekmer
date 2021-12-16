@@ -1,12 +1,15 @@
 # Snekmer
+
 Pipeline to apply encoded Kmer analysis to protein sequences
 
 Model mode:
+
 * **Input:** fasta protein sequences in known families
 * **Output:** models of the families
   * _Evaluation output:_ assessment of model performance
 
 Cluster mode:
+
 * **Input:** fasta protein sequences
 * **Output:** clusters of similar proteins
   * _Evaluation output:_ assessment of how well the clusters of similar proteins represent functions
@@ -59,10 +62,10 @@ To run `snekmer`, create a `config.yaml` file containing desired
 .
 ├── config.yaml
 ├── input
-|   ├── background
-|   |   ├── X.fasta
-|   |   ├── Y.fasta
-|   │   └── etc.
+│   ├── background
+│   │   ├── X.fasta
+│   │   ├── Y.fasta
+│   │   └── etc.
 │   ├── A.fasta
 │   ├── B.fasta
 │   └── etc.
