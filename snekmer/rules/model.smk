@@ -299,7 +299,7 @@ rule model:
         # set and format input and label arrays; initialize model objs
         X = data[f"{family}_score"].values.reshape(-1, 1)
         y = le.transform(binary_labels).ravel()
-        cv = StratifiedKFold(config['model']['cv'])
+        cv = StratifiedKFold(config['model']['cv'], shuffle=True)
         clf = LogisticRegressionCV(
             random_state=random_state,
             cv=cv,
