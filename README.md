@@ -4,7 +4,7 @@
 Pipeline to apply encoded Kmer analysis to protein sequences
 
 <p align="center">
-  <img align="center" src="resources/snekmer_workflow.png" width="65%" height="65%">
+  <img align="center" src="resources/snekmer_workflow.png" width="80%" height="80%">
 </p>
 
 Model mode:
