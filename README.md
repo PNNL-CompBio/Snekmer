@@ -1,6 +1,11 @@
 # Snekmer
+---------
 
 Pipeline to apply encoded Kmer analysis to protein sequences
+
+<p align="center">
+  <img align="center" src="resources/snekmer_workflow.png" width="65%" height="65%">
+</p>
 
 Model mode:
 
@@ -17,10 +22,12 @@ Cluster mode:
   proteins represent functions
 
 ## Installation
+---------------
 
 We recommend using Anaconda to create a virtual environment. Anaconda handles dependencies and versioning, which simplifies the process of installation.
 
 ### Procedure
+-------------
 
 Create a conda environment called `snekmer`:
 
@@ -49,6 +56,7 @@ pip install .
 The package should now be ready to use!
 
 #### Troubleshooting Notes
+--------------------------
 
 For Windows users: If you are running into conflicts/errors when creating
   the conda environment in Windows, you may need to install the minimal
@@ -59,6 +67,7 @@ conda create -n kmers -c conda-forge -c bioconda biopython matplotlib numpy pand
 ```
 
 ## Command-Line Interface
+-------------------------
 
 To run Snekmer, create a **_config.yaml_** file containing desired
   parameters. A template is provided at **_snekmer/config.yaml_**.
@@ -92,6 +101,7 @@ Snekmer assumes that input files are stored in the **_input_** directory,
  directory containing .fasta input files. -->
 
 ### Modes
+---------
 
 Snekmer has two operation modes: `model` (supervised modeling) and `cluster`
   (unsupervised clustering). Users may choose either mode to best suit their
@@ -127,6 +137,7 @@ snekmer [mode]
 ```
 
 ### Partial Workflow
+--------------------
 
 To execute only a part of the workflow, the parameter `--until` can be invoked.
 For instance, to execute the workflow only through the kmer vector generation
