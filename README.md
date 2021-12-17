@@ -25,8 +25,7 @@ We recommend using Anaconda to create a virtual environment. Anaconda handles de
 Create a conda environment called `snekmer`:
 
 ```bash
-conda create -n snekmer -c conda-forge -c bioconda biopython matplotlib numpy
-pandas seaborn snakemake scikit-learn
+conda create -n snekmer -c conda-forge -c bioconda biopython matplotlib numpy pandas seaborn snakemake scikit-learn
 ```
 
 Activate the environment:
@@ -40,7 +39,7 @@ Install the `snekmer` package (note: git clone step is optional if you
 
 ```bash
 # clone repository if you haven't already
-git clone https://github.com/PNNL-Compbio/Snekmer/Snekmer.git
+git clone https://github.com/PNNL-CompBio/Snekmer/Snekmer.git
 
 # install from cloned repository
 cd Snekmer
@@ -56,8 +55,7 @@ For Windows users: If you are running into conflicts/errors when creating
   version of Snakemake instead:
 
 ```bash
-conda create -n kmers -c conda-forge -c bioconda biopython matplotlib numpy
-pandas seaborn snakemake-minimal scikit-learn
+conda create -n kmers -c conda-forge -c bioconda biopython matplotlib numpy pandas seaborn snakemake-minimal scikit-learn
 ```
 
 ## Command-Line Interface
