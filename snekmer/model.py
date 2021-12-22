@@ -3,13 +3,14 @@
 author: @christinehc
 """
 # imports
+import collections
 import json
 
 import numpy as np
 import pandas as pd
 
 from .io import read_output_kmers
-from .utils import get_family
+from .utils import check_list, get_family
 from .plot import show_cv_roc_curve, show_cv_pr_curve
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
@@ -34,7 +35,7 @@ MODEL_NAME =  {
 
 
 # classes
-class KmerScaler:
+class KmerScoreScaler:
     """Scale and reduce kmer set based on scores.
 
     Parameters
@@ -87,7 +88,7 @@ class KmerScaler:
         Returns
         -------
         None
-            Fits KmerScaler() object.
+            Fits KmerScoreScaler() object.
 
         """
         if not isinstance(scores, np.ndarray):
@@ -149,6 +150,7 @@ class KmerScaler:
         return array[self.kmer_basis_idx]
 
 
+# classification models for protein families
 class KmerModel:
     """Classify a protein family using kmer vectors as input.
 
@@ -273,6 +275,79 @@ class KmerModel:
         return self.model.predict(X)
 
 
+# object to handle basis-to-basis transformation of kmer vectors
+class KmerRebaser:
+    """Transform vector in accordance with a desired kmer basis set.
+
+    Attributes
+    ----------
+    basis : list or array-like
+        List of m kmers in basis set, in fixed order.
+    basis_order : dict
+        Map of index orders corresponding to kmers in basis set.
+            i.e. {0: kmer_0, 1: kmer_1, ..., m: kmer_m}
+
+    """
+    def __init__(self):
+        """Initialize object to store transformation basis set.
+
+        """
+        self.basis = []
+        self.basis_order = {}
+
+    def set_basis(self, basis):
+        """Set kmer basis set for transformation.
+
+        Parameters
+        ----------
+        basis : list or array-like
+            List of m kmers in basis set, in fixed order.
+
+        """
+        if not check_list(basis):
+            raise TypeError("`basis` input must be list or array-like.")
+
+        self.basis = basis
+        self.basis_order = {i: k for i, k in enumerate(basis)}
+
+    def transform(self, vector, vector_basis):
+        """Transform vector from its basis set to the pre-set basis.
+
+        Parameters
+        ----------
+        vector : list or array-like
+            Kmer count vector of shape (n,).
+        vector_basis : type
+            Basis set of n kmers corresponding to input vector.
+
+        Returns
+        -------
+        list
+            Rebased kmer count vector of shape (m,).
+
+        """
+        if not check_list(vector_basis):
+            raise TypeError("`vector_basis` input must be list or array-like.")
+
+        if len(vector) != len(vector_basis):
+            raise ValueError("Vector and supplied basis must be the same size"
+                             f" (len(vector) = {len(vector)}"
+                             f" and len(vector_basis) = {len(vector_basis)}).")
+
+        # get index order of kmers in the vector basis set
+        vector_basis_order = {k: i if k in self.basis else np.nan
+                              for i, k in enumerate(vector_basis)}
+
+        # convert vector basis into set basis
+        converted = list()
+        for i in range(len(self.basis)):
+            kmer = self.basis_order[i]  # get basis set kmer in correct order
+            idx = vector_basis_order[kmer]  # locate kmer in the new vector
+            converted.append(vector[idx])
+
+        return converted
+
+
 # functions
 def format_data_df(filenames, label_name='family'):
     """Format Kmer sequence data into long-form dataframe.
@@ -330,8 +405,3 @@ def format_data_df(filenames, label_name='family'):
         data[topfam] = [1 if fam == topfam else 0 for fam in data[label_name]]
 
     return data
-
-
-# class KmerScoreModel:
-#     def __init__(self):
-#         return

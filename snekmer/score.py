@@ -10,7 +10,7 @@ import pandas as pd
 
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.metrics.pairwise import pairwise_distances
-from .model import KmerScaler
+from .model import KmerScoreScaler
 
 
 # classes
@@ -65,7 +65,7 @@ class KmerScorer:
         scaler : bool (default: False)
             If True, performs scaling to reduce kmer features.
         **scaler_kwargs : dict
-            Keyword arguments to pass to :class: `~KmerScaler()`.
+            Keyword arguments to pass to :class: `~KmerScoreScaler()`.
 
         Returns
         -------
@@ -463,7 +463,7 @@ def apply_feature_probabilities(
     scaler : bool (default: False)
         If True, performs scaling to reduce kmer features.
     **kwargs : dict
-        Keyword arguments for KmerScaler().
+        Keyword arguments for KmerScoreScaler().
 
     Returns
     -------
@@ -473,7 +473,7 @@ def apply_feature_probabilities(
     """
     # optionally apply scaling
     if scaler:
-        scaler = KmerScaler(**kwargs)
+        scaler = KmerScoreScaler(**kwargs)
         scaler.fit(scores)
         scores = scaler.transform(scores)
         feature_matrix = scaler.transform(feature_matrix)

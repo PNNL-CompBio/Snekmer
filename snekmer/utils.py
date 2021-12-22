@@ -3,6 +3,7 @@
 author: @christinehc
 """
 # imports
+import collections
 from datetime import datetime
 import re
 from os.path import basename, splitext
@@ -13,6 +14,26 @@ from Bio import SeqIO
 
 
 # functions
+def check_list(array):
+    """Check whether input is a sequence, list, or array-like object.
+
+    Parameters
+    ----------
+    array : type
+        Input array (or any parameter type).
+
+    Returns
+    -------
+    bool
+        Returns True if input is a list/sequence, array, or Series.
+
+    """
+    if not isinstance(
+            array, (collections.Sequence, np.ndarray, pd.Series)
+            ):
+        return False
+    return True
+
 def count_sequences(fasta):
     """Count the number of sequences contained in a fasta file.
 

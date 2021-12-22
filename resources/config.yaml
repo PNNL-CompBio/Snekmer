@@ -10,7 +10,6 @@ end: False
 nucleotide: False
 randomize_alphabet: False
 walk: False
-full_kmer_list: False
 # custom_alphabet: {'custom_alphabet': {}}
 
 input:
