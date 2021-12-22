@@ -106,6 +106,7 @@ use rule generate from kmerize with:
         join(out_dir, "labels", "log", "{nb}.log")
 
 # build kmer count vectors for each basis set
+
 use rule vectorize from kmerize with:
     input:
         kmers=join(out_dir, "labels", "{nb}.txt"),
@@ -292,7 +293,8 @@ rule model:
         le.fit(binary_labels)
 
         # set random seed if specified
-        random_state = np.random.randint(0, 2**32)
+        rng = np.random.default_rng()
+        random_state = rng.integers(low=0, high=32767)  # max for int16
         if str(config['model']['random_state']) != "None":
             random_state = config['model']['random_state']
 
