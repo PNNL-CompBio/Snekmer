@@ -130,6 +130,24 @@ When you are ready to process your files, run:
 snekmer [mode]
 ```
 
+#### Output
+
+```
+.
+├── config.yaml
+├── input
+│   ├── background
+│   │   ├── X.fasta
+│   │   ├── Y.fasta
+│   │   └── etc.
+│   ├── A.fasta
+│   ├── B.fasta
+│   └── etc.
+├── output
+│   ├── ...
+│   └── ...
+```
+
 ### Partial Workflow
 
 To execute only a part of the workflow, the parameter `--until` can be invoked.

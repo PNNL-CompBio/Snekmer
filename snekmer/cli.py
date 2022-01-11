@@ -80,9 +80,11 @@ def main():
     if args.count is not None:
         config = {'start': args.countstart,
                   'stop': args.countstart + args.count,
+                  'mode': args.mode,
                   **config}
     else:
-        config = {**config}
+        config = {'mode': args.mode,
+                  **config}
 
     # cluster config
     if args.cluster is not None:

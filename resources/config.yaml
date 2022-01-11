@@ -10,6 +10,7 @@ end: False
 nucleotide: False
 randomize_alphabet: False
 walk: False
+mode: None
 # custom_alphabet: {'custom_alphabet': {}}
 
 input:
