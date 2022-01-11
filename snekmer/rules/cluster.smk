@@ -80,24 +80,24 @@ use rule preprocess from process_input with:
     input:
         fasta=lambda wildcards: join("input", f"{wildcards.nb}.{fa_map[wildcards.nb]}")
     output:
-        data=join(out_dir, "processed", "{nb}.json"),
-        desc=join(out_dir, "processed", "{nb}_description.csv")
+        data=join(out_dir, "processed", "full", "{nb}.json"),
+        desc=join(out_dir, "processed", "full", "{nb}_description.csv")
     log:
         join(out_dir, "processed", "log", "{nb}.log")
 
 # generate kmer features space from user params
 use rule generate from kmerize with:
     input:
-        params=join(out_dir, "processed", "{nb}.json")
+        params=join(out_dir, "processed", "full", "{nb}.json")
     output:
-        labels=join(out_dir, "labels", "{nb}.txt")
+        labels=join(out_dir, "labels", "full", "{nb}.txt")
     log:
         join(out_dir, "labels", "log", "{nb}.log")
 
 # build kmer count vectors for each basis set
 use rule vectorize_full from kmerize with:
     input:
-        kmers=join(out_dir, "labels", "{nb}.txt"),
+        kmers=join(out_dir, "labels", "full", "{nb}.txt"),
         params=join(out_dir, "processed", "{nb}.json"),
         fasta=lambda wildcards: join("input", f"{wildcards.nb}.{fa_map[wildcards.nb]}")
     log:

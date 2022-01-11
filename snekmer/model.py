@@ -3,15 +3,19 @@
 author: @christinehc
 """
 # imports
-import collections
+import collections.abc
 import json
 
 import numpy as np
 import pandas as pd
 
 from .io import read_output_kmers
-from .utils import check_list, get_family
+from .utils import check_list, get_family, to_feature_matrix
 from .plot import show_cv_roc_curve, show_cv_pr_curve
+from .score import (
+    feature_class_probabilities, apply_feature_probabilities, KmerScoreScaler
+)
+from .transform import KmerBasis
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 from sklearn.linear_model import LogisticRegressionCV
@@ -34,120 +38,202 @@ MODEL_NAME =  {
 }
 
 
-# classes
-class KmerScoreScaler:
-    """Scale and reduce kmer set based on scores.
-
-    Parameters
-    ----------
-    scores : list or numpy.ndarray
-        Description of parameter `model`.
-    n : int
-        Feature cutoff (top n kmer features to include)
+class KmerScorer:
+    """Score kmer vectors based on summed probability scores.
 
     Attributes
     ----------
-    n : int or float
-        Feature cutoff (top n kmer features).
-        Accepts either an integer of the top n features, or a float
-        indicating a percentage (n = 0.1 for the top 10% of features)
-    input_shape : tuple
-        Input array shape.
-    kmer_basis_idx : numpy.ndarray
-        List of indices from kmer feature vector making up the
-        specified basis set, ordered from most to least important.
-    kmer_basis_score : list of tuples
-        List of tuples for kmer feature vector making up the
-        specified basis set, ordered from most to least important.
-        Tuples are: (index, score) for each listed feature.
-    scores : numpy.ndarray
-        Array of scores for kmer features.
+    kmers : :obj:`~KmerBasis`
+        Basis set object for kmer standardization.
+    matrix : numpy.ndarray
+        Feature matrix for all sequences.
+    labels : list or array-like of str
+        Array of all labels in overall dataset.
+    primary_label : str
+        Primary label identifier for fitted sequence data.
+    i_background : dict of list
+        Description of attribute `i_background`.
+    i_label : dict
+        Description of attribute `i_label`.
+    scaler : type
+        Description of attribute `scaler`.
+    scores : type
+        Description of attribute `scores`.
+    score_norm : type
+        Description of attribute `score_norm`.
+    probabilities : type
+        Description of attribute `probabilities`.
 
     """
+    def __init__(self):
+        self.kmers = KmerBasis()
+        self.primary_label = None
+        self.scaler = None
+        self.scores = {'sample': {}, 'background': {}}
+        self.score_norm = None
+        self.probabilities = {'sample': {}, 'background': {}}
 
-    def __init__(self, n=100):
-        """Initialize KmerScaler object.
-
-        """
-        self.n = n
-        self.input_shape = None
-        self.scores = None
-        self.kmer_basis_idx = None
-        self.kmer_basis_score = dict()
-
-    def fit(self, scores):
-        """Fit scaler based on list of scores.
-
-        Parameters
-        ----------
-        scores : list or numpy.ndarray
-            Array of scores for kmer features.
-        threshold : float
-            Numerical cutoff for kmer feature scores.
-
-        Returns
-        -------
-        None
-            Fits KmerScoreScaler() object.
-
-        """
-        if not isinstance(scores, np.ndarray):
-            scores = np.array(scores)
-        self.scores = scores
-        self.input_shape = scores.shape
-
-        # option 1: set score threshold as limit -- REMOVED
-        # if threshold is not None:
-        #     indices = np.where(np.array(scores > threshold))[0]
-
-        if self.n is not None:
-            # option 2: set # of features as limit
-            if (isinstance(self.n, int)) and (self.n >= 1):
-                indices = scores.ravel().argsort()[:-self.n - 1:-1]
-            # option 3: set % of features as limit
-            elif (isinstance(self.n, float)) and (self.n < 1):
-                n = int(np.floor(self.n * len(scores)))
-                indices = scores.ravel().argsort()[:-n - 1:-1]
-            else:
-                raise ValueError("Invalid input format for `n`"
-                                 " (must be either int > 1, or"
-                                 " 0.0 < float < 1.0).")
-        else:
-            raise ValueError("One of either `threshold` or `n` must"
-                             " be specified.")
-
-        # store basis set and indices as attributes
-        self.kmer_basis_idx = indices
-        self.kmer_basis_score = [(i, score) for i, score in zip(
-            self.kmer_basis_idx, scores[self.kmer_basis_idx])]
-        return
-
-    def transform(self, array):
-        """Reduce vector to kmer basis set.
+    # load list of kmers and both seq and bg feature matrices
+    def fit(self, kmers, data, label,
+            label_col='family', bg_col='background',
+            **scaler_kwargs):
+        """Short summary.
 
         Parameters
         ----------
-        array : list or numpy.ndarray
-            Unscaled kmer vector or matrix.
+        kmers : type
+            Description of parameter `kmers`.
+        data : type
+            Description of parameter `data`.
+        label : type
+            Description of parameter `label`.
+        label_col : type
+            Description of parameter `label_col`.
+        bg_col : type
+            Description of parameter `bg_col`.
+        **scaler_kwargs : dict
+            Keyword arguments for
+            :obj:`~snekmer.model.KmerScoreScaler`.
 
         Returns
         -------
-        numpy.ndarray
-            Scaled kmer vector or matrix.
+        type
+            Description of returned object.
 
         """
-        if self.kmer_basis_idx is None or not any(self.kmer_basis_idx):
-            raise AttributeError("Kmer basis set not defined;"
-                                 " must fit scores to scaler.")
-        if not isinstance(array, np.ndarray):
-            array = np.array(array)
-        if array.shape != self.input_shape:
-            if array[0].shape != self.input_shape:
-                raise ValueError(f"Input vector shape {array.shape}"
-                                 f" does not match fitted vector shape"
-                                 f" {self.input_shape}.")
-            return np.array([a[self.kmer_basis_idx] for a in array])
-        return array[self.kmer_basis_idx]
+        # save primary family label
+        self.primary_label = label
+
+        # step 00: set kmer basis
+        self.kmers.set_basis(kmers)
+
+        # step 0: get indices of sample and background sequences
+        i_background = {
+            'sample': list(data.index[~data[bg_col]]),
+            'background': list(data.index[data[bg_col]])
+        }
+
+        # step 0: get feature matrix and all labels
+        labels = data[label_col].values
+        matrix = to_feature_matrix(data['vector'])
+        # print(matrix.shape)
+
+        # step 0: get indices for label (family) ids
+        # i_label = {
+        #     ll: list(data.index[data[label_col] == ll])
+        #     for ll in data[label_col].unique()
+        # }
+
+        # step 1: score sample sequences and fit score scaler
+        sample_matrix = matrix[i_background['sample']]
+        s_labels = labels[i_background['sample']]
+        probas = feature_class_probabilities(
+            sample_matrix.T, s_labels, kmers=self.kmers.basis
+        )
+        self.probabilities['sample'] = probas[
+            probas['label'] == self.primary_label
+        ]['score'].values
+
+        # step 2: fit scaler to the sample data (ignore the background)
+        self.scaler = KmerScoreScaler(**scaler_kwargs)
+        self.scaler.fit(
+            probas[probas['label'] == label]['probability']
+        )  # probas is an ordered list of scores from kmers. returns indices for these scores
+
+        # step 3: compute background
+        background_matrix = matrix[i_background['background']]
+        bg_labels = labels[i_background['background']]
+        if len(background_matrix) > 0:
+            bg_probas = feature_class_probabilities(
+                background_matrix.T, bg_labels, kmers=self.kmers.basis
+            )
+            self.probabilities['background'] = bg_probas[
+                bg_probas['label'] == self.primary_label
+            ]['score'].values
+
+            # step 3.1: background family probability scores
+            for bl in np.unique(bg_labels):
+                bg_scores = bg_probas[
+                    bg_probas['label'] == bl
+                ]['score'].values
+
+                # normalize by max bg score
+                # bg_norm = np.max(bg_scores)
+
+                # get background scores for sequences
+                bg_only_scores = apply_feature_probabilities(
+                    matrix, bg_scores, scaler=self.scaler
+                )
+
+                # normalize by max bg score attained by a sequence
+                bg_norm = np.max(bg_only_scores)
+
+                self.scores['background'][bl] = bg_only_scores / bg_norm
+
+        # step 3.2: assign family probability scores
+        for sl in np.unique(s_labels):
+            scores = probas[probas['label'] == sl]['score'].values
+
+            # normalize by sum of all positive scores
+            # norm = np.sum([s for s in scores if s > 0])
+
+            # include background sequences for score generation
+            total_scores = apply_feature_probabilities(
+                matrix, scores, scaler=self.scaler
+            )
+
+            # normalize by max score
+            norm = np.max(total_scores)
+            norm = max(norm, 1.0)  # prevent score explosion?
+            if sl == self.primary_label:
+                self.score_norm = norm
+
+            # assign percent score based on max positive score
+            self.scores['sample'][f"{sl}_score"] = total_scores / norm
+
+            # weight family score by (1 - normalized bg score)
+            if sl in np.unique(bg_labels):
+                self.scores['sample'][
+                    f"{sl}_score_background_weighted"
+                ] = [
+                    total * (1 - bg) for total, bg in zip(
+                        self.scores['sample'][f"{sl}_score"],
+                        self.scores['background'][sl]
+                    )
+                ]
+
+                # old scoring method
+                self.scores['sample'][
+                    f"{sl}_background_subtracted_score"
+                ] = [
+                    total - bg for total, bg in zip(
+                        self.scores['sample'][f"{sl}_score"],
+                        self.scores['background'][sl]
+                    )
+                ]
+
+    # score new input sequences
+    def predict(self, array, kmers):
+        """Predict scores of new array with separate kmer basis.
+
+        Parameters
+        ----------
+        array : list or array-like
+            Description of parameter `array`.
+        kmers : list or array-like of str
+            Ordered array of kmer strings.
+
+        Returns
+        -------
+        type
+            Description of returned object.
+
+        """
+        # fit new input data to the correct kmer basis
+        array = self.kmers.transform(array, kmers)
+        return apply_feature_probabilities(
+            array, self.probabilities['sample'], scaler=self.scaler
+        ) / self.score_norm
 
 
 # classification models for protein families
@@ -273,79 +359,6 @@ class KmerModel:
 
         """
         return self.model.predict(X)
-
-
-# object to handle basis-to-basis transformation of kmer vectors
-class KmerRebaser:
-    """Transform vector in accordance with a desired kmer basis set.
-
-    Attributes
-    ----------
-    basis : list or array-like
-        List of m kmers in basis set, in fixed order.
-    basis_order : dict
-        Map of index orders corresponding to kmers in basis set.
-            i.e. {0: kmer_0, 1: kmer_1, ..., m: kmer_m}
-
-    """
-    def __init__(self):
-        """Initialize object to store transformation basis set.
-
-        """
-        self.basis = []
-        self.basis_order = {}
-
-    def set_basis(self, basis):
-        """Set kmer basis set for transformation.
-
-        Parameters
-        ----------
-        basis : list or array-like
-            List of m kmers in basis set, in fixed order.
-
-        """
-        if not check_list(basis):
-            raise TypeError("`basis` input must be list or array-like.")
-
-        self.basis = basis
-        self.basis_order = {i: k for i, k in enumerate(basis)}
-
-    def transform(self, vector, vector_basis):
-        """Transform vector from its basis set to the pre-set basis.
-
-        Parameters
-        ----------
-        vector : list or array-like
-            Kmer count vector of shape (n,).
-        vector_basis : type
-            Basis set of n kmers corresponding to input vector.
-
-        Returns
-        -------
-        list
-            Rebased kmer count vector of shape (m,).
-
-        """
-        if not check_list(vector_basis):
-            raise TypeError("`vector_basis` input must be list or array-like.")
-
-        if len(vector) != len(vector_basis):
-            raise ValueError("Vector and supplied basis must be the same size"
-                             f" (len(vector) = {len(vector)}"
-                             f" and len(vector_basis) = {len(vector_basis)}).")
-
-        # get index order of kmers in the vector basis set
-        vector_basis_order = {k: i if k in self.basis else np.nan
-                              for i, k in enumerate(vector_basis)}
-
-        # convert vector basis into set basis
-        converted = list()
-        for i in range(len(self.basis)):
-            kmer = self.basis_order[i]  # get basis set kmer in correct order
-            idx = vector_basis_order[kmer]  # locate kmer in the new vector
-            converted.append(vector[idx])
-
-        return converted
 
 
 # functions

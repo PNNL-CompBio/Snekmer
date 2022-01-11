@@ -131,8 +131,9 @@ rule score:
         files=expand(join(out_dir, "features", "{{nb}}", "{fa}.json.gz"),
                      fa=FAS)
     output:
-        df=join(out_dir, "features", "scores", "{nb}.csv.gz"),
-        scores=join(out_dir, "score", "{nb}.csv")
+        df=join(out_dir, "features", "score", "{nb}.csv.gz"),
+        scores=join(out_dir, "score", "weights", "{nb}.csv.gz"),
+        scorer=join(out_dir, "score", "{nb}.pkl")
     log:
         join(out_dir, "score", "log", "{nb}.log")
     run:
@@ -156,95 +157,32 @@ rule score:
 
         # parse family names and only add if some are valid
         families = [
-            skm.utils.split_file_ext(fn)[0] for fn in data['filename']
+            skm.utils.get_family(
+                skm.utils.split_file_ext(fn)[0], regex=config['input']['regex']
+            ) for fn in data['filename']
         ]
         if any(families):
             label = 'family'
             data[label] = families
 
-        # define feature matrix of kmer vectors not from background set
-        bg, non_bg = data[data['background']], data[~data['background']]
-        full_feature_matrix = skm.score.to_feature_matrix(data['vector'].values)
-        feature_matrix = skm.score.to_feature_matrix(non_bg['vector'].values)
-        bg_feature_matrix = skm.score.to_feature_matrix(bg['vector'].values)
+        # generate family scores and object
+        scorer = skm.model.KmerScorer()
+        scorer.fit(kmers, data, skm.utils.get_family(wildcards.nb, regex=config['input']['regex']),
+                   label_col=label, **config['score']['scaler_kwargs'])
 
-        # compute class probabilities
-        labels = non_bg[label].values
-        class_probabilities = skm.score.feature_class_probabilities(
-            feature_matrix.T, labels, kmers=kmers
-        )
+        # append scored sequences to dataframe
+        data = data.merge(DataFrame(scorer.scores['sample']),
+                          left_index=True, right_index=True)
+        if data.empty:
+            raise ValueError("Blank df")
 
-        # compute background sequence probabilities
-        if len(bg) > 0:
-            bg_labels = bg[label].values
-            bg_probabilities = skm.score.feature_class_probabilities(
-                bg_feature_matrix.T, bg_labels, kmers=kmers
-            )
-
-            # background family probability scores
-            for fam in bg[label].unique():
-                bg_scores = bg_probabilities[
-                    bg_probabilities['label'] == fam
-                ]['score'].values
-
-                # normalize by max bg score
-                # bg_norm = np.max(bg_scores)
-
-                # get background scores for sequences
-                bg_only_scores = skm.score.apply_feature_probabilities(
-                    full_feature_matrix, bg_scores, scaler=config['score']['scaler'],
-                    **config['score']['scaler_kwargs']
-                )
-
-                # normalize by max bg score attained by a sequence
-                bg_norm = np.max(bg_only_scores)
-
-                data[f"{fam}_background_score"] = bg_only_scores / bg_norm
-
-        # assign family probability scores
-        for fam in non_bg[label].unique():
-            scores = class_probabilities[
-                class_probabilities['label'] == fam
-            ]['score'].values
-
-            # normalize by sum of all positive scores
-            # norm = np.sum([s for s in scores if s > 0])
-
-            # include background sequences for score generation
-            total_scores = skm.score.apply_feature_probabilities(
-                full_feature_matrix, scores, scaler=config['score']['scaler'],
-                **config['score']['scaler_kwargs']
-            )
-
-            # normalize by max score
-            norm = np.max(total_scores)
-            if norm < 1:  # prevent score explosion?
-                norm = 1.0
-
-            # assign percent score based on max positive score
-            data[f"{fam}_score"] = total_scores / norm
-
-            # weight family score by (1 - normalized bg score)
-            if fam in bg[label].unique():
-                data[f"{fam}_score_background_weighted"] = [
-                    total * (1 - bg) for total, bg in zip(
-                        data[f"{fam}_score"], data[f"{fam}_background_score"]
-                    )
-                ]
-
-                # old scoring method
-                data[f"{fam}_background_subtracted_score"] = [
-                    total - bg for total, bg in zip(
-                        data[f"{fam}_score"], data[f"{fam}_background_score"]
-                    )
-                ]
+        # save score loadings
+        class_probabilities = DataFrame(
+            scorer.probabilities, index=scorer.kmers.basis
+        ).reset_index().rename(columns={'index': 'kmer'})
 
         # log time to compute class probabilities
         skm.utils.log_runtime(log[0], start_time, step="class_probabilities")
-
-        # [IN PROGRESS] compute clusters
-        clusters = skm.score.cluster_feature_matrix(full_feature_matrix)
-        data['cluster'] = clusters
 
         # save all files to respective outputs
         delete_cols = ['vec', 'vector']
@@ -254,7 +192,9 @@ rule score:
             if col in class_probabilities.columns:
                 class_probabilities = class_probabilities.drop(columns=col)
         data.to_csv(output.df, index=False, compression='gzip')
-        class_probabilities.to_csv(output.scores, index=False)
+        class_probabilities.to_csv(output.scores, index=False, compression='gzip')
+        with open(output.scorer, 'wb') as f:
+            pickle.dump(scorer, f)
 
         # record script endtime
         skm.utils.log_runtime(log[0], start_time)
@@ -272,8 +212,15 @@ rule model:
     run:
         data = read_csv(input.data)
         scores = read_csv(input.scores)
-        family = skm.utils.split_file_ext(input.scores)[0]  # skm.utils.get_family(input.scores, regex=config['input']['regex'])
-        all_families = [skm.utils.split_file_ext(f)[0] for f in input.files]
+        family = skm.utils.get_family(
+            skm.utils.split_file_ext(input.scores)[0],
+            regex=config['input']['regex']
+        )  # skm.utils.get_family(input.scores, regex=config['input']['regex'])
+        all_families = [
+            skm.utils.get_family(
+                skm.utils.split_file_ext(f)[0], regex=config['input']['regex']
+            ) for f in input.files
+        ]
 
         # prevent kmer NA being read as np.nan
         if config['k'] == 2:

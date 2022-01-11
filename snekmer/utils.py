@@ -226,3 +226,21 @@ def log_runtime(filename, start_time, step=False):
         f.write(f"{step} time:\t{end_time}\n")
         f.write(f"total time:\t{format_timedelta(end_time - start_time)}")
     return
+
+
+def to_feature_matrix(array):
+    """Create properly shaped feature matrix for kmer scoring.
+
+    Parameters
+    ----------
+    array : numpy.ndarray or list or array-like
+        2-D array-like collection of kmer vectors.
+        The assumed format is rows = sequences, cols = kmers.
+
+    Returns
+    -------
+    numpy.ndarray of numpy.ndarrays
+        2D array version of the 2D array-like input.
+
+    """
+    return np.array([np.array(a, dtype=int) for a in array])

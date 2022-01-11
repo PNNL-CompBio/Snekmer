@@ -64,6 +64,11 @@ rule preprocess:
             if alphabet == "None":
                 alphabet = None
 
+        if config['mode'] == 'cluster':
+            min_rep_thresh = 0
+        else:
+            min_rep_thresh = config['min_rep_thresh']
+
         # if no feature set is specified, define feature space
         if not config['input']['feature_set']:
             # prefilter fasta to cut down on the size of feature set
@@ -73,7 +78,7 @@ rule preprocess:
                 alphabet=alphabet,
                 start=config['start'],
                 end=config['end'],
-                min_rep_thresh=config['min_rep_thresh'],
+                min_rep_thresh=min_rep_thresh,
                 verbose=config['output']['verbose'],
                 log_file=log[0],
                 processes=config['processes']

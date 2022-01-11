@@ -112,7 +112,7 @@ rule vectorize:
 
 rule vectorize_full:
     input:
-        kmers=join("output", "labels", "{nb}.txt"),
+        kmers=join("output", "labels", "full", "{nb}.txt"),
         params=join("output", "processed", "{nb}.json"),
         fasta=join("input", '{nb}.fasta')
     log:

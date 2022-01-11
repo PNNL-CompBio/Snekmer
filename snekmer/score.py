@@ -8,122 +8,140 @@ from multiprocessing import Pool
 import numpy as np
 import pandas as pd
 
+from .utils import to_feature_matrix
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.metrics.pairwise import pairwise_distances
-from .model import KmerScoreScaler
 
 
-# classes
-class KmerScorer:
-    """Score kmer vectors based on summed probability scores.
+# scaling object for reducing kmers used in scoring
+class KmerScoreScaler:
+    """Scale and reduce kmer set based on scores.
+
+    Parameters
+    ----------
+    scores : list or numpy.ndarray
+        Description of parameter `model`.
+    n : int
+        Feature cutoff (top n kmer features to include)
 
     Attributes
     ----------
-    probabilities : numpy.ndarray
-        Array of shape (n,) containing probabilities for n kmers.
-    kmers : numpy.ndarray
-        Array of shape (n, ) containing labels for n kmers.
+    n : int or float
+        Feature cutoff (top n kmer features).
+        Accepts either an integer of the top n features, or a float
+        indicating a percentage (n = 0.1 for the top 10% of features)
+    input_shape : tuple
+        Input array shape.
+    kmer_basis_idx : numpy.ndarray
+        List of indices from kmer feature vector making up the
+        specified basis set, ordered from most to least important.
+    kmer_basis_score : list of tuples
+        List of tuples for kmer feature vector making up the
+        specified basis set, ordered from most to least important.
+        Tuples are: (index, score) for each listed feature.
+    scores : numpy.ndarray
+        Array of scores for kmer features.
 
     """
-    def __init__(self):
-        """Initialize KmerScorer object.
+
+    def __init__(self, n=100):
+        """Initialize KmerScaler object.
 
         """
-        # self.score_map = {}  # only necessary if score kmers != vec kmers
-        self.probabilities = []
-        self.kmers = []
+        self.n = n
+        self.input_shape = None
+        self.scores = None
+        self.basis_index = None
+        self.basis_score = dict()
 
-    def load(self, score_file, family):
-        """Load probabilities from score file.
+    def fit(self, scores):
+        """Fit scaler based on list of scores.
 
         Parameters
         ----------
-        score_file : str
-            /path/to/score_file in CSV format.
-        family : str
-            Family name from which to load scores.
+        scores : list or numpy.ndarray
+            Array of scores for kmer features.
+        threshold : float
+            Numerical cutoff for kmer feature scores.
+
+        Returns
+        -------
+        None
+            Fits KmerScoreScaler() object.
 
         """
-        scores = pd.read_csv(score_file)
-        scores = scores[scores['label'] == family]
-        # self.score_map = {
-        #     kmer: score for kmer, score
-        #     in zip(scores['kmer'], scores['score'])
-        # }
-        self.probabilities = scores['score'].values#.reshape(-1, 1)
-        self.kmers = scores['kmer'].values
+        if not isinstance(scores, np.ndarray):
+            scores = np.array(scores)
+        self.scores = scores
+        self.input_shape = scores.shape
 
-    def score(self, vec, vec_kmers=None, scaler=False, **scaler_kwargs):
-        """Score vectors using loaded probability scores.
+        # option 1: set score threshold as limit -- REMOVED
+        # if threshold is not None:
+        #     indices = np.where(np.array(scores > threshold))[0]
+
+        if self.n is not None:
+            # option 2: set # of features as limit
+            if (isinstance(self.n, int)) and (self.n >= 1):
+                indices = scores.ravel().argsort()[:-self.n - 1:-1]
+            # option 3: set % of features as limit
+            elif (isinstance(self.n, float)) and (self.n < 1):
+                n = int(np.floor(self.n * len(scores)))
+                indices = scores.ravel().argsort()[:-n - 1:-1]
+            else:
+                raise ValueError("Invalid input format for `n`"
+                                 " (must be either int > 1, or"
+                                 " 0.0 < float < 1.0).")
+        else:
+            raise ValueError("One of either `threshold` or `n` must"
+                             " be specified.")
+
+        # store basis set and indices as attributes
+        self.basis_index = indices
+        self.basis_score = [(i, score) for i, score in zip(
+            self.basis_index, scores[self.basis_index])]
+        return
+
+    def transform(self, array):
+        """Reduce vector to kmer basis set.
 
         Parameters
         ----------
-        vec : numpy.ndarray
-            Array of shape (p, q) of p vectors containing q kmers.
-        vec_kmers : list of str or numpy.ndarray of str
-            Array of shape (q,) containing q kmers.
-        scaler : bool (default: False)
-            If True, performs scaling to reduce kmer features.
-        **scaler_kwargs : dict
-            Keyword arguments to pass to :class: `~KmerScoreScaler()`.
+        array : list or numpy.ndarray
+            Unscaled kmer vector or matrix.
 
         Returns
         -------
         numpy.ndarray
-            Array of shape (p,) containing p scores.
+            Scaled kmer vector or matrix.
 
         """
-        # note that `vec` must be an array of arrays
+        if self.basis_index is None or not any(self.basis_index):
+            raise AttributeError("Kmer basis set not defined;"
+                                 " must fit scores to scaler.")
+        # if not isinstance(array, np.ndarray):
+        #     array = np.array(array)
+        if isinstance(array[0], list):
+            array = to_feature_matrix(array)
 
-        # this check doesn't work for single vec... why? raise err?
-        # if np.array(vec).shape[1] != len(self.score_matrix):
-        #     raise ValueError(
-        #         "Kmer vector shape mismatch:"
-        #         f" basis set shape is ({len(self.score_matrix)}, ) but"
-        #         f" input vector shape is {np.array(vec).shape}."
-        #     )
-
-        # check that score labels match vec labels
-        if vec_kmers is not None:
-            if any(
-                [
-                    vec_kmers[i] != self.kmers[i]
-                    for i in range(len(vec_kmers))
-                ]
-            ):
-            # for i, label in enumerate(vec_labels):
+        # input vec must match original input shape for indexing
+        if len(array.shape) < 2:  # account for 1D arrays
+            array_size = len(array)
+            input_size = self.input_shape[0]
+            if array_size != input_size:
                 raise ValueError(
-                    "Label order mismatch - `self.kmers` order is"
-                    " not the same as `vec_labels`."
+                    f"Input vector shape {array.shape}"
+                    f" does not match fitted vector shape"
+                    f" {self.input_shape}."
                 )
+            return array[self.basis_index]
 
-        # to do: change to numpy matrix operations
-        # note that the scaler is invariant w/ vec
-        total_score = apply_feature_probabilities(
-            vec, self.probabilities, scaler=scaler, **scaler_kwargs
-        )
-        return total_score
+        # ND arrays
+        array_size = array.shape
+        input_size = self.input_shape
+        return array[:, self.basis_index]
 
 
 # functions
-def to_feature_matrix(array):
-    """Create properly shaped feature matrix for kmer scoring.
-
-    Parameters
-    ----------
-    array : numpy.ndarray or list or array-like
-        2-D array-like collection of kmer vectors.
-        The assumed format is rows = sequences, cols = kmers.
-
-    Returns
-    -------
-    numpy.ndarray of numpy.ndarrays
-        2D array version of the 2D array-like input.
-
-    """
-    return np.array([np.array(a, dtype=int) for a in array])
-
-
 def connection_matrix_from_features(feature_matrix, metric="jaccard"):
     """Calculate similarities based on features output from main().
 
@@ -321,6 +339,26 @@ def score(results, in_label, out_labels, w=1.0, col='probability', neg_only=Fals
 
 
 def _parse_score_method(method, bg=None, **kwargs):
+    """Translate method name into corresponding score method(s).
+
+    Parameters
+    ----------
+    method : str
+        Method name:
+            'default' - Default score method
+            'bg_only' - Score sequences as though they are all background
+            'both' - Compute both score types
+    bg : type
+        Description of parameter `bg`.
+    **kwargs : type
+        Description of parameter `**kwargs`.
+
+    Returns
+    -------
+    type
+        Description of returned object.
+
+    """
     # restrict method options
     if method not in ["default", "bg_only", "both"]:
         raise ValueError("Parameter `method` must be one of the"
@@ -345,7 +383,7 @@ def _parse_score_method(method, bg=None, **kwargs):
         #     o = labels[labels != l]  # other labels
         #     results[l]['score'] = score(results, l, o, w=weight)
         return "default_score", score
-    elif method == "bg_only":
+    if method == "bg_only":
         return "bg_subtracted_score", score
     return "combined_score", score
 
@@ -460,8 +498,11 @@ def apply_feature_probabilities(
     scores : array (list, numpy.ndarray, pandas.Series)
         Array of shape (m,) of kmer probability scores.
         Scores must be in the same kmer order as in `feature_matrix`.
-    scaler : bool (default: False)
+    scaler : obj or bool (default: False)
         If True, performs scaling to reduce kmer features.
+        If False, does not perform scaling to reduce kmer features.
+        If obj is supplied, the scaling obj is applied to reduce
+            kmer features.
     **kwargs : dict
         Keyword arguments for KmerScoreScaler().
 
@@ -472,13 +513,16 @@ def apply_feature_probabilities(
 
     """
     # optionally apply scaling
-    if scaler:
+    if scaler and isinstance(scaler, bool):
         scaler = KmerScoreScaler(**kwargs)
         scaler.fit(scores)
+    if isinstance(scaler, KmerScoreScaler):
+        # scaler.fit(scores)
         scores = scaler.transform(scores)
         feature_matrix = scaler.transform(feature_matrix)
 
     feature_matrix = _binarize(feature_matrix)
+
     score_matrix = scores * feature_matrix
     score_totals = np.array([np.sum(arr) for arr in score_matrix])
 
