@@ -1,4 +1,4 @@
-"""alphabet: Alphabet mappings and definitions for Kmer pipeline.
+"""alphabet: Built-in alphabet mappings for Snekmer.
 
 2021.08.11 - Alphabet names have been reworked per @wichne
              (@christinehc)

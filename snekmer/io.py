@@ -1,4 +1,4 @@
-"""io: Input-output handling for kmerfeatures pipeline.
+"""io: Input-output handling in Snekmer.
 
 author: @christinehc
 """

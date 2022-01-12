@@ -1,4 +1,4 @@
-"""utils: Utility functions for the kmerfeatures pipeline.
+"""utils: Snekmer utility functions.
 
 author: @christinehc
 """

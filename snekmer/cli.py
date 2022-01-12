@@ -1,4 +1,7 @@
-"""cli: Command line interface for Kmer pipeline."""
+"""cli: Command line interface for Snekmer.
+
+author: @christinehc, @biodataganache
+"""
 
 # imports
 import argparse

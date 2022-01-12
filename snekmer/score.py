@@ -1,4 +1,4 @@
-"""score: Scoring and similarity analysis for extracted features.
+"""score: Kmer-based scoring and similarity analysis.
 
 author: @christinehc / @biodataganache
 """

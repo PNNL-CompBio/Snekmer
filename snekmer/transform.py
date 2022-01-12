@@ -1,4 +1,4 @@
-"""transform: Transformation module for Kmer pipeline.
+"""transform: Snekmer module for kmer transformation handling.
 
 author: @christinehc
 """

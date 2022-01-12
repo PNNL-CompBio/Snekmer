@@ -1,4 +1,4 @@
-"""walk: Kmer walk module for Kmer pipeline.
+"""walk: Snekmer walk module.
 
 author: @christinehc
 """

@@ -1,4 +1,4 @@
-"""model: Machine learning models for Kmer family prediction.
+"""model: Machine learning models for class prediction with Snekmer.
 
 author: @christinehc
 """

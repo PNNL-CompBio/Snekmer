@@ -1,4 +1,4 @@
-"""features: Output feature processing for the Kmer pipeline.
+"""features: Snekmer output feature processing.
 
 author: @christinehc
 """

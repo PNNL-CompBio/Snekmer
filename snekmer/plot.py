@@ -1,4 +1,4 @@
-"""plot: Plotting functions for kmer pipeline
+"""plot: Snekmer plotting utilities.
 
 author: @christinehc
 """

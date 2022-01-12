@@ -1,4 +1,4 @@
-"""cluster: Clustering models for Kmer cluster generation.
+"""cluster: Snekmer clustering models.
 
 author: @christinehc
 """
