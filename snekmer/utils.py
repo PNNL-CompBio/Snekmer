@@ -3,7 +3,7 @@
 author: @christinehc
 """
 # imports
-import collections
+import collections.abc
 from datetime import datetime
 import re
 from os.path import basename, splitext
@@ -29,7 +29,7 @@ def check_list(array):
 
     """
     if not isinstance(
-            array, (collections.Sequence, np.ndarray, pd.Series)
+            array, (collections.abc.Sequence, np.ndarray, pd.Series)
             ):
         return False
     return True

@@ -3,7 +3,6 @@
 author: @christinehc
 """
 # imports
-import collections.abc
 import json
 
 import numpy as np
