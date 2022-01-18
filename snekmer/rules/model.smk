@@ -1,22 +1,24 @@
+"""model.smk: Module for supervised modeling from kmer vectors.
+
+author: @christinehc
+"""
 # snakemake config
 # include: "kmerize.smk"
 # localrules: all, generate, vectorize
-
 # force snakemake v6.0+ (required for modules)
 from snakemake.utils import min_version
 min_version("6.0")
+
 
 # load modules
 module process_input:
     snakefile: "process_input.smk"
     config: config
-# use rule * from process_input
 
 
 module kmerize:
     snakefile: "kmerize.smk"
     config: config
-# use rule * from kmerize
 
 
 # built-in imports
@@ -164,6 +166,19 @@ rule score:
         if any(families):
             label = 'family'
             data[label] = families
+
+        # binary T/F for classification into family
+        family = skm.utils.get_family(wildcards.nb)
+        binary_labels = [
+            True if value == family else False for value in data[label]
+        ]
+
+        # define k-fold split indices
+        cv = StratifiedKFold(n_splits=config['model']['cv'], shuffle=True)
+        for n, (i_train, _) in enumerate(
+            cv.split(data['vector'], binary_labels)
+        ):
+            data[f'train_cv-{n + 1}'] = [idx in i_train for idx in data.index]
 
         # generate family scores and object
         scorer = skm.model.KmerScorer()
