@@ -16,16 +16,16 @@ import json
 import pickle
 from datetime import datetime
 from glob import glob
-from itertools import (product, repeat)
+from itertools import product, repeat
 from multiprocessing import Pool
 from os import makedirs
-from os.path import (basename, dirname, exists, join, splitext)
+from os.path import basename, dirname, exists, join, splitext
 
 # external libraries
 import snekmer as skm
 import numpy as np
 import matplotlib.pyplot as plt
-from pandas import (DataFrame, read_csv, read_json)
+from pandas import DataFrame, read_csv, read_json
 from Bio import SeqIO
 from sklearn.linear_model import LogisticRegressionCV
 from sklearn.model_selection import train_test_split, StratifiedKFold, cross_val_score
@@ -35,18 +35,24 @@ from sklearn.tree import DecisionTreeClassifier
 
 
 # change matplotlib backend to non-interactive
-plt.switch_backend('Agg')
+plt.switch_backend("Agg")
 
 # collect all fasta-like files, unzipped filenames, and basenames
 input_files = glob(join("input", "*"))
-zipped = [fa for fa in input_files if fa.endswith('.gz')]
-unzipped = [fa.rstrip('.gz') for fa, ext
-            in product(input_files, config['input']['file_extensions'])
-            if fa.rstrip('.gz').endswith(f".{ext}")]
+zipped = [fa for fa in input_files if fa.endswith(".gz")]
+unzipped = [
+    fa.rstrip(".gz")
+    for fa, ext in product(input_files, config["input"]["file_extensions"])
+    if fa.rstrip(".gz").endswith(f".{ext}")
+]
 
 # map extensions to basename (basename.ext.gz -> {basename: ext})
-uz_map = {skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in zipped}
-fa_map = {skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in unzipped}
+uz_map = {
+    skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in zipped
+}
+fa_map = {
+    skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in unzipped
+}
 UZS = list(uz_map.keys())
 FAS = list(fa_map.keys())
 
@@ -57,11 +63,13 @@ if len(bg_files) > 0:
 NON_BGS, BGS = [f for f in FAS if f not in bg_files], bg_files
 
 # terminate with error if invalid alphabet specified
-skm.alphabet.check_valid(config['alphabet'])
+skm.alphabet.check_valid(config["alphabet"])
 
 # define output directory (helpful for multiple runs)
-out_dir = skm.io.define_output_dir(config['alphabet'], config['k'],
-                                   nested=config['output']['nested_dir'])
+out_dir = skm.io.define_output_dir(
+    config["alphabet"], config["k"], nested=config["output"]["nested_dir"]
+)
+
 
 # define output files to be created by snekmer
 rule all:
@@ -75,6 +83,7 @@ use rule unzip from process_input with:
     output:
         join("input", '{uz}')  # or join("input", "{uz}.{uzext}") ?
 
+
 # read and process parameters from config
 use rule preprocess from process_input with:
     input:
@@ -85,6 +94,7 @@ use rule preprocess from process_input with:
     log:
         join(out_dir, "processed", "log", "{nb}.log")
 
+
 # generate kmer features space from user params
 use rule generate from kmerize with:
     input:
@@ -93,6 +103,7 @@ use rule generate from kmerize with:
         labels=join(out_dir, "labels", "full", "{nb}.txt")
     log:
         join(out_dir, "labels", "log", "{nb}.log")
+
 
 # build kmer count vectors for each basis set
 use rule vectorize_full from kmerize with:

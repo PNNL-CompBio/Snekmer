@@ -58,9 +58,7 @@ rule preprocess:
 
         # if random alphabet specified, implement randomization
         if config["randomize_alphabet"]:
-            rand_alphabet = skm.transform.randomize_alphabet(
-                config["input"]["alphabet"]
-            )
+            rand_alphabet = skm.transform.randomize_alphabet(config["input"]["alphabet"])
             alphabet = [residues, map_name, rand_alphabet]
         else:
             alphabet = config["alphabet"]
@@ -96,9 +94,7 @@ rule preprocess:
 
         # optional indexfile with IDs of good feature output examples
         if config["input"]["example_index_file"]:
-            example_index = skm.io.read_example_index(
-                config["input"]["example_index_file"]
-            )
+            example_index = skm.io.read_example_index(config["input"]["example_index_file"])
         else:
             example_index = {}
 
@@ -126,15 +122,8 @@ rule preprocess:
             # shuffle the N-terminal sequence n times
             if config["output"]["shuffle_n"]:
                 example_index[id] = 1.0
-                (
-                    scid_list,
-                    scramble_list,
-                    example_index,
-                ) = skm.transform.scramble_sequence(
-                    sid,
-                    seq[:30],
-                    n=config["output"]["shuffle_n"],
-                    example_index=example_index,
+                (scid_list, scramble_list, example_index,) = skm.transform.scramble_sequence(
+                    sid, seq[:30], n=config["output"]["shuffle_n"], example_index=example_index,
                 )
                 seqs += scramble_list
                 sids += scid_list
