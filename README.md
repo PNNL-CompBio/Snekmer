@@ -43,7 +43,7 @@ Install Snekmer using pip (note: git clone step is optional if you
 
 ```bash
 # option 1: clone repository (if you haven't already) and install
-git clone https://github.com/PNNL-CompBio/Snekmer/Snekmer.git
+git clone https://github.com/PNNL-CompBio/Snekmer.git
 pip install Snekmer
 
 # option 2: direct install
