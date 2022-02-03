@@ -38,7 +38,7 @@ Activate the environment:
 conda activate snekmer
 ```
 
-Install the `snekmer` package (note: git clone step is optional if you
+Install Snekmer using pip (note: git clone step is optional if you
  already have the repo cloned locally):
 
 ```bash
@@ -78,15 +78,15 @@ Snekmer assumes that input files are stored in the **_input_** directory,
 ```
 .
 ├── config.yaml
-├── input
-│   ├── background
+├── input/
+│   ├── background/
 │   │   ├── X.fasta
 │   │   ├── Y.fasta
 │   │   └── etc.
 │   ├── A.fasta
 │   ├── B.fasta
 │   └── etc.
-├── output
+├── output/
 │   ├── ...
 │   └── ...
 ```
@@ -132,20 +132,86 @@ snekmer [mode]
 
 #### Output
 
+Each step in the Snekmer pipeline generates its own associated output files.
+ Both operation modes will preprocess parameters, generate labels, and
+ vectorize sequences based on labels. The associated output files can be
+ found in the respective directories.
+
+The following output directories and files are created in both operation modes:
+
 ```
 .
-├── config.yaml
-├── input
-│   ├── background
-│   │   ├── X.fasta
-│   │   ├── Y.fasta
-│   │   └── etc.
+├── input/
 │   ├── A.fasta
-│   ├── B.fasta
-│   └── etc.
-├── output
-│   ├── ...
-│   └── ...
+│   └── B.fasta
+└── output/
+   ├── processed/
+   │   ├── A.json             # processed parameter values for A
+   │   ├── B.json             # processed parameter values for B
+   │   ├── A_description.csv  # summary of sequences in A.fasta
+   │   └── B_description.csv  # summary of sequences in B.fasta
+   ├── labels/
+   │   ├── A.txt              # kmer labels for A
+   │   └── B.txt              # kmer labels for B
+   ├── features/
+   └── ...
+
+```
+
+##### Model Mode
+
+Executing `snekmer model` produces the following output files and directories
+ in addition to the files described previously.
+
+```
+.
+└── output/
+    ├── ...
+    ├── features/
+    │   ├── A/            # kmer vectors in A kmer space
+    │   │   ├── A.json.gz
+    │   │   └── B.json.gz
+    │   └── B/            # kmer vectors in B kmer space
+    │       ├── A.json.gz
+    │       └── B.json.gz
+    ├── score/
+    │   ├── A.pkl         # A sequences, scored
+    │   ├── B.pkl         # B sequences, scored
+    │   └── weights/
+    │       ├── A.csv.gz  # kmer score weights in A kmer space
+    │       └── B.csv.gz  # kmer score weights in B kmer space
+    └── model/
+        ├── A.pkl         # (A/not A) classification model
+        ├── B.pkl         # (B/not B) classification model
+        ├── results/      # cross-validation results table
+        │   ├── A.csv
+        │   └── B.csv
+        └── figures/      # cross-validation results figures
+            ├── A/
+            └── B/
+
+```
+
+##### Cluster Mode
+
+Executing `snekmer cluster` produces the following output files and
+ directories in addition to the files described previously.
+
+```
+.
+└── output/
+    ├── ...
+    ├── features/
+    │   └── full/     # kmer vectors in full kmer space for (alphabet, k)
+    │       ├── A.json.gz
+    │       └── B.json.gz
+    └── cluster/
+        ├── A.pkl     # A cluster model
+        ├── B.pkl     # B cluster model
+        └── figures/  # cluster figures (t-SNE)
+            ├── A/
+            └── B/
+
 ```
 
 ### Partial Workflow
