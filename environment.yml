@@ -1,0 +1,13 @@
+name: snekmer
+channels:
+  - anaconda
+  - bioconda
+  - conda-forge
+dependencies:
+  - biopython
+  - matplotlib
+  - numpy >= 1.22.1
+  - pandas
+  - seaborn
+  - scikit-learn
+  - snakemake >= 6.0
