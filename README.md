@@ -26,7 +26,10 @@ We recommend using Anaconda to create a virtual environment. Anaconda handles de
 
 ### Procedure
 
-Use conda to install an environment with all required dependencies:
+Use conda to install an environment from the YML file with all
+ required dependencies. (Note: Users may either download the YML file
+ directly from the repository, or clone the repository beforehand
+ using the `git clone` command below.) 
 
 ```bash
 conda env create -f environment.yml
