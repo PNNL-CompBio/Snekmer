@@ -14,12 +14,12 @@ import snekmer as skm
 # define rules
 rule unzip:
     input:
-        join("input", "{uz}.gz"), # lambda wildcards: join("input", f"{wildcards.uz}.{uz_map[wildcards.uz]}.gz")
+        join("input", "{uz}.gz") # lambda wildcards: join("input", f"{wildcards.uz}.{uz_map[wildcards.uz]}.gz")
          # lambda wildcards: unzip(join("input", ))
     output:
-        join("input", "{uz}"),
+        join("input", "{uz}")
     params:
-        outdir=join("input", "zipped"),
+        outdir=join("input", "zipped")
     shell:
         "mkdir {params.outdir} && cp {input} {params.outdir} && gunzip -c {input} > {output}" # run:
          # if wildcards.sample.endswith('.fastq'):
@@ -43,12 +43,12 @@ rule preprocess:
     input:
         fasta=lambda wildcards: join(
             "input", f"{wildcards.nb}.{fa_map[wildcards.nb]}"
-        ),
+        )
     output:
         data=join("output", "processed", "{nb}.json"),
-        desc=join("output", "processed", "{nb}_description.csv"),
+        desc=join("output", "processed", "{nb}_description.csv")
     log:
-        join("output", "processed", "log", "{nb}.log"),
+        join("output", "processed", "log", "{nb}.log")
     run:
         # log step initialization
         start_time = datetime.now()
