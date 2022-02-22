@@ -86,9 +86,9 @@ def read_output_kmers(filename):
         for line in f:
             line_data = line.split("\t")
             # parse kmer outputs if detected
-            if re.findall(r'^KMER', line_data[0]):
+            if re.findall(r"^KMER", line_data[0]):
                 kmers += line_data
-    prefix = re.search(r'^KMER-[\d]+-[A-Za-z]+-', kmers[0]).group()
+    prefix = re.search(r"^KMER-[\d]+-[A-Za-z]+-", kmers[0]).group()
     return [s.strip().replace(prefix, "") for s in kmers]
 
 
@@ -110,7 +110,7 @@ def output_to_df(filename):
     kmers = read_output_kmers(filename)
     df = pd.DataFrame({f: v for f, v in zip(features, vectors)}).T
     df.columns = kmers
-    return df.reset_index().rename(columns={'index': 'seq_id'})
+    return df.reset_index().rename(columns={"index": "seq_id"})
 
 
 def output_to_npy(filename):
@@ -140,13 +140,13 @@ def output_to_npy(filename):
         for line in f:
             line_data = line.split("\t")
             # skip kmer outputs and only parse vectors
-            if not re.findall(r'^KMER', line_data[0]):
+            if not re.findall(r"^KMER", line_data[0]):
                 features.append(line_data[0])
                 vectors.append(np.array([float(el) for el in line_data[1:]]))
     return np.array(features), np.array(vectors)
 
 
-def vecfiles_to_df(files, labels=None, label_name='label'):
+def vecfiles_to_df(files, labels=None, label_name="label"):
     """Load multiple sequence files and parse into common dataframe.
 
     Parameters
@@ -170,20 +170,18 @@ def vecfiles_to_df(files, labels=None, label_name='label'):
         ... etc.
 
     """
-    data = {'filename': [], 'seq_id': [], 'vector': [], 'vec_shape': []}
+    data = {"filename": [], "seq_id": [], "vector": [], "vec_shape": []}
     for afile in files:
-        with gzip.open(afile, 'rt') as f:
-        # with open(afile, 'r') as f:
+        with gzip.open(afile, "rt") as f:
+            # with open(afile, 'r') as f:
             tmp = json.load(f)
-            data['filename'] += [basename(afile)] * len(tmp['seq_id'])
-            data['seq_id'] += tmp['seq_id']
-            data['vector'] += tmp['vector']
-            data['vec_shape'] += [np.array(arr).shape for arr in tmp['vector']]
+            data["filename"] += [basename(afile)] * len(tmp["seq_id"])
+            data["seq_id"] += tmp["seq_id"]
+            data["vector"] += tmp["vector"]
+            data["vec_shape"] += [np.array(arr).shape for arr in tmp["vector"]]
     if str(labels) != "None":
         if len(labels) != len(data):
-            raise ValueError(
-                'Number of labels must equal number of sequences.'
-                )
+            raise ValueError("Number of labels must equal number of sequences.")
         data[label_name] = labels
     return pd.DataFrame(data)
 

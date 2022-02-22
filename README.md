@@ -29,7 +29,7 @@ We recommend using Anaconda to create a virtual environment. Anaconda handles de
 Use conda to install an environment from the YML file with all
  required dependencies. (Note: Users may either download the YML file
  directly from the repository, or clone the repository beforehand
- using the `git clone` command below.) 
+ using the `git clone` command below.)
 
 ```bash
 conda env create -f environment.yml
@@ -62,7 +62,7 @@ For Windows users: If you are running into conflicts/errors when creating
   version of Snakemake instead:
 
 ```bash
-conda create -n kmers -c conda-forge -c bioconda biopython matplotlib numpy pandas seaborn snakemake-minimal scikit-learn
+conda create -n snekmer -c conda-forge -c bioconda biopython matplotlib numpy pandas seaborn snakemake-minimal scikit-learn
 ```
 
 ## Command-Line Interface
