@@ -86,7 +86,6 @@ rule vectorize:
 
         # sort i/o lists to match wildcard order
         fastas = sorted(input.fastas)
-        # print(fastas)
         outfiles = sorted(output.files)
 
         # revectorize based on full kmer list

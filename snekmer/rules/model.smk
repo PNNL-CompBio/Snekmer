@@ -59,14 +59,18 @@ unzipped = [
 ]
 
 # map extensions to basename (basename.ext.gz -> {basename: ext})
-uz_map = {
+UZ_MAP = {
     skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in zipped
 }
-fa_map = {
+FA_MAP = {
     skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in unzipped
 }
-UZS = list(uz_map.keys())
-FAS = list(fa_map.keys())
+
+# get unzipped filenames
+UZS = [f"{f}.{ext}" for f, ext in UZ_MAP.items()]
+
+# isolate basenames for all files
+FAS = list(FA_MAP.keys())
 
 # parse any background files
 bg_files = glob(join("input", "background", "*"))
@@ -85,7 +89,7 @@ out_dir = skm.io.define_output_dir(config['alphabet'], config['k'],
 # define output files to be created by snekmer
 rule all:
     input:
-        expand(join("input", '{uz}'), uz=UZS),  # require unzipping
+        expand(join("input", "{uz}"), uz=UZS),  # require unzipping
         expand(join(out_dir, "features", "{nb}", "{fa}.json.gz"), nb=NON_BGS, fa=FAS),  # correctly build features
         expand(join(out_dir, "model", "{nb}.pkl"), nb=NON_BGS)  # require model-building
 
@@ -93,13 +97,13 @@ rule all:
 # if any files are gzip zipped, unzip them
 use rule unzip from process_input with:
     output:
-        join("input", '{uz}')  # or join("input", "{uz}.{uzext}") ?
+        join("input", "{uz}")
 
 
 # read and process parameters from config
 use rule preprocess from process_input with:
     input:
-        fasta=lambda wildcards: join("input", f"{wildcards.nb}.{fa_map[wildcards.nb]}")
+        fasta=lambda wildcards: join("input", f"{wildcards.nb}.{FA_MAP[wildcards.nb]}")
     output:
         data=join(out_dir, "processed", "{nb}.json"),
         desc=join(out_dir, "processed", "{nb}_description.csv")

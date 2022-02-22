@@ -21,12 +21,7 @@ rule unzip:
     params:
         outdir=join("input", "zipped")
     shell:
-        "mkdir {params.outdir} && cp {input} {params.outdir} && gunzip -c {input} > {output}" # run:
-         # if wildcards.sample.endswith('.fastq'):
-         #     shell("echo gzip {input}")
-         #     shell("echo mv {input}.gz {params.outdir}")
-         # else:
-         #     shell("mv {input} {params.outdir}")
+        "mkdir -p {params.outdir} && gunzip -c {input} > {output} && mv {input} {params.outdir}/."
 
 
 # rule perform_kmer_walk:
@@ -58,15 +53,16 @@ rule preprocess:
 
         # if random alphabet specified, implement randomization
         if config["randomize_alphabet"]:
-            rand_alphabet = skm.transform.randomize_alphabet(config["input"]["alphabet"])
+            rand_alphabet = skm.transform.randomize_alphabet(config["alphabet"])
             alphabet = [residues, map_name, rand_alphabet]
         else:
             alphabet = config["alphabet"]
             if alphabet == "None":
                 alphabet = None
 
+        # maximize kmer basis set for clustering
         if config["mode"] == "cluster":
-            min_rep_thresh = 0
+            min_rep_thresh = 0  # minimum kmer repetitions
         else:
             min_rep_thresh = config["min_rep_thresh"]
 
@@ -88,9 +84,7 @@ rule preprocess:
             assert len(filter_list) > 0, "Invalid feature space; terminating."
         else:
             # read in list of ids to use from file; NO FORMAT CHECK
-            filter_list = []
-            with open(config["input"]["feature_set"], "r") as f:
-                filter_list = skm.io.read_output_kmers(config["input"]["feature_set"])
+            filter_list = skm.io.read_output_kmers(config["input"]["feature_set"])
 
         # optional indexfile with IDs of good feature output examples
         if config["input"]["example_index_file"]:
@@ -121,7 +115,7 @@ rule preprocess:
 
             # shuffle the N-terminal sequence n times
             if config["output"]["shuffle_n"]:
-                example_index[id] = 1.0
+                example_index[sid] = 1.0
                 (scid_list, scramble_list, example_index,) = skm.transform.scramble_sequence(
                     sid, seq[:30], n=config["output"]["shuffle_n"], example_index=example_index,
                 )
