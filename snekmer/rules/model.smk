@@ -364,7 +364,7 @@ rule model:
                                  solver="liblinear",
                                  class_weight="balanced")
         fig, ax, auc_rocs = skm.plot.get_cv_roc_curve(
-            clf, X, y, title=f"{family} ROC Curve ({alphabet_name}, k = {config['k']})"
+            clf, X, y, title=f"{family} ROC Curve ({alphabet_name}, k={config['k']})"
         )
 
         # collate ROC-AUC results

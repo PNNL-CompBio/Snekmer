@@ -54,7 +54,6 @@ rule generate:
         labels = skm.transform.generate_labels(
             config["k"],
             alphabet=params["alphabet"],
-            # residues=params['residues'],
             filter_list=params["filter_list"],
         )
         if config["output"]["format"] == "simple":
