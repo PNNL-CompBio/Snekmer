@@ -10,7 +10,7 @@ from multiprocessing import Pool
 import numpy as np
 
 from Bio import SeqIO
-from .alphabet import (ALPHABETS, ALPHABET_ORDER, StandardAlphabet, get_alphabets)
+from .alphabet import ALPHABETS, ALPHABET_ORDER, StandardAlphabet, get_alphabets
 from .utils import check_list
 
 
@@ -26,6 +26,7 @@ class KmerBasis:
         Description of attribute `basis_order`.
 
     """
+
     def __init__(self):
         self.basis = []
         self.basis_order = {}
@@ -87,15 +88,18 @@ class KmerBasis:
             vector_size = len(vector)
 
         if vector_size != len(vector_basis):
-            raise ValueError("Vector and supplied basis shapes"
-                             " must match (vector shape ="
-                             f" {vector.shape}"
-                             " and len(vector_basis) ="
-                             f" {len(vector_basis)}).")
+            raise ValueError(
+                "Vector and supplied basis shapes"
+                " must match (vector shape ="
+                f" {vector.shape}"
+                " and len(vector_basis) ="
+                f" {len(vector_basis)})."
+            )
 
         # get index order of kmers in the vector basis set
-        vector_basis_order = {k: i if k in self.basis
-                              else np.nan for i, k in enumerate(vector_basis)}
+        vector_basis_order = {
+            k: i if k in self.basis else np.nan for i, k in enumerate(vector_basis)
+        }
 
         # convert vector basis into set basis
         i_convert = list()
@@ -243,11 +247,11 @@ def parse_mapping(alphabet):
 
     # use pre-existing alphabets
     if (alphabet in ALPHABETS) or (alphabet in range(len(ALPHABETS))):
-        if (isinstance(alphabet, int)):
+        if isinstance(alphabet, int):
             alphabet = ALPHABET_ORDER[alphabet]
         try:
             mapping = get_alphabets()[alphabet]
-            residues = get_alphabets()[alphabet]['_keys']
+            residues = get_alphabets()[alphabet]["_keys"]
             map_name = alphabet.upper()
             alphabet_map = reduce_alphabet
             success += 1
@@ -255,7 +259,7 @@ def parse_mapping(alphabet):
             raise ValueError(
                 "alphabet string must be one of the following:"
                 f" {list(ALPHABETS.keys())}."
-                ) from e
+            ) from e
 
     # use a random alphabet to apply to many sequences
     elif isinstance(alphabet, list):
@@ -312,9 +316,6 @@ def generate_labels(k, alphabet, filter_list=None):
     alphabet : str
         Name of alphabet (default: None). If None, no mapping is
         applied.
-    residues : str or iterable
-        Residues alphabet; the default standard alphabet is below.
-        (default: "AILMVFYWSTQNCHDEKRGP")
     filter_list : list
         List of filter sequences (default: None).
 
@@ -346,8 +347,7 @@ def generate_labels(k, alphabet, filter_list=None):
         return labels
 
     for bit in range(pow(len(residues), k)):
-        label = "KMER-%d-%s-%s" % (k, map_name, baseconvert(bit, k,
-                                                            digits=residues))
+        label = "KMER-%d-%s-%s" % (k, map_name, baseconvert(bit, k, digits=residues))
         labels.append(label)
     return labels
 
@@ -409,9 +409,19 @@ def exclude_from_string(k_string, exclude):
     return False
 
 
-def vectorize_string(sequence, k, alphabet, start=0, end=False,
-                     feature_dict=None, filter_list=None, exclude=None,
-                     return_dict=False, verbose=False, log_file=False):
+def vectorize_string(
+    sequence,
+    k,
+    alphabet,
+    start=0,
+    end=False,
+    feature_dict=None,
+    filter_list=None,
+    exclude=None,
+    return_dict=False,
+    verbose=False,
+    log_file=False,
+):
     """Transform a protein sequence into a vector representation.
 
     Parameters
@@ -471,20 +481,19 @@ def vectorize_string(sequence, k, alphabet, start=0, end=False,
         results = {key: 0 for key in filter_list}
 
     for i in range(start, end):
-        k_map = sequence[i: i + k]
+        k_map = sequence[i : i + k]
 
         # perform mapping to a reduced alphabet
         k_string = map_characters(k_map, alphabet_map, mapping)
 
         if verbose and log_file:
-            with open(log_file, 'a') as f:
+            with open(log_file, "a") as f:
                 f.write(f"{i}\t{k_map}\t{k_string}\t1\n")
         elif verbose and not log_file:
-            print(f"{i}\t{k_map}\t{k_string}\t1", )
+            print(f"{i}\t{k_map}\t{k_string}\t1",)
 
         # filter unrecognized characters or filter from list
-        if (len(k_string) < k) or (filter_list and k_string
-                                   not in filter_list):
+        if (len(k_string) < k) or (filter_list and k_string not in filter_list):
             continue
 
         # FILTER HERE
@@ -505,8 +514,9 @@ def vectorize_string(sequence, k, alphabet, start=0, end=False,
     return list(results.values())
 
 
-def scramble_sequence(sequence_id, sequence, n=1, id_modifier=False,
-                      first_residue=1, example_index=None):
+def scramble_sequence(
+    sequence_id, sequence, n=1, id_modifier=False, first_residue=1, example_index=None
+):
     """Scramble sequences given an identifier and its sequence.
 
     Given a sequence and an identifier, returns a list of n scrambled
@@ -603,15 +613,15 @@ def randomize_alphabet(alphabet):
 
     rand_alphabet = {}
     # this gives us a non-repeating string for use as new keys
-    rand_str = ''.join(random.sample("ACDEFGHIKLMNPQRSTVWY", 20))
+    rand_str = "".join(random.sample("ACDEFGHIKLMNPQRSTVWY", 20))
     for key_a in alpha.keys():
         if key_a == "_key":
             rand_alphabet["_key"] = alpha["_key"]
             continue
-        key_r = rand_str[0:len(key_a)]
+        key_r = rand_str[0 : len(key_a)]
 
         # trim off used sequence bits
-        rand_str = rand_str[len(key_a):]
+        rand_str = rand_str[len(key_a) :]
         rand_alphabet[key_r] = alpha[key_a]
 
     return rand_alphabet
