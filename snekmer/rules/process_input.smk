@@ -48,8 +48,16 @@ rule preprocess:
         # log step initialization
         start_time = datetime.now()
 
+        verbose = config["verbose"]
+
         # read fasta file
+        if verbose:
+            print("Read fasta...")
+            print(datetime.now())
+
         seq_list, id_list = skm.io.read_fasta(input.fasta)
+        if verbose:
+            print(datetime.now())
 
         # if random alphabet specified, implement randomization
         if config["randomize_alphabet"]:
@@ -101,17 +109,39 @@ rule preprocess:
         nonrecursive = ["alphabet", "k", "example_index", "filter_list"]
         all_dsets = recursive + nonrecursive
 
+        if verbose:
+            print("Filter sequences...")
+            print(datetime.now())
+            x = 0
+
         for i in range(len(seq_list)):
             seq = seq_list[i]
             sid = id_list[i]
 
             # ignore duplicate ids
+            if verbose:
+                if x == 0:
+                    print("...filter duplicates...")
+                    print(datetime.now())
+
             if config["output"]["filter_duplicates"] and sid in seen:
                 continue
             seen.append(sid)
 
+            if verbose:
+                if x == 0:
+                    print("...filter duplicates...")
+                    print(datetime.now())
+
             seqs = [seq]
             sids = [sid]
+
+            if verbose:
+                x += 1
+                if x == 10000:
+                    print("...tick... %d" % i)
+                    print(datetime.now())
+                    x = 0
 
             # shuffle the N-terminal sequence n times
             if config["output"]["shuffle_n"]:
@@ -145,6 +175,11 @@ rule preprocess:
                 residues = "ACGT"
 
             # populate dictionary for json save file
+            if verbose:
+                if x == 0:
+                    print("...jsonstuff...")
+                    print(datetime.now())
+
             to_save = [seqs, sids, residues]
             save_label = recursive
             for dset, label in zip(to_save, save_label):
@@ -152,6 +187,11 @@ rule preprocess:
                     save_data[label] = save_data[label] + dset
                 else:
                     save_data[label] = dset
+
+            if verbose:
+                if x == 0:
+                    print(datetime.now())
+                print(datetime.now())
 
         # save variables not generated in loop
         for dset, label in zip(

@@ -115,8 +115,6 @@ rule vectorize:
         # record script runtime
         skm.utils.log_runtime(log[0], start_time)
 
-
-
 rule vectorize_full:
     input:
         kmers=join("output", "labels", "full", "{nb}.txt"),
@@ -157,6 +155,63 @@ rule vectorize_full:
 
         with gzip.open(output.file, "wt", encoding="ascii") as zipfile:
             json.dump(results, zipfile)
+
+        # record script runtime
+        skm.utils.log_runtime(log[0], start_time)
+
+rule vectorize_search:
+    input:
+        #kmers=join("output", "labels", "{nb}.txt"),
+        #params=join("output", "processed", "{nb}.json"),
+        fastas=join("input", "{nb}.fasta"),
+    log:
+        join("output", "features", "log", "{nb}.log"),
+    output:
+        files=expand(join("output", "features", "{{nb}}", "{fa}.json.gz"), fa=FAS),
+    run:
+        start_time = datetime.now()
+
+        # get kmers for this search
+        kmers = []
+        with open(config["input"]["feature_set"], "r") as f:
+            kmers = skm.io.read_output_kmers(config["input"]["feature_set"])
+
+        # old
+        #kmers = skm.io.read_output_kmers(input.kmers)
+
+        # read processed features
+        #with open(input.params, "r") as f:
+        #    params = json.load(f)
+
+        # sort i/o lists to match wildcard order
+        fastas = sorted(input.fastas)
+        # print(fastas)
+        outfiles = sorted(output.files)
+
+        # revectorize based on full kmer list
+        for i, fa in enumerate(fastas):
+            results = {"seq_id": [], "vector": []}
+            seq_list, id_list = skm.io.read_fasta(fa)
+            for seq, sid in zip(seq_list, id_list):
+                results["seq_id"] += [sid]
+                results["vector"] += [
+                    skm.transform.vectorize_string(
+                        seq,
+                        config["k"],
+                        config["alphabet"],
+                        start=config["start"],
+                        end=config["end"],
+                        filter_list=kmers,  # params['filter_list'],
+                        verbose=False,  # way too noisy for batch process
+                        log_file=log[0],
+                    )
+                ]
+
+            # with open(outfiles[i], 'w') as f:
+            #     json.dump(results, f)
+
+            with gzip.open(outfiles[i], "wt", encoding="ascii") as zipfile:
+                json.dump(results, zipfile)
 
         # record script runtime
         skm.utils.log_runtime(log[0], start_time)
