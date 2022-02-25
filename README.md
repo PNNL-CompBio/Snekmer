@@ -20,6 +20,12 @@ Cluster mode:
   * _Evaluation output:_ Assessment of how well the clusters of similar
   proteins represent functions
 
+Search mode:
+
+* **Input:** FASTA files containing protein sequences
+* **Input:** Trained model from snekmer model mode
+* **Output** Predictions of family membership
+
 ## Installation
 
 We recommend using Anaconda to create a virtual environment. Anaconda handles dependencies and versioning, which simplifies the process of installation.
@@ -29,7 +35,7 @@ We recommend using Anaconda to create a virtual environment. Anaconda handles de
 Use conda to install an environment from the YML file with all
  required dependencies. (Note: Users may either download the YML file
  directly from the repository, or clone the repository beforehand
- using the `git clone` command below.) 
+ using the `git clone` command below.)
 
 ```bash
 conda env create -f environment.yml
@@ -100,9 +106,9 @@ Snekmer assumes that input files are stored in the **_input_** directory,
 
 ### Modes
 
-Snekmer has two operation modes: `model` (supervised modeling) and `cluster`
-  (unsupervised clustering). Users may choose either mode to best suit their
-  use case.
+Snekmer has three operation modes: `model` (supervised modeling), `cluster`
+  (unsupervised clustering), and `search` (application of model to new sequences).
+  Users may choose a mode to best suit their use case.
 
 The mode must be specified in the command line, e.g.:
 
@@ -113,6 +119,12 @@ or
 
 ```bash
 snekmer cluster [--options]
+```
+
+or
+
+```bash
+snekmer search [--options]
 ```
 
 Once the **_config.yaml_** file has been updated, I recommend a dry run:
@@ -212,6 +224,22 @@ Executing `snekmer cluster` produces the following output files and
         ├── A.pkl     # A cluster model
         ├── B.pkl     # B cluster model
         └── figures/  # cluster figures (t-SNE)
+            ├── A/
+            └── B/
+
+```
+
+##### Search Mode
+
+Executing `snekmer search` produces the following output files and
+ directories in addition to the files described previously.
+
+```
+.
+└── output/
+    ├── ...
+    ├── model/
+        ├── results  # output probabilities and predictions for the input sequences
             ├── A/
             └── B/
 
