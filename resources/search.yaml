@@ -1,7 +1,7 @@
 file_extensions: ['fasta', 'fna', 'faa', 'fa']
-model_file: "/path/to/output/model/family.pkl"
-basis_file: "/path/to/output/labels/family.txt"
-score_file: "/path/to/output/score/family.pkl"
+model_dir: "/path/to/output/model/"
+basis_dir: "/path/to/output/labels/"
+score_dir: "/path/to/output/score/"
 
 # required params
 k: 14

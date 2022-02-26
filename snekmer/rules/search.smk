@@ -51,6 +51,7 @@ plt.switch_backend("Agg")
 
 # collect all fasta-like files, unzipped filenames, and basenames
 input_files = glob(join("input", "*"))
+model_files = glob(join(config["model_dir"], "*.pkl"))
 zipped = [f for f in input_files if f.endswith(".gz")]
 unzipped = [
     f.rstrip(".gz")
@@ -67,7 +68,7 @@ file_map = {
 }
 UZS = [f"{f}.{ext}" for f, ext in uz_map.items()]
 FILES = list(file_map.keys())
-FAMILIES = [skm.utils.get_family(f) for f in [config["model_file"]]]
+FAMILIES = [skm.utils.get_family(f) for f in model_files]
 
 # define output files to be created by snekmer
 rule all:
@@ -87,7 +88,8 @@ if len(UZS) > 0:
 # build kmer count vectors for each basis set
 rule vectorize:
     input:
-        fastas=unzipped
+        fastas=unzipped,
+        basis=join(config["basis_dir"], "{fam}.txt")
     log:
         join("output", "features", "log", "{fam}.log"),
     output:
@@ -98,7 +100,7 @@ rule vectorize:
         start_time = datetime.now()
 
         # get kmers for this search
-        kmers = skm.io.read_output_kmers(config["basis_file"])
+        kmers = skm.io.read_output_kmers(input.basis)
 
         # sort i/o lists to match wildcard order
         fastas = sorted(input.fastas)
@@ -133,16 +135,19 @@ rule vectorize:
 # JEM: all I've done so far is to change the name of the rule
 rule search:
     input:
-        vecfiles=rules.vectorize.output.files
+        vecfiles=rules.vectorize.output.files,
+        model=join(config["model_dir"], "{fam}.pkl"),
+        basis=join(config["basis_dir"], "{fam}.txt"),
+        scorer=join(config["score_dir"], "{fam}.pkl")
     output:
         results=join("output", "search", "{fam}.csv")
     run:
         # load kmer basis set
-        kmers = skm.io.read_output_kmers(config["basis_file"])
+        kmers = skm.io.read_output_kmers(input.basis)
 
         # JEM: for now, specify the desired model in config file
-        model_file = config["model_file"]
-        score_file = config["score_file"]
+        model_file = input.model
+        score_file = input.scorer
         family = skm.utils.get_family(model_file)
 
         # load model
