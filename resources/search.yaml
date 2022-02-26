@@ -14,6 +14,7 @@ start: False
 end: False
 nucleotide: False
 randomize_alphabet: False
+regex: "[a-z]{3}[A-Z]{1}"
 verbose: False
 walk: False
 mode: None

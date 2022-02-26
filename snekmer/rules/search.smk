@@ -68,7 +68,7 @@ file_map = {
 }
 UZS = [f"{f}.{ext}" for f, ext in uz_map.items()]
 FILES = list(file_map.keys())
-FAMILIES = [skm.utils.get_family(f) for f in model_files]
+FAMILIES = [skm.utils.get_family(f, regex=config["regex"]) for f in model_files]
 
 # define output files to be created by snekmer
 rule all:
@@ -148,7 +148,7 @@ rule search:
         # JEM: for now, specify the desired model in config file
         model_file = input.model
         score_file = input.scorer
-        family = skm.utils.get_family(model_file)
+        family = wildcards.fam
 
         # load model
         with open(model_file, 'rb') as mf:
