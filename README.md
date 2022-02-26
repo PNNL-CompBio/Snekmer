@@ -224,9 +224,9 @@ Executing `snekmer cluster` produces the following output files and
 
 ##### Search Mode
 
-The `snekmer search` mode assumes that the user has pre-generated family models using the `snekmer model` workflow, and thus operates as an independent workflow. The basis set, scorer, and model for the desired family must be specified in the configuration file (see: **_resources/search.yaml_**).
+The `snekmer search` mode assumes that the user has pre-generated family models using the `snekmer model` workflow, and thus operates as an independent workflow. The location of the basis sets, scorers, and models must be specified in the configuration file (see: **_resources/search.yaml_**).
 
-For instance, say that the above output examples have already been produced. The user would then like to search a set of unknown sequences against the **A** family model.
+For instance, say that the above output examples have already been produced. The user would then like to search a set of unknown sequences against the above families.
 
 In a separate directory, the user should place files in an input directory with the appropriate YAML file. The assumed input file structure is as follows:
 
@@ -242,7 +242,7 @@ In a separate directory, the user should place files in an input directory with 
 │   └── ...
 ```
 
-The user should then modify **_search.yaml_** to point toward the appropriate basis set, scorer, and model files for family **A**.
+The user should then modify **_search.yaml_** to point toward the appropriate basis set, scorer, and model directories.
 
 Executing `snekmer search --configfile search.yaml` produces the following output files and directories in addition to the files described previously.
 
@@ -250,11 +250,15 @@ Executing `snekmer search --configfile search.yaml` produces the following outpu
 .
 └── output/
     ├── features/
-    │   └── A/
+    │   ├── A/
+    │   │   ├── unknown_1.json.gz
+    │   │   └── unknown_2.json.gz
+    │   └── B/
     │       ├── unknown_1.json.gz
     │       └── unknown_2.json.gz
     └── search/
-        └── A.csv  # output probabilities and predictions for input sequences
+        ├── A.csv  # A probabilities and predictions for unknown sequences
+        └── B.csv  # B probabilities and predictions for unknown sequences
 
 ```
 
