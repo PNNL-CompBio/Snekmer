@@ -107,27 +107,20 @@ Snekmer assumes that input files are stored in the **_input_** directory,
 ### Modes
 
 Snekmer has three operation modes: `model` (supervised modeling), `cluster`
-  (unsupervised clustering), and `search` (application of model to new sequences).
+  (unsupervised clustering), and `search` (application of model to new sequences). We will call first two **learning modes** due to their utility
+  in learning relationships between protein family input files.
   Users may choose a mode to best suit their use case.
 
-The mode must be specified in the command line, e.g.:
+The mode must be specified in the command line, e.g. to specify the `model`
+  mode, the following should be called:
 
 ```bash
 snekmer model [--options]
 ```
-or
 
-```bash
-snekmer cluster [--options]
-```
-
-or
-
-```bash
-snekmer search [--options]
-```
-
-Once the **_config.yaml_** file has been updated, I recommend a dry run:
+In the **_resources_** directory, two example configuration files are included:
+  - **_resources/config.yaml_**: Configuration file for `snekmer model` and `snekmer cluster` modes.
+  - **_resources/search.yaml_**: Configuration file for `snekmer search` mode. Note that the Snekmer CLI automatically assumes that the configuration file will be named _config.yaml_, so to use the provided file, use `snekmer search --configfile search.yaml`
 
 ```bash
 snekmer [mode] --dryrun
@@ -144,6 +137,7 @@ When you are ready to process your files, run:
 ```bash
 snekmer [mode]
 ```
+
 
 #### Output
 
@@ -231,17 +225,38 @@ Executing `snekmer cluster` produces the following output files and
 
 ##### Search Mode
 
+The `snekmer search` mode assumes that the user has pre-generated family models using the `snekmer model` workflow, and thus operates as an independent workflow. The basis set, scorer, and model for the desired family must be specified in the configuration file (see: **_resources/search.yaml_**).
+
+For instance, say that the above output examples have already been produced. The user would then like to search a set of unknown sequences against the **A** family model.
+
+In a separate directory, the user should place files in an input directory with the appropriate YAML file. The assumed input file structure is as follows:
+
+```
+.
+├── search.yaml
+├── input/
+│   ├── unknown_1.fasta
+│   ├── unknown_2.fasta
+│   └── etc.
+├── output/
+│   ├── ...
+│   └── ...
+```
+
+The user should then modify **_search.yaml_** to point toward the appropriate basis set, scorer, and model files for family **A**.
+
 Executing `snekmer search` produces the following output files and
  directories in addition to the files described previously.
 
 ```
 .
 └── output/
-    ├── ...
-    ├── model/
-        ├── results  # output probabilities and predictions for the input sequences
-            ├── A/
-            └── B/
+    ├── features/
+    │   └── A/
+    │       ├── unknown_1.json.gz
+    │       └── unknown_2.json.gz
+    └── search/
+        └── A.csv  # output probabilities and predictions for input sequences
 
 ```
 

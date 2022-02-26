@@ -48,7 +48,3 @@ model:
 cluster:
   method: 'correlation'
   params: {'t': 0.75, 'criterion': 'distance', 'metric': 'correlation', 'method': 'weighted'}
-
-search:
-  model_file: "/path/to/model_file.pkl"
-  score_file: "/path/to/scorer_file.pkl"

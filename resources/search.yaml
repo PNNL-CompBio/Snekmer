@@ -1,0 +1,19 @@
+file_extensions: ['fasta', 'fna', 'faa', 'fa']
+model_file: "/path/to/output/model/family.pkl"
+basis_file: "/path/to/output/labels/family.txt"
+score_file: "/path/to/output/score/family.pkl"
+
+# required params
+k: 14
+alphabet: 0  # choices 0-5 or names (see alphabet module), or None
+min_rep_thresh: 1
+processes: 2
+
+# optional params
+start: False
+end: False
+nucleotide: False
+randomize_alphabet: False
+verbose: False
+walk: False
+mode: None
