@@ -22,8 +22,7 @@ Cluster mode:
 
 Search mode:
 
-* **Input:** FASTA files containing protein sequences
-* **Input:** Trained model from snekmer model mode
+* **Input:** FASTA files containing protein sequences; Trained model (output from snekmer model mode)
 * **Output** Predictions of family membership
 
 ## Installation
@@ -245,8 +244,7 @@ In a separate directory, the user should place files in an input directory with 
 
 The user should then modify **_search.yaml_** to point toward the appropriate basis set, scorer, and model files for family **A**.
 
-Executing `snekmer search` produces the following output files and
- directories in addition to the files described previously.
+Executing `snekmer search --configfile search.yaml` produces the following output files and directories in addition to the files described previously.
 
 ```
 .
