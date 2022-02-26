@@ -4,6 +4,7 @@ author: @christinehc
 """
 # imports
 import collections.abc
+from ast import literal_eval
 from datetime import datetime
 import re
 from os.path import basename, splitext
@@ -28,11 +29,10 @@ def check_list(array):
         Returns True if input is a list/sequence, array, or Series.
 
     """
-    if not isinstance(
-            array, (collections.abc.Sequence, np.ndarray, pd.Series)
-            ):
+    if not isinstance(array, (collections.abc.Sequence, np.ndarray, pd.Series)):
         return False
     return True
+
 
 def count_sequences(fasta):
     """Count the number of sequences contained in a fasta file.
@@ -70,26 +70,26 @@ def parse_fasta_description(fasta, df=True):
     """
     # collect parsed description data into dict
     pdict = dict()
-    with open(fasta, 'r') as f:
-        for record in SeqIO.parse(f, 'fasta'):
+    with open(fasta, "r") as f:
+        for record in SeqIO.parse(f, "fasta"):
             pdict[record.id] = dict()
-            pdict[record.id]['protein_family'] = get_family(fasta)
+            pdict[record.id]["protein_family"] = get_family(fasta)
             s = f"{record.description} "  # trailing space needed for regex
-            parsed = re.findall(r'([\w]+[=][\w\", ]+)(?= )(?!=)', s)
+            parsed = re.findall(r"([\w]+[=][\w\", ]+)(?= )(?!=)", s)
             for item in parsed:
                 key = item.split("=")[0].lower()
-                val = item.split("=")[1].replace('"', '')
-    #             print(key, val)
+                val = item.split("=")[1].replace('"', "")
+                #             print(key, val)
                 i = 1
                 while key in pdict[record.id].keys():
                     key = f"{key.rstrip('0123456789_')}_{i}"
                     i += 1
                 pdict[record.id][key] = val
-            pdict[record.id]['filename'] = basename(fasta)
+            pdict[record.id]["filename"] = basename(fasta)
     if df:
-        pdict = pd.DataFrame(pdict).T.reset_index().rename(
-            columns={'index': 'sequence_id'}
-            )
+        pdict = (
+            pd.DataFrame(pdict).T.reset_index().rename(columns={"index": "sequence_id"})
+        )
     return pdict
 
 
@@ -125,16 +125,12 @@ def get_family(filename, regex=r"[a-z]{3}[A-Z]{1}", return_first=True):
     # extract and simplify file basename
     filename = basename(filename)
     # account for directories
-    if "." not in filename:  #  and filename[-1] == "/"
+    if "." not in filename:  # and filename[-1] == "/"
         filename = f"{filename}.dir"
-    s = '_'.join(
-        filename.split('.')[:-1]
-        ).replace('-', '_').replace(' ', '_')
+    s = "_".join(filename.split(".")[:-1]).replace("-", "_").replace(" ", "_")
     # explicitly define regex as an r-string
     regex = r"{}".format(regex)
     search = re.search(regex, s)
-    # modify regex to only search between underscores
-    # regex = r'(?<=_)' + r'{}'.format(regex) + r'(?=_)'
 
     # return list output
     if not return_first:
@@ -143,7 +139,7 @@ def get_family(filename, regex=r"[a-z]{3}[A-Z]{1}", return_first=True):
     # return string output
     if search is not None:
         return search.group()
-    return filename.split('.')[0]
+    return filename.split(".")[0]
 
 
 def format_timedelta(timedelta):
@@ -192,11 +188,14 @@ def split_file_ext(filename):
     filename = basename(filename)
 
     # for compressed files, returns (filename, ext) without .gz
-    if splitext(filename)[1] == '.gz':
-        return splitext(splitext(filename)[0])[0], splitext(splitext(filename)[0])[1].lstrip('.')
+    if splitext(filename)[1] == ".gz":
+        return (
+            splitext(splitext(filename)[0])[0],
+            splitext(splitext(filename)[0])[1].lstrip("."),
+        )
 
     # otherwise, returns (filename, ext)
-    return splitext(filename)[0], splitext(filename)[1].lstrip('.')
+    return splitext(filename)[0], splitext(filename)[1].lstrip(".")
 
 
 def log_runtime(filename, start_time, step=False):
@@ -221,7 +220,7 @@ def log_runtime(filename, start_time, step=False):
     if not step:
         step = "end"
 
-    with open(filename, 'a') as f:
+    with open(filename, "a") as f:
         f.write(f"start time:\t{start_time}\n")
         f.write(f"{step} time:\t{end_time}\n")
         f.write(f"total time:\t{format_timedelta(end_time - start_time)}")
@@ -244,3 +243,26 @@ def to_feature_matrix(array):
 
     """
     return np.array([np.array(a, dtype=int) for a in array])
+
+
+def str_to_array(array):
+    """Convert string array to array format.
+
+    Parameters
+    ----------
+    a : str or any type
+        Input array.
+
+    Returns
+    -------
+    type
+        Description of returned object.
+
+    """
+    if not isinstance(array, str):
+        return array
+
+    # remove all spaces in array
+    array = re.sub(" +", ",", array)
+    array = array.replace("\n", "").replace("[,", "[").replace(",]", "]")
+    return np.array(literal_eval(array))
