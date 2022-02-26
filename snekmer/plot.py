@@ -26,7 +26,7 @@ from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 
 
-def get_cv_roc_curve(clf, X, y, title="ROC Curve", ax=None, dpi=400):
+def cv_roc_curve(clf, X, y, title="ROC Curve", ax=None, dpi=400):
     """Plot cross-validated receiver operator characteristics curve.
 
     Adapted from example in sklearn documentation [1].
@@ -116,7 +116,7 @@ def get_cv_roc_curve(clf, X, y, title="ROC Curve", ax=None, dpi=400):
     return fig, ax, auc_rocs
 
 
-def get_cv_pr_curve(clf, X, y, title="PR Curve", ax=None, dpi=400):
+def cv_pr_curve(clf, X, y, title="PR Curve", ax=None, dpi=400):
     """Plot cross-validated precision-recall curve.
 
     Parameters

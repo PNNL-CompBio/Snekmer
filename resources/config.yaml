@@ -9,13 +9,14 @@ start: False
 end: False
 nucleotide: False
 randomize_alphabet: False
+verbose: False
 walk: False
 mode: None
 # custom_alphabet: {'custom_alphabet': {}}
 
 input:
   example_index_file: False
-  feature_set: False  # file containing kmer feature set
+  kmer_set_file: False  # file containing kmer feature set
   file_extensions: ['fasta', 'fna', 'faa', 'fa']
   regex: "[a-z]{3}[A-Z]{1}"  # regex to parse family from filename
 
@@ -47,3 +48,7 @@ model:
 cluster:
   method: 'correlation'
   params: {'t': 0.75, 'criterion': 'distance', 'metric': 'correlation', 'method': 'weighted'}
+
+search:
+  model_file: "/path/to/model_file.pkl"
+  score_file: "/path/to/scorer_file.pkl"

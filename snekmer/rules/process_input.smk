@@ -2,7 +2,6 @@
 
 author: @christinehc
 """
-
 # imports
 from datetime import datetime
 from os import makedirs
@@ -14,8 +13,7 @@ import snekmer as skm
 # define rules
 rule unzip:
     input:
-        join("input", "{uz}.gz") # lambda wildcards: join("input", f"{wildcards.uz}.{uz_map[wildcards.uz]}.gz")
-         # lambda wildcards: unzip(join("input", ))
+        join("input", "{uz}.gz")
     output:
         join("input", "{uz}")
     params:
@@ -75,7 +73,7 @@ rule preprocess:
             min_rep_thresh = config["min_rep_thresh"]
 
         # if no feature set is specified, define feature space
-        if not config["input"]["feature_set"]:
+        if not config["input"]["kmer_set_file"]:
             # prefilter fasta to cut down on the size of feature set
             filter_dict = skm.features.define_feature_space(
                 {k: v for k, v in zip(id_list, seq_list)},
@@ -92,7 +90,7 @@ rule preprocess:
             assert len(filter_list) > 0, "Invalid feature space; terminating."
         else:
             # read in list of ids to use from file; NO FORMAT CHECK
-            filter_list = skm.io.read_output_kmers(config["input"]["feature_set"])
+            filter_list = skm.io.read_output_kmers(config["input"]["kmer_set_file"])
 
         # optional indexfile with IDs of good feature output examples
         if config["input"]["example_index_file"]:

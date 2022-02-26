@@ -2,13 +2,9 @@
 
 author: @christinehc
 """
-# fmt: off
 # snakemake config
-# include: "kmerize.smk"
-# localrules: all, generate, vectorize
-# force snakemake v6.0+ (required for modules)
 from snakemake.utils import min_version
-min_version("6.0")
+min_version("6.0")  # force snakemake v6.0+ (required for modules)
 
 
 # load modules
@@ -251,17 +247,19 @@ rule model:
     run:
         # load all input data and encode rule-wide variables
         data = read_csv(input.data)
-        data["vector"] = [literal_eval(vec) if isinstance(vec, str) else vec for vec in data["vector"]]
+        data["vector"] = [
+            literal_eval(vec) if isinstance(vec, str) else vec for vec in data["vector"]
+        ]
         scores = read_csv(input.scores)
         family = skm.utils.get_family(
             skm.utils.split_file_ext(input.scores)[0], regex=config["input"]["regex"]
-        )  # skm.utils.get_family(input.scores, regex=config['input']['regex'])
+        )
         kmers = skm.io.read_output_kmers(input.kmers)
         all_families = [
             skm.utils.get_family(skm.utils.split_file_ext(f)[0], regex=config["input"]["regex"])
             for f in input.files
         ]
-        cv = config['model']['cv']
+        cv = config["model"]["cv"]
 
         # process vector data
         label = "family"  # TODO: remove hardcoding
@@ -275,16 +273,6 @@ rule model:
             alphabet_name = skm.alphabet.ALPHABET_ORDER[config["alphabet"]].capitalize()
         else:
             alphabet_name = str(config["alphabet"]).capitalize()
-
-        # AUC per family
-        results = {
-            "family": [],
-            "alphabet_name": [],
-            "k": [],
-            "scoring": [],
-            "score": [],
-            "cv_split": [],
-        }
 
         # generate [0, 1] labels for binary family assignment
         binary_labels = [True if value == family else False for value in data["family"]]
@@ -303,46 +291,42 @@ rule model:
             random_state = config["model"]["random_state"]
 
         # set and format input and label arrays; initialize model objs
+        cols = ["family", "alphabet_name", "k", "scoring"]
+        results = {col: [] for col in cols + ["score", "cv_split"]}
         X, y = {i: {} for i in range(cv)}, {i: {} for i in range(cv)}
         for n in range(cv):
 
             # remove score cols that were generated from full dataset
             unscored_cols = [col for col in list(data.columns) if "_score" not in col]
 
-            # filter data by training data per split
-            i_train = data[data[f'train_cv-{n + 1:02d}']].index
-            i_test = data[~data[f'train_cv-{n + 1:02d}']].index
+            # filter data by training data per CV split
+            i_train = data[data[f"train_cv-{n + 1:02d}"]].index
+            i_test = data[~data[f"train_cv-{n + 1:02d}"]].index
             df_train = data.iloc[i_train][unscored_cols].reset_index(drop=True)
             df_test = data.iloc[i_test][unscored_cols].reset_index(drop=True)
-            df_train_labels = [True if value == family else False for value in df_train["family"]]
+            df_train_labels = [
+                True if value == family else False for value in df_train["family"]
+            ]
             df_test_labels = [True if value == family else False for value in df_test["family"]]
 
             # score kmers separately per split
             scorer = skm.model.KmerScorer()
             scorer.fit(
-                kmers,
-                df_train,
-                family,
-                label_col=label,
-                **config['score']['scaler_kwargs'],
+                kmers, df_train, family, label_col=label, **config["score"]["scaler_kwargs"],
             )
 
             # append scored sequences to dataframe
             df_train = df_train.merge(
-                DataFrame(scorer.scores["sample"]),
-                left_index=True,
-                right_index=True
+                DataFrame(scorer.scores["sample"]), left_index=True, right_index=True
             )
             if df_train.empty:
                 raise ValueError("Blank df")
             df_test = df_test.merge(
                 DataFrame(
-                    scorer.predict(
-                        skm.model.to_feature_matrix(df_test['vector']), kmers
-                    )
+                    scorer.predict(skm.model.to_feature_matrix(df_test["vector"]), kmers)
                 ),
                 left_index=True,
-                right_index=True
+                right_index=True,
             ).rename(columns={0: f"{family}_score"})
 
             # save score loadings
@@ -353,25 +337,26 @@ rule model:
             )
 
             # save X,y array data for plot
-            X[n]['train'] = df_train[f"{family}_score"].values.reshape(-1, 1)
-            y[n]['train'] = le.transform(df_train_labels).ravel()
+            X[n]["train"] = df_train[f"{family}_score"].values.reshape(-1, 1)
+            y[n]["train"] = le.transform(df_train_labels).ravel()
 
-            X[n]['test'] = df_test[f"{family}_score"].values.reshape(-1, 1)
-            y[n]['test'] = le.transform(df_test_labels).ravel()
+            X[n]["test"] = df_test[f"{family}_score"].values.reshape(-1, 1)
+            y[n]["test"] = le.transform(df_test_labels).ravel()
 
         # ROC-AUC figure
-        clf = LogisticRegression(random_state=random_state,
-                                 solver="liblinear",
-                                 class_weight="balanced")
-        fig, ax, auc_rocs = skm.plot.get_cv_roc_curve(
+        clf = LogisticRegression(
+            random_state=random_state, solver="liblinear", class_weight="balanced"
+        )
+        fig, ax, auc_rocs = skm.plot.cv_roc_curve(
             clf, X, y, title=f"{family} ROC Curve ({alphabet_name}, k={config['k']})"
         )
 
         # collate ROC-AUC results
+        # collate PR-AUC results
         results["family"] += [family] * cv
         results["alphabet_name"] += [alphabet_name.lower()] * cv
         results["k"] += [config["k"]] * cv
-        results["scoring"] += ["roc_auc"] * cv
+        results["scoring"] += ["pr_auc"] * cv
         results["score"] += auc_rocs
         results["cv_split"] += [i + 1 for i in range(cv)]
 
@@ -388,7 +373,7 @@ rule model:
         plt.close("all")
 
         # PR-AUC figure
-        fig, ax, pr_aucs = skm.plot.get_cv_pr_curve(
+        fig, ax, pr_aucs = skm.plot.cv_pr_curve(
             clf, X, y, title=f"{family} PR Curve ({alphabet_name}, k={config['k']})"
         )
 
