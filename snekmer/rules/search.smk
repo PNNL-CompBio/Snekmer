@@ -63,12 +63,13 @@ unzipped = [
 uz_map = {
     skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in zipped
 }
-file_map = {
+FILE_MAP = {
     skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in unzipped
 }
 UZS = [f"{f}.{ext}" for f, ext in uz_map.items()]
-FILES = list(file_map.keys())
+FILES = list(FILE_MAP.keys())
 FAMILIES = [skm.utils.get_family(f, regex=config["regex"]) for f in model_files]
+
 
 # define output files to be created by snekmer
 rule all:
@@ -132,7 +133,6 @@ rule vectorize:
         skm.utils.log_runtime(log[0], start_time)
 
 
-# JEM: all I've done so far is to change the name of the rule
 rule search:
     input:
         vecfiles=rules.vectorize.output.files,
@@ -145,7 +145,7 @@ rule search:
         # load kmer basis set
         kmers = skm.io.read_output_kmers(input.basis)
 
-        # JEM: for now, specify the desired model in config file
+        # simplify some variable names
         model_file = input.model
         score_file = input.scorer
         family = wildcards.fam
@@ -160,6 +160,8 @@ rule search:
 
         results = list()
         for fasta in input.vecfiles:
+            filename = skm.utils.split_file_ext(basename(fasta))[0]
+
             df = pd.read_json(fasta)
             vecs = skm.utils.to_feature_matrix(df["vector"].values)
 
@@ -171,7 +173,7 @@ rule search:
             df[f"{family}_score"] = scores  # scorer output
             df[family] = [True if p == 1 else False for p in predictions]
             df[f"{family}_probability"] = [p[1] for p in predicted_probas]
-            df["filename"] = basename(fasta)
+            df["filename"] = f"{filename}.{FILE_MAP[filename]}"
 
             results.append(df)
 
