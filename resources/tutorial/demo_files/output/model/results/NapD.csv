@@ -1,0 +1,11 @@
+family,alphabet_name,k,scoring,score,cv_split
+NapD,hydro,14,roc_auc,0.9594594594594594,1
+NapD,hydro,14,roc_auc,0.9713513513513514,2
+NapD,hydro,14,roc_auc,0.9790491539081386,3
+NapD,hydro,14,roc_auc,0.9548751007252216,4
+NapD,hydro,14,roc_auc,0.9580983078162771,5
+NapD,hydro,14,pr_auc,0.9474201900622785,1
+NapD,hydro,14,pr_auc,0.9654025714123275,2
+NapD,hydro,14,pr_auc,0.9807621736334711,3
+NapD,hydro,14,pr_auc,0.9510546981140543,4
+NapD,hydro,14,pr_auc,0.9499469805607552,5

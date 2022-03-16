@@ -1,0 +1,11 @@
+family,alphabet_name,k,scoring,score,cv_split
+cNorB,hydro,14,roc_auc,1.0,1
+cNorB,hydro,14,roc_auc,1.0,2
+cNorB,hydro,14,roc_auc,1.0,3
+cNorB,hydro,14,roc_auc,1.0,4
+cNorB,hydro,14,roc_auc,1.0,5
+cNorB,hydro,14,pr_auc,0.9999999999999998,1
+cNorB,hydro,14,pr_auc,0.9999999999999998,2
+cNorB,hydro,14,pr_auc,1.0,3
+cNorB,hydro,14,pr_auc,1.0,4
+cNorB,hydro,14,pr_auc,1.0,5
