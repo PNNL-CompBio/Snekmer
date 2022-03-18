@@ -70,13 +70,17 @@ UZS = [f"{f}.{ext}" for f, ext in uz_map.items()]
 FILES = list(FILE_MAP.keys())
 FAMILIES = [skm.utils.get_family(f, regex=config["regex"]) for f in model_files]
 
+# define output directory (helpful for multiple runs)
+out_dir = skm.io.define_output_dir(config['alphabet'], config['k'],
+                                   nested=config['nested_dir'])
+
 
 # define output files to be created by snekmer
 rule all:
     input:
         expand(join("input", "{uz}"), uz=UZS),  # require unzipping
-        expand(join("output", "features", "{fam}", "{f}.json.gz"), fam=FAMILIES, f=FILES),  # correctly build features
-        expand(join("output", "search", "{fam}.csv"), fam=FAMILIES)  # require model-building
+        expand(join(out_dir, "features", "{fam}", "{f}.json.gz"), fam=FAMILIES, f=FILES),  # correctly build features
+        expand(join(out_dir, "search", "{fam}.csv"), fam=FAMILIES)  # require model-building
 
 
 # if any files are gzip zipped, unzip them
@@ -92,10 +96,10 @@ rule vectorize:
         fastas=unzipped,
         basis=join(config["basis_dir"], "{fam}.txt")
     log:
-        join("output", "features", "log", "{fam}.log"),
+        join(out_dir, "features", "log", "{fam}.log"),
     output:
         files=expand(
-            join("output", "features", "{{fam}}", "{f}.json.gz"), f=FILES
+            join(out_dir, "features", "{{fam}}", "{f}.json.gz"), f=FILES
         )
     run:
         start_time = datetime.now()
@@ -140,7 +144,7 @@ rule search:
         basis=join(config["basis_dir"], "{fam}.txt"),
         scorer=join(config["score_dir"], "{fam}.pkl")
     output:
-        results=join("output", "search", "{fam}.csv")
+        results=join(out_dir, "search", "{fam}.csv")
     run:
         # load kmer basis set
         kmers = skm.io.read_output_kmers(input.basis)

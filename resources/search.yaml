@@ -8,6 +8,7 @@ k: 14
 alphabet: 0  # choices 0-5 or names (see alphabet module), or None
 min_rep_thresh: 1
 processes: 2
+nested_dir: False
 
 # optional params
 start: False
