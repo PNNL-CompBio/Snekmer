@@ -1,12 +1,12 @@
 """io: Input-output handling in Snekmer.
 
 author: @christinehc
+
 """
 # imports
 import gzip
 import json
 import re
-from datetime import datetime
 from os.path import basename, join
 
 import numpy as np

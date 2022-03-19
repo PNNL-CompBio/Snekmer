@@ -1,10 +1,9 @@
 """features: Snekmer output feature processing.
 
 author: @christinehc
-"""
 
+"""
 # imports
-import os.path
 from collections import Counter
 from itertools import repeat
 from multiprocessing import Pool
@@ -12,8 +11,9 @@ from .transform import vectorize_string
 
 
 # functions
-def output_features(save_to, fformat, feature_sets=None,
-                    labels=None, mode="w", **kwargs):
+def output_features(
+    save_to, fformat, feature_sets=None, labels=None, mode="w", **kwargs
+):
     """Generate output features based on input fasta file.
 
     Parameters
@@ -48,8 +48,9 @@ def output_features(save_to, fformat, feature_sets=None,
 
     # update any gist files
     if fformat in ["gist", "both"]:
-        output_gist(save_to, labels=labels,
-                    feature_sets=feature_sets, mode=mode, **kwargs)
+        output_gist(
+            save_to, labels=labels, feature_sets=feature_sets, mode=mode, **kwargs
+        )
 
     # update any sieve files
     if fformat in ["sieve", "both"]:
@@ -57,11 +58,10 @@ def output_features(save_to, fformat, feature_sets=None,
 
     # update matrix files
     if fformat == "matrix":
-        output_matrix(save_to, labels=labels,
-                      feature_sets=feature_sets, mode=mode)
+        output_matrix(save_to, labels=labels, feature_sets=feature_sets, mode=mode)
 
 
-def output_gist(filename, labels=None, feature_sets=None, mode='w'):
+def output_gist(filename, labels=None, feature_sets=None, mode="w"):
     """Output features in gist format.
 
     Parameters
@@ -100,7 +100,7 @@ def output_gist(filename, labels=None, feature_sets=None, mode='w'):
             output_gist_class(tf, features, mode)
 
 
-def output_sieve(filename, feature_sets=None, mode='w', **kwargs):
+def output_sieve(filename, feature_sets=None, mode="w", **kwargs):
     """Output features in sieve format.
 
     Parameters
@@ -158,7 +158,7 @@ def output_sieve(filename, feature_sets=None, mode='w', **kwargs):
             output_sieve_features(features, f, **kwargs)
 
 
-def output_matrix(filename, labels=False, feature_sets=False, mode='w'):
+def output_matrix(filename, labels=False, feature_sets=False, mode="w"):
     """Output features in matrix format.
 
     Parameters
@@ -191,7 +191,7 @@ def output_matrix(filename, labels=False, feature_sets=False, mode='w'):
             output_gist_features(filename, features, mode)
 
 
-def output_gist_features(filename, features, mode='w'):
+def output_gist_features(filename, features, mode="w"):
     """Write features to gist output file.
 
     Parameters
@@ -215,7 +215,7 @@ def output_gist_features(filename, features, mode='w'):
     # filename.flush()
 
 
-def output_gist_class(filename, features, example_index=None, mode='w'):
+def output_gist_class(filename, features, example_index=None, mode="w"):
     """Write gist class to specified output file.
 
     Parameters
@@ -241,9 +241,17 @@ def output_gist_class(filename, features, example_index=None, mode='w'):
         # filename.flush()
 
 
-def define_feature_space(sequence_dict, k, alphabet=None, start=None,
-                         end=None, min_rep_thresh=2, verbose=False,
-                         log_file=False, processes=2):
+def define_feature_space(
+    sequence_dict,
+    k,
+    alphabet=None,
+    start=None,
+    end=None,
+    min_rep_thresh=2,
+    verbose=False,
+    log_file=False,
+    processes=2,
+):
     """Create a feature dictionary defined from parameters.
 
     Parameters
@@ -279,18 +287,21 @@ def define_feature_space(sequence_dict, k, alphabet=None, start=None,
     feature_dict = {}
     with Pool(processes) as pool:
         feature_dict = pool.starmap(
-            vectorize_string, zip(sequence_dict.values(),   # sequence
-                                  repeat(k),                # k
-                                  repeat(alphabet),         # alphabet
-                                  repeat(start),            # start
-                                  repeat(end),              # end
-                                  repeat(feature_dict),     # feature_dict
-                                  repeat(None),             # filter_list
-                                  repeat(None),             # exclude
-                                  repeat(True),             # return_dict
-                                  repeat(False),            # verbose
-                                  repeat(False))            # log_file
-            )
+            vectorize_string,
+            zip(
+                sequence_dict.values(),  # sequence
+                repeat(k),  # k
+                repeat(alphabet),  # alphabet
+                repeat(start),  # start
+                repeat(end),  # end
+                repeat(feature_dict),  # feature_dict
+                repeat(None),  # filter_list
+                repeat(None),  # exclude
+                repeat(True),  # return_dict
+                repeat(False),  # verbose
+                repeat(False),
+            ),  # log_file
+        )
     # combine dictionaries and sum any values with common keys
     feature_dict = dict(sum(map(Counter, feature_dict), Counter()))
 
@@ -308,29 +319,23 @@ def define_feature_space(sequence_dict, k, alphabet=None, start=None,
         filter_dict = feature_dict
 
     if verbose and log_file:
-        with open(log_file, 'w') as f:
+        with open(log_file, "w") as f:
             f.write(
-                ("Feature space: {0} kmers with more than "
-                 "{1} representation in {2} sequences").format(
-                     len(filter_dict),
-                     min_rep_thresh,
-                     len(sequence_dict)
-                     )
-                 )
+                (
+                    "Feature space: {0} kmers with more than "
+                    "{1} representation in {2} sequences"
+                ).format(len(filter_dict), min_rep_thresh, len(sequence_dict))
+            )
     elif verbose and not log_file:
         print(
-            ("Feature space: {0} kmers with more than "
-             "{1} representation in {2} sequences").format(
-                 len(filter_dict),
-                 min_rep_thresh,
-                 len(sequence_dict)
-                 )
-             )
+            (
+                "Feature space: {0} kmers with more than "
+                "{1} representation in {2} sequences"
+            ).format(len(filter_dict), min_rep_thresh, len(sequence_dict))
+        )
 
     filter_list = filter_dict.keys()
     if len(filter_list) == 0:
-        raise ValueError(
-            ("Prefiltered feature space cannot be empty.")
-            )
+        raise ValueError(("Prefiltered feature space cannot be empty."))
 
     return filter_dict

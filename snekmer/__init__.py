@@ -3,10 +3,11 @@ from . import transform
 from . import features
 from . import utils
 from . import io
-# from . import walk
 from . import plot
 from . import score
 from . import model
 from . import cluster
+
+# from . import walk
 
 __version__ = "0.1.0"

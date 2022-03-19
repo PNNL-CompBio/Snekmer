@@ -1,9 +1,9 @@
 """plot: Snekmer plotting utilities.
 
 author: @christinehc
-"""
 
-# https://stackoverflow.com/questions/29656550/how-to-plot-pr-curve-over-10-folds-of-cross-validation-in-scikit-learn
+"""
+# imports
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns

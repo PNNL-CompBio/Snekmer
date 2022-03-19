@@ -7,10 +7,11 @@ author: @christinehc
 import random
 import re
 from multiprocessing import Pool
-import numpy as np
 
+import numpy as np
 from Bio import SeqIO
-from .alphabet import ALPHABETS, ALPHABET_ORDER, StandardAlphabet, get_alphabets
+
+from .alphabet import ALPHABET_ORDER, ALPHABETS, StandardAlphabet, get_alphabets
 from .utils import check_list
 
 

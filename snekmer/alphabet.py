@@ -4,6 +4,7 @@
              (@christinehc)
 
 author(s): @biodataganache, @wichne
+
 """
 # define standard amino acid alphabet
 StandardAlphabet = "AILMVFYWSTQNCHDEKRGP"
@@ -15,84 +16,78 @@ PTM_SELF_MAPPING = {c: c for c in PTM_CHARS}
 
 # define alphabet names and ordering
 ALPHABET_ORDER = {
-    0: "hydro", 1: "standard", 2: "solvacc",
-    3: "hydrocharge", 4: "hydrostruct", 5: "miqs"
+    0: "hydro",
+    1: "standard",
+    2: "solvacc",
+    3: "hydrocharge",
+    4: "hydrostruct",
+    5: "miqs",
 }
 
 # define alphabets (from Utils.SIEVEInit)
 ALPHABETS = {
     # 2-value hydrophobicity alphabet taken
     # from Arnold, et al. 2009. PLoS Pathogens 5(4): e1000376
-    "hydro": {"SFTNKYEQCWPHDR": "S",
-              "VMLAIG": "V",
-              "_keys": "SV"},
-
+    "hydro": {"SFTNKYEQCWPHDR": "S", "VMLAIG": "V", "_keys": "SV"},
     # 'standard' reduction alphabet taken
     # from Arnold, et al. 2009. PLoS Pathogens 5(4): e1000376
-    "standard": {"AGILMV": "A",   # hydrophobic
-                 "PH": "P",       # hydrophilic
-                 "FWY": "F",      # aromatic
-                 "NQST": "N",     # polar
-                 "DE": "D",       # acidic
-                 "KR": "K",       # alkaline
-                 "C": "C",        # ionizable
-                 "_keys": "APFNDKC"},
-
+    "standard": {
+        "AGILMV": "A",  # hydrophobic
+        "PH": "P",  # hydrophilic
+        "FWY": "F",  # aromatic
+        "NQST": "N",  # polar
+        "DE": "D",  # acidic
+        "KR": "K",  # alkaline
+        "C": "C",  # ionizable
+        "_keys": "APFNDKC",
+    },
     # Solvent accessibility alphabet
     # from Bacardit, et al. 2009. BMC Bioinformatics 10:6
-    "solvacc": {"CILMVFWY": "C",
-                "AGHST": "A",
-                "PDEKNQR": "P",
-                "_keys": "CAP"},
-
+    "solvacc": {"CILMVFWY": "C", "AGHST": "A", "PDEKNQR": "P", "_keys": "CAP"},
     # 2-value hydrophobicity with charged residues as a third
     # category. Made by @biodataganache.
-    "hydrocharge": {"SFTNYQCWPH": "L",  # hydrophilic (L-ove)
-                    "VMLAIG": "H",      # hydrophobic (H-ate)
-                    "KNDR": "C",        # charged (C-harged)
-                    "_keys": "LHC"},
-
+    "hydrocharge": {
+        "SFTNYQCWPH": "L",  # hydrophilic (L-ove)
+        "VMLAIG": "H",  # hydrophobic (H-ate)
+        "KNDR": "C",  # charged (C-harged)
+        "_keys": "LHC",
+    },
     # 2-value hydrophobicity with structural-breakers as a third category
     # Made by @biodataganache
-    "hydrostruct": {"SFTNKYEQCWHDR": "L",
-                    "VMLAI": "H",
-                    "PG": "B",
-                    "_keys": "LHB"},
-
+    "hydrostruct": {"SFTNKYEQCWHDR": "L", "VMLAI": "H", "PG": "B", "_keys": "LHB"},
     # MIQS alphabet
     # Made by @wichne
-    "miqs": {"A": "A",        # Alanine
-             "C": "C",        # Cysteine
-             "DEN": "D",      # acidicish
-             "FWY": "F",      # aromatic
-             "G": "G",        # glycine
-             "H": "H",        # histidine
-             "ILMQV": "I",    # hydrophobicish
-             "KR": "K",       # alkaline
-             "P": "P",        # proline
-             "ST": "S",       # hydroxyl
-             "_keys": "ACDFGHIKPS"},
-
+    "miqs": {
+        "A": "A",  # Alanine
+        "C": "C",  # Cysteine
+        "DEN": "D",  # acidicish
+        "FWY": "F",  # aromatic
+        "G": "G",  # glycine
+        "H": "H",  # histidine
+        "ILMQV": "I",  # hydrophobicish
+        "KR": "K",  # alkaline
+        "P": "P",  # proline
+        "ST": "S",  # hydroxyl
+        "_keys": "ACDFGHIKPS",
+    },
     # # identity
     # "None": {**AA_SELF_MAPPING, "_keys": ALL_AMINO_ACIDS}  # OU
-
     # post-translational modification alphabet
-    "ptm": {**AA_SELF_MAPPING, **PTM_SELF_MAPPING,
-            '_keys': StandardAlphabet + PTM_CHARS}
-
-    }
+    "ptm": {
+        **AA_SELF_MAPPING,
+        **PTM_SELF_MAPPING,
+        "_keys": StandardAlphabet + PTM_CHARS,
+    },
+}
 
 # create generic alphabet identifiers
 ALPHABET_ID = {
-    f"RED{n}": {
-        v: k for k, v in ALPHABETS[ALPHABET_ORDER[n]].items()
-        } for n in range(len(ALPHABET_ORDER))
-    }
+    f"RED{n}": {v: k for k, v in ALPHABETS[ALPHABET_ORDER[n]].items()}
+    for n in range(len(ALPHABET_ORDER))
+}
 
 # alphabet to alphabet code
-ALPHABET2ID = {
-    ALPHABET_ORDER[n]: f"RED{n}" for n in range(len(ALPHABET_ORDER))
-}
+ALPHABET2ID = {ALPHABET_ORDER[n]: f"RED{n}" for n in range(len(ALPHABET_ORDER))}
 
 
 # SIEVEInit alphabet grabbing function
@@ -128,17 +123,20 @@ def check_valid(alphabet):
             # doesn't match integer designations
             (alphabet not in range(len(ALPHABETS)))
             # doesn't match str name designations
-            and (alphabet not in ALPHABETS))
+            and (alphabet not in ALPHABETS)
+        )
         # or doesn't match None (no mapping)
         and (str(alphabet) != "None")
     ):  # and config['alphabet'] != 'custom':
-        raise ValueError("Invalid alphabet specified; alphabet must be a"
-                         " string (see snekmer.alphabet) or integer"
-                         " n between"
-                         f" {min(list(ALPHABET_ORDER.keys()))}"
-                         " and"
-                         f" {max(list(ALPHABET_ORDER.keys()))}"
-                         ".")
+        raise ValueError(
+            "Invalid alphabet specified; alphabet must be a"
+            " string (see snekmer.alphabet) or integer"
+            " n between"
+            f" {min(list(ALPHABET_ORDER.keys()))}"
+            " and"
+            f" {max(list(ALPHABET_ORDER.keys()))}"
+            "."
+        )
     return
 
 
@@ -200,8 +198,8 @@ ORGANISM_ORDER = [
     "pan_troglodytes",
     "plasmodium_falciparum",
     "rattus_norvegicus",
-    "saccharomyces_cerevisiae"
-    ]
+    "saccharomyces_cerevisiae",
+]
 
 ORGANISM_DICT = {
     "agrobacterium_tumefaciens_a348": 0.0,
@@ -257,5 +255,5 @@ ORGANISM_DICT = {
     "yersinia_pestis": 0.0,
     "yersinia_pestis_bgi_91001": 0.0,
     "yersinia_pestis_bgi_co92": 0.0,
-    "yersinia_pestis_bgi_kim": 0.0
-    }
+    "yersinia_pestis_bgi_kim": 0.0,
+}

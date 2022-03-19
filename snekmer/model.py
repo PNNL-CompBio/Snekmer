@@ -1,6 +1,7 @@
 """model: Machine learning models for class prediction with Snekmer.
 
 author: @christinehc
+
 """
 # imports
 import json

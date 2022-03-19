@@ -1,13 +1,18 @@
 """cluster: Snekmer clustering models.
 
 author: @christinehc
+
 """
 # imports
 import numpy as np
 from sklearn.base import ClusterMixin
 from sklearn.cluster import (
-    AgglomerativeClustering, DBSCAN, Birch, OPTICS, MiniBatchKMeans
-    )
+    AgglomerativeClustering,
+    DBSCAN,
+    Birch,
+    OPTICS,
+    MiniBatchKMeans,
+)
 from scipy.cluster.hierarchy import fclusterdata
 
 
@@ -31,6 +36,7 @@ class CorrelationClustering(ClusterMixin):
         Cluster-assigned labels.
 
     """
+
     def __init__(self, **model_params):
         self.model_params = dict(model_params)
         self.labels_ = None
@@ -44,12 +50,12 @@ class CorrelationClustering(ClusterMixin):
 
 # define allowed model types
 MODELS = {
-    'kmeans': MiniBatchKMeans,
-    'agglomerative': AgglomerativeClustering,
-    'correlation': CorrelationClustering,
-    'density': DBSCAN,
-    'birch': Birch,
-    'optics': OPTICS
+    "kmeans": MiniBatchKMeans,
+    "agglomerative": AgglomerativeClustering,
+    "correlation": CorrelationClustering,
+    "density": DBSCAN,
+    "birch": Birch,
+    "optics": OPTICS,
 }
 
 
@@ -71,6 +77,7 @@ class KmerClustering(ClusterMixin):
     method
 
     """
+
     def __init__(self, method, model_params={}):
         self.method = method
         self.model = MODELS[method](**model_params)

@@ -1,9 +1,10 @@
 """score: Kmer-based scoring and similarity analysis.
 
-author: @christinehc / @biodataganache
+author: @christinehc, @biodataganache
+
 """
 # imports
-from itertools import (product, repeat)
+from itertools import product, repeat
 from multiprocessing import Pool
 import numpy as np
 import pandas as pd
@@ -82,23 +83,25 @@ class KmerScoreScaler:
         if self.n is not None:
             # option 2: set # of features as limit
             if (isinstance(self.n, int)) and (self.n >= 1):
-                indices = scores.ravel().argsort()[:-self.n - 1:-1]
+                indices = scores.ravel().argsort()[: -self.n - 1 : -1]
             # option 3: set % of features as limit
             elif (isinstance(self.n, float)) and (self.n < 1):
                 n = int(np.floor(self.n * len(scores)))
-                indices = scores.ravel().argsort()[:-n - 1:-1]
+                indices = scores.ravel().argsort()[: -n - 1 : -1]
             else:
-                raise ValueError("Invalid input format for `n`"
-                                 " (must be either int > 1, or"
-                                 " 0.0 < float < 1.0).")
+                raise ValueError(
+                    "Invalid input format for `n`"
+                    " (must be either int > 1, or"
+                    " 0.0 < float < 1.0)."
+                )
         else:
-            raise ValueError("One of either `threshold` or `n` must"
-                             " be specified.")
+            raise ValueError("One of either `threshold` or `n` must" " be specified.")
 
         # store basis set and indices as attributes
         self.basis_index = indices
-        self.basis_score = [(i, score) for i, score in zip(
-            self.basis_index, scores[self.basis_index])]
+        self.basis_score = [
+            (i, score) for i, score in zip(self.basis_index, scores[self.basis_index])
+        ]
         return
 
     def transform(self, array):
@@ -116,8 +119,9 @@ class KmerScoreScaler:
 
         """
         if self.basis_index is None or not any(self.basis_index):
-            raise AttributeError("Kmer basis set not defined;"
-                                 " must fit scores to scaler.")
+            raise AttributeError(
+                "Kmer basis set not defined;" " must fit scores to scaler."
+            )
         # if not isinstance(array, np.ndarray):
         #     array = np.array(array)
         if isinstance(array[0], list):
@@ -168,9 +172,7 @@ def connection_matrix_from_features(feature_matrix, metric="jaccard"):
     return sim
 
 
-def cluster_feature_matrix(feature_matrix,
-                           method="agglomerative",
-                           n_clusters=2):
+def cluster_feature_matrix(feature_matrix, method="agglomerative", n_clusters=2):
     """Calculate clusters based on the feature matrix.
 
     Note: sklearn has a wide range of clustering options.
@@ -193,7 +195,9 @@ def cluster_feature_matrix(feature_matrix,
 
     """
     if method == "agglomerative":
-        clusters = AgglomerativeClustering(n_clusters=n_clusters).fit_predict(feature_matrix)
+        clusters = AgglomerativeClustering(n_clusters=n_clusters).fit_predict(
+            feature_matrix
+        )
 
     return clusters
 
@@ -299,7 +303,7 @@ def _score(p_pos, p_neg, w=1.0):
     return p_pos - (w * p_neg)  # - (w_bg * p_bg)
 
 
-def score(results, in_label, out_labels, w=1.0, col='probability', neg_only=False):
+def score(results, in_label, out_labels, w=1.0, col="probability", neg_only=False):
     """Score kmer from kmer family probabilities.
 
     The scoring method used is as follows:
@@ -329,7 +333,7 @@ def score(results, in_label, out_labels, w=1.0, col='probability', neg_only=Fals
 
     """
     p_in = results[in_label][col]
-    p_out = np.sum([results[fam]['probability'] for fam in out_labels], axis=0)
+    p_out = np.sum([results[fam]["probability"] for fam in out_labels], axis=0)
 
     # negative probability only
     if neg_only:
@@ -361,19 +365,25 @@ def _parse_score_method(method, bg=None, **kwargs):
     """
     # restrict method options
     if method not in ["default", "bg_only", "both"]:
-        raise ValueError("Parameter `method` must be one of the"
-                         " following: 'default', 'bg_only', 'both'.")
+        raise ValueError(
+            "Parameter `method` must be one of the"
+            " following: 'default', 'bg_only', 'both'."
+        )
 
     # check that background is provided when required
     if (method in ["bg_only", "both"]) and (bg is None):
-        raise ValueError("Background sequence vectors must be"
-                         " provided if `method`='bg_only' or"
-                         " 'both'.")
+        raise ValueError(
+            "Background sequence vectors must be"
+            " provided if `method`='bg_only' or"
+            " 'both'."
+        )
 
     # define score methods
-    method2name = {"default": "default_score",
-                   "bg": "bg_subtracted_score",
-                   "both": ["default_score", "bg_subtracted_score", "combined_score"]}
+    method2name = {
+        "default": "default_score",
+        "bg": "bg_subtracted_score",
+        "both": ["default_score", "bg_subtracted_score", "combined_score"],
+    }
 
     # parse scoring methods
     if method == "default":
@@ -388,9 +398,9 @@ def _parse_score_method(method, bg=None, **kwargs):
     return "combined_score", score
 
 
-def feature_class_probabilities(feature_matrix, labels,
-                                kmers=None, bg_matrix=None,
-                                method="default"):
+def feature_class_probabilities(
+    feature_matrix, labels, kmers=None, bg_matrix=None, method="default"
+):
     """Calculate probabilities for features being in a defined class.
 
     Note: only coded to work for the binary case (2 classes).
@@ -459,9 +469,9 @@ def feature_class_probabilities(feature_matrix, labels,
         norms = (1 / n_seqs[i]) * np.ones(len(presence))
 
         # if no kmers specified, save numerical range
-        results[l]['kmer'] = np.array(kmers)
-        results[l]['count'] = np.asarray(presence, dtype=int)
-        results[l]['probability'] = np.asarray(presence * norms, dtype=float)
+        results[l]["kmer"] = np.array(kmers)
+        results[l]["count"] = np.asarray(presence, dtype=int)
+        results[l]["probability"] = np.asarray(presence * norms, dtype=float)
 
     # compute score based on (label, not label) assignment
     label_weight = len(unique_labels)  # if 1 label, no weight (w=1)
@@ -470,13 +480,11 @@ def feature_class_probabilities(feature_matrix, labels,
     weight = 1 / label_weight
     for l in unique_labels:
         o = unique_labels[unique_labels != l]  # other labels
-        results[l]['score'] = score(results, l, o, w=weight)
+        results[l]["score"] = score(results, l, o, w=weight)
 
     # reformat as long-form dataframe
-    results = pd.DataFrame(results).T.reset_index().rename(
-        columns={'index': 'label'}
-        )
-    results = results.set_index(['label']).apply(pd.Series.explode).reset_index()
+    results = pd.DataFrame(results).T.reset_index().rename(columns={"index": "label"})
+    results = results.set_index(["label"]).apply(pd.Series.explode).reset_index()
     return results
 
 
@@ -484,9 +492,7 @@ def feature_class_probabilities(feature_matrix, labels,
 # This code will apply the feature class probabilities derived in the previous functions
 #   to a new set of examples as a weighted score. The idea here is to use a very simple
 #   approach to classification.
-def apply_feature_probabilities(
-    feature_matrix, scores, scaler=False, **kwargs
-):
+def apply_feature_probabilities(feature_matrix, scores, scaler=False, **kwargs):
     """Calculate class probability scores based on kmer vectors.
 
     Parameters
@@ -529,15 +535,13 @@ def apply_feature_probabilities(
     return score_totals
 
 
-def append_cv_results(
-    data, scores, method, family=None, alphabet=None, config=None
-):
+def append_cv_results(data, scores, method, family=None, alphabet=None, config=None):
     # collate ROC-AUC results
-    data['family'] += [family] * config['model']['cv']
-    data['alphabet_name'] += [alphabet.lower()] * config['model']['cv']
-    data['k'] += [config['k']] * config['model']['cv']
-    data['scoring'] += [method] * config['model']['cv']
-    data['score'] += score
+    data["family"] += [family] * config["model"]["cv"]
+    data["alphabet_name"] += [alphabet.lower()] * config["model"]["cv"]
+    data["k"] += [config["k"]] * config["model"]["cv"]
+    data["scoring"] += [method] * config["model"]["cv"]
+    data["score"] += score
     # data['score'] += list(cross_val_score(clf, X, y, cv=cv, scoring='roc_auc'))
-    data['cv_split'] += [i + 1 for i in range(config['model']['cv'])]
+    data["cv_split"] += [i + 1 for i in range(config["model"]["cv"])]
     return data

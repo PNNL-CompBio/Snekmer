@@ -1,6 +1,7 @@
 """utils: Snekmer utility functions.
 
 author: @christinehc
+
 """
 # imports
 import collections.abc
