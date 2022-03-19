@@ -3,38 +3,40 @@ from snekmer import __version__
 import glob
 import os
 
-with open('README.md') as f:
+with open("README.md") as f:
     readme = f.read()
 
-with open('LICENSE') as f:
+with open("LICENSE") as f:
     license = f.read()
 
-with open('requirements.txt') as f:
-    required = [x for x in f.read().splitlines() if not x.startswith("#")]
+# with open('requirements.txt') as f:
+#     required = [x for x in f.read().splitlines() if not x.startswith("#")]
 
-pkgs = find_packages(exclude=('test'))  # also Util?
+pkgs = find_packages(exclude=("test"))  # also Util?
 
 # Note: the _program variable is set in __init__.py.
 # it determines the name of the package/final command line tool.
 
-setup(name='snekmer',
-      version=__version__,
-      # packages=['kmerfeatures'],
-      # test_suite='pytest.collector',
-      # tests_require=['pytest'],
-      description=('Kmer pipeline for generating features and'
-                   'running SIEVE models on input sequences'),
-      long_description=readme,
-      url='http://github.com/biodataganache/KmerPipeline/',
-      author='@christinehc, @biodataganache',
-      author_email='christine.chang@pnnl.gov',
-      license=license,
-      packages=pkgs,
-      entry_points={
-          'console_scripts': ['snekmer = snekmer.cli:main']
-          },
-      package_data={'': ['rules/*.smk']},  # ['Snakefile']},
-      install_requires=required,
-      include_package_data=True,
-      keywords=[],
-      zip_safe=False)
+setup(
+    name="snekmer",
+    version=__version__,
+    # packages=['kmerfeatures'],
+    # test_suite='pytest.collector',
+    # tests_require=['pytest'],
+    description=(
+        "Kmer pipeline for generating features and"
+        "running SIEVE models on input sequences"
+    ),
+    long_description=readme,
+    url="http://github.com/biodataganache/KmerPipeline/",
+    author="@christinehc, @biodataganache",
+    author_email="christine.chang@pnnl.gov",
+    license=license,
+    packages=pkgs,
+    entry_points={"console_scripts": ["snekmer = snekmer.cli:main"]},
+    package_data={"": ["rules/*.smk"]},  # ['Snakefile']},
+    # install_requires=required,
+    include_package_data=True,
+    keywords=[],
+    zip_safe=False,
+)
