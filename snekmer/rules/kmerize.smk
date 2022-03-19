@@ -1,8 +1,8 @@
 """kmerize.smk: Module for kmer vector generation.
 
 author: @christinehc
-"""
 
+"""
 # include unzipping module
 include: "process_input.smk"
 
@@ -63,7 +63,6 @@ rule generate:
         skm.utils.log_runtime(log[0], start_time)
 
 
-
 rule vectorize:
     input:
         kmers=join("output", "labels", "{nb}.txt"),
@@ -114,6 +113,7 @@ rule vectorize:
 
         # record script runtime
         skm.utils.log_runtime(log[0], start_time)
+
 
 rule vectorize_full:
     input:

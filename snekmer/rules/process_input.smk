@@ -1,23 +1,25 @@
 """process_input.smk: Module for input file handling.
 
 author: @christinehc
+
 """
 # imports
 from datetime import datetime
 from os import makedirs
 from os.path import dirname, exists, join
-from pandas import DataFrame
-import snekmer as skm
 
+from pandas import DataFrame
+
+import snekmer as skm
 
 # define rules
 rule unzip:
     input:
-        join("input", "{uz}.gz")
+        join("input", "{uz}.gz"),
     output:
-        join("input", "{uz}")
+        join("input", "{uz}"),
     params:
-        outdir=join("input", "zipped")
+        outdir=join("input", "zipped"),
     shell:
         "mkdir -p {params.outdir} && gunzip -c {input} > {output} && mv {input} {params.outdir}/."
 
@@ -34,14 +36,12 @@ rule unzip:
 # read and process parameters from config
 rule preprocess:
     input:
-        fasta=lambda wildcards: join(
-            "input", f"{wildcards.nb}.{fa_map[wildcards.nb]}"
-        )
+        fasta=lambda wildcards: join("input", f"{wildcards.nb}.{fa_map[wildcards.nb]}"),
     output:
         data=join("output", "processed", "{nb}.json"),
-        desc=join("output", "processed", "{nb}_description.csv")
+        desc=join("output", "processed", "{nb}_description.csv"),
     log:
-        join("output", "processed", "log", "{nb}.log")
+        join("output", "processed", "log", "{nb}.log"),
     run:
         # log step initialization
         start_time = datetime.now()
@@ -94,7 +94,9 @@ rule preprocess:
 
         # optional indexfile with IDs of good feature output examples
         if config["input"]["example_index_file"]:
-            example_index = skm.io.read_example_index(config["input"]["example_index_file"])
+            example_index = skm.io.read_example_index(
+                config["input"]["example_index_file"]
+            )
         else:
             example_index = {}
 
@@ -144,8 +146,15 @@ rule preprocess:
             # shuffle the N-terminal sequence n times
             if config["output"]["shuffle_n"]:
                 example_index[sid] = 1.0
-                (scid_list, scramble_list, example_index,) = skm.transform.scramble_sequence(
-                    sid, seq[:30], n=config["output"]["shuffle_n"], example_index=example_index,
+                (
+                    scid_list,
+                    scramble_list,
+                    example_index,
+                ) = skm.transform.scramble_sequence(
+                    sid,
+                    seq[:30],
+                    n=config["output"]["shuffle_n"],
+                    example_index=example_index,
                 )
                 seqs += scramble_list
                 sids += scid_list
