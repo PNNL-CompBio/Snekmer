@@ -6,6 +6,9 @@
 author(s): @biodataganache, @wichne
 
 """
+# imports
+from typing import Mapping, Set, Union
+
 # define standard amino acid alphabet
 StandardAlphabet = "AILMVFYWSTQNCHDEKRGP"
 AA_SELF_MAPPING = {a: a for a in StandardAlphabet}
@@ -80,6 +83,17 @@ ALPHABETS = {
     },
 }
 
+# reconfigure alphabet dict into "long-form"
+FULL_ALPHABETS: dict = {a: {} for a in ALPHABETS.keys()}
+for alphabet, mapping in ALPHABETS.items():
+    for k, v in mapping.items():
+        if k == "_keys":
+            continue
+        elif len(k) > 1:
+            FULL_ALPHABETS[alphabet].update({k[i]: v for i in range(len(k))})
+        else:
+            FULL_ALPHABETS[alphabet].update({k: v})
+
 # create generic alphabet identifiers
 ALPHABET_ID = {
     f"RED{n}": {v: k for k, v in ALPHABETS[ALPHABET_ORDER[n]].items()}
@@ -138,6 +152,65 @@ def check_valid(alphabet):
             "."
         )
     return
+
+
+def get_alphabet(alphabet: Union[str, int], mapping: dict = ALPHABETS) -> dict:
+    """Short summary.
+
+    Parameters
+    ----------
+    alphabet : Union[str, int]
+        Alphabet name (as str) or alphabet id (as int).
+        Must be one of the follwing:
+            0: "hydro",
+            1: "standard",
+            2: "solvacc",
+            3: "hydrocharge",
+            4: "hydrostruct",
+            5: "miqs"
+    mapping : dict
+        All alphabet maps (the default is ALPHABETS).
+
+    Returns
+    -------
+    dict
+        Dictionary map of amino acids to alphabet character.
+
+    Raises
+    ------
+    ValueError
+        Raised if alphabet not in pre-defined list.
+
+    """
+    check_valid(alphabet)
+
+    if isinstance(alphabet, int):
+        alphabet = ALPHABET_ORDER[alphabet]
+    return mapping[alphabet]
+
+
+def get_alphabet_keys(
+    alphabet: Union[str, int], mapping: dict = FULL_ALPHABETS
+) -> Set[str]:
+    """Retrieve keys for specified alphabet.
+
+    Parameters
+    ----------
+    alphabet : Union[str, int]
+        Description of parameter `alphabet`.
+    mapping : Mapping[dict]
+        Description of parameter `mapping` (the default is FULL_ALPHABETS).
+
+    Returns
+    -------
+    dict
+        Description of returned object.
+
+    """
+    alphabet_map = get_alphabet(alphabet, mapping)
+    if "_keys" in alphabet_map.keys():
+        alphabet_map.pop("_keys")
+    return set(alphabet_map.values())
 
 
 # def add_alphabet(alphabet_name, mapping):
