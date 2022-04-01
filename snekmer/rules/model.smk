@@ -379,7 +379,7 @@ rule model:
         results["family"] += [family] * cv
         results["alphabet_name"] += [alphabet_name.lower()] * cv
         results["k"] += [config["k"]] * cv
-        results["scoring"] += ["pr_auc"] * cv
+        results["scoring"] += ["auc_roc"] * cv
         results["score"] += auc_rocs
         results["cv_split"] += [i + 1 for i in range(cv)]
 
