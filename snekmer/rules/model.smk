@@ -375,7 +375,6 @@ rule model:
         )
 
         # collate ROC-AUC results
-        # collate PR-AUC results
         results["family"] += [family] * cv
         results["alphabet_name"] += [alphabet_name.lower()] * cv
         results["k"] += [config["k"]] * cv
