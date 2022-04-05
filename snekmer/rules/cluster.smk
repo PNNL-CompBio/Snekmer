@@ -101,7 +101,7 @@ use rule unzip from process_input with:
 # read and process parameters from config
 use rule preprocess from process_input with:
     input:
-        fasta=lambda wildcards: join("input", f"{wildcards.nb}.{fa_map[wildcards.nb]}"),
+        fasta=lambda wildcards: join("input", f"{wildcards.nb}.{FA_MAP[wildcards.nb]}"),
     output:
         data=join(out_dir, "processed", "full", "{nb}.json"),
         desc=join(out_dir, "processed", "full", "{nb}_description.csv"),
@@ -124,7 +124,7 @@ use rule vectorize_full from kmerize with:
     input:
         kmers=join(out_dir, "labels", "full", "{nb}.txt"),
         params=join(out_dir, "processed", "{nb}.json"),
-        fasta=lambda wildcards: join("input", f"{wildcards.nb}.{fa_map[wildcards.nb]}"),
+        fasta=lambda wildcards: join("input", f"{wildcards.nb}.{FA_MAP[wildcards.nb]}"),
     log:
         join(out_dir, "features", "log", "{nb}.log"),
     output:
