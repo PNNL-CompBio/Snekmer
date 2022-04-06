@@ -243,7 +243,8 @@ def to_feature_matrix(array):
         2D array version of the 2D array-like input.
 
     """
-    return np.array([np.array(a, dtype=int) for a in array])
+    array = [np.array(a) for a in array]
+    return np.asarray(array)
 
 
 def str_to_array(array):

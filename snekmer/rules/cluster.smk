@@ -106,29 +106,29 @@ use rule preprocess from process_input with:
         data=join(out_dir, "processed", "full", "{nb}.json"),
         desc=join(out_dir, "processed", "full", "{nb}_description.csv"),
     log:
-        join(out_dir, "processed", "log", "{nb}.log"),
+        join(out_dir, "processed", "log", "{nb}.log")
 
 
 # generate kmer features space from user params
-use rule generate from kmerize with:
-    input:
-        params=join(out_dir, "processed", "full", "{nb}.json"),
-    output:
-        labels=join(out_dir, "labels", "full", "{nb}.txt"),
-    log:
-        join(out_dir, "labels", "log", "{nb}.log"),
+# use rule generate from kmerize with:
+#     input:
+#         params=join(out_dir, "processed", "full", "{nb}.json"),
+#     output:
+#         labels=join(out_dir, "labels", "full", "{nb}.txt"),
+#     log:
+#         join(out_dir, "labels", "log", "{nb}.log")
 
 
 # build kmer count vectors for each basis set
 use rule vectorize_full from kmerize with:
     input:
-        kmers=join(out_dir, "labels", "full", "{nb}.txt"),
         params=join(out_dir, "processed", "{nb}.json"),
-        fasta=lambda wildcards: join("input", f"{wildcards.nb}.{FA_MAP[wildcards.nb]}"),
+        fasta=lambda wildcards: join("input", f"{wildcards.nb}.{FA_MAP[wildcards.nb]}")
     log:
-        join(out_dir, "features", "log", "{nb}.log"),
+        join(out_dir, "features", "log", "{nb}.log")
     output:
         file=join(out_dir, "features", "full", "{nb}.json.gz"),
+        kmers=join(out_dir, "labels", "full", "{nb}.txt")
 
 
 # [in-progress] kmer walk
@@ -140,8 +140,7 @@ use rule vectorize_full from kmerize with:
 # UNSUPERVISED WORKFLOW
 rule cluster:
     input:
-        # kmers=join(out_dir, "labels", "{nb}.txt"),
-        files=expand(join(out_dir, "features", "full", "{fa}.json.gz"), fa=NON_BGS),
+        files=expand(join(out_dir, "features", "full", "{fa}.json.gz"), fa=NON_BGS)
     output:
         model=join(out_dir, "cluster", "{nb}.pkl"),
         figs=directory(join(out_dir, "cluster", "figures", "{nb}")),
@@ -167,9 +166,12 @@ rule cluster:
 
         # define feature matrix of kmer vectors not from background set
         bg, non_bg = data[data["background"]], data[~data["background"]]
-        full_feature_matrix = skm.score.to_feature_matrix(data["vector"].values)
-        feature_matrix = skm.score.to_feature_matrix(non_bg["vector"].values)
-        bg_feature_matrix = skm.score.to_feature_matrix(bg["vector"].values)
+        full_feature_matrix = skm.utils.to_feature_matrix(data["vector"].values)
+        feature_matrix = skm.utils.to_feature_matrix(non_bg["vector"].values)
+
+        # currently not used
+        if len(bg) > 0:
+            bg_feature_matrix = skm.utils.to_feature_matrix(bg["vector"].values)
 
         # fit and save clustering model
         model = skm.cluster.KmerClustering(
@@ -178,7 +180,6 @@ rule cluster:
         model.fit(full_feature_matrix)
         with open(output.model, "wb") as f:
             pickle.dump(model, f)
-        # fit_predict where?
 
         # log time to compute clusters
         skm.utils.log_runtime(log[0], start_time, step="clustering")
@@ -190,7 +191,7 @@ rule cluster:
         fig.savefig(join(output.figs, "pca_explained_variance_curve.png"))
         plt.close("all")
 
-        fig, ax = skm.plot.get_tsne_clusters(full_feature_matrix, model.labels_)
+        fig, ax = skm.plot.get_tsne_clusters(full_feature_matrix, model.model.labels_)
         fig.savefig(join(output.figs, "tsne_clusters.png"))
         plt.close("all")
 
