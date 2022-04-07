@@ -478,7 +478,7 @@ def vectorize_string(
     start, end = set_sequence_endpoints(sequence, k, start, end)
 
     results = feature_dict or {}
-    if filter_list:
+    if filter_list is not None:
         results = {key: 0 for key in filter_list}
 
     for i in range(start, end):
@@ -494,7 +494,9 @@ def vectorize_string(
             print(f"{i}\t{k_map}\t{k_string}\t1",)
 
         # filter unrecognized characters or filter from list
-        if (len(k_string) < k) or (filter_list and k_string not in filter_list):
+        if (len(k_string) < k) or (
+            filter_list is not None and k_string not in filter_list
+        ):
             continue
 
         # FILTER HERE
@@ -508,7 +510,7 @@ def vectorize_string(
             results[k_string] = 0
         results[k_string] += 1
 
-    if filter_list:
+    if filter_list is not None:
         results = {item: results[item] for item in filter_list}
     if return_dict:
         return results

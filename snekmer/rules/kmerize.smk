@@ -52,7 +52,7 @@ rule generate:
 
         # generate labels only
         labels = skm.transform.generate_labels(
-            config["k"],
+            params["k"],
             alphabet=params["alphabet"],
             filter_list=params["filter_list"],
         )
@@ -71,12 +71,12 @@ rule vectorize:
     log:
         join("output", "features", "log", "{nb}.log"),
     output:
-        files=expand(join("output", "features", "{{nb}}", "{fa}.json.gz"), fa=FAS),
+        files=expand(join("output", "features", "full", "{{nb}}", "{fa}.json.gz"), fa=FAS),
     run:
         start_time = datetime.now()
 
         # get kmers for this particular set of sequences
-        kmers = skm.io.read_output_kmers(input.kmers)
+        kmers = ["".join(chars) for chars in itertools]
 
         # read processed features
         with open(input.params, "r") as f:
@@ -95,7 +95,7 @@ rule vectorize:
                 results["vector"] += [
                     skm.transform.vectorize_string(
                         seq,
-                        config["k"],
+                        params["k"],
                         params["alphabet"],
                         start=config["start"],
                         end=config["end"],
@@ -117,22 +117,28 @@ rule vectorize:
 
 rule vectorize_full:
     input:
-        kmers=join("output", "labels", "full", "{nb}.txt"),
+        # kmers=join("output", "labels", "full", "{nb}.txt"),
         params=join("output", "processed", "{nb}.json"),
         fasta=join("input", "{nb}.fasta"),
     log:
         join("output", "features", "log", "{nb}.log"),
     output:
         file=join("output", "features", "full", "{nb}.json.gz"),
+        kmers=join("output", "labels", "full", "{nb}.txt")
     run:
         start_time = datetime.now()
-
-        # get kmers for this particular set of sequences
-        kmers = skm.io.read_output_kmers(input.kmers)
 
         # read processed features
         with open(input.params, "r") as f:
             params = json.load(f)
+
+        residues, _, _, _ = skm.transform.parse_mapping(params["alphabet"])
+
+        # generate full kmer lest
+        kmers = [
+            "".join(chars) for chars in product(residues, repeat=params["k"])
+        ]
+
 
         # revectorize based on full kmer list
         # for i, fa in enumerate(fastas):
@@ -143,7 +149,7 @@ rule vectorize_full:
             results["vector"] += [
                 skm.transform.vectorize_string(
                     seq,
-                    config["k"],
+                    params["k"],
                     params["alphabet"],
                     start=config["start"],
                     end=config["end"],
@@ -155,6 +161,9 @@ rule vectorize_full:
 
         with gzip.open(output.file, "wt", encoding="ascii") as zipfile:
             json.dump(results, zipfile)
+
+        if config["output"]["format"] == "simple":
+            skm.features.output_features(output.kmers, "matrix", labels=kmers)
 
         # record script runtime
         skm.utils.log_runtime(log[0], start_time)

@@ -3,10 +3,13 @@ author: @christinehc
 
 """
 import itertools
-import numpy as np
 from collections import Counter
-from snekmer.alphabets import ALPHABET, FULL_ALPHABETS, get_alphabet_keys, get_alphabet
-from typing import Union, Set
+from typing import Set, Union
+
+import numpy as np
+
+from snekmer.alphabets import ALPHABET, FULL_ALPHABETS, get_alphabet, get_alphabet_keys
+
 
 # generate all possible kmer combinations
 def _generate(alphabet: Union[str, int], k: int):
@@ -92,10 +95,7 @@ class KmerVec:
 
     # generate kmer vectors with bag-of-words approach
     def vectorize(self, sequence: str) -> np.ndarray:
-        #         self.char_set = set(ALPHABETS[alphabet]["_keys"])
         N = len(self.char_set) ** self.k
-        #         all_kmers = self._generate("".join(self.char_set), k)
-        #         self.kmers = list(self._generate(list(self.char_set), k))
 
         alphabet_map = get_alphabet(self.alphabet, mapping=FULL_ALPHABETS)
         sequence = self._reduce(sequence, alphabet_map=alphabet_map)
