@@ -1,13 +1,14 @@
 """vectorize: Create kmer vectors.
+
 author: @christinehc
 
 """
 import itertools
 from collections import Counter
-from typing import Set, Union
+from typing import Generator, Set, Union
 
 import numpy as np
-
+from numpy.typing import NDArray
 from snekmer.alphabets import ALPHABET, FULL_ALPHABETS, get_alphabet, get_alphabet_keys
 
 
@@ -31,32 +32,28 @@ class KmerSet:
 
 # manually reduce alphabet
 def reduce(
-    string: str, alphabet: Union[str, int], mapping: dict = FULL_ALPHABETS
+    sequence: str, alphabet: Union[str, int], mapping: dict = FULL_ALPHABETS
 ) -> str:
-    """Short summary.
+    """Reduce sequence into character space of specified alphabet.
 
     Parameters
     ----------
-    string : str
-        Description of parameter `string`.
+    sequence : str
+        Input sequence.
     alphabet : Union[str, int]
-        Description of parameter `alphabet`.
+        Alphabet name or number (see `snekmer.alphabet`).
     mapping : dict
-        Description of parameter `mapping` (the default is FULL_ALPHABETS).
+        Defined mapping for alphabet (the default is FULL_ALPHABETS).
 
     Returns
     -------
     str
-        Description of returned object.
-
-    Raises
-    ------
-    ExceptionName
-        Why the exception is raised.
+        Transformed sequence.
 
     """
+    sequence = str(sequence).rstrip("*")
     alphabet_map: dict = get_alphabet(alphabet, mapping=mapping)
-    return string.translate(string.maketrans(alphabet_map))
+    return sequence.translate(sequence.maketrans(alphabet_map))
 
 
 class KmerVec:
@@ -69,37 +66,73 @@ class KmerVec:
         self.kmer_set = KmerSet(alphabet, k)
 
     # iteratively get all kmers in a string
-    def _kmer_gen_str_limit(self, sequence):
+    def _kmer_gen(self, sequence: str) -> Generator[str, None, None]:
         """Generator object for segment in string format"""
         i = 0
         n = len(sequence) - self.k + 1
 
-        # iterate character-by-character
+        # iterate thru sequence in blocks of length k
         while i < n:
             kmer = sequence[i : i + self.k]
             if set(kmer) <= self.char_set:
                 yield kmer
             i += 1
 
-    # not used
+    # not used: iterate using range() vs. while loop
     @staticmethod
-    def _kmer_gen_str(sequence, k):
+    def _kmer_gen_str(sequence: str, k: int) -> Generator[str, None, None]:
         """Generator object for segment in string format"""
         for n in range(0, len(sequence) - k + 1):
             yield sequence[n : n + k]
 
-    # apply alphabet reduction
-    @staticmethod
-    def _reduce(sequence: str, alphabet_map: dict) -> str:
-        return sequence.translate(sequence.maketrans(alphabet_map))
-
     # generate kmer vectors with bag-of-words approach
-    def vectorize(self, sequence: str) -> np.ndarray:
+    def vectorize(self, sequence: str) -> NDArray:
+        """Transform sequence into representative kmer vector.
+
+        Parameters
+        ----------
+        sequence : str
+            Input sequence.
+
+        Returns
+        -------
+        NDArray
+            Vector representation of sequence as kmer counts vector.
+
+        """
         N = len(self.char_set) ** self.k
 
-        alphabet_map = get_alphabet(self.alphabet, mapping=FULL_ALPHABETS)
-        sequence = self._reduce(sequence, alphabet_map=alphabet_map)
-        kmers = list(self._kmer_gen_str_limit(sequence))
+        kmers = list(self._kmer_gen(sequence))
+        kmer2count = Counter(kmers)
+
+        # Convert to vector of counts
+        vector = np.zeros(N)
+        for i, word in enumerate(self.kmer_set.kmers):
+            vector[i] += kmer2count[word]
+
+        # Convert to frequencies
+        # vector /= sum(kmer2count.values())
+
+        return vector
+
+    def reduce_vectorize(self, sequence: str) -> NDArray:
+        """Simplify and vectorize sequence into reduced kmer vector.
+
+        Parameters
+        ----------
+        sequence : str
+            Input sequence.
+
+        Returns
+        -------
+        NDArray
+            Vector representation of sequence as reduced kmer vector.
+
+        """
+        N = len(self.char_set) ** self.k
+
+        reduced = reduce(sequence, alphabet=self.alphabet, mapping=FULL_ALPHABETS)
+        kmers = list(self._kmer_gen(reduced))
         kmer2count = Counter(kmers)
 
         # Convert to vector of counts
