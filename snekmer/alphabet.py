@@ -7,7 +7,7 @@ author(s): @biodataganache, @wichne
 
 """
 # imports
-from typing import Mapping, Set, Union
+from typing import Dict, Mapping, Set, Union
 
 # define standard amino acid alphabet
 StandardAlphabet = "AILMVFYWSTQNCHDEKRGP"
@@ -154,7 +154,9 @@ def check_valid(alphabet):
     return
 
 
-def get_alphabet(alphabet: Union[str, int], mapping: dict = ALPHABETS) -> dict:
+def get_alphabet(
+    alphabet: Union[str, int], mapping: dict = ALPHABETS
+) -> Dict[str, str]:
     """Short summary.
 
     Parameters

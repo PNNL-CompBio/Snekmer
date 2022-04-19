@@ -5,11 +5,11 @@ author: @christinehc
 """
 import itertools
 from collections import Counter
-from typing import Generator, Set, Union
+from typing import Dict, Generator, Set, Union
 
 import numpy as np
 from numpy.typing import NDArray
-from snekmer.alphabets import ALPHABET, FULL_ALPHABETS, get_alphabet, get_alphabet_keys
+from .alphabet import FULL_ALPHABETS, get_alphabet, get_alphabet_keys
 
 
 # generate all possible kmer combinations
@@ -52,7 +52,7 @@ def reduce(
 
     """
     sequence = str(sequence).rstrip("*")
-    alphabet_map: dict = get_alphabet(alphabet, mapping=mapping)
+    alphabet_map: Dict[str, str] = get_alphabet(alphabet, mapping=mapping)
     return sequence.translate(sequence.maketrans(alphabet_map))
 
 
@@ -60,7 +60,6 @@ class KmerVec:
     def __init__(self, alphabet: Union[str, int], k: int):
         self.alphabet = alphabet
         self.k = k
-        self.kmer_gen = None
         self.char_set = get_alphabet_keys(alphabet)
         self.vector = None
         self.kmer_set = KmerSet(alphabet, k)

@@ -83,6 +83,7 @@ class KmerScorer:
         label,
         label_col="family",
         bg_col="background",
+        vec_col="vector",
         **scaler_kwargs,
     ):
         """Short summary.
@@ -123,7 +124,7 @@ class KmerScorer:
 
         # step 0: get feature matrix and all labels
         labels = data[label_col].values
-        matrix = to_feature_matrix(data["vector"])
+        matrix = to_feature_matrix(data[vec_col])
         # print(matrix.shape)
 
         # step 0: get indices for label (family) ids
