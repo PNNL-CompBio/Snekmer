@@ -11,18 +11,17 @@ min_version("6.0")  # force snakemake v6.0+ (required for modules)
 # imports
 import pickle
 from datetime import datetime
-from itertools import product
 from glob import glob
+from itertools import product
 from os import makedirs
 from os.path import basename, dirname, exists, join, splitext
-
-from Bio import SeqIO
-from pandas import DataFrame
-from sklearn.model_selection import StratifiedKFold
 
 import matplotlib.pyplot as plt
 import numpy as np
 import snekmer as skm
+from Bio import SeqIO
+from pandas import DataFrame
+from sklearn.model_selection import StratifiedKFold
 
 
 # load modules
@@ -82,6 +81,7 @@ rule all:
         # expand(join("output", "kmerize", "{nb}", "{fa}.json.gz"), nb=NON_BGS, fa=FAS),  # correctly build features
         expand(join("output", "scoring", "{nb}.pkl"), nb=NON_BGS),  # require model-building
 
+
 # if any files are gzip zipped, unzip them
 use rule unzip from process_input with:
     output:
@@ -135,7 +135,7 @@ rule vectorize:
 rule score:
     input:
         kmerobj=join("output", "kmerize", "{nb}.pkl"),
-        data=join("output", "vector", "{nb}.npz")
+        data=join("output", "vector", "{nb}.npz"),
         # vecs=expand(join("output", "vector", "{fa}.npy"), fa=NON_BGS),
         # ids=expand(join("output", "seq_id", "{fa}.npy"), fa=NON_BGS),
     output:
@@ -151,7 +151,7 @@ rule score:
             f.write(f"start time:\t{start_time}\n")
 
         # get kmers for this particular set of sequences
-        with open(input.kmerobj, 'rb') as f:
+        with open(input.kmerobj, "rb") as f:
             kmer = pickle.load(f)
 
         # parse all data and label background files
@@ -166,13 +166,11 @@ rule score:
                 {
                     "filename": splitext(basename(idf))[0],
                     "sequence_id": list(ids),
-                    "sequence_vector": list(vecs)
+                    "sequence_vector": list(vecs),
                 }
             )
 
-        data["background"] = [
-            f in BGS for f in data["filename"]
-        ]
+        data["background"] = [f in BGS for f in data["filename"]]
 
         # log conversion step runtime
         skm.utils.log_runtime(log[0], start_time, step="files_to_df")
@@ -185,7 +183,6 @@ rule score:
             for fn in data["filename"]
         ]
         if any(families):
-            label = "family"
             data[label] = families
 
         # binary T/F for classification into family
@@ -197,7 +194,9 @@ rule score:
             cv = StratifiedKFold(n_splits=config["model"]["cv"], shuffle=True)
 
             # stratify splits by [0,1] family assignment
-            for n, (i_train, _) in enumerate(cv.split(data["sequence_vector"], binary_labels)):
+            for n, (i_train, _) in enumerate(
+                cv.split(data["sequence_vector"], binary_labels)
+            ):
                 data[f"train_cv-{n + 1:02d}"] = [idx in i_train for idx in data.index]
 
         elif config["model"]["cv"] in [0, 1]:
