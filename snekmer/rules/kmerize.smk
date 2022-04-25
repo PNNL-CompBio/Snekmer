@@ -76,7 +76,7 @@ rule vectorize:
         start_time = datetime.now()
 
         # get kmers for this particular set of sequences
-        kmers = ["".join(chars) for chars in itertools]
+        kmers = skm.io.read_output_kmers(input.kmers)
 
         # read processed features
         with open(input.params, "r") as f:
