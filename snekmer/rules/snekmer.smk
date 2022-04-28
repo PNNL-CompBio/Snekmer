@@ -18,11 +18,11 @@ from os.path import basename, dirname, exists, join, splitext
 
 import matplotlib.pyplot as plt
 import numpy as np
-import snekmer as skm
+import pandas as pd
 from Bio import SeqIO
-from pandas import DataFrame
 from sklearn.model_selection import StratifiedKFold
 
+import snekmer as skm
 
 # load modules
 module process_input:
@@ -109,9 +109,10 @@ rule vectorize:
         vecs, seqs, ids = list(), list(), list()
         for f in fasta:
             vecs.append(kmer.reduce_vectorize(f.seq))
-            # seqs.append(
-            #     reduce(f.seq, alphabet=config["alphabet"], mapping=skm.alphabet.FULL_ALPHABETS)
-            # )
+            seqs.append(
+                # "".join(f.seq)
+                skm.vectorize.reduce(f.seq, alphabet=config["alphabet"], mapping=skm.alphabet.FULL_ALPHABETS)
+            )
             ids.append(f.id)
 
         # save seqIO output and transformed vecs
@@ -135,7 +136,7 @@ rule vectorize:
 rule score:
     input:
         kmerobj=join("output", "kmerize", "{nb}.pkl"),
-        data=join("output", "vector", "{nb}.npz"),
+        data=expand(join("output", "vector", "{fa}.npz"), fa=NON_BGS),
         # vecs=expand(join("output", "vector", "{fa}.npy"), fa=NON_BGS),
         # ids=expand(join("output", "seq_id", "{fa}.npy"), fa=NON_BGS),
     output:
@@ -147,6 +148,7 @@ rule score:
     run:
         # log script start time
         start_time = datetime.now()
+        label = config["score"]["lname"] if str(config["score"]["lname"]) != "None" else "label"  # e.g. "family"
         with open(log[0], "a") as f:
             f.write(f"start time:\t{start_time}\n")
 
@@ -154,22 +156,21 @@ rule score:
         with open(input.kmerobj, "rb") as f:
             kmer = pickle.load(f)
 
-        # parse all data and label background files
-        label = config["score"]["lname"]
-
-        loaded = np.load(input.data)
-
-        for ids, vecs in zip(loaded["ids"], loaded["vecs"]):
-            # ids = np.load(idf)
-            # vecs = np.load(vecf)
-            data = DataFrame(
+        # tabulate vectorized seq data
+        data = list()
+        for f in input.data:
+            loaded = np.load(f)
+            data.append(pd.DataFrame(
                 {
-                    "filename": splitext(basename(idf))[0],
-                    "sequence_id": list(ids),
-                    "sequence_vector": list(vecs),
+                    "filename": splitext(basename(f))[0],
+                    "sequence_id": list(loaded["ids"]),
+                    "sequence": list(loaded["seqs"]),
+                    "sequence_length": [len(s) for s in loaded["seqs"]],
+                    "sequence_vector": list(loaded["vecs"]),
                 }
-            )
+            ))
 
+        data = pd.concat(data, ignore_index=True)
         data["background"] = [f in BGS for f in data["filename"]]
 
         # log conversion step runtime
@@ -216,14 +217,14 @@ rule score:
 
         # append scored sequences to dataframe
         data = data.merge(
-            DataFrame(scorer.scores["sample"]), left_index=True, right_index=True
+            pd.DataFrame(scorer.scores["sample"]), left_index=True, right_index=True
         )
         if data.empty:
             raise ValueError("Blank df")
 
         # save score loadings
         class_probabilities = (
-            DataFrame(scorer.probabilities, index=scorer.kmers.basis)
+            pd.DataFrame(scorer.probabilities, index=scorer.kmers.basis)
             .reset_index()
             .rename(columns={"index": "kmer"})
         )
@@ -238,10 +239,195 @@ rule score:
             #     data = data.drop(columns=col)
             if col in class_probabilities.columns:
                 class_probabilities = class_probabilities.drop(columns=col)
-        data.to_csv(output.df, index=False, compression="gzip")
+        data.drop(columns="sequence_vector").to_csv(output.df, index=False, compression="gzip")
         class_probabilities.to_csv(output.scores, index=False, compression="gzip")
         with open(output.scorer, "wb") as f:
             pickle.dump(scorer, f)
 
         # record script endtime
         skm.utils.log_runtime(log[0], start_time)
+
+
+# rule model:
+#     input:
+#         files=rules.score.input.files,
+#         data=rules.score.output.df,
+#         scores=rules.score.output.scores,
+#         kmers=rules.score.input.kmers,
+#     output:
+#         model=join(out_dir, "model", "{nb}.pkl"),
+#         results=join(out_dir, "model", "results", "{nb}.csv"),
+#         figs=directory(join(out_dir, "model", "figures", "{nb}")),
+#     run:
+#         # load all input data and encode rule-wide variables
+#         data = read_csv(input.data)
+#         data["vector"] = [
+#             literal_eval(vec) if isinstance(vec, str) else vec for vec in data["vector"]
+#         ]
+#         scores = read_csv(input.scores)
+#         family = skm.utils.get_family(
+#             skm.utils.split_file_ext(input.scores)[0], regex=config["input"]["regex"]
+#         )
+#         kmers = skm.io.read_output_kmers(input.kmers)
+#         all_families = [
+#             skm.utils.get_family(
+#                 skm.utils.split_file_ext(f)[0], regex=config["input"]["regex"]
+#             )
+#             for f in input.files
+#         ]
+#         cv = config["model"]["cv"]
+#
+#         # process vector data
+#         label = "family"  # TODO: remove hardcoding
+#
+#         # prevent kmer NA being read as np.nan
+#         if config["k"] == 2:
+#             scores["kmer"] = scores["kmer"].fillna("NA")
+#
+#         # get alphabet name
+#         if config["alphabet"] in skm.alphabet.ALPHABET_ORDER.keys():
+#             alphabet_name = skm.alphabet.ALPHABET_ORDER[config["alphabet"]].capitalize()
+#         else:
+#             alphabet_name = str(config["alphabet"]).capitalize()
+#
+#         # generate [0, 1] labels for binary family assignment
+#         binary_labels = [True if value == family else False for value in data["family"]]
+#         le = LabelEncoder()
+#         le.fit(binary_labels)
+#
+#         # set and format input and label arrays; initialize model objs
+#         # need to make training or test set?
+#         X_all = data[f"{family}_score"].values.reshape(-1, 1)
+#         y_all = le.transform(binary_labels).ravel()
+#
+#         # set random seed if specified
+#         rng = np.random.default_rng()
+#         random_state = rng.integers(low=0, high=32767)  # max for int16
+#         if str(config["model"]["random_state"]) != "None":
+#             random_state = config["model"]["random_state"]
+#
+#         # set and format input and label arrays; initialize model objs
+#         cols = ["family", "alphabet_name", "k", "scoring"]
+#         results = {col: [] for col in cols + ["score", "cv_split"]}
+#         X, y = {i: {} for i in range(cv)}, {i: {} for i in range(cv)}
+#         for n in range(cv):
+#
+#             # remove score cols that were generated from full dataset
+#             unscored_cols = [col for col in list(data.columns) if "_score" not in col]
+#
+#             # filter data by training data per CV split
+#             i_train = data[data[f"train_cv-{n + 1:02d}"]].index
+#             i_test = data[~data[f"train_cv-{n + 1:02d}"]].index
+#             df_train = data.iloc[i_train][unscored_cols].reset_index(drop=True)
+#             df_test = data.iloc[i_test][unscored_cols].reset_index(drop=True)
+#             df_train_labels = [
+#                 True if value == family else False for value in df_train["family"]
+#             ]
+#             df_test_labels = [
+#                 True if value == family else False for value in df_test["family"]
+#             ]
+#
+#             # score kmers separately per split
+#             scorer = skm.model.KmerScorer()
+#             scorer.fit(
+#                 kmers,
+#                 df_train,
+#                 family,
+#                 label_col=label,
+#                 **config["score"]["scaler_kwargs"],
+#             )
+#
+#             # append scored sequences to dataframe
+#             df_train = df_train.merge(
+#                 pd.DataFrame(scorer.scores["sample"]), left_index=True, right_index=True
+#             )
+#             if df_train.empty:
+#                 raise ValueError("Blank df")
+#             df_test = df_test.merge(
+#                 pd.DataFrame(
+#                     scorer.predict(
+#                         skm.model.to_feature_matrix(df_test["vector"]), kmers
+#                     )
+#                 ),
+#                 left_index=True,
+#                 right_index=True,
+#             ).rename(columns={0: f"{family}_score"})
+#
+#             # save score loadings
+#             scores = (
+#                 pd.DataFrame(scorer.probabilities, index=scorer.kmers.basis)
+#                 .reset_index()
+#                 .rename(columns={"index": "kmer"})
+#             )
+#
+#             # save X,y array data for plot
+#             X[n]["train"] = df_train[f"{family}_score"].values.reshape(-1, 1)
+#             y[n]["train"] = le.transform(df_train_labels).ravel()
+#
+#             X[n]["test"] = df_test[f"{family}_score"].values.reshape(-1, 1)
+#             y[n]["test"] = le.transform(df_test_labels).ravel()
+#
+#         # ROC-AUC figure
+#         clf = LogisticRegression(
+#             random_state=random_state, solver="liblinear", class_weight="balanced"
+#         )
+#         fig, ax, auc_rocs = skm.plot.cv_roc_curve(
+#             clf, X, y, title=f"{family} ROC Curve ({alphabet_name}, k={config['k']})"
+#         )
+#
+#         # collate ROC-AUC results
+#         results["family"] += [family] * cv
+#         results["alphabet_name"] += [alphabet_name.lower()] * cv
+#         results["k"] += [config["k"]] * cv
+#         results["scoring"] += ["auc_roc"] * cv
+#         results["score"] += auc_rocs
+#         results["cv_split"] += [i + 1 for i in range(cv)]
+#
+#         # save ROC-AUC figure
+#         plt.tight_layout()
+#         if not exists(output.figs):
+#             makedirs(output.figs)
+#         fig.savefig(
+#             join(
+#                 output.figs,
+#                 (
+#                     f"{family}_roc-auc-curve_{alphabet_name.lower()}"
+#                     f"_k-{config['k']:02d}.png"
+#                 ),
+#             )
+#         )
+#         plt.close("all")
+#
+#         # PR-AUC figure
+#         fig, ax, pr_aucs = skm.plot.cv_pr_curve(
+#             clf, X, y, title=f"{family} PR Curve ({alphabet_name}, k={config['k']})"
+#         )
+#
+#         # collate PR-AUC results
+#         results["family"] += [family] * cv
+#         results["alphabet_name"] += [alphabet_name.lower()] * cv
+#         results["k"] += [config["k"]] * cv
+#         results["scoring"] += ["pr_auc"] * cv
+#         results["score"] += pr_aucs
+#         results["cv_split"] += [i + 1 for i in range(cv)]
+#
+#         # save PR-AUC figure
+#         plt.tight_layout()
+#         fig.savefig(
+#             join(
+#                 output.figs,
+#                 (
+#                     f"{family}_aupr-curve_{alphabet_name.lower()}"
+#                     f"_k-{config['k']:02d}.png"
+#                 ),
+#             )
+#         )
+#         plt.close("all")
+#
+#         # save model
+#         clf.fit(X_all, y_all)
+#         with open(output.model, "wb") as save_model:
+#             pickle.dump(clf, save_model)
+#
+#         # save full results
+#         pd.DataFrame(results).to_csv(output.results, index=False)
