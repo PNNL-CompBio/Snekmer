@@ -8,11 +8,11 @@ include: "process_input.smk"
 
 
 # built-in imports
+import itertools
 import gzip
 import json
 from datetime import datetime
 from glob import glob
-from itertools import product, repeat
 from os.path import basename, join
 
 # external libraries
@@ -22,7 +22,7 @@ import snekmer as skm
 input_files = glob(join("input", "*"))
 unzipped = [
     fa.rstrip(".gz")
-    for fa, ext in product(input_files, ["fasta"])
+    for fa, ext in itertools.product(input_files, ["fasta"])
     if fa.rstrip(".gz").endswith(f".{ext}")
 ]
 zipped = [fa for fa in input_files if fa.endswith(".gz")]
@@ -76,7 +76,12 @@ rule vectorize:
         start_time = datetime.now()
 
         # get kmers for this particular set of sequences
-        kmers = ["".join(chars) for chars in itertools]
+        kmers = skm.io.read_output_kmers(input.kmers)
+
+        # kmers = ["".join(chars) for chars in itertools]
+        # kmers = [
+        #     "".join(chars) for chars in itertools.product(residues, repeat=params["k"])
+        # ]
 
         # read processed features
         with open(input.params, "r") as f:
@@ -136,7 +141,7 @@ rule vectorize_full:
 
         # generate full kmer lest
         kmers = [
-            "".join(chars) for chars in product(residues, repeat=params["k"])
+            "".join(chars) for chars in itertools.product(residues, repeat=params["k"])
         ]
 
 
