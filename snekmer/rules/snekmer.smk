@@ -22,14 +22,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from Bio import SeqIO
-from sklearn.model_selection import StratifiedKFold
-
-import snekmer as skm
-
-# model imports
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import LabelEncoder
+
+import snekmer as skm
 
 # load modules
 module process_input:
@@ -85,9 +82,7 @@ out_dir = skm.io.define_output_dir(
 rule all:
     input:
         expand(join("input", "{uz}"), uz=UZS),  # require unzipping
-        # expand(join("output", "kmerize", "{nb}", "{fa}.json.gz"), nb=NON_BGS, fa=FAS),  # correctly build features
         expand(join("output", "model", "{nb}.pkl"), nb=NON_BGS),  # require model-building
-        # expand(join(out_dir, "model", "{nb}.pkl"), nb=NON_BGS),  # require model-building
 
 
 # if any files are gzip zipped, unzip them
@@ -103,12 +98,11 @@ rule vectorize:
         fasta=lambda wildcards: join("input", f"{wildcards.nb}.{FA_MAP[wildcards.nb]}"),
     output:
         data=join("output", "vector", "{nb}.npz"),
-        # vecs=join("output", "vector", "{nb}.npy"),
-        # ids=join("output", "seq_id", "{nb}.npy"),
         kmerobj=join("output", "kmerize", "{nb}.pkl"),
     log:
         join("output", "kmerize", "log", "{nb}.log"),
     run:
+        # read fasta using bioconda obj
         fasta = SeqIO.parse(input.fasta, "fasta")
 
         # initialize kmerization object
@@ -118,15 +112,15 @@ rule vectorize:
         for f in fasta:
             vecs.append(kmer.reduce_vectorize(f.seq))
             seqs.append(
-                # "".join(f.seq)
-                skm.vectorize.reduce(f.seq, alphabet=config["alphabet"], mapping=skm.alphabet.FULL_ALPHABETS)
+                skm.vectorize.reduce(
+                    f.seq,
+                    alphabet=config["alphabet"],
+                    mapping=skm.alphabet.FULL_ALPHABETS,
+                )
             )
             ids.append(f.id)
 
         # save seqIO output and transformed vecs
-        # np.save(output.vecs, vecs)
-        # np.save(output.seqs, seqs)
-        # np.save(output.ids, ids)
         np.savez_compressed(output.data, ids=ids, seqs=seqs, vecs=vecs)
 
         with open(output.kmerobj, "wb") as f:
@@ -145,8 +139,6 @@ rule score:
     input:
         kmerobj=join("output", "kmerize", "{nb}.pkl"),
         data=expand(join("output", "vector", "{fa}.npz"), fa=NON_BGS),
-        # vecs=expand(join("output", "vector", "{fa}.npy"), fa=NON_BGS),
-        # ids=expand(join("output", "seq_id", "{fa}.npy"), fa=NON_BGS),
     output:
         data=join("output", "scoring", "sequences", "{nb}.csv.gz"),
         weights=join("output", "scoring", "weights", "{nb}.csv.gz"),
@@ -156,7 +148,11 @@ rule score:
     run:
         # log script start time
         start_time = datetime.now()
-        label = config["score"]["lname"] if str(config["score"]["lname"]) != "None" else "label"  # e.g. "family"
+        label = (
+            config["score"]["lname"]
+            if str(config["score"]["lname"]) != "None"
+            else "label"
+        )  # e.g. "family"
         with open(log[0], "a") as f:
             f.write(f"start time:\t{start_time}\n")
 
@@ -168,15 +164,17 @@ rule score:
         data = list()
         for f in input.data:
             loaded = np.load(f)
-            data.append(pd.DataFrame(
-                {
-                    "filename": splitext(basename(f))[0],
-                    "sequence_id": list(loaded["ids"]),
-                    "sequence": list(loaded["seqs"]),
-                    "sequence_length": [len(s) for s in loaded["seqs"]],
-                    "sequence_vector": list(loaded["vecs"]),
-                }
-            ))
+            data.append(
+                pd.DataFrame(
+                    {
+                        "filename": splitext(basename(f))[0],
+                        "sequence_id": list(loaded["ids"]),
+                        "sequence": list(loaded["seqs"]),
+                        "sequence_length": [len(s) for s in loaded["seqs"]],
+                        "sequence_vector": list(loaded["vecs"]),
+                    }
+                )
+            )
 
         data = pd.concat(data, ignore_index=True)
         data["background"] = [f in BGS for f in data["filename"]]
@@ -243,11 +241,11 @@ rule score:
         # save all files to respective outputs
         delete_cols = ["vec", "sequence_vector"]
         for col in delete_cols:
-            # if col in data.columns:
-            #     data = data.drop(columns=col)
             if col in class_probabilities.columns:
                 class_probabilities = class_probabilities.drop(columns=col)
-        data.drop(columns="sequence_vector").to_csv(output.data, index=False, compression="gzip")
+        data.drop(columns="sequence_vector").to_csv(
+        output.data, index=False, compression="gzip"
+        )
         class_probabilities.to_csv(output.weights, index=False, compression="gzip")
         with open(output.scorer, "wb") as f:
             pickle.dump(scorer, f)
@@ -282,9 +280,8 @@ rule model:
         # load all input data and encode rule-wide variables
         data = pd.read_csv(input.data)
         data["sequence_vector"] = [
-             lookup[(seq_f, seq_id)]
-             for seq_f, seq_id
-             in zip(data["filename"], data["sequence_id"])
+            lookup[(seq_f, seq_id)]
+            for seq_f, seq_id in zip(data["filename"], data["sequence_id"])
         ]
         scores = pd.read_csv(input.weights)
         family = skm.utils.get_family(
@@ -373,7 +370,7 @@ rule model:
                 pd.DataFrame(
                     scorer.predict(
                         skm.model.to_feature_matrix(df_test["sequence_vector"]),
-                        list(kmer.kmer_set.kmers)
+                        list(kmer.kmer_set.kmers),
                     )
                 ),
                 left_index=True,
