@@ -11,6 +11,7 @@ min_version("6.0")  # force snakemake v6.0+ (required for modules)
 # imports
 import pickle
 from ast import literal_eval
+from collections import defaultdict
 from datetime import datetime
 from glob import glob
 from itertools import product
@@ -271,16 +272,17 @@ rule model:
         lookup = {}
         for f in input.raw:
             loaded = np.load(f)
-            lookup[splitext(basename(f))[0]] = {
-                seq_id: seq_vec for seq_id, seq_vec in zip(
-                    loaded["ids"], loaded["vecs"]
-                )
-            }
+            lookup.update(
+                {
+                    (splitext(basename(f))[0], seq_id): seq_vec
+                    for seq_id, seq_vec in zip(loaded["ids"], loaded["vecs"])
+                }
+            )
 
         # load all input data and encode rule-wide variables
         data = pd.read_csv(input.data)
         data["sequence_vector"] = [
-             lookup[seq_f][seq_id]
+             lookup[(seq_f, seq_id)]
              for seq_f, seq_id
              in zip(data["filename"], data["sequence_id"])
         ]
