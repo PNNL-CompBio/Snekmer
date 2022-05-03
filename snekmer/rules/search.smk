@@ -16,10 +16,15 @@ module process_input:
     config:
         config
 
+# module kmerize:
+#     snakefile:
+#         "kmerize.smk"
+#     config:
+#         config
 
 module kmerize:
     snakefile:
-        "kmerize.smk"
+        "snekmer.smk"
     config:
         config
 
@@ -65,13 +70,13 @@ unzipped = [
 ]
 
 # map extensions to basename (basename.ext.gz -> {basename: ext})
-uz_map = {
+UZ_MAP = {
     skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in zipped
 }
 FILE_MAP = {
     skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in unzipped
 }
-UZS = [f"{f}.{ext}" for f, ext in uz_map.items()]
+UZS = [f"{f}.{ext}" for f, ext in UZ_MAP.items()]
 FILES = list(FILE_MAP.keys())
 FAMILIES = [skm.utils.get_family(f, regex=config["regex"]) for f in model_files]
 
@@ -85,18 +90,24 @@ out_dir = skm.io.define_output_dir(
 rule all:
     input:
         expand(join("input", "{uz}"), uz=UZS),  # require unzipping
-        expand(join(out_dir, "features", "{fam}", "{f}.json.gz"), fam=FAMILIES, f=FILES),  # correctly build features
+        expand(join(out_dir, "vector", "{fam}", "{f}.npz"), fam=FAMILIES, f=FILES),
+        # expand(join(out_dir, "features", "{fam}", "{f}.json.gz"), fam=FAMILIES, f=FILES),  # correctly build features
         expand(join(out_dir, "search", "{fam}.csv"), fam=FAMILIES),  # require model-building
 
 
 # if any files are gzip zipped, unzip them
 if len(UZS) > 0:
-
     use rule unzip from process_input with:
         output:
             join("input", "{uz}"),  # or join("input", "{uz}.{uzext}") ?
 # build kmer count vectors for each basis set
 
+
+# new kmerization step
+use rule vectorize from kmerize with:
+    output:
+        data=join("output", "vector", "{fam}", "{f}.npz"),
+        kmerobj=join(config["basis_dir"], "{fam}.pkl"),
 
 rule vectorize:
     input:
