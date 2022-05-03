@@ -188,4 +188,5 @@ rule search:
 
         # save full results
         results = pd.concat(results, ignore_index=True).drop(columns=["vector"])
+        results["model"] = basename(input.model)
         results.to_csv(output.results, index=False)
