@@ -65,6 +65,41 @@ rule generate:
 
 rule vectorize:
     input:
+        fasta=lambda wildcards: join("input", f"{wildcards.nb}.{FA_MAP[wildcards.nb]}"),
+    output:
+        data=join("output", "vector", "{nb}.npz"),
+        kmerobj=join("output", "kmerize", "{nb}.pkl"),
+    log:
+        join("output", "kmerize", "log", "{nb}.log"),
+    run:
+        # read fasta using bioconda obj
+        fasta = SeqIO.parse(input.fasta, "fasta")
+
+        # initialize kmerization object
+        kmer = skm.vectorize.KmerVec(alphabet=config["alphabet"], k=config["k"])
+
+        vecs, seqs, ids = list(), list(), list()
+        for f in fasta:
+            vecs.append(kmer.reduce_vectorize(f.seq))
+            seqs.append(
+                skm.vectorize.reduce(
+                    f.seq,
+                    alphabet=config["alphabet"],
+                    mapping=skm.alphabet.FULL_ALPHABETS,
+                )
+            )
+            ids.append(f.id)
+
+        # save seqIO output and transformed vecs
+        np.savez_compressed(output.data, ids=ids, seqs=seqs, vecs=vecs)
+
+        with open(output.kmerobj, "wb") as f:
+            pickle.dump(kmer, f)
+
+
+# old code from here
+rule vectorize_v0:
+    input:
         kmers=join("output", "labels", "{nb}.txt"),
         params=join("output", "processed", "{nb}.json"),
         fastas=join("input", "{nb}.fasta"),
@@ -77,11 +112,6 @@ rule vectorize:
 
         # get kmers for this particular set of sequences
         kmers = skm.io.read_output_kmers(input.kmers)
-
-        # kmers = ["".join(chars) for chars in itertools]
-        # kmers = [
-        #     "".join(chars) for chars in itertools.product(residues, repeat=params["k"])
-        # ]
 
         # read processed features
         with open(input.params, "r") as f:

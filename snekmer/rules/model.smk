@@ -128,7 +128,7 @@ use rule generate from kmerize with:
 
 
 # build kmer count vectors for each basis set
-use rule vectorize from kmerize with:
+use rule vectorize_v0 from kmerize with:
     input:
         kmers=join(out_dir, "labels", "{nb}.txt"),
         params=join(out_dir, "processed", "{nb}.json"),
