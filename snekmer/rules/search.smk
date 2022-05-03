@@ -118,10 +118,11 @@ rule vectorize:
 
         # revectorize based on full kmer list
         for i, fa in enumerate(fastas):
-            results = {"seq_id": [], "vector": []}
+            results = {"seq_id": [], "sequence_length": [], "vector": []}
             seq_list, id_list = skm.io.read_fasta(fa)
             for seq, sid in zip(seq_list, id_list):
                 results["seq_id"] += [sid]
+                results["sequence_length"] += [len(seq)]
                 results["vector"] += [
                     skm.transform.vectorize_string(
                         seq,
@@ -188,4 +189,5 @@ rule search:
 
         # save full results
         results = pd.concat(results, ignore_index=True).drop(columns=["vector"])
+        results["model"] = splitext(basename(input.model))[0]
         results.to_csv(output.results, index=False)
