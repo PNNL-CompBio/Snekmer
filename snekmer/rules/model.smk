@@ -54,8 +54,7 @@ import snekmer as skm
 plt.switch_backend("Agg")
 
 # collect all fasta-like files, unzipped filenames, and basenames
-if str(config["input_dir"]) == "None":
-    config["input_dir"] = "input"
+input_dir = "input" if str(config["input_dir"]) == "None" else config["input_dir"]
 input_files = glob(join(input_dir, "*"))
 zipped = [fa for fa in input_files if fa.endswith(".gz")]
 unzipped = [
