@@ -174,6 +174,8 @@ rule search:
 
             df = pd.read_json(fasta)
             vecs = skm.utils.to_feature_matrix(df["vector"].values)
+            seq_id = df["seq_id"].values
+            seq_length = df["sequence_length"].values
 
             scores = scorer.predict(vecs, kmers)
             predictions = model.predict(scores.reshape(-1, 1))
@@ -184,6 +186,8 @@ rule search:
             df[family] = [True if p == 1 else False for p in predictions]
             df[f"{family}_probability"] = [p[1] for p in predicted_probas]
             df["filename"] = f"{filename}.{FILE_MAP[filename]}"
+            df["seq_length"] = seq_length
+            df["seq_ids"] = seq_id
 
             results.append(df)
 
