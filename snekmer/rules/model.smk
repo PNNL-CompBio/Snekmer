@@ -54,7 +54,9 @@ import snekmer as skm
 plt.switch_backend("Agg")
 
 # collect all fasta-like files, unzipped filenames, and basenames
-input_files = glob(join("input", "*"))
+if str(config["input_dir"]) == "None":
+    config["input_dir"] = "input"
+input_files = glob(join(input_dir, "*"))
 zipped = [fa for fa in input_files if fa.endswith(".gz")]
 unzipped = [
     fa.rstrip(".gz")
@@ -77,7 +79,7 @@ UZS = [f"{f}.{ext}" for f, ext in UZ_MAP.items()]
 FAS = list(FA_MAP.keys())
 
 # parse any background files
-bg_files = glob(join("input", "background", "*"))
+bg_files = glob(join(input_dir, "background", "*"))
 if len(bg_files) > 0:
     bg_files = [skm.utils.split_file_ext(basename(f))[0] for f in bg_files]
 NON_BGS, BGS = [f for f in FAS if f not in bg_files], bg_files
@@ -95,7 +97,7 @@ out_dir = skm.io.define_output_dir(
 # define output files to be created by snekmer
 rule all:
     input:
-        expand(join("input", "{uz}"), uz=UZS),  # require unzipping
+        expand(join(input_dir, "{uz}"), uz=UZS),  # require unzipping
         expand(join(out_dir, "features", "{nb}", "{fa}.json.gz"), nb=NON_BGS, fa=FAS),  # correctly build features
         expand(join(out_dir, "model", "{nb}.pkl"), nb=NON_BGS),  # require model-building
 
@@ -103,13 +105,13 @@ rule all:
 # if any files are gzip zipped, unzip them
 use rule unzip from process_input with:
     output:
-        join("input", "{uz}"),
+        join(input_dir, "{uz}"),
 
 
 # read and process parameters from config
 use rule preprocess from process_input with:
     input:
-        fasta=lambda wildcards: join("input", f"{wildcards.nb}.{FA_MAP[wildcards.nb]}"),
+        fasta=lambda wildcards: join(input_dir, f"{wildcards.nb}.{FA_MAP[wildcards.nb]}"),
     output:
         data=join(out_dir, "processed", "{nb}.json"),
         desc=join(out_dir, "processed", "{nb}_description.csv"),
