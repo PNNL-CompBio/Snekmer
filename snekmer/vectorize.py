@@ -4,7 +4,7 @@ author: @christinehc
 """
 import itertools
 from collections import Counter
-from typing import Set, Union
+from typing import Dict, Set, Union
 
 import numpy as np
 
@@ -31,7 +31,7 @@ class KmerSet:
 
 # manually reduce alphabet
 def reduce(
-    string: str, alphabet: Union[str, int], mapping: dict = FULL_ALPHABETS
+    string: str, alphabet: Union[str, int], mapping: Dict[str, dict] = FULL_ALPHABETS
 ) -> str:
     """Short summary.
 
@@ -55,7 +55,7 @@ def reduce(
         Why the exception is raised.
 
     """
-    alphabet_map: dict = get_alphabet(alphabet, mapping=mapping)
+    alphabet_map: Dict[str, str] = get_alphabet(alphabet, mapping=mapping)
     return string.translate(string.maketrans(alphabet_map))
 
 
@@ -90,7 +90,7 @@ class KmerVec:
 
     # apply alphabet reduction
     @staticmethod
-    def _reduce(sequence: str, alphabet_map: dict) -> str:
+    def _reduce(sequence: str, alphabet_map: Dict[str, str]) -> str:
         return sequence.translate(sequence.maketrans(alphabet_map))
 
     # generate kmer vectors with bag-of-words approach

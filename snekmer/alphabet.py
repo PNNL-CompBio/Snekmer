@@ -7,7 +7,7 @@ author(s): @biodataganache, @wichne
 
 """
 # imports
-from typing import Mapping, Set, Union
+from typing import Dict, Mapping, Set, Union
 
 # define standard amino acid alphabet
 StandardAlphabet = "AILMVFYWSTQNCHDEKRGP"
@@ -84,7 +84,7 @@ ALPHABETS = {
 }
 
 # reconfigure alphabet dict into "long-form"
-FULL_ALPHABETS: dict = {a: {} for a in ALPHABETS.keys()}
+FULL_ALPHABETS: Dict[str, dict] = {a: {} for a in ALPHABETS.keys()}
 for alphabet, mapping in ALPHABETS.items():
     for k, v in mapping.items():
         if k == "_keys":
@@ -154,7 +154,9 @@ def check_valid(alphabet):
     return
 
 
-def get_alphabet(alphabet: Union[str, int], mapping: dict = ALPHABETS) -> dict:
+def get_alphabet(
+    alphabet: Union[str, int], mapping: Dict[str, dict] = ALPHABETS
+) -> Dict:
     """Short summary.
 
     Parameters
@@ -190,7 +192,7 @@ def get_alphabet(alphabet: Union[str, int], mapping: dict = ALPHABETS) -> dict:
 
 
 def get_alphabet_keys(
-    alphabet: Union[str, int], mapping: dict = FULL_ALPHABETS
+    alphabet: Union[str, int], mapping: Dict[str, dict] = FULL_ALPHABETS
 ) -> Set[str]:
     """Retrieve keys for specified alphabet.
 
