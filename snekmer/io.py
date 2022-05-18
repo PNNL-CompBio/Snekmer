@@ -6,8 +6,10 @@ author: @christinehc
 # imports
 import gzip
 import json
+import pickle
 import re
-from os.path import basename, join
+from os.path import basename, join, splitext
+from typing import Any, Dict
 
 import numpy as np
 import pandas as pd
@@ -211,3 +213,77 @@ def define_output_dir(alphabet, k, nested=False):
     if not isinstance(alphabet, str):
         alphabet = ALPHABET_ORDER[alphabet]
     return join("output", alphabet, f"k-{k:02}")
+
+
+def load_pickle(filename: str, mode: str = "rb") -> Any:
+    """Load a pickled object (wrapper for `pickle.load`).
+
+    Parameters
+    ----------
+    filename : str
+        Description of parameter `filename`.
+    mode : str
+        Description of parameter `mode` (the default is "rb").
+
+    Returns
+    -------
+    Any
+        Description of returned object.
+
+    Raises
+    ------
+    ExceptionName
+        Why the exception is raised.
+
+    """
+    with open(filename, mode) as f:
+        return pickle.load(f)
+
+
+def load_npz(
+    filename: str,
+    columns: Dict[str, str] = {
+        "ids": "sequence_id",
+        "seqs": "sequence",
+        "vecs": "sequence_vector",
+    },
+) -> pd.DataFrame:
+    """Compile .npz results into dataframe.
+
+    Parameters
+    ----------
+    filename : str
+        Description of parameter `filename`.
+    columns : Dict[str, str]
+        Description of parameter `columns` (the default is
+            {
+                "ids": "sequence_id",
+                "seqs": "sequence",
+                "vecs": "sequence_vector",
+            }
+        ).
+
+    Returns
+    -------
+    pd.DataFrame
+        Description of returned object.
+
+    Raises
+    ------
+    ExceptionName
+        Why the exception is raised.
+
+    """
+    data = np.load(filename)
+
+    # fill in df based on desired output col names
+    df = {"filename": splitext(basename(filename))[0]}
+    for in_col, out_col in columns.items():
+        df.update({out_col: list(data[in_col])})
+
+        # get seq column for sequence lengths
+        if "seq" in in_col:
+            df.update({f"{out_col}_length": [len(s) for s in data[in_col]]})
+    # df.update()
+
+    return pd.DataFrame(df)

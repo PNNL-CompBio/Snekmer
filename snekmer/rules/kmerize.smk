@@ -11,12 +11,15 @@ include: "process_input.smk"
 import itertools
 import gzip
 import json
+import pickle
 from datetime import datetime
 from glob import glob
 from os.path import basename, join
 
 # external libraries
+import numpy as np
 import snekmer as skm
+from Bio import SeqIO
 
 # get input files
 input_files = glob(join("input", "*"))
@@ -28,6 +31,14 @@ unzipped = [
 zipped = [fa for fa in input_files if fa.endswith(".gz")]
 UZS = [skm.utils.split_file_ext(f)[0] for f in zipped]
 FAS = [skm.utils.split_file_ext(f)[0] for f in unzipped]
+
+# map extensions to basename (basename.ext.gz -> {basename: ext})
+UZ_MAP = {
+    skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in zipped
+}
+FA_MAP = {
+    skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in unzipped
+}
 
 
 # rule all:

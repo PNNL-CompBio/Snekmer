@@ -157,24 +157,12 @@ rule score:
             f.write(f"start time:\t{start_time}\n")
 
         # get kmers for this particular set of sequences
-        with open(input.kmerobj, "rb") as f:
-            kmer = pickle.load(f)
+        kmer = skm.io.load_pickle(input.kmerobj)
 
         # tabulate vectorized seq data
         data = list()
         for f in input.data:
-            loaded = np.load(f)
-            data.append(
-                pd.DataFrame(
-                    {
-                        "filename": splitext(basename(f))[0],
-                        "sequence_id": list(loaded["ids"]),
-                        "sequence": list(loaded["seqs"]),
-                        "sequence_length": [len(s) for s in loaded["seqs"]],
-                        "sequence_vector": list(loaded["vecs"]),
-                    }
-                )
-            )
+            data.append(skm.io.load_npz(f))
 
         data = pd.concat(data, ignore_index=True)
         data["background"] = [f in BGS for f in data["filename"]]

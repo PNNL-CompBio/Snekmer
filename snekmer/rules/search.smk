@@ -7,6 +7,7 @@ author: @christinehc, @biodataganache
 from snakemake.utils import min_version
 
 min_version("6.0")  # force snakemake v6.0+ (required for modules)
+ruleorder: vectorize > search
 
 
 # load modules
@@ -16,15 +17,10 @@ module process_input:
     config:
         config
 
-# module kmerize:
-#     snakefile:
-#         "kmerize.smk"
-#     config:
-#         config
-
 module kmerize:
     snakefile:
-        "snekmer.smk"
+        # "snekmer.smk"
+        "kmerize.smk"
     config:
         config
 
@@ -90,7 +86,7 @@ out_dir = skm.io.define_output_dir(
 rule all:
     input:
         expand(join("input", "{uz}"), uz=UZS),  # require unzipping
-        expand(join(out_dir, "vector", "{fam}", "{f}.npz"), fam=FAMILIES, f=FILES),
+        expand(join(out_dir, "vector", "{f}.npz"), f=FILES),
         # expand(join(out_dir, "features", "{fam}", "{f}.json.gz"), fam=FAMILIES, f=FILES),  # correctly build features
         expand(join(out_dir, "search", "{fam}.csv"), fam=FAMILIES),  # require model-building
 
@@ -104,88 +100,94 @@ if len(UZS) > 0:
 
 
 # new kmerization step
+# use rule vectorize from kmerize with:
+#     output:
+#         data=join(config["basis_dir"], "{fam}.npz"),
+#         kmerobj=join(config["model_dir"], "{fam}.pkl"),
+
+
 use rule vectorize from kmerize with:
-    output:
-        data=join("output", "vector", "{fam}", "{f}.npz"),
-        kmerobj=join(config["basis_dir"], "{fam}.pkl"),
-
-rule vectorize:
     input:
-        fastas=unzipped,
-        basis=join(config["basis_dir"], "{fam}.txt"),
-    log:
-        join(out_dir, "features", "log", "{fam}.log"),
+        fasta=lambda wildcards: join("input", f"{wildcards.f}.{FILE_MAP[wildcards.f]}"),
     output:
-        files=expand(join(out_dir, "features", "{{fam}}", "{f}.json.gz"), f=FILES),
-    run:
-        start_time = datetime.now()
+        data=join(out_dir, "vector", "{f}.npz"),
+        kmerobj=join(out_dir, "kmerize", "{f}.pkl"),
+    log:
+        join(out_dir, "kmerize", "log", "{f}.log"),
 
-        # get kmers for this search
-        kmers = skm.io.read_output_kmers(input.basis)
-
-        # sort i/o lists to match wildcard order
-        fastas = sorted(input.fastas)
-        outfiles = sorted(output.files)
-
-        # revectorize based on full kmer list
-        for i, fa in enumerate(fastas):
-            results = {"seq_id": [], "vector": []}
-            seq_list, id_list = skm.io.read_fasta(fa)
-            for seq, sid in zip(seq_list, id_list):
-                results["seq_id"] += [sid]
-                results["vector"] += [
-                    skm.transform.vectorize_string(
-                        seq,
-                        config["k"],
-                        config["alphabet"],
-                        start=config["start"],
-                        end=config["end"],
-                        filter_list=kmers,
-                        verbose=config["verbose"],
-                        log_file=log[0],
-                    )
-                ]
-
-            with gzip.open(outfiles[i], "wt", encoding="ascii") as zipfile:
-                json.dump(results, zipfile)
-
-        # record script runtime
-        skm.utils.log_runtime(log[0], start_time)
+# rule vectorize:
+#     input:
+#         fastas=unzipped,
+#         basis=join(config["basis_dir"], "{fam}.txt"),
+#     log:
+#         join(out_dir, "features", "log", "{fam}.log"),
+#     output:
+#         files=expand(join(out_dir, "features", "{{fam}}", "{f}.json.gz"), f=FILES),
+#     run:
+#         start_time = datetime.now()
+#
+#         # get kmers for this search
+#         kmers = skm.io.read_output_kmers(input.basis)
+#
+#         # sort i/o lists to match wildcard order
+#         fastas = sorted(input.fastas)
+#         outfiles = sorted(output.files)
+#
+#         # revectorize based on full kmer list
+#         for i, fa in enumerate(fastas):
+#             results = {"seq_id": [], "vector": []}
+#             seq_list, id_list = skm.io.read_fasta(fa)
+#             for seq, sid in zip(seq_list, id_list):
+#                 results["seq_id"] += [sid]
+#                 results["vector"] += [
+#                     skm.transform.vectorize_string(
+#                         seq,
+#                         config["k"],
+#                         config["alphabet"],
+#                         start=config["start"],
+#                         end=config["end"],
+#                         filter_list=kmers,
+#                         verbose=config["verbose"],
+#                         log_file=log[0],
+#                     )
+#                 ]
+#
+#             with gzip.open(outfiles[i], "wt", encoding="ascii") as zipfile:
+#                 json.dump(results, zipfile)
+#
+#         # record script runtime
+#         skm.utils.log_runtime(log[0], start_time)
 
 
 rule search:
     input:
-        vecfiles=rules.vectorize.output.files,
+        files=expand(join(out_dir, "vector", "{f}.npz"), f=FILES),  # change to data=join("output", "vector", "{nb}.npz")
         model=join(config["model_dir"], "{fam}.pkl"),
-        basis=join(config["basis_dir"], "{fam}.txt"),
+        kmerobj=join(config["basis_dir"], "{fam}.pkl"),
         scorer=join(config["score_dir"], "{fam}.pkl"),
     output:
         results=join(out_dir, "search", "{fam}.csv"),
     run:
         # load kmer basis set
-        kmers = skm.io.read_output_kmers(input.basis)
+        # kmers = skm.io.read_output_kmers(input.basis)
 
-        # simplify some variable names
-        model_file = input.model
-        score_file = input.scorer
+        # simplify variable name
         family = wildcards.fam
 
-        # load model
-        with open(model_file, "rb") as mf:
-            model = pickle.load(mf)
+        # get kmers for this particular set of sequences
+        kmer = skm.io.load_pickle(input.kmerobj)
+        model = skm.io.load_pickle(input.model)
+        scorer = skm.io.load_pickle(input.scorer)
 
-        # load scorer
-        with open(score_file, "rb") as sf:
-            scorer = pickle.load(sf)
-
+        # load vectorized sequences, score, and predict scores
         results = list()
-        for fasta in input.vecfiles:
-            filename = skm.utils.split_file_ext(basename(fasta))[0]
+        for f in input.files:
+            df = skm.io.load_npz(f)
+            filename = skm.utils.split_file_ext(basename(f))[0]
 
-            df = pd.read_json(fasta)
-            vecs = skm.utils.to_feature_matrix(df["vector"].values)
+            vecs = skm.utils.to_feature_matrix(df["sequence_vector"].values)
 
-            scores = scorer.predict(vecs, kmers)
+            scores = scorer.predict(vecs, list(kmer.kmer_set.kmers))
             predictions = model.predict(scores.reshape(-1, 1))
             predicted_probas = model.predict_proba(scores.reshape(-1, 1))
 
@@ -197,7 +199,26 @@ rule search:
 
             results.append(df)
 
+
+        # for fasta in input.vecfiles:
+        #     filename = skm.utils.split_file_ext(basename(fasta))[0]
+        #
+        #     df = pd.read_json(fasta)
+        #     vecs = skm.utils.to_feature_matrix(df["vector"].values)
+        #
+        #     scores = scorer.predict(vecs, kmers)
+        #     predictions = model.predict(scores.reshape(-1, 1))
+        #     predicted_probas = model.predict_proba(scores.reshape(-1, 1))
+        #
+        #     # display results (score, family assignment, and probability)
+        #     df[f"{family}_score"] = scores  # scorer output
+        #     df[family] = [True if p == 1 else False for p in predictions]
+        #     df[f"{family}_probability"] = [p[1] for p in predicted_probas]
+        #     df["filename"] = f"{filename}.{FILE_MAP[filename]}"
+        #
+        #     results.append(df)
+
         # save full results
-        results = pd.concat(results, ignore_index=True).drop(columns=["vector"])
+        results = pd.concat(results, ignore_index=True).drop(columns=["sequence_vector"])
         results["model"] = basename(input.model)
         results.to_csv(output.results, index=False)
