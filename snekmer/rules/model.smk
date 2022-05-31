@@ -1,4 +1,4 @@
-"""model.smk: Module for supervised modeling from kmer vectors.
+"""snekmer.smk: v1.0.0 code
 
 author: @christinehc
 
@@ -8,6 +8,25 @@ from snakemake.utils import min_version
 
 min_version("6.0")  # force snakemake v6.0+ (required for modules)
 
+# imports
+import pickle
+from ast import literal_eval
+from collections import defaultdict
+from datetime import datetime
+from glob import glob
+from itertools import product
+from os import makedirs
+from os.path import basename, dirname, exists, join, splitext
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from Bio import SeqIO
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import StratifiedKFold
+from sklearn.preprocessing import LabelEncoder
+
+import snekmer as skm
 
 # load modules
 module process_input:
@@ -23,32 +42,6 @@ module kmerize:
     config:
         config
 
-
-# built-in imports
-import gzip
-import json
-import pickle
-from ast import literal_eval
-from datetime import datetime
-from glob import glob
-from itertools import product, repeat
-from multiprocessing import Pool
-from os import makedirs
-from os.path import basename, dirname, exists, join, splitext
-
-import matplotlib.pyplot as plt
-import numpy as np
-from Bio import SeqIO
-from pandas import DataFrame, read_csv, read_json
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
-from sklearn.model_selection import (StratifiedKFold, cross_val_score,
-                                     train_test_split)
-from sklearn.preprocessing import LabelEncoder
-from sklearn.tree import DecisionTreeClassifier
-
-# external libraries
-import snekmer as skm
 
 # change matplotlib backend to non-interactive
 plt.switch_backend("Agg")
@@ -96,8 +89,7 @@ out_dir = skm.io.define_output_dir(
 rule all:
     input:
         expand(join("input", "{uz}"), uz=UZS),  # require unzipping
-        expand(join(out_dir, "features", "{nb}", "{fa}.json.gz"), nb=NON_BGS, fa=FAS),  # correctly build features
-        expand(join(out_dir, "model", "{nb}.pkl"), nb=NON_BGS),  # require model-building
+        expand(join("output", "model", "{nb}.model"), nb=NON_BGS),  # require model-building
 
 
 # if any files are gzip zipped, unzip them
@@ -106,76 +98,52 @@ use rule unzip from process_input with:
         join("input", "{uz}"),
 
 
-# read and process parameters from config
-use rule preprocess from process_input with:
+# build kmer count vectors for each basis set
+use rule vectorize from kmerize with:
     input:
         fasta=lambda wildcards: join("input", f"{wildcards.nb}.{FA_MAP[wildcards.nb]}"),
     output:
-        data=join(out_dir, "processed", "{nb}.json"),
-        desc=join(out_dir, "processed", "{nb}_description.csv"),
+        data=join("output", "vector", "{nb}.npz"),
+        kmerobj=join("output", "kmerize", "{nb}.kmers"),
     log:
-        join(out_dir, "processed", "log", "{nb}.log"),
+        join("output", "kmerize", "log", "{nb}.log"),
 
 
-# generate kmer features space from user params
-use rule generate from kmerize with:
-    input:
-        params=join(out_dir, "processed", "{nb}.json"),
-    output:
-        labels=join(out_dir, "labels", "{nb}.txt"),
-    log:
-        join(out_dir, "labels", "log", "{nb}.log"),
-
-
-# build kmer count vectors for each basis set
-use rule vectorize_v0 from kmerize with:
-    input:
-        kmers=join(out_dir, "labels", "{nb}.txt"),
-        params=join(out_dir, "processed", "{nb}.json"),
-        fastas=unzipped,
-    log:
-        join(out_dir, "features", "log", "{nb}.log"),
-    output:
-        files=expand(join(out_dir, "features", "{{nb}}", "{fa}.json.gz"), fa=FAS),
-
-
-# [in-progress] kmer walk
-# if config['walk']:
-# use rule perform_kmer_walk from process_input with:
-# output:
-
-
-# SUPERVISED WORKFLOW
+# build family score basis
 rule score:
     input:
-        kmers=join(out_dir, "labels", "{nb}.txt"),
-        files=expand(join(out_dir, "features", "{{nb}}", "{fa}.json.gz"), fa=FAS),
+        kmerobj=join("output", "kmerize", "{nb}.kmers"),
+        data=expand(join("output", "vector", "{fa}.npz"), fa=NON_BGS),
     output:
-        df=join(out_dir, "features", "score", "{nb}.csv.gz"),
-        scores=join(out_dir, "score", "weights", "{nb}.csv.gz"),
-        scorer=join(out_dir, "score", "{nb}.pkl"),
+        data=join("output", "scoring", "sequences", "{nb}.csv.gz"),
+        weights=join("output", "scoring", "weights", "{nb}.csv.gz"),
+        scorer=join("output", "scoring", "{nb}.scorer"),
     log:
-        join(out_dir, "score", "log", "{nb}.log"),
+        join("output", "scoring", "log", "{nb}.log"),
     run:
         # log script start time
         start_time = datetime.now()
+        label = (
+            config["score"]["lname"]
+            if str(config["score"]["lname"]) != "None"
+            else "label"
+        )  # e.g. "family"
         with open(log[0], "a") as f:
             f.write(f"start time:\t{start_time}\n")
 
         # get kmers for this particular set of sequences
-        kmers = skm.io.read_output_kmers(input.kmers)
+        kmer = skm.io.load_pickle(input.kmerobj)
 
-        # parse all data and label background files
-        label = config["score"]["lname"]
-        data = skm.io.vecfiles_to_df(
-            input.files, labels=config["score"]["labels"], label_name=label
-        )
-        data["background"] = [
-            skm.utils.split_file_ext(f)[0] in BGS for f in data["filename"]
-        ]
+        # tabulate vectorized seq data
+        data = list()
+        for f in input.data:
+            data.append(skm.io.load_npz(f))
+
+        data = pd.concat(data, ignore_index=True)
+        data["background"] = [f in BGS for f in data["filename"]]
 
         # log conversion step runtime
-        skm.utils.log_runtime(log[0], start_time, step="vecfiles_to_df")
+        skm.utils.log_runtime(log[0], start_time, step="files_to_df")
 
         # parse family names and only add if some are valid
         families = [
@@ -185,7 +153,6 @@ rule score:
             for fn in data["filename"]
         ]
         if any(families):
-            label = "family"
             data[label] = families
 
         # binary T/F for classification into family
@@ -197,7 +164,9 @@ rule score:
             cv = StratifiedKFold(n_splits=config["model"]["cv"], shuffle=True)
 
             # stratify splits by [0,1] family assignment
-            for n, (i_train, _) in enumerate(cv.split(data["vector"], binary_labels)):
+            for n, (i_train, _) in enumerate(
+                cv.split(data["sequence_vector"], binary_labels)
+            ):
                 data[f"train_cv-{n + 1:02d}"] = [idx in i_train for idx in data.index]
 
         elif config["model"]["cv"] in [0, 1]:
@@ -207,23 +176,24 @@ rule score:
         # generate family scores and object
         scorer = skm.model.KmerScorer()
         scorer.fit(
-            kmers,
+            list(kmer.kmer_set.kmers),
             data,
             skm.utils.get_family(wildcards.nb, regex=config["input"]["regex"]),
             label_col=label,
+            vec_col="sequence_vector",
             **config["score"]["scaler_kwargs"],
         )
 
         # append scored sequences to dataframe
         data = data.merge(
-            DataFrame(scorer.scores["sample"]), left_index=True, right_index=True
+            pd.DataFrame(scorer.scores["sample"]), left_index=True, right_index=True
         )
         if data.empty:
             raise ValueError("Blank df")
 
         # save score loadings
         class_probabilities = (
-            DataFrame(scorer.probabilities, index=scorer.kmers.basis)
+            pd.DataFrame(scorer.probabilities, index=scorer.kmers.basis)
             .reset_index()
             .rename(columns={"index": "kmer"})
         )
@@ -232,14 +202,14 @@ rule score:
         skm.utils.log_runtime(log[0], start_time, step="class_probabilities")
 
         # save all files to respective outputs
-        delete_cols = ["vec", "vector"]
+        delete_cols = ["vec", "sequence_vector"]
         for col in delete_cols:
-            # if col in data.columns:
-            #     data = data.drop(columns=col)
             if col in class_probabilities.columns:
                 class_probabilities = class_probabilities.drop(columns=col)
-        data.to_csv(output.df, index=False, compression="gzip")
-        class_probabilities.to_csv(output.scores, index=False, compression="gzip")
+        data.drop(columns="sequence_vector").to_csv(
+        output.data, index=False, compression="gzip"
+        )
+        class_probabilities.to_csv(output.weights, index=False, compression="gzip")
         with open(output.scorer, "wb") as f:
             pickle.dump(scorer, f)
 
@@ -249,35 +219,49 @@ rule score:
 
 rule model:
     input:
-        files=rules.score.input.files,
-        data=rules.score.output.df,
-        scores=rules.score.output.scores,
-        kmers=rules.score.input.kmers,
+        # files=rules.score.input.files,
+        raw=rules.score.input.data,
+        data=rules.score.output.data,
+        weights=rules.score.output.weights,
+        kmerobj=rules.score.input.kmerobj,
     output:
-        model=join(out_dir, "model", "{nb}.pkl"),
-        results=join(out_dir, "model", "results", "{nb}.csv"),
-        figs=directory(join(out_dir, "model", "figures", "{nb}")),
+        model=join("output", "model", "{nb}.model"),
+        results=join("output", "model", "results", "{nb}.csv"),
+        figs=directory(join("output", "model", "figures", "{nb}")),
     run:
-        # load all input data and encode rule-wide variables
-        data = read_csv(input.data)
-        data["vector"] = [
-            literal_eval(vec) if isinstance(vec, str) else vec for vec in data["vector"]
-        ]
-        scores = read_csv(input.scores)
-        family = skm.utils.get_family(
-            skm.utils.split_file_ext(input.scores)[0], regex=config["input"]["regex"]
-        )
-        kmers = skm.io.read_output_kmers(input.kmers)
-        all_families = [
-            skm.utils.get_family(
-                skm.utils.split_file_ext(f)[0], regex=config["input"]["regex"]
+        # create lookup table to match vector to sequence by file+ID
+        lookup = {}
+        for f in input.raw:
+            loaded = np.load(f)
+            lookup.update(
+                {
+                    (splitext(basename(f))[0], seq_id): seq_vec
+                    for seq_id, seq_vec in zip(loaded["ids"], loaded["vecs"])
+                }
             )
-            for f in input.files
+
+        # load all input data and encode rule-wide variables
+        data = pd.read_csv(input.data)
+        data["sequence_vector"] = [
+            lookup[(seq_f, seq_id)]
+            for seq_f, seq_id in zip(data["filename"], data["sequence_id"])
         ]
+        scores = pd.read_csv(input.weights)
+        family = skm.utils.get_family(
+            skm.utils.split_file_ext(input.weights)[0], regex=config["input"]["regex"]
+        )
+        # get kmers for this particular set of sequences
+        with open(input.kmerobj, "rb") as f:
+            kmer = pickle.load(f)
+
         cv = config["model"]["cv"]
 
-        # process vector data
-        label = "family"  # TODO: remove hardcoding
+        # set category label name (e.g. "family")
+        label = (
+            config["score"]["lname"]
+            if str(config["score"]["lname"]) != "None"
+            else "label"
+        )
 
         # prevent kmer NA being read as np.nan
         if config["k"] == 2:
@@ -290,7 +274,7 @@ rule model:
             alphabet_name = str(config["alphabet"]).capitalize()
 
         # generate [0, 1] labels for binary family assignment
-        binary_labels = [True if value == family else False for value in data["family"]]
+        binary_labels = [True if value == family else False for value in data[label]]
         le = LabelEncoder()
         le.fit(binary_labels)
 
@@ -301,12 +285,14 @@ rule model:
 
         # set random seed if specified
         rng = np.random.default_rng()
-        random_state = rng.integers(low=0, high=32767)  # max for int16
-        if str(config["model"]["random_state"]) != "None":
-            random_state = config["model"]["random_state"]
+        random_state = (
+            config["model"]["random_state"]
+            if str(config["model"]["random_state"]) != "None"
+            else rng.integers(low=0, high=32767)  # max for int16
+        )
 
         # set and format input and label arrays; initialize model objs
-        cols = ["family", "alphabet_name", "k", "scoring"]
+        cols = [label, "alphabet_name", "k", "scoring"]
         results = {col: [] for col in cols + ["score", "cv_split"]}
         X, y = {i: {} for i in range(cv)}, {i: {} for i in range(cv)}
         for n in range(cv):
@@ -320,32 +306,34 @@ rule model:
             df_train = data.iloc[i_train][unscored_cols].reset_index(drop=True)
             df_test = data.iloc[i_test][unscored_cols].reset_index(drop=True)
             df_train_labels = [
-                True if value == family else False for value in df_train["family"]
+                True if value == family else False for value in df_train[label]
             ]
             df_test_labels = [
-                True if value == family else False for value in df_test["family"]
+                True if value == family else False for value in df_test[label]
             ]
 
             # score kmers separately per split
             scorer = skm.model.KmerScorer()
             scorer.fit(
-                kmers,
+                list(kmer.kmer_set.kmers),
                 df_train,
                 family,
                 label_col=label,
+                vec_col="sequence_vector",
                 **config["score"]["scaler_kwargs"],
             )
 
             # append scored sequences to dataframe
             df_train = df_train.merge(
-                DataFrame(scorer.scores["sample"]), left_index=True, right_index=True
+                pd.DataFrame(scorer.scores["sample"]), left_index=True, right_index=True
             )
             if df_train.empty:
                 raise ValueError("Blank df")
             df_test = df_test.merge(
-                DataFrame(
+                pd.DataFrame(
                     scorer.predict(
-                        skm.model.to_feature_matrix(df_test["vector"]), kmers
+                        skm.model.to_feature_matrix(df_test["sequence_vector"]),
+                        list(kmer.kmer_set.kmers),
                     )
                 ),
                 left_index=True,
@@ -354,7 +342,7 @@ rule model:
 
             # save score loadings
             scores = (
-                DataFrame(scorer.probabilities, index=scorer.kmers.basis)
+                pd.DataFrame(scorer.probabilities, index=scorer.kmers.basis)
                 .reset_index()
                 .rename(columns={"index": "kmer"})
             )
@@ -375,7 +363,7 @@ rule model:
         )
 
         # collate ROC-AUC results
-        results["family"] += [family] * cv
+        results[label] += [family] * cv
         results["alphabet_name"] += [alphabet_name.lower()] * cv
         results["k"] += [config["k"]] * cv
         results["scoring"] += ["auc_roc"] * cv
@@ -403,7 +391,7 @@ rule model:
         )
 
         # collate PR-AUC results
-        results["family"] += [family] * cv
+        results[label] += [family] * cv
         results["alphabet_name"] += [alphabet_name.lower()] * cv
         results["k"] += [config["k"]] * cv
         results["scoring"] += ["pr_auc"] * cv
@@ -429,4 +417,4 @@ rule model:
             pickle.dump(clf, save_model)
 
         # save full results
-        DataFrame(results).to_csv(output.results, index=False)
+        pd.DataFrame(results).to_csv(output.results, index=False)

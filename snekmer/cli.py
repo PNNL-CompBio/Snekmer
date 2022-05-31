@@ -140,7 +140,7 @@ def main():
     # parse operation mode
     if args.mode == "model":
         snakemake(
-            resource_filename("snekmer", "rules/snekmer.smk"),
+            resource_filename("snekmer", "rules/model.smk"),
             configfiles=[args.configfile],
             config=config,
             cluster_config=args.cluster,

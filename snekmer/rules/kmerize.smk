@@ -79,7 +79,7 @@ rule vectorize:
         fasta=lambda wildcards: join("input", f"{wildcards.nb}.{FA_MAP[wildcards.nb]}"),
     output:
         data=join("output", "vector", "{nb}.npz"),
-        kmerobj=join("output", "kmerize", "{nb}.pkl"),
+        kmerobj=join("output", "kmerize", "{nb}.kmers"),
     log:
         join("output", "kmerize", "log", "{nb}.log"),
     run:
