@@ -8,7 +8,7 @@ Snekmer: K-mer Encoding for Protein Sequences
 
 Snekmer is a pipeline to apply encoded k-mer analysis to protein sequences for machine learning.
 
-.. image:: ../resources/snekmer_workflow.png
+.. image:: ../../resources/snekmer_workflow.png
         :align: center
         :width: 700
         :alt: Snekmer workflow overview
