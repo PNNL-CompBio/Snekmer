@@ -1,5 +1,7 @@
 # Snekmer
 
+[![Documentation Status](https://readthedocs.org/projects/snekmer/badge/?version=latest)](https://snekmer.readthedocs.io/en/latest/?badge=latest)
+
 Pipeline to apply encoded Kmer analysis to protein sequences
 
 <p align="center">
@@ -8,22 +10,22 @@ Pipeline to apply encoded Kmer analysis to protein sequences
 
 Model mode:
 
-* **Input:** FASTA files containing protein sequences in known families
-* **Output:** Models of the known protein families based on kmer vector
+- **Input:** FASTA files containing protein sequences in known families
+- **Output:** Models of the known protein families based on kmer vector
   analysis
-  * _Evaluation output:_ Assessment of model performance
+  - _Evaluation output:_ Assessment of model performance
 
 Cluster mode:
 
-* **Input:** FASTA files containing protein sequences
-* **Output:** Clusters of similar proteins
-  * _Evaluation output:_ Assessment of how well the clusters of similar
-  proteins represent functions
+- **Input:** FASTA files containing protein sequences
+- **Output:** Clusters of similar proteins
+  - _Evaluation output:_ Assessment of how well the clusters of similar
+    proteins represent functions
 
 Search mode:
 
-* **Input:** FASTA files containing protein sequences; Trained model (output from snekmer model mode)
-* **Output** Predictions of family membership
+- **Input:** FASTA files containing protein sequences; Trained model (output from snekmer model mode)
+- **Output** Predictions of family membership
 
 ## Installation
 
@@ -32,9 +34,9 @@ We recommend using Anaconda to create a virtual environment. Anaconda handles de
 ### Procedure
 
 Use conda to install an environment from the YML file with all
- required dependencies. (Note: Users may either download the YML file
- directly from the repository, or clone the repository beforehand
- using the `git clone` command below.)
+required dependencies. (Note: Users may either download the YML file
+directly from the repository, or clone the repository beforehand
+using the `git clone` command below.)
 
 ```bash
 conda env create -f environment.yml
@@ -47,7 +49,7 @@ conda activate snekmer
 ```
 
 Install Snekmer using pip (note: git clone step is optional if you
- already have the repo cloned locally):
+already have the repo cloned locally):
 
 ```bash
 # option 1: clone repository (if you haven't already) and install
@@ -63,8 +65,8 @@ The package should now be ready to use!
 #### Troubleshooting Notes
 
 For Windows users: If you are running into conflicts/errors when creating
-  the conda environment in Windows, you may need to install the minimal
-  version of Snakemake instead:
+the conda environment in Windows, you may need to install the minimal
+version of Snakemake instead:
 
 ```bash
 conda create -n snekmer -c conda-forge -c bioconda biopython matplotlib numpy pandas seaborn snakemake-minimal scikit-learn
@@ -73,15 +75,15 @@ conda create -n snekmer -c conda-forge -c bioconda biopython matplotlib numpy pa
 ## Command-Line Interface
 
 To run Snekmer, create a **_config.yaml_** file containing desired
-  parameters. A template is provided at **_snekmer/config.yaml_**.
-  Note that the **_config.yaml_** file should be stored in the same
-  directory as input directory.
+parameters. A template is provided at **_snekmer/config.yaml_**.
+Note that the **_config.yaml_** file should be stored in the same
+directory as input directory.
 
 Snekmer assumes that input files are stored in the **_input_** directory,
-  and automatically creates an **_output_** directory to save all output
-  files. Snekmer also assumes background files, if any, are stored in
-  **_input/background/_**. An example of the assumed directory structure
-  is shown below:
+and automatically creates an **_output_** directory to save all output
+files. Snekmer also assumes background files, if any, are stored in
+**_input/background/_**. An example of the assumed directory structure
+is shown below:
 
 ```
 .
@@ -106,20 +108,21 @@ Snekmer assumes that input files are stored in the **_input_** directory,
 ### Modes
 
 Snekmer has three operation modes: `model` (supervised modeling), `cluster`
-  (unsupervised clustering), and `search` (application of model to new sequences). We will call first two **learning modes** due to their utility
-  in learning relationships between protein family input files.
-  Users may choose a mode to best suit their use case.
+(unsupervised clustering), and `search` (application of model to new sequences). We will call first two **learning modes** due to their utility
+in learning relationships between protein family input files.
+Users may choose a mode to best suit their use case.
 
 The mode must be specified in the command line, e.g. to specify the `model`
-  mode, the following should be called:
+mode, the following should be called:
 
 ```bash
 snekmer model [--options]
 ```
 
 In the **_resources_** directory, two example configuration files are included:
-  - **_resources/config.yaml_**: Configuration file for `snekmer model` and `snekmer cluster` modes.
-  - **_resources/search.yaml_**: Configuration file for `snekmer search` mode. Note that the Snekmer CLI automatically assumes that the configuration file will be named _config.yaml_, so to use the provided file, use `snekmer search --configfile search.yaml`
+
+- **_resources/config.yaml_**: Configuration file for `snekmer model` and `snekmer cluster` modes.
+- **_resources/search.yaml_**: Configuration file for `snekmer search` mode. Note that the Snekmer CLI automatically assumes that the configuration file will be named _config.yaml_, so to use the provided file, use `snekmer search --configfile search.yaml`
 
 ```bash
 snekmer [mode] --dryrun
@@ -128,8 +131,8 @@ snekmer [mode] --dryrun
 (For instance, in supervised mode, run `snekmer model --dryrun`.)
 
 The output of the dry run shows you the files that will be created by the
- pipeline. If no files are generated, double-check   that your directory
- structure matches the format specified above.
+pipeline. If no files are generated, double-check that your directory
+structure matches the format specified above.
 
 When you are ready to process your files, run:
 
@@ -137,13 +140,12 @@ When you are ready to process your files, run:
 snekmer [mode]
 ```
 
-
 #### Output
 
 Each step in the Snekmer pipeline generates its own associated output files.
- Both operation modes will preprocess parameters, generate labels, and
- vectorize sequences based on labels. The associated output files can be
- found in the respective directories.
+Both operation modes will preprocess parameters, generate labels, and
+vectorize sequences based on labels. The associated output files can be
+found in the respective directories.
 
 The following output directories and files are created in both operation modes:
 
@@ -169,7 +171,7 @@ The following output directories and files are created in both operation modes:
 ##### Model Mode
 
 Executing `snekmer model` produces the following output files and directories
- in addition to the files described previously.
+in addition to the files described previously.
 
 ```
 .
@@ -203,7 +205,7 @@ Executing `snekmer model` produces the following output files and directories
 ##### Cluster Mode
 
 Executing `snekmer cluster` produces the following output files and
- directories in addition to the files described previously.
+directories in addition to the files described previously.
 
 ```
 .
