@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Snekmer: K-mer Encoding for Protein Sequences &mdash; Snekmer  documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="_static/copybutton.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/clipboard.min.js"></script>
+        <script src="_static/copybutton.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Installation" href="getting_started/install.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="#" class="icon icon-home"> Snekmer
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="getting_started/install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started/cli.html">Command Line Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started/modes.html">Modes</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Tutorial</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/index.html">Tutorial</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">Snekmer</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="#" class="icon icon-home"></a> &raquo;</li>
+      <li>Snekmer: K-mer Encoding for Protein Sequences</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="snekmer-k-mer-encoding-for-protein-sequences">
+<h1>Snekmer: K-mer Encoding for Protein Sequences<a class="headerlink" href="#snekmer-k-mer-encoding-for-protein-sequences" title="Permalink to this heading"></a></h1>
+<p>Snekmer is a pipeline to apply encoded k-mer analysis to protein sequences for machine learning.</p>
+<a class="reference internal image-reference" href="_images/snekmer_workflow.png"><img alt="Snekmer workflow overview" class="align-center" src="_images/snekmer_workflow.png" style="width: 700px;" /></a>
+<p>There are 3 operation modes for Snekmer: <code class="docutils literal notranslate"><span class="pre">model</span></code>, <code class="docutils literal notranslate"><span class="pre">cluster</span></code>, and <code class="docutils literal notranslate"><span class="pre">search</span></code>.</p>
+<section id="model-mode">
+<h2>Model mode:<a class="headerlink" href="#model-mode" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>Input:</strong> FASTA files containing protein sequences in known families</p></li>
+<li><dl class="simple">
+<dt><strong>Output:</strong> Models of the known protein families based on kmer vector analysis</dt><dd><ul>
+<li><p><em>Evaluation output:</em> Assessment of model performance</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</section>
+<section id="cluster-mode">
+<h2>Cluster mode:<a class="headerlink" href="#cluster-mode" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>Input:</strong> FASTA files containing protein sequences</p></li>
+<li><dl class="simple">
+<dt><strong>Output:</strong> Clusters of similar proteins</dt><dd><ul>
+<li><p><em>Evaluation output:</em> Assessment of how well the clusters of similar proteins represent functions</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</section>
+<section id="search-mode">
+<h2>Search mode:<a class="headerlink" href="#search-mode" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>Input:</strong> FASTA files containing protein sequences; Trained model (output from snekmer model mode)</p></li>
+<li><p><strong>Output:</strong> Predictions of family membership</p></li>
+</ul>
+<div class="toctree-wrapper compound">
+</div>
+<div class="toctree-wrapper compound">
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="getting_started/install.html" class="btn btn-neutral float-right" title="Installation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 by Christine Chang, William Nelson, and Jason McDermott.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,47 @@
+Installation
+============
+
+We recommend using Anaconda to create a virtual environment.
+Anaconda handles dependencies and versioning, which simplifies the process of installation.
+
+Procedure
+---------
+
+Use conda to install an environment from the YML file with all
+required dependencies. (Note: Users may either download the YML file
+directly from the repository, or clone the repository beforehand
+using the `git clone` command below.)
+
+```
+conda env create -f environment.yml
+```
+
+Activate the environment:
+
+```
+conda activate snekmer
+```
+
+Install Snekmer using pip (note: git clone step is optional if you
+already have the repo cloned locally):
+
+```
+# option 1: clone repository (if you haven't already) and install
+git clone https://github.com/PNNL-CompBio/Snekmer.git
+pip install Snekmer
+
+# option 2: direct install
+pip install git+https://github.com/PNNL-CompBio/Snekmer
+```
+
+The package should now be ready to use!
+
+#### Troubleshooting Notes
+
+For Windows users: If you are running into conflicts/errors when creating
+  the conda environment in Windows, you may need to install the minimal
+  version of Snakemake instead:
+
+```bash
+conda create -n snekmer -c conda-forge -c bioconda biopython matplotlib numpy pandas seaborn snakemake-minimal scikit-learn
+```
