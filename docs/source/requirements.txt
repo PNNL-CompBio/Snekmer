@@ -1,0 +1,7 @@
+sphinx >=5
+sphinx-rtd-theme
+sphinx-copybutton
+biopython
+numpy >= 1.22.1
+snakemake >= 6.0
+scikit-learn
