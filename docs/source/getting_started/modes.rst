@@ -26,8 +26,8 @@ In the **resources** directory, two example configuration files are included:
 (For instance, in supervised mode, run ``snekmer model --dryrun``.)
 
 The output of the dry run shows you the files that will be created by the
- pipeline. If no files are generated, double-check   that your directory
- structure matches the format specified above.
+pipeline. If no files are generated, double-check   that your directory
+structure matches the format specified above.
 
 When you are ready to process your files, run:
 
@@ -39,14 +39,14 @@ Output
 ------
 
 Each step in the Snekmer pipeline generates its own associated output files.
- Both operation modes will preprocess parameters, generate labels, and
- vectorize sequences based on labels. The associated output files can be
- found in the respective directories.
+Both operation modes will preprocess parameters, generate labels, and
+vectorize sequences based on labels. The associated output files can be
+found in the respective directories.
 
 The following output directories and files are created in both operation modes:
 
 .. code-block:: console
-    
+
     .
     ├── input/
     │   ├── A.fasta

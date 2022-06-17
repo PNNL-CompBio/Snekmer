@@ -105,23 +105,19 @@ input files. Users may choose a mode to best suit their use case.</p>
 </pre></div>
 </div>
 <p>(For instance, in supervised mode, run <code class="docutils literal notranslate"><span class="pre">snekmer</span> <span class="pre">model</span> <span class="pre">--dryrun</span></code>.)</p>
-<dl class="simple">
-<dt>The output of the dry run shows you the files that will be created by the</dt><dd><p>pipeline. If no files are generated, double-check   that your directory
+<p>The output of the dry run shows you the files that will be created by the
+pipeline. If no files are generated, double-check   that your directory
 structure matches the format specified above.</p>
-</dd>
-</dl>
 <p>When you are ready to process your files, run:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>snekmer <span class="o">[</span>mode<span class="o">]</span>
 </pre></div>
 </div>
 <section id="output">
 <h2>Output<a class="headerlink" href="#output" title="Permalink to this heading"></a></h2>
-<dl class="simple">
-<dt>Each step in the Snekmer pipeline generates its own associated output files.</dt><dd><p>Both operation modes will preprocess parameters, generate labels, and
+<p>Each step in the Snekmer pipeline generates its own associated output files.
+Both operation modes will preprocess parameters, generate labels, and
 vectorize sequences based on labels. The associated output files can be
 found in the respective directories.</p>
-</dd>
-</dl>
 <p>The following output directories and files are created in both operation modes:</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">.</span>
 <span class="go">├── input/</span>
