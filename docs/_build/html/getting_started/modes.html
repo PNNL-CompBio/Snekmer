@@ -45,7 +45,13 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="cli.html">Command Line Interface</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Modes</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Modes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#output">Output</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#model-mode">Model Mode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#cluster-mode">Cluster Mode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#search-mode">Search Mode</a></li>
+</ul>
+</li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorial</span></p>
 <ul>
@@ -78,6 +84,158 @@
              
   <section id="modes">
 <h1>Modes<a class="headerlink" href="#modes" title="Permalink to this heading"></a></h1>
+<p>Snekmer has three operation modes: <code class="docutils literal notranslate"><span class="pre">model</span></code> (supervised modeling),
+<code class="docutils literal notranslate"><span class="pre">cluster</span></code> (unsupervised clustering), and <code class="docutils literal notranslate"><span class="pre">search</span></code> (application
+of model to new sequences). We will call first two <strong>learning modes</strong>
+due to their utility in learning relationships between protein family
+input files. Users may choose a mode to best suit their use case.</p>
+<p>The mode must be specified in the command line, e.g. to specify the
+<code class="docutils literal notranslate"><span class="pre">model</span></code> mode, the following should be called:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>snekmer model <span class="o">[</span>--options<span class="o">]</span>
+</pre></div>
+</div>
+<dl class="simple">
+<dt>In the <strong>resources</strong> directory, two example configuration files are included:</dt><dd><ul class="simple">
+<li><p><strong>resources/config.yaml</strong>: Configuration file for <code class="docutils literal notranslate"><span class="pre">snekmer</span> <span class="pre">model</span></code> and <code class="docutils literal notranslate"><span class="pre">snekmer</span> <span class="pre">cluster</span></code> modes.</p></li>
+<li><p><strong>resources/search.yaml</strong>: Configuration file for <code class="docutils literal notranslate"><span class="pre">snekmer</span> <span class="pre">search</span></code> mode. Note that the Snekmer CLI automatically assumes that the configuration file will be named <em>config.yaml</em>, so to use the provided file, use <code class="docutils literal notranslate"><span class="pre">snekmer</span> <span class="pre">search</span> <span class="pre">--configfile</span> <span class="pre">search.yaml</span></code></p></li>
+</ul>
+</dd>
+</dl>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>snekmer <span class="o">[</span>mode<span class="o">]</span> --dryrun
+</pre></div>
+</div>
+<p>(For instance, in supervised mode, run <code class="docutils literal notranslate"><span class="pre">snekmer</span> <span class="pre">model</span> <span class="pre">--dryrun</span></code>.)</p>
+<dl class="simple">
+<dt>The output of the dry run shows you the files that will be created by the</dt><dd><p>pipeline. If no files are generated, double-check   that your directory
+structure matches the format specified above.</p>
+</dd>
+</dl>
+<p>When you are ready to process your files, run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>snekmer <span class="o">[</span>mode<span class="o">]</span>
+</pre></div>
+</div>
+<section id="output">
+<h2>Output<a class="headerlink" href="#output" title="Permalink to this heading"></a></h2>
+<dl class="simple">
+<dt>Each step in the Snekmer pipeline generates its own associated output files.</dt><dd><p>Both operation modes will preprocess parameters, generate labels, and
+vectorize sequences based on labels. The associated output files can be
+found in the respective directories.</p>
+</dd>
+</dl>
+<p>The following output directories and files are created in both operation modes:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">.</span>
+<span class="go">├── input/</span>
+<span class="go">│   ├── A.fasta</span>
+<span class="go">│   └── B.fasta</span>
+<span class="go">└── output/</span>
+<span class="go">    ├── processed/</span>
+<span class="go">    │   ├── A.json             # processed parameter values for A</span>
+<span class="go">    │   ├── B.json             # processed parameter values for B</span>
+<span class="go">    │   ├── A_description.csv  # summary of sequences in A.fasta</span>
+<span class="go">    │   └── B_description.csv  # summary of sequences in B.fasta</span>
+<span class="go">    ├── labels/</span>
+<span class="go">    │   ├── A.txt              # kmer labels for A</span>
+<span class="go">    │   └── B.txt              # kmer labels for B</span>
+<span class="go">    ├── features/</span>
+<span class="go">    └── ...</span>
+</pre></div>
+</div>
+</section>
+<section id="model-mode">
+<h2>Model Mode<a class="headerlink" href="#model-mode" title="Permalink to this heading"></a></h2>
+<p>Executing <code class="docutils literal notranslate"><span class="pre">snekmer</span> <span class="pre">model</span></code> produces the following output files
+and directories in addition to the files described previously.</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">.</span>
+<span class="go">└── output/</span>
+<span class="go">    ├── ...</span>
+<span class="go">    ├── features/</span>
+<span class="go">    │   ├── A/            # kmer vectors in A kmer space</span>
+<span class="go">    │   │   ├── A.json.gz</span>
+<span class="go">    │   │   └── B.json.gz</span>
+<span class="go">    │   └── B/            # kmer vectors in B kmer space</span>
+<span class="go">    │       ├── A.json.gz</span>
+<span class="go">    │       └── B.json.gz</span>
+<span class="go">    ├── score/</span>
+<span class="go">    │   ├── A.pkl         # A sequences, scored</span>
+<span class="go">    │   ├── B.pkl         # B sequences, scored</span>
+<span class="go">    │   └── weights/</span>
+<span class="go">    │       ├── A.csv.gz  # kmer score weights in A kmer space</span>
+<span class="go">    │       └── B.csv.gz  # kmer score weights in B kmer space</span>
+<span class="go">    └── model/</span>
+<span class="go">        ├── A.pkl         # (A/not A) classification model</span>
+<span class="go">        ├── B.pkl         # (B/not B) classification model</span>
+<span class="go">        ├── results/      # cross-validation results table</span>
+<span class="go">        │   ├── A.csv</span>
+<span class="go">        │   └── B.csv</span>
+<span class="go">        └── figures/      # cross-validation results figures</span>
+<span class="go">            ├── A/</span>
+<span class="go">            └── B/</span>
+</pre></div>
+</div>
+</section>
+<section id="cluster-mode">
+<h2>Cluster Mode<a class="headerlink" href="#cluster-mode" title="Permalink to this heading"></a></h2>
+<p>Executing <code class="docutils literal notranslate"><span class="pre">snekmer</span> <span class="pre">cluster</span></code> produces the following output files
+and directories in addition to the files described previously.</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">.</span>
+<span class="go">└── output/</span>
+<span class="go">    ├── ...</span>
+<span class="go">    ├── features/</span>
+<span class="go">    │   └── full/     # kmer vectors in full kmer space for (alphabet, k)</span>
+<span class="go">    │       ├── A.json.gz</span>
+<span class="go">    │       └── B.json.gz</span>
+<span class="go">    └── cluster/</span>
+<span class="go">        ├── A.pkl     # A cluster model</span>
+<span class="go">        ├── B.pkl     # B cluster model</span>
+<span class="go">        └── figures/  # cluster figures (t-SNE)</span>
+<span class="go">            ├── A/</span>
+<span class="go">            └── B/</span>
+</pre></div>
+</div>
+</section>
+<section id="search-mode">
+<h2>Search Mode<a class="headerlink" href="#search-mode" title="Permalink to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">snekmer</span> <span class="pre">search</span></code> mode assumes that the user has pre-generated
+family models using the <cite>snekmer model</cite> workflow, and thus operates
+as an independent workflow. The location of the basis sets, scorers,
+and models must be specified in the configuration file (see:
+<strong>resources/search.yaml</strong>).</p>
+<p>For instance, say that the above output examples have already been
+produced. The user would then like to search a set of unknown
+sequences against the above families.</p>
+<p>In a separate directory, the user should place files in an input
+directory with the appropriate YAML file. The assumed input file
+structure is as follows:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">.</span>
+<span class="go">├── search.yaml</span>
+<span class="go">├── input/</span>
+<span class="go">│   ├── unknown_1.fasta</span>
+<span class="go">│   ├── unknown_2.fasta</span>
+<span class="go">│   └── etc.</span>
+<span class="go">├── output/</span>
+<span class="go">│   ├── ...</span>
+<span class="go">│   └── ...</span>
+</pre></div>
+</div>
+<p>The user should then modify <strong>search.yaml</strong> to point toward the
+appropriate basis set, scorer, and model directories.</p>
+<p>Executing <code class="docutils literal notranslate"><span class="pre">snekmer</span> <span class="pre">search</span> <span class="pre">--configfile</span> <span class="pre">search.yaml</span></code> produces the
+following output files and directories in addition to the files
+described previously.</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">.</span>
+<span class="go">└── output/</span>
+<span class="go">    ├── features/</span>
+<span class="go">    │   ├── A/</span>
+<span class="go">    │   │   ├── unknown_1.json.gz</span>
+<span class="go">    │   │   └── unknown_2.json.gz</span>
+<span class="go">    │   └── B/</span>
+<span class="go">    │       ├── unknown_1.json.gz</span>
+<span class="go">    │       └── unknown_2.json.gz</span>
+<span class="go">    └── search/</span>
+<span class="go">        ├── A.csv  # A probabilities and predictions for unknown sequences</span>
+</pre></div>
+</div>
+</section>
 </section>
 
 
