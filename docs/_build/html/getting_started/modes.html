@@ -94,13 +94,13 @@ input files. Users may choose a mode to best suit their use case.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>snekmer model <span class="o">[</span>--options<span class="o">]</span>
 </pre></div>
 </div>
-<dl class="simple">
-<dt>In the <strong>resources</strong> directory, two example configuration files are included:</dt><dd><ul class="simple">
+<p>In the <strong>resources</strong> directory, two example configuration files are included:</p>
+<blockquote>
+<div><ul class="simple">
 <li><p><strong>resources/config.yaml</strong>: Configuration file for <code class="docutils literal notranslate"><span class="pre">snekmer</span> <span class="pre">model</span></code> and <code class="docutils literal notranslate"><span class="pre">snekmer</span> <span class="pre">cluster</span></code> modes.</p></li>
 <li><p><strong>resources/search.yaml</strong>: Configuration file for <code class="docutils literal notranslate"><span class="pre">snekmer</span> <span class="pre">search</span></code> mode. Note that the Snekmer CLI automatically assumes that the configuration file will be named <em>config.yaml</em>, so to use the provided file, use <code class="docutils literal notranslate"><span class="pre">snekmer</span> <span class="pre">search</span> <span class="pre">--configfile</span> <span class="pre">search.yaml</span></code></p></li>
 </ul>
-</dd>
-</dl>
+</div></blockquote>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>snekmer <span class="o">[</span>mode<span class="o">]</span> --dryrun
 </pre></div>
 </div>
@@ -229,6 +229,7 @@ described previously.</p>
 <span class="go">    │       └── unknown_2.json.gz</span>
 <span class="go">    └── search/</span>
 <span class="go">        ├── A.csv  # A probabilities and predictions for unknown sequences</span>
+<span class="go">        └── B.csv  # B probabilities and predictions for unknown sequences</span>
 </pre></div>
 </div>
 </section>

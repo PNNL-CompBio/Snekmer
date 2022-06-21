@@ -14,8 +14,8 @@ The mode must be specified in the command line, e.g. to specify the
 
     snekmer model [--options]
 
-
 In the **resources** directory, two example configuration files are included:
+
   - **resources/config.yaml**: Configuration file for ``snekmer model`` and ``snekmer cluster`` modes.
   - **resources/search.yaml**: Configuration file for ``snekmer search`` mode. Note that the Snekmer CLI automatically assumes that the configuration file will be named *config.yaml*, so to use the provided file, use ``snekmer search --configfile search.yaml``
 
@@ -168,3 +168,4 @@ described previously.
         │       └── unknown_2.json.gz
         └── search/
             ├── A.csv  # A probabilities and predictions for unknown sequences
+            └── B.csv  # B probabilities and predictions for unknown sequences

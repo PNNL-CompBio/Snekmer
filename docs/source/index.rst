@@ -20,16 +20,19 @@ Model mode:
 
 * **Input:** FASTA files containing protein sequences in known families
 * **Output:** Models of the known protein families based on kmer vector analysis
+
    - *Evaluation output:* Assessment of model performance
 
 Cluster mode:
 -------------
+
 * **Input:** FASTA files containing protein sequences
 * **Output:** Clusters of similar proteins
    - *Evaluation output:* Assessment of how well the clusters of similar proteins represent functions
 
 Search mode:
 ------------
+
 * **Input:** FASTA files containing protein sequences; Trained model (output from snekmer model mode)
 * **Output:** Predictions of family membership
 
@@ -41,6 +44,7 @@ Search mode:
    getting_started/install
    getting_started/cli
    getting_started/modes
+   getting_started/config
 
 .. toctree::
    :caption: Tutorial

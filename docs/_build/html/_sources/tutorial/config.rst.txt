@@ -1,0 +1,91 @@
+Configuration
+=============
+
+To run Snekmer, the user must specify parameters in a configuration
+file (.YAML). A template ``config.yaml`` file is included in the
+`resources directory <https://github.com/PNNL-CompBio/Snekmer/tree/main/resources>`_.
+
+The example YAML files included are:
+
+* ``config.yaml``: Configuration file for running Snekmer
+* ``search.yaml``: Snekmer search mode configuration file; required for search mode, but not necessary if only model or cluster mode are desired
+* ``cluster.yaml``: (optional) Cluster configuration file for deploying Snekmer on a high-performance computing (HPC) cluster
+
+Parameter Descriptions for ``config.yaml``
+------------------------------------------
+
+Required Parameters
+```````````````````
+
+====================  ==============================================================================================================================================================================================================
+     Parameter         Description
+====================  ==============================================================================================================================================================================================================
+ ``k``                 k-mer length
+ ``alphabet``          Reduced alphabet encoding
+                       (see `documentation <https://github.com/PNNL-CompBio/Snekmer/blob/main/snekmer/alphabet.py#L30>`_
+                       for more details). Alphabets may be specified by numbers 0-5 or by their names.
+ ``min_rep_thresh``    Threshold for the minimum number of repetitions of a k-mer within a set. K-mers that do not meet
+                       this threshold are not included in the basis set for the given family.
+ ``processes``         Number of processes spawned via Python multiprocessing.
+                       See the `official Python documentation <https://docs.python.org/3/library/multiprocessing.html>`_
+                       for more details.
+====================  ==============================================================================================================================================================================================================
+
+Alphabets 
+:::::::::
+
+Snekmer comes with 6 different recoding schemes, or "alphabets",
+by which amino acid reduction (AAR) can occur. The available
+options, including the option to skip recoding, are listed below.
+
+=============  ===============  ======  ==========================================================================================
+ Alphabet No.   Alphabet Name    Size                                        Description  
+=============  ===============  ======  ==========================================================================================
+ ``0``         ``hydro``          2     2-value hydrophobicity alphabet from Arnold, *et al.* 2009. PLoS Pathogens 5(4): e1000376
+-------------  ---------------  ------  ------------------------------------------------------------------------------------------
+ ``1``         ``standard``       7     "standard" reduction alphabet from Arnold, *et al.* 2009. PLoS Pathogens 5(4): e1000376
+-------------  ---------------  ------  ------------------------------------------------------------------------------------------
+ ``2``         ``solvacc``        3     solvent accessibility alphabet from Bacardit, et al. 2009. BMC Bioinformatics 10:6
+-------------  ---------------  ------  ------------------------------------------------------------------------------------------
+ ``3``         ``hydrocharge``    3     2-value hydrophobicity with charged residues as a third category; by @biodataganache
+-------------  ---------------  ------  ------------------------------------------------------------------------------------------
+ ``4``         ``hydrostruct``    3      2-value hydrophobicity with structural-breakers as a third category; by @biodataganache
+-------------  ---------------  ------  ------------------------------------------------------------------------------------------
+ ``5``         ``miqs``           10    MIQS alphabet; by @wichne
+-------------  ---------------  ------  ------------------------------------------------------------------------------------------
+ *n/a*         ``None``           20    no reduced alphabet
+=============  ===============  ======  ==========================================================================================
+
+Input Parameters
+````````````````
+
+Output Parameters
+`````````````````
+
+Score Parameters
+````````````````
+
+Model Parameters
+````````````````
+
+Optional Parameters
+```````````````````
+
+========================  =========================================================================
+     Parameter             Description
+========================  =========================================================================
+ ``start``                 start index of sequence (for sequence slicing)
+ ``end``                   end index of sequence (for sequence slicing)
+ ``nucleotide``            if True, use nucleotide residues as alphabet
+ ``randomize_alphabet``    if True, select an alphabet at random
+ ``verbose``               if True, print verbose output to log files
+ ``walk``                  *set as False*; if True, do random kmer walk (note: currently inactive)
+ ``mode``                  *set as None*
+========================  =========================================================================
+ 
+
+Parameter Descriptions for ``search.yaml``
+------------------------------------------
+
+Parameter Descriptions for ``cluster.yaml``
+-------------------------------------------
