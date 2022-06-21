@@ -9,7 +9,7 @@ Pipeline to apply encoded Kmer analysis to protein sequences
 </p>
 
 For installation instructions, documentation, and more, refer to
-the [official documentation](snekmer.readthedocs.io).
+the [official documentation](https://snekmer.readthedocs.io).
 
 ## Acknowledgments
 
