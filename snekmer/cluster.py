@@ -66,7 +66,7 @@ class KmerClustering(ClusterMixin):
     Parameters
     ----------
     method : str
-        Clustering method; see `snekmer.cluster.MODELS` for deatils.
+        Clustering method; see `snekmer.cluster.MODELS` for details.
     model_params : type
         Description of parameter `model_params`.
 
