@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Configuration &mdash; Snekmer  documentation</title>
+  <title>Setting up User Configuration &mdash; Snekmer  documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
@@ -23,7 +23,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Tutorial" href="../tutorial/index.html" />
-    <link rel="prev" title="Modes" href="modes.html" /> 
+    <link rel="prev" title="Snekmer Modes" href="modes.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -45,8 +45,8 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="cli.html">Command Line Interface</a></li>
-<li class="toctree-l1"><a class="reference internal" href="modes.html">Modes</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Configuration</a><ul>
+<li class="toctree-l1"><a class="reference internal" href="modes.html">Snekmer Modes</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Setting up User Configuration</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#parameter-descriptions-for-config-yaml">Parameter Descriptions for <code class="docutils literal notranslate"><span class="pre">config.yaml</span></code></a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#required-parameters">Required Parameters</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#alphabets">Alphabets</a></li>
@@ -69,6 +69,10 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../tutorial/index.html">Tutorial</a></li>
 </ul>
+<p class="caption" role="heading"><span class="caption-text">Troubleshooting</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../troubleshooting/common.html">Common Troubleshooting Errors</a></li>
+</ul>
 
         </div>
       </div>
@@ -84,7 +88,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
-      <li>Configuration</li>
+      <li>Setting up User Configuration</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/getting_started/config.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -94,8 +98,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="configuration">
-<h1>Configuration<a class="headerlink" href="#configuration" title="Permalink to this heading"></a></h1>
+  <section id="setting-up-user-configuration">
+<h1>Setting up User Configuration<a class="headerlink" href="#setting-up-user-configuration" title="Permalink to this heading"></a></h1>
 <p>To run Snekmer, the user must specify parameters in a configuration
 file (.YAML). A template <code class="docutils literal notranslate"><span class="pre">config.yaml</span></code> file is included in the
 <a class="reference external" href="https://github.com/PNNL-CompBio/Snekmer/tree/main/resources">resources directory</a>.</p>
@@ -214,19 +218,16 @@ options, including the option to skip recoding, are listed below.</p>
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">input_dir</span></code></p></td>
-<td></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">example_index_file</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">example_index_file</span></code></p></td>
 <td><p>File contaning example indices (if False, assumes no file)</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">kmer_set_file</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">kmer_set_file</span></code></p></td>
 <td><p>File containing k-mer basis set (if False, assumes no file)</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">file_extensions</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">file_extensions</span></code></p></td>
 <td><p>File extensions to be considered as valid for input sequence files</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">regex</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">regex</span></code></p></td>
 <td><p>Regular expression (regex) to parse family names from filenames</p></td>
 </tr>
 </tbody>
@@ -253,7 +254,7 @@ options, including the option to skip recoding, are listed below.</p>
 <td><p>If True, print verbose output to log files</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">format</span></code></p></td>
-<td><p>K-mer output format (choices: [<code class="docutils literal notranslate"><span class="pre">&quot;simple&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;gist&quot;</span></code>, or <code class="docutils literal notranslate"><span class="pre">&quot;sieve&quot;</span></code>])</p></td>
+<td><p>K-mer output format (choices: <code class="docutils literal notranslate"><span class="pre">&quot;simple&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;gist&quot;</span></code>, or <code class="docutils literal notranslate"><span class="pre">&quot;sieve&quot;</span></code>)</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">filter_duplicates</span></code></p></td>
 <td><p>If True, removes duplicate sequences</p></td>
@@ -378,13 +379,10 @@ options, including the option to skip recoding, are listed below.</p>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">randomize_alphabet</span></code></p></td>
 <td><p>If True, select an alphabet at random</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">verbose</span></code></p></td>
-<td><p>If True, print verbose output to log files</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">walk</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">walk</span></code></p></td>
 <td><p><em>set as False</em>; if True, do random kmer walk (note: currently inactive)</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">mode</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">mode</span></code></p></td>
 <td><p><em>set as None</em></p></td>
 </tr>
 </tbody>
@@ -409,59 +407,59 @@ options, including the option to skip recoding, are listed below.</p>
 <td><p>File extensions to be considered as valid for input sequence files</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">model_dir</span></code></p></td>
-<td></td>
+<td><p>Directory containing model object(s) (.model)</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">basis_dir</span></code></p></td>
-<td></td>
+<td><p>Directory containing k-mer basis set(s) (.kmers)</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">score_dir</span></code></p></td>
-<td></td>
+<td><p>Directory containing scoring object(s) (.scorer)</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">k</span></code></p></td>
-<td><p>see {config/required}</p></td>
+<td><p>See <a class="reference internal" href="#required-parameters">Required Parameters</a></p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">alphabet</span></code></p></td>
-<td><p>see {config/required}</p></td>
+<td><p>See <a class="reference internal" href="#required-parameters">Required Parameters</a></p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">min_rep_thresh</span></code></p></td>
-<td><p>see {config/required}</p></td>
+<td><p>See <a class="reference internal" href="#required-parameters">Required Parameters</a></p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">processes</span></code></p></td>
-<td><p>see {config/required}</p></td>
+<td><p>See <a class="reference internal" href="#required-parameters">Required Parameters</a></p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">nested_dir</span></code></p></td>
-<td><p>see {config/output}</p></td>
+<td><p>See <a class="reference internal" href="#output-parameters">Output Parameters</a></p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">start</span></code></p></td>
-<td><p>see {config/optional}</p></td>
+<td><p>See <a class="reference internal" href="#optional-parameters">Optional Parameters</a></p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">end</span></code></p></td>
-<td><p>see {config/optional}</p></td>
+<td><p>See <a class="reference internal" href="#optional-parameters">Optional Parameters</a></p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">nucleotide</span></code></p></td>
-<td><p>see {config/optional}</p></td>
+<td><p>See <a class="reference internal" href="#optional-parameters">Optional Parameters</a></p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">randomize_alphabet</span></code></p></td>
-<td><p>see {config/optional}</p></td>
+<td><p>See <a class="reference internal" href="#optional-parameters">Optional Parameters</a></p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">regex</span></code></p></td>
-<td><p>see {config/input}</p></td>
+<td><p>See <a class="reference internal" href="#input-parameters">Input Parameters</a></p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">verbose</span></code></p></td>
-<td><p>see {config/optional}</p></td>
+<td><p>See <a class="reference internal" href="#optional-parameters">Optional Parameters</a></p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">walk</span></code></p></td>
-<td><p>see {config/optional}</p></td>
+<td><p>See <a class="reference internal" href="#optional-parameters">Optional Parameters</a></p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">mode</span></code></p></td>
-<td><p>see {config/optional}</p></td>
+<td><p>See <a class="reference internal" href="#optional-parameters">Optional Parameters</a></p></td>
 </tr>
 </tbody>
 </table>
 </section>
 <section id="parameter-descriptions-for-cluster-yaml">
 <h2>Parameter Descriptions for <code class="docutils literal notranslate"><span class="pre">cluster.yaml</span></code><a class="headerlink" href="#parameter-descriptions-for-cluster-yaml" title="Permalink to this heading"></a></h2>
-<p>See <a class="reference external" href="https://slurm.schedmd.com/sbatch.html">SLURM documentation</a> for more information about cluster parameters.</p>
+<p>See <a class="reference external" href="https://slurm.schedmd.com/sbatch.html">SLURM documentation</a> for more information on cluster parameters.</p>
 </section>
 </section>
 
@@ -469,7 +467,7 @@ options, including the option to skip recoding, are listed below.</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="modes.html" class="btn btn-neutral float-left" title="Modes" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="modes.html" class="btn btn-neutral float-left" title="Snekmer Modes" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="../tutorial/index.html" class="btn btn-neutral float-right" title="Tutorial" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

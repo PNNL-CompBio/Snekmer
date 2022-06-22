@@ -1,5 +1,5 @@
-Modes
-=====
+Snekmer Modes
+=============
 
 Snekmer has three operation modes: ``model`` (supervised modeling),
 ``cluster`` (unsupervised clustering), and ``search`` (application

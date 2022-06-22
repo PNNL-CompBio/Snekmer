@@ -1,5 +1,5 @@
-Configuration
-=============
+Setting up User Configuration
+=============================
 
 To run Snekmer, the user must specify parameters in a configuration
 file (.YAML). A template ``config.yaml`` file is included in the
@@ -15,7 +15,6 @@ Parameter Descriptions for ``config.yaml``
 ------------------------------------------
 
 The base `config.yaml` file is required in order to run `snekmer model` or `snekmer cluster`.
-
 
 Required Parameters
 ```````````````````
@@ -69,7 +68,6 @@ General parameters related to input sequences and files.
 ========================  =========================================================================
      Parameter             Description
 ========================  =========================================================================
- ``input_dir``             
  ``example_index_file``    File contaning example indices (if False, assumes no file)
  ``kmer_set_file``         File containing k-mer basis set (if False, assumes no file)
  ``file_extensions``       File extensions to be considered as valid for input sequence files
@@ -86,7 +84,7 @@ General parameters related to the output produced by Snekmer.
 ========================  ========================================================================================
  ``nested_dir``            If True, saves files into nested directory structure, i.e. `{save_dir}/{alphabet}/{k}`
  ``verbose``               If True, print verbose output to log files
- ``format``                K-mer output format (choices: [``"simple"``, ``"gist"``, or ``"sieve"``])
+ ``format``                K-mer output format (choices: ``"simple"``, ``"gist"``, or ``"sieve"``)
  ``filter_duplicates``     If True, removes duplicate sequences
  ``n_terminal_file``       Specify file for n terminal fusion to sequence (if False, assumes no file)
  ``shuffle_n``             Number of sequences to scramble; only applies if ``shuffle_sequences`` is True
@@ -146,7 +144,6 @@ Optional or inactive parameters for custom user-defined analyses.
  ``end``                   End index of sequence (for sequence slicing)
  ``nucleotide``            If True, use nucleotide residues as alphabet
  ``randomize_alphabet``    If True, select an alphabet at random
- ``verbose``               If True, print verbose output to log files
  ``walk``                  *set as False*; if True, do random kmer walk (note: currently inactive)
  ``mode``                  *set as None*
 ========================  =========================================================================
@@ -161,27 +158,27 @@ The `search.yaml` file is required for `snekmer search`.
      Parameter             Description
 ========================  ========================================================================================
  ``file_extensions``       File extensions to be considered as valid for input sequence files
- ``model_dir``               
- ``basis_dir``                
- ``score_dir``     
- ``k``                     see {config/required}
- ``alphabet``              see {config/required}
- ``min_rep_thresh``        see {config/required}
- ``processes``             see {config/required}
- ``nested_dir``            see {config/output}
- ``start``                 see {config/optional}
- ``end``                   see {config/optional}
- ``nucleotide``            see {config/optional}
- ``randomize_alphabet``    see {config/optional}
- ``regex``                 see {config/input}
- ``verbose``               see {config/optional}
- ``walk``                  see {config/optional}
- ``mode``                  see {config/optional}
+ ``model_dir``             Directory containing model object(s) (.model)
+ ``basis_dir``             Directory containing k-mer basis set(s) (.kmers)
+ ``score_dir``             Directory containing scoring object(s) (.scorer)
+ ``k``                     See `Required Parameters`_
+ ``alphabet``              See `Required Parameters`_
+ ``min_rep_thresh``        See `Required Parameters`_
+ ``processes``             See `Required Parameters`_
+ ``nested_dir``            See `Output Parameters`_
+ ``start``                 See `Optional Parameters`_
+ ``end``                   See `Optional Parameters`_
+ ``nucleotide``            See `Optional Parameters`_
+ ``randomize_alphabet``    See `Optional Parameters`_
+ ``regex``                 See `Input Parameters`_
+ ``verbose``               See `Optional Parameters`_
+ ``walk``                  See `Optional Parameters`_
+ ``mode``                  See `Optional Parameters`_
 ========================  ========================================================================================
 
 
 Parameter Descriptions for ``cluster.yaml``
 -------------------------------------------
 
-See `SLURM documentation <https://slurm.schedmd.com/sbatch.html>`_ for more information about cluster parameters.
+See `SLURM documentation <https://slurm.schedmd.com/sbatch.html>`_ for more information on cluster parameters.
 

@@ -52,3 +52,10 @@ Search mode:
    :hidden:
 
    tutorial/index
+
+.. toctree::
+   :caption: Troubleshooting
+   :maxdepth: 1
+   :hidden:
+
+   troubleshooting/common
