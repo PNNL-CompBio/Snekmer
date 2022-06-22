@@ -1,6 +1,6 @@
 # required params
 k: 14
-alphabet: 0  # choices 0-5 or names (see alphabet module), or None
+alphabet: 0 # choices 0-5 or names (see alphabet module), or None
 min_rep_thresh: 1
 processes: 2
 
@@ -9,42 +9,52 @@ start: False
 end: False
 nucleotide: False
 randomize_alphabet: False
-verbose: False
 walk: False
 mode: None
 # custom_alphabet: {'custom_alphabet': {}}
 
+# input params
 input:
   example_index_file: False
-  kmer_set_file: False  # file containing kmer feature set
-  file_extensions: ['fasta', 'fna', 'faa', 'fa']
-  regex: "[a-z]{3}[A-Z]{1}"  # regex to parse family from filename
+  kmer_set_file: False # file containing kmer feature set
+  file_extensions: ["fasta", "fna", "faa", "fa"]
+  regex: "[a-z]{3}[A-Z]{1}" # regex to parse family from filename
 
+# output params
 output:
   # active params
-  nested_dir: False  # if True, saves into {save_dir}/{alphabet name}/{k}
-  verbose: True  # if True, logs verbose outputs
-  format: 'simple'  # choices: ['simple', 'gist', 'sieve']
+  nested_dir: False # if True, saves into {save_dir}/{alphabet name}/{k}
+  verbose: True # if True, logs verbose outputs
+  format: "simple" # choices: ['simple', 'gist', 'sieve']
   filter_duplicates: True
   n_terminal_file: False
   shuffle_n: False
   shuffle_sequences: False
   # currently inactive
-  filename: False  # customize filename
+  filename: False # customize filename
   kmer_output: True
 
+# scoring params
 score:
   scaler: True
-  scaler_kwargs: {'n': 0.25}
+  scaler_kwargs: { "n": 0.25 }
   labels: None
-  lname: None  # label name
+  lname: None # label name
 
+# model params
 model:
   n: 100
   cv: 5
   use_score: False
   random_state: None
 
+# cluster params
 cluster:
-  method: 'correlation'
-  params: {'t': 0.75, 'criterion': 'distance', 'metric': 'correlation', 'method': 'weighted'}
+  method: "correlation"
+  params:
+    {
+      "t": 0.75,
+      "criterion": "distance",
+      "metric": "correlation",
+      "method": "weighted",
+    }
