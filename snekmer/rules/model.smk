@@ -207,7 +207,7 @@ rule score:
             if col in class_probabilities.columns:
                 class_probabilities = class_probabilities.drop(columns=col)
         data.drop(columns="sequence_vector").to_csv(
-        output.data, index=False, compression="gzip"
+            output.data, index=False, compression="gzip"
         )
         class_probabilities.to_csv(output.weights, index=False, compression="gzip")
         with open(output.scorer, "wb") as f:
