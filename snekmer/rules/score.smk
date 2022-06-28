@@ -4,6 +4,7 @@ import pandas as pd
 import snekmer as skm
 from sklearn.model_selection import StratifiedKFold
 
+
 rule score:
     input:
         kmerobj=join("output", "kmerize", "{nb}.pkl"),
@@ -68,7 +69,7 @@ rule score:
             data["train"] = [idx in i_train for idx in data.index]
 
         # generate family scores and object
-        scorer = skm.model.KmerScorer()
+        scorer = skm.score.KmerScorer()
         scorer.fit(
             list(kmer.kmer_set.kmers),
             data,
@@ -101,7 +102,7 @@ rule score:
             if col in class_probabilities.columns:
                 class_probabilities = class_probabilities.drop(columns=col)
         data.drop(columns="sequence_vector").to_csv(
-        output.data, index=False, compression="gzip"
+            output.data, index=False, compression="gzip"
         )
         class_probabilities.to_csv(output.weights, index=False, compression="gzip")
         with open(output.scorer, "wb") as f:
@@ -109,3 +110,4 @@ rule score:
 
         # record script endtime
         skm.utils.log_runtime(log[0], start_time)
+

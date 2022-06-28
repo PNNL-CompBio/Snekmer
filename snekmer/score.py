@@ -9,6 +9,7 @@ from multiprocessing import Pool
 import numpy as np
 import pandas as pd
 
+from .transform import KmerBasis
 from .utils import to_feature_matrix
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.metrics.pairwise import pairwise_distances
@@ -381,21 +382,19 @@ def _parse_score_method(method, bg=None, **kwargs):
     # define score methods
     method2name = {
         "default": "default_score",
-        "bg": "bg_subtracted_score",
+        "bg_only": "bg_subtracted_score",
         "both": ["default_score", "bg_subtracted_score", "combined_score"],
     }
 
     # parse scoring methods
-    if method == "default":
+    if method == "both":
+        return "combined_score", score
         # compute score based on (label, not label) assignment
         # weight = 1 / (len(labels) - 1)
         # for l in labels:
         #     o = labels[labels != l]  # other labels
         #     results[l]['score'] = score(results, l, o, w=weight)
-        return "default_score", score
-    if method == "bg_only":
-        return "bg_subtracted_score", score
-    return "combined_score", score
+    return method2name[method], score
 
 
 def feature_class_probabilities(
@@ -536,6 +535,28 @@ def apply_feature_probabilities(feature_matrix, scores, scaler=False, **kwargs):
 
 
 def append_cv_results(data, scores, method, family=None, alphabet=None, config=None):
+    """Append cross-validation results to input dataframe.
+
+    Parameters
+    ----------
+    data : _type_
+        _description_
+    scores : _type_
+        _description_
+    method : _type_
+        _description_
+    family : _type_, optional
+        _description_, by default None
+    alphabet : _type_, optional
+        _description_, by default None
+    config : _type_, optional
+        _description_, by default None
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
     # collate ROC-AUC results
     data["family"] += [family] * config["model"]["cv"]
     data["alphabet_name"] += [alphabet.lower()] * config["model"]["cv"]
@@ -545,3 +566,208 @@ def append_cv_results(data, scores, method, family=None, alphabet=None, config=N
     # data['score'] += list(cross_val_score(clf, X, y, cv=cv, scoring='roc_auc'))
     data["cv_split"] += [i + 1 for i in range(config["model"]["cv"])]
     return data
+
+
+class KmerScorer:
+    """Score kmer vectors based on summed probability scores.
+
+    Attributes
+    ----------
+    kmers : :obj:`~KmerBasis`
+        Basis set object for kmer standardization.
+    matrix : numpy.ndarray
+        Feature matrix for all sequences.
+    labels : list or array-like of str
+        Array of all labels in overall dataset.
+    primary_label : str
+        Primary label identifier for fitted sequence data.
+    i_background : dict of list
+        Description of attribute `i_background`.
+    i_label : dict
+        Description of attribute `i_label`.
+    scaler : type
+        Description of attribute `scaler`.
+    scores : type
+        Description of attribute `scores`.
+    score_norm : type
+        Description of attribute `score_norm`.
+    probabilities : type
+        Description of attribute `probabilities`.
+
+    """
+
+    def __init__(self):
+        self.kmers = KmerBasis()
+        self.primary_label = None
+        self.scaler = None
+        self.scores = {"sample": {}, "background": {}}
+        self.score_norm = None
+        self.probabilities = {"sample": {}, "background": {}}
+
+    # load list of kmers and both seq and bg feature matrices
+    def fit(
+        self,
+        kmers,
+        data,
+        label,
+        label_col="family",
+        bg_col="background",
+        vec_col="vector",
+        **scaler_kwargs,
+    ):
+        """Short summary.
+
+        Parameters
+        ----------
+        kmers : type
+            Description of parameter `kmers`.
+        data : type
+            Description of parameter `data`.
+        label : type
+            Description of parameter `label`.
+        label_col : type
+            Description of parameter `label_col`.
+        bg_col : type
+            Description of parameter `bg_col`.
+        **scaler_kwargs : dict
+            Keyword arguments for
+            :obj:`~snekmer.model.KmerScoreScaler`.
+
+        Returns
+        -------
+        type
+            Description of returned object.
+
+        """
+        # save primary family label
+        self.primary_label = label
+
+        # step 00: set kmer basis
+        self.kmers.set_basis(kmers)
+
+        # step 0: get indices of sample and background sequences
+        i_background = {
+            "sample": list(data.index[~data[bg_col]]),
+            "background": list(data.index[data[bg_col]]),
+        }
+
+        # step 0: get feature matrix and all labels
+        labels = data[label_col].values
+        matrix = to_feature_matrix(data[vec_col])
+        # print(matrix.shape)
+
+        # step 0: get indices for label (family) ids
+        # i_label = {
+        #     ll: list(data.index[data[label_col] == ll])
+        #     for ll in data[label_col].unique()
+        # }
+
+        # step 1: score sample sequences and fit score scaler
+        sample_matrix = matrix[i_background["sample"]]
+        s_labels = labels[i_background["sample"]]
+        probas = feature_class_probabilities(
+            sample_matrix.T, s_labels, kmers=self.kmers.basis
+        )
+        self.probabilities["sample"] = probas[probas["label"] == self.primary_label][
+            "score"
+        ].values
+
+        # step 2: fit scaler to the sample data (ignore the background)
+        self.scaler = KmerScoreScaler(**scaler_kwargs)
+        self.scaler.fit(
+            probas[probas["label"] == label]["probability"]
+        )  # probas is an ordered list of scores from kmers. returns indices for these scores
+
+        # step 3: compute background
+        background_matrix = matrix[i_background["background"]]
+        bg_labels = labels[i_background["background"]]
+        if len(background_matrix) > 0:
+            bg_probas = feature_class_probabilities(
+                background_matrix.T, bg_labels, kmers=self.kmers.basis
+            )
+            self.probabilities["background"] = bg_probas[
+                bg_probas["label"] == self.primary_label
+            ]["score"].values
+
+            # step 3.1: background family probability scores
+            for bl in np.unique(bg_labels):
+                bg_scores = bg_probas[bg_probas["label"] == bl]["score"].values
+
+                # normalize by max bg score
+                # bg_norm = np.max(bg_scores)
+
+                # get background scores for sequences
+                bg_only_scores = apply_feature_probabilities(
+                    matrix, bg_scores, scaler=self.scaler
+                )
+
+                # normalize by max bg score attained by a sequence
+                bg_norm = np.max(bg_only_scores)
+
+                self.scores["background"][bl] = bg_only_scores / bg_norm
+
+        # step 3.2: assign family probability scores
+        for sl in np.unique(s_labels):
+            scores = probas[probas["label"] == sl]["score"].values
+
+            # normalize by sum of all positive scores
+            # norm = np.sum([s for s in scores if s > 0])
+
+            # include background sequences for score generation
+            total_scores = apply_feature_probabilities(
+                matrix, scores, scaler=self.scaler
+            )
+
+            # normalize by max score
+            norm = np.max(total_scores)
+            norm = max(norm, 1.0)  # prevent score explosion?
+            if sl == self.primary_label:
+                self.score_norm = norm
+
+            # assign percent score based on max positive score
+            self.scores["sample"][f"{sl}_score"] = total_scores / norm
+
+            # weight family score by (1 - normalized bg score)
+            if sl in np.unique(bg_labels):
+                self.scores["sample"][f"{sl}_score_background_weighted"] = [
+                    total * (1 - bg)
+                    for total, bg in zip(
+                        self.scores["sample"][f"{sl}_score"],
+                        self.scores["background"][sl],
+                    )
+                ]
+
+                # old scoring method
+                self.scores["sample"][f"{sl}_background_subtracted_score"] = [
+                    total - bg
+                    for total, bg in zip(
+                        self.scores["sample"][f"{sl}_score"],
+                        self.scores["background"][sl],
+                    )
+                ]
+
+    # score new input sequences
+    def predict(self, array, kmers):
+        """Predict scores of new array with separate kmer basis.
+
+        Parameters
+        ----------
+        array : list or array-like
+            Description of parameter `array`.
+        kmers : list or array-like of str
+            Ordered array of kmer strings.
+
+        Returns
+        -------
+        type
+            Description of returned object.
+
+        """
+        # fit new input data to the correct kmer basis
+        array = self.kmers.transform(array, kmers)
+        return (
+            apply_feature_probabilities(
+                array, self.probabilities["sample"], scaler=self.scaler
+            )
+            / self.score_norm
+        )

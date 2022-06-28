@@ -175,7 +175,7 @@ rule score:
             data["train"] = [idx in i_train for idx in data.index]
 
         # generate family scores and object
-        scorer = skm.model.KmerScorer()
+        scorer = skm.score.KmerScorer()
         scorer.fit(
             list(kmer.kmer_set.kmers),
             data,
@@ -314,7 +314,7 @@ rule model:
             ]
 
             # score kmers separately per split
-            scorer = skm.model.KmerScorer()
+            scorer = skm.score.KmerScorer()
             scorer.fit(
                 list(kmer.kmer_set.kmers),
                 df_train,

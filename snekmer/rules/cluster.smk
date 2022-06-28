@@ -32,8 +32,8 @@ from os.path import basename, dirname, exists, join, splitext
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from Bio import SeqIO
-from pandas import DataFrame, read_csv, read_json
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegressionCV
 from sklearn.model_selection import (StratifiedKFold, cross_val_score,
@@ -99,37 +99,15 @@ use rule unzip from process_input with:
         zipped=join("input", "zipped", "{uz}.gz"),
 
 
-# read and process parameters from config
-use rule preprocess from process_input with:
+# build kmer count vectors for each basis set
+use rule vectorize from kmerize with:
     input:
         fasta=lambda wildcards: join("input", f"{wildcards.nb}.{FA_MAP[wildcards.nb]}"),
     output:
-        data=join(out_dir, "processed", "full", "{nb}.json"),
-        desc=join(out_dir, "processed", "full", "{nb}_description.csv"),
+        data=join("output", "vector", "{nb}.npz"),
+        kmerobj=join("output", "kmerize", "{nb}.kmers"),
     log:
-        join(out_dir, "processed", "log", "{nb}.log")
-
-
-# generate kmer features space from user params
-# use rule generate from kmerize with:
-#     input:
-#         params=join(out_dir, "processed", "full", "{nb}.json"),
-#     output:
-#         labels=join(out_dir, "labels", "full", "{nb}.txt"),
-#     log:
-#         join(out_dir, "labels", "log", "{nb}.log")
-
-
-# build kmer count vectors for each basis set
-use rule vectorize_full from kmerize with:
-    input:
-        params=join(out_dir, "processed", "{nb}.json"),
-        fasta=lambda wildcards: join("input", f"{wildcards.nb}.{FA_MAP[wildcards.nb]}")
-    log:
-        join(out_dir, "features", "log", "{nb}.log")
-    output:
-        file=join(out_dir, "features", "full", "{nb}.json.gz"),
-        kmers=join(out_dir, "labels", "full", "{nb}.txt")
+        join("output", "kmerize", "log", "{nb}.log"),
 
 
 # [in-progress] kmer walk
@@ -141,9 +119,10 @@ use rule vectorize_full from kmerize with:
 # UNSUPERVISED WORKFLOW
 rule cluster:
     input:
-        files=expand(join(out_dir, "features", "full", "{fa}.json.gz"), fa=NON_BGS)
+        kmerobj=join("output", "kmerize", "{nb}.kmers"),
+        data=expand(join("output", "vector", "{fa}.npz"), fa=NON_BGS),
     output:
-        model=join(out_dir, "cluster", "{nb}.pkl"),
+        clusters=join(out_dir, "cluster", "{nb}.pkl"),
         figs=directory(join(out_dir, "cluster", "figures", "{nb}")),
     log:
         join(out_dir, "cluster", "log", "{nb}.log"),
@@ -155,31 +134,36 @@ rule cluster:
 
         # parse all data and label background files
         label = config["score"]["lname"]
-        data = skm.io.vecfiles_to_df(
-            input.files, labels=config["score"]["labels"], label_name=label
-        )
-        data["background"] = [
-            skm.utils.split_file_ext(f)[0] in BGS for f in data["filename"]
-        ]
+
+        # get kmers for this particular set of sequences
+        kmer = skm.io.load_pickle(input.kmerobj)
+
+        # tabulate vectorized seq data
+        data = list()
+        for f in input.data:
+            data.append(skm.io.load_npz(f))
+        
+        data = pd.concat(data, ignore_index=True)
+        data["background"] = [f in BGS for f in data["filename"]]
 
         # log conversion step runtime
-        skm.utils.log_runtime(log[0], start_time, step="vecfiles_to_df")
+        skm.utils.log_runtime(log[0], start_time, step="load_npz")
 
         # define feature matrix of kmer vectors not from background set
         bg, non_bg = data[data["background"]], data[~data["background"]]
-        full_feature_matrix = skm.utils.to_feature_matrix(data["vector"].values)
-        feature_matrix = skm.utils.to_feature_matrix(non_bg["vector"].values)
+        full_feature_matrix = skm.utils.to_feature_matrix(data["sequence_vector"].values)
+        feature_matrix = skm.utils.to_feature_matrix(non_bg["sequence_vector"].values)
 
         # currently not used
         if len(bg) > 0:
-            bg_feature_matrix = skm.utils.to_feature_matrix(bg["vector"].values)
+            bg_feature_matrix = skm.utils.to_feature_matrix(bg["sequence_vector"].values)
 
         # fit and save clustering model
         model = skm.cluster.KmerClustering(
             config["cluster"]["method"], config["cluster"]["params"]
         )
         model.fit(full_feature_matrix)
-        with open(output.model, "wb") as f:
+        with open(output.clusters, "wb") as f:
             pickle.dump(model, f)
 
         # log time to compute clusters
