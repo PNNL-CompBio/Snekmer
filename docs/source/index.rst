@@ -13,7 +13,14 @@ Snekmer is a pipeline to apply encoded k-mer analysis to protein sequences for m
         :width: 700
         :alt: Snekmer workflow overview
 
-There are 3 operation modes for Snekmer: ``model``, ``cluster``, and ``search``.
+There are 3 operation modes for Snekmer: ``cluster``, ``model``,  and ``search``.
+
+Cluster mode:
+-------------
+
+* **Input:** FASTA files containing protein sequences
+* **Output:** Clusters of similar proteins
+   - *Evaluation output:* Assessment of how well the clusters of similar proteins represent functions
 
 Model mode:
 -----------
@@ -22,13 +29,6 @@ Model mode:
 * **Output:** Models of the known protein families based on kmer vector analysis
 
    - *Evaluation output:* Assessment of model performance
-
-Cluster mode:
--------------
-
-* **Input:** FASTA files containing protein sequences
-* **Output:** Clusters of similar proteins
-   - *Evaluation output:* Assessment of how well the clusters of similar proteins represent functions
 
 Search mode:
 ------------

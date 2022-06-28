@@ -360,9 +360,9 @@ def set_sequence_endpoints(sequence, k, start, end):
     ----------
     sequence : str or iterable
         Sequence for which to determine endpoints.
-    k : int
+    k : int or None
         Kmer length (k units).
-    start : int
+    start : int or None
         Start index of the sequence.
     end : int
         End index of the sequence.
@@ -414,8 +414,8 @@ def vectorize_string(
     sequence,
     k,
     alphabet,
-    start=0,
-    end=False,
+    start=None,
+    end=None,
     feature_dict=None,
     filter_list=None,
     exclude=None,
@@ -431,9 +431,9 @@ def vectorize_string(
         Protein sequence.
     k : int
         Sequence length k of the kmer.
-    start : int
+    start : int or None
         Start index of the sequence (for sequence slicing).
-    end : int
+    end : int or None
         End index of the sequence (for sequence slicing).
     alphabet : str
         Name of the map function (e.g. "reduced_alphabet_0")

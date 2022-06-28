@@ -44,17 +44,24 @@
               <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Installation</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#procedure">Procedure</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#troubleshooting-notes">Troubleshooting Notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#setup">Setup</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#troubleshooting-notes">Troubleshooting Notes</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#install-snekmer">Install Snekmer</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="cli.html">Command Line Interface</a></li>
-<li class="toctree-l1"><a class="reference internal" href="modes.html">Modes</a></li>
-<li class="toctree-l1"><a class="reference internal" href="config.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modes.html">Snekmer Modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="config.html">Setting up User Configuration</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorial</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../tutorial/index.html">Tutorial</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Troubleshooting</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../troubleshooting/common.html">Common Issues</a></li>
 </ul>
 
         </div>
@@ -86,39 +93,43 @@
 <p>We recommend using <a class="reference external" href="https://www.anaconda.com/download/">Anaconda</a>
 to handle installation. Anaconda will manage dependencies and
 versioning, which simplifies the process of installation.</p>
-<section id="procedure">
-<h2>Procedure<a class="headerlink" href="#procedure" title="Permalink to this heading"></a></h2>
+<section id="setup">
+<h2>Setup<a class="headerlink" href="#setup" title="Permalink to this heading"></a></h2>
 <p>Use conda to install an environment from the YML file with all
-required dependencies. (Note: Users may either download the YML file
+required dependencies. (Note: Users may either download the
+<a class="reference external" href="https://github.com/PNNL-CompBio/Snekmer/blob/main/environment.yml">YML file</a>
 directly from the repository, or clone the repository beforehand
-using the <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">clone</span></code> command below.)</p>
+using the <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">clone</span></code> command.)</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>conda env create -f environment.yml
 </pre></div>
 </div>
-<p>Activate the environment:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>conda activate snekmer
-</pre></div>
-</div>
-<p>Install Snekmer using pip (note: git clone step is optional if you
-already have the repo cloned locally):</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># option 1: clone repository (if you haven&#39;t already) and install</span>
-git clone https://github.com/PNNL-CompBio/Snekmer.git
-pip install Snekmer
-
-<span class="c1"># option 2: direct install</span>
-pip install git+https://github.com/PNNL-CompBio/Snekmer
-</pre></div>
-</div>
-<p>The package should now be ready to use!</p>
-</section>
 <section id="troubleshooting-notes">
-<h2>Troubleshooting Notes<a class="headerlink" href="#troubleshooting-notes" title="Permalink to this heading"></a></h2>
+<h3>Troubleshooting Notes<a class="headerlink" href="#troubleshooting-notes" title="Permalink to this heading"></a></h3>
 <p>If you are a Windows user and running into conflicts/errors when
 creating the conda environment, you may need to install the minimal
 version of Snakemake:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>conda create -n snekmer -c conda-forge -c bioconda biopython matplotlib numpy pandas seaborn snakemake-minimal scikit-learn
 </pre></div>
 </div>
+</section>
+</section>
+<section id="install-snekmer">
+<h2>Install Snekmer<a class="headerlink" href="#install-snekmer" title="Permalink to this heading"></a></h2>
+<p>Activate the conda environment:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>conda activate snekmer
+</pre></div>
+</div>
+<p>Then, install Snekmer using pip (note: git clone step is optional
+if you already have the repo cloned locally):</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># option 1: clone repository (if you haven&#39;t already) and install</span>
+git clone https://github.com/PNNL-CompBio/Snekmer.git
+pip install Snekmer
+
+<span class="c1"># option 2: direct install (no repository download required)</span>
+pip install git+https://github.com/PNNL-CompBio/Snekmer
+</pre></div>
+</div>
+<p>The package should now be ready to use!</p>
 </section>
 </section>
 

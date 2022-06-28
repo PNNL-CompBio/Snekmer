@@ -1,11 +1,12 @@
 Snekmer Modes
 =============
 
-Snekmer has three operation modes: ``model`` (supervised modeling),
-``cluster`` (unsupervised clustering), and ``search`` (application
-of model to new sequences). We will call first two **learning modes**
-due to their utility in learning relationships between protein family
-input files. Users may choose a mode to best suit their use case.
+Snekmer has three operation modes: ``cluster`` (unsupervised clustering),
+``model`` (supervised modeling), and ``search`` (application
+of model to new sequences). We will call the first two modes
+**learning modes** due to their utility in learning relationships
+between protein family input files. Users may choose a mode to best
+suit their specific use case.
 
 The mode must be specified in the command line, e.g. to specify the
 ``model`` mode, the following should be called:
@@ -14,14 +15,15 @@ The mode must be specified in the command line, e.g. to specify the
 
     snekmer model [--options]
 
-In the **resources** directory, two example configuration files are included:
+In the `resources <https://github.com/PNNL-CompBio/Snekmer/tree/main/resources>`_,
+two example configuration files are included:
 
-  - **resources/config.yaml**: Configuration file for ``snekmer model`` and ``snekmer cluster`` modes.
-  - **resources/search.yaml**: Configuration file for ``snekmer search`` mode. Note that the Snekmer CLI automatically assumes that the configuration file will be named *config.yaml*, so to use the provided file, use ``snekmer search --configfile search.yaml``
+  - `config.yaml <https://github.com/PNNL-CompBio/Snekmer/blob/main/resources/config.yaml>`_: Configuration file for ``snekmer model`` and ``snekmer cluster`` modes.
+  - `search.yaml <https://github.com/PNNL-CompBio/Snekmer/blob/main/resources/search.yaml>`_: Configuration file for ``snekmer search`` mode. Note that the Snekmer CLI automatically assumes that the configuration file will be named *config.yaml*, so to use the provided file, use ``snekmer search --configfile search.yaml``
 
 .. code-block:: bash
 
-    snekmer [mode] --dryrun
+    snekmer {mode} --dryrun
 
 (For instance, in supervised mode, run ``snekmer model --dryrun``.)
 
@@ -33,7 +35,7 @@ When you are ready to process your files, run:
 
 .. code-block:: bash
 
-    snekmer [mode]
+    snekmer {mode}
 
 Output
 ------
@@ -62,6 +64,28 @@ The following output directories and files are created in both operation modes:
         │   └── B.txt              # kmer labels for B
         ├── features/
         └── ...
+
+Cluster Mode
+------------
+
+Executing ``snekmer cluster`` produces the following output files
+and directories in addition to the files described previously.
+
+.. code-block:: console
+
+    .
+    └── output/
+        ├── ...
+        ├── features/
+        │   └── full/     # kmer vectors in full kmer space for (alphabet, k)
+        │       ├── A.json.gz
+        │       └── B.json.gz
+        └── cluster/
+            ├── A.pkl     # A cluster model
+            ├── B.pkl     # B cluster model
+            └── figures/  # cluster figures (t-SNE)
+                ├── A/
+                └── B/
 
 Model Mode
 ----------
@@ -97,36 +121,14 @@ and directories in addition to the files described previously.
                 ├── A/
                 └── B/
 
-Cluster Mode
-------------
-
-Executing ``snekmer cluster`` produces the following output files
-and directories in addition to the files described previously.
-
-.. code-block:: console
-
-    .
-    └── output/
-        ├── ...
-        ├── features/
-        │   └── full/     # kmer vectors in full kmer space for (alphabet, k)
-        │       ├── A.json.gz
-        │       └── B.json.gz
-        └── cluster/
-            ├── A.pkl     # A cluster model
-            ├── B.pkl     # B cluster model
-            └── figures/  # cluster figures (t-SNE)
-                ├── A/
-                └── B/
-
 Search Mode
 -----------
 
 The ``snekmer search`` mode assumes that the user has pre-generated
-family models using the `snekmer model` workflow, and thus operates
+family models using the ``snekmer model`` workflow, and thus operates
 as an independent workflow. The location of the basis sets, scorers,
-and models must be specified in the configuration file (see:
-**resources/search.yaml**).
+and models must be specified in the configuration file (see
+`example <https://github.com/PNNL-CompBio/Snekmer/blob/main/resources/search.yaml>`_).
 
 For instance, say that the above output examples have already been
 produced. The user would then like to search a set of unknown
@@ -148,8 +150,8 @@ structure is as follows:
     │   ├── ...
     │   └── ...
 
-The user should then modify **search.yaml** to point toward the
-appropriate basis set, scorer, and model directories.
+The user should then modify their configuration file to point towards
+the appropriate basis set, scorer, and model directories.
 
 Executing ``snekmer search --configfile search.yaml`` produces the
 following output files and directories in addition to the files

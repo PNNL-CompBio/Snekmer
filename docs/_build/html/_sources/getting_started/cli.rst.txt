@@ -5,7 +5,7 @@ To run any of the 3 Snekmer operation modes, simply call:
 
 .. code-block:: bash
 
-    snekmer [mode]
+    snekmer {mode}
 
 Each mode has its own mode-specific options and parameters to be specified
 on the command line or the ``config.yaml`` file, respectively.
@@ -17,12 +17,12 @@ For an overview of Snekmer usage, reference the help command (``snekmer --help``
     $ snekmer --help
     usage: snekmer [-h] [-v] [--dryrun] [--configfile PATH] [--config [KEY=VALUE ...]] [--unlock] [--until TARGET [TARGET ...]]
                [--latency SECONDS] [--touch] [--cores N] [--count N] [--countstart IDX] [--cluster PATH] [--jobs N]
-               {model,cluster,search}
+               {cluster,model,search}
 
-    Snekmer: A program to generate features and run SIEVE models on input sequences
+    Snekmer: A tool for kmer-based sequence analysis using amino acid reduction (AAR)
 
     positional arguments:
-    {model,cluster,search}
+    {cluster,model,search}
 
     options:
     -h, --help            show this help message and exit
@@ -46,18 +46,21 @@ For an overview of Snekmer usage, reference the help command (``snekmer --help``
     --cluster PATH        path to cluster execution yaml configuration file
     --jobs N              number of simultaneous jobs to submit to a slurm queue
 
+.. _getting_started-configuration:
+
 Configuration
 -------------
 
-To run Snekmer, create a **config.yaml** file containing desired
-parameters. A template is provided at **snekmer/config.yaml**.
-Note that the **config.yaml** file should be stored in the same
-directory as input directory.
+To run Snekmer, create a ``config.yaml`` file containing desired
+parameters. A `template <https://github.com/PNNL-CompBio/Snekmer/blob/main/resources/config.yaml>`_
+is included in the repository. Note that a config file must be
+included, in the same directory as input directory, for Snekmer
+to operate.
 
-Snekmer assumes that input files are stored in the **input** directory,
-and automatically creates an **output** directory to save all output
+Snekmer assumes that input files are stored in the ``input`` directory,
+and automatically creates an ``output`` directory to save all output
 files. Snekmer also assumes background files, if any, are stored in
-**input/background/**. An example of the assumed directory structure
+``input/background``. An example of the assumed directory structure
 is shown below:
 
 .. code-block:: console
@@ -85,4 +88,4 @@ step, run:
 
 .. code-block:: bash
     
-    snekmer [mode] --until vectorize
+    snekmer {mode} --until vectorize

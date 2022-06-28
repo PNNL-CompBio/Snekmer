@@ -71,7 +71,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Troubleshooting</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../troubleshooting/common.html">Common Troubleshooting Errors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../troubleshooting/common.html">Common Issues</a></li>
 </ul>
 
         </div>
@@ -117,28 +117,34 @@ file (.YAML). A template <code class="docutils literal notranslate"><span class=
 <p>Parameters which are required to be specified by the user in order to use Snekmer.</p>
 <table class="docutils align-default">
 <colgroup>
-<col style="width: 9%" />
-<col style="width: 91%" />
+<col style="width: 14%" />
+<col style="width: 14%" />
+<col style="width: 71%" />
 </colgroup>
 <thead>
 <tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Type</p></th>
 <th class="head"><p>Description</p></th>
 </tr>
 </thead>
 <tbody>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">k</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">int</span></code></p></td>
 <td><p>K-mer length</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">alphabet</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">str</span></code> or <code class="docutils literal notranslate"><span class="pre">int</span></code></p></td>
 <td><p>Reduced alphabet encoding
 (see <a class="reference external" href="https://github.com/PNNL-CompBio/Snekmer/blob/main/snekmer/alphabet.py#L30">documentation</a>
 for more details). Alphabets may be specified by numbers 0-5 or by their names.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">min_rep_thresh</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">int</span></code></p></td>
 <td><p>Threshold for the minimum number of repetitions of a k-mer within a set. K-mers that do not meet
 this threshold are not included in the basis set for the given family.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">processes</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">int</span></code></p></td>
 <td><p>Number of processes spawned via Python multiprocessing.
 See the <a class="reference external" href="https://docs.python.org/3/library/multiprocessing.html">official Python documentation</a>
 for more details.</p></td>
@@ -209,25 +215,31 @@ options, including the option to skip recoding, are listed below.</p>
 <p>General parameters related to input sequences and files.</p>
 <table class="docutils align-default">
 <colgroup>
-<col style="width: 25%" />
-<col style="width: 75%" />
+<col style="width: 21%" />
+<col style="width: 17%" />
+<col style="width: 62%" />
 </colgroup>
 <thead>
 <tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Type</p></th>
 <th class="head"><p>Description</p></th>
 </tr>
 </thead>
 <tbody>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">example_index_file</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">str</span></code></p></td>
 <td><p>File contaning example indices (if False, assumes no file)</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">kmer_set_file</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">str</span></code></p></td>
 <td><p>File containing k-mer basis set (if False, assumes no file)</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">file_extensions</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">list</span></code></p></td>
 <td><p>File extensions to be considered as valid for input sequence files</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">regex</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">str</span></code></p></td>
 <td><p>Regular expression (regex) to parse family names from filenames</p></td>
 </tr>
 </tbody>
@@ -238,35 +250,44 @@ options, including the option to skip recoding, are listed below.</p>
 <p>General parameters related to the output produced by Snekmer.</p>
 <table class="docutils align-default">
 <colgroup>
-<col style="width: 21%" />
-<col style="width: 79%" />
+<col style="width: 18%" />
+<col style="width: 16%" />
+<col style="width: 66%" />
 </colgroup>
 <thead>
 <tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Type</p></th>
 <th class="head"><p>Description</p></th>
 </tr>
 </thead>
 <tbody>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">nested_dir</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
 <td><p>If True, saves files into nested directory structure, i.e. <cite>{save_dir}/{alphabet}/{k}</cite></p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">verbose</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
 <td><p>If True, print verbose output to log files</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">format</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">str</span></code></p></td>
 <td><p>K-mer output format (choices: <code class="docutils literal notranslate"><span class="pre">&quot;simple&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;gist&quot;</span></code>, or <code class="docutils literal notranslate"><span class="pre">&quot;sieve&quot;</span></code>)</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">filter_duplicates</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
 <td><p>If True, removes duplicate sequences</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">n_terminal_file</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">str</span></code> or <code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
 <td><p>Specify file for n terminal fusion to sequence (if False, assumes no file)</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">shuffle_n</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">int</span></code> or <code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
 <td><p>Number of sequences to scramble; only applies if <code class="docutils literal notranslate"><span class="pre">shuffle_sequences</span></code> is True</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">shuffle_sequences</span></code></p></td>
-<td><p>if True, scramble sequences</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
+<td><p>If True, scramble sequences</p></td>
 </tr>
 </tbody>
 </table>
@@ -276,25 +297,31 @@ options, including the option to skip recoding, are listed below.</p>
 <p>General parameters related to how Snekmer calculates family scores for k-mers.</p>
 <table class="docutils align-default">
 <colgroup>
-<col style="width: 23%" />
-<col style="width: 77%" />
+<col style="width: 19%" />
+<col style="width: 17%" />
+<col style="width: 64%" />
 </colgroup>
 <thead>
 <tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Type</p></th>
 <th class="head"><p>Description</p></th>
 </tr>
 </thead>
 <tbody>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">scaler</span></code></p></td>
+<td></td>
 <td><p><em>currently inactive</em></p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">scaler_kwargs</span></code></p></td>
-<td><p>Dictionary of keyword arguments to pass to k-mer scaler object</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dict</span></code></p></td>
+<td><p>Keyword arguments to pass to k-mer scaler object</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">labels</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">str</span></code> or <code class="docutils literal notranslate"><span class="pre">None</span></code></p></td>
 <td><p>If None, uses default kmer set for scaler. Otherwise, uses the ones specified</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">lname</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">str</span></code> or <code class="docutils literal notranslate"><span class="pre">None</span></code></p></td>
 <td><p>Label name (e.g. <code class="docutils literal notranslate"><span class="pre">&quot;family&quot;</span></code>)</p></td>
 </tr>
 </tbody>
@@ -305,26 +332,32 @@ options, including the option to skip recoding, are listed below.</p>
 <p>General parameters related to Snekmer’s model mode (<code class="docutils literal notranslate"><span class="pre">snekmer</span> <span class="pre">model</span></code>), wherein supervised models are trained via the workflow.</p>
 <table class="docutils align-default">
 <colgroup>
-<col style="width: 25%" />
-<col style="width: 75%" />
+<col style="width: 20%" />
+<col style="width: 18%" />
+<col style="width: 62%" />
 </colgroup>
 <thead>
 <tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Type</p></th>
 <th class="head"><p>Description</p></th>
 </tr>
 </thead>
 <tbody>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">n</span></code></p></td>
+<td></td>
 <td><p><em>currently inactive</em></p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">cv</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">int</span></code></p></td>
 <td><p>Number of cross-validation folds for model evaluation</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">use_score</span></code></p></td>
+<td></td>
 <td><p><em>currently inactive</em></p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">random_state</span></code></p></td>
-<td><p>random state for model evaluation</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">int</span></code> or <code class="docutils literal notranslate"><span class="pre">None</span></code></p></td>
+<td><p>Random state for model evaluation</p></td>
 </tr>
 </tbody>
 </table>
@@ -334,21 +367,25 @@ options, including the option to skip recoding, are listed below.</p>
 <p>General parameters related to Snekmer’s cluster mode (<code class="docutils literal notranslate"><span class="pre">snekmer</span> <span class="pre">cluster</span></code>), wherein unsupervised clusters are produced via the workflow.</p>
 <table class="docutils align-default">
 <colgroup>
-<col style="width: 25%" />
-<col style="width: 75%" />
+<col style="width: 21%" />
+<col style="width: 17%" />
+<col style="width: 62%" />
 </colgroup>
 <thead>
 <tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Type</p></th>
 <th class="head"><p>Description</p></th>
 </tr>
 </thead>
 <tbody>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">method</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">str</span></code></p></td>
 <td><p>Clustering method (options: <code class="docutils literal notranslate"><span class="pre">&quot;kmeans&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;agglomerative&quot;</span></code>,
 <code class="docutils literal notranslate"><span class="pre">&quot;correlation&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;density&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;birch&quot;</span></code>, or <code class="docutils literal notranslate"><span class="pre">&quot;optics&quot;</span></code>)</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">params</span></code></p></td>
-<td><p>Dictionary of parameters to pass to the clustering algorithm</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dict</span></code></p></td>
+<td><p>Parameters to pass to the clustering algorithm</p></td>
 </tr>
 </tbody>
 </table>
@@ -358,31 +395,39 @@ options, including the option to skip recoding, are listed below.</p>
 <p>Optional or inactive parameters for custom user-defined analyses.</p>
 <table class="docutils align-default">
 <colgroup>
-<col style="width: 25%" />
-<col style="width: 75%" />
+<col style="width: 20%" />
+<col style="width: 18%" />
+<col style="width: 62%" />
 </colgroup>
 <thead>
 <tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Type</p></th>
 <th class="head"><p>Description</p></th>
 </tr>
 </thead>
 <tbody>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">start</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">int</span></code> or <code class="docutils literal notranslate"><span class="pre">None</span></code></p></td>
 <td><p>Start index of sequence (for sequence slicing)</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">end</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">int</span></code> or <code class="docutils literal notranslate"><span class="pre">None</span></code></p></td>
 <td><p>End index of sequence (for sequence slicing)</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">nucleotide</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
 <td><p>If True, use nucleotide residues as alphabet</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">randomize_alphabet</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
 <td><p>If True, select an alphabet at random</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">walk</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">False</span></code></p></td>
 <td><p><em>set as False</em>; if True, do random kmer walk (note: currently inactive)</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">mode</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p></td>
 <td><p><em>set as None</em></p></td>
 </tr>
 </tbody>
@@ -394,64 +439,83 @@ options, including the option to skip recoding, are listed below.</p>
 <p>The <cite>search.yaml</cite> file is required for <cite>snekmer search</cite>.</p>
 <table class="docutils align-default">
 <colgroup>
-<col style="width: 21%" />
-<col style="width: 79%" />
+<col style="width: 18%" />
+<col style="width: 16%" />
+<col style="width: 66%" />
 </colgroup>
 <thead>
 <tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Type</p></th>
 <th class="head"><p>Description</p></th>
 </tr>
 </thead>
 <tbody>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">file_extensions</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">list</span></code></p></td>
 <td><p>File extensions to be considered as valid for input sequence files</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">model_dir</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">str</span></code></p></td>
 <td><p>Directory containing model object(s) (.model)</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">basis_dir</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">str</span></code></p></td>
 <td><p>Directory containing k-mer basis set(s) (.kmers)</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">score_dir</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">str</span></code></p></td>
 <td><p>Directory containing scoring object(s) (.scorer)</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">k</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">int</span></code></p></td>
 <td><p>See <a class="reference internal" href="#required-parameters">Required Parameters</a></p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">alphabet</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">int</span></code> or <code class="docutils literal notranslate"><span class="pre">str</span></code></p></td>
 <td><p>See <a class="reference internal" href="#required-parameters">Required Parameters</a></p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">min_rep_thresh</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">int</span></code></p></td>
 <td><p>See <a class="reference internal" href="#required-parameters">Required Parameters</a></p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">processes</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">int</span></code></p></td>
 <td><p>See <a class="reference internal" href="#required-parameters">Required Parameters</a></p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">nested_dir</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
 <td><p>See <a class="reference internal" href="#output-parameters">Output Parameters</a></p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">start</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">int</span></code> or <code class="docutils literal notranslate"><span class="pre">None</span></code></p></td>
 <td><p>See <a class="reference internal" href="#optional-parameters">Optional Parameters</a></p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">end</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">int</span></code> or <code class="docutils literal notranslate"><span class="pre">None</span></code></p></td>
 <td><p>See <a class="reference internal" href="#optional-parameters">Optional Parameters</a></p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">nucleotide</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
 <td><p>See <a class="reference internal" href="#optional-parameters">Optional Parameters</a></p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">randomize_alphabet</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
 <td><p>See <a class="reference internal" href="#optional-parameters">Optional Parameters</a></p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">regex</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">str</span></code></p></td>
 <td><p>See <a class="reference internal" href="#input-parameters">Input Parameters</a></p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">verbose</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
 <td><p>See <a class="reference internal" href="#optional-parameters">Optional Parameters</a></p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">walk</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">False</span></code></p></td>
 <td><p>See <a class="reference internal" href="#optional-parameters">Optional Parameters</a></p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">mode</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p></td>
 <td><p>See <a class="reference internal" href="#optional-parameters">Optional Parameters</a></p></td>
 </tr>
 </tbody>

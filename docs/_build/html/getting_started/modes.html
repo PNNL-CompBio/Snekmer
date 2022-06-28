@@ -47,8 +47,8 @@
 <li class="toctree-l1"><a class="reference internal" href="cli.html">Command Line Interface</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Snekmer Modes</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#output">Output</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#model-mode">Model Mode</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#cluster-mode">Cluster Mode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#model-mode">Model Mode</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#search-mode">Search Mode</a></li>
 </ul>
 </li>
@@ -60,7 +60,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Troubleshooting</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../troubleshooting/common.html">Common Troubleshooting Errors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../troubleshooting/common.html">Common Issues</a></li>
 </ul>
 
         </div>
@@ -89,24 +89,26 @@
              
   <section id="snekmer-modes">
 <h1>Snekmer Modes<a class="headerlink" href="#snekmer-modes" title="Permalink to this heading"></a></h1>
-<p>Snekmer has three operation modes: <code class="docutils literal notranslate"><span class="pre">model</span></code> (supervised modeling),
-<code class="docutils literal notranslate"><span class="pre">cluster</span></code> (unsupervised clustering), and <code class="docutils literal notranslate"><span class="pre">search</span></code> (application
-of model to new sequences). We will call first two <strong>learning modes</strong>
-due to their utility in learning relationships between protein family
-input files. Users may choose a mode to best suit their use case.</p>
+<p>Snekmer has three operation modes: <code class="docutils literal notranslate"><span class="pre">cluster</span></code> (unsupervised clustering),
+<code class="docutils literal notranslate"><span class="pre">model</span></code> (supervised modeling), and <code class="docutils literal notranslate"><span class="pre">search</span></code> (application
+of model to new sequences). We will call the first two modes
+<strong>learning modes</strong> due to their utility in learning relationships
+between protein family input files. Users may choose a mode to best
+suit their specific use case.</p>
 <p>The mode must be specified in the command line, e.g. to specify the
 <code class="docutils literal notranslate"><span class="pre">model</span></code> mode, the following should be called:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>snekmer model <span class="o">[</span>--options<span class="o">]</span>
 </pre></div>
 </div>
-<p>In the <strong>resources</strong> directory, two example configuration files are included:</p>
+<p>In the <a class="reference external" href="https://github.com/PNNL-CompBio/Snekmer/tree/main/resources">resources</a>,
+two example configuration files are included:</p>
 <blockquote>
 <div><ul class="simple">
-<li><p><strong>resources/config.yaml</strong>: Configuration file for <code class="docutils literal notranslate"><span class="pre">snekmer</span> <span class="pre">model</span></code> and <code class="docutils literal notranslate"><span class="pre">snekmer</span> <span class="pre">cluster</span></code> modes.</p></li>
-<li><p><strong>resources/search.yaml</strong>: Configuration file for <code class="docutils literal notranslate"><span class="pre">snekmer</span> <span class="pre">search</span></code> mode. Note that the Snekmer CLI automatically assumes that the configuration file will be named <em>config.yaml</em>, so to use the provided file, use <code class="docutils literal notranslate"><span class="pre">snekmer</span> <span class="pre">search</span> <span class="pre">--configfile</span> <span class="pre">search.yaml</span></code></p></li>
+<li><p><a class="reference external" href="https://github.com/PNNL-CompBio/Snekmer/blob/main/resources/config.yaml">config.yaml</a>: Configuration file for <code class="docutils literal notranslate"><span class="pre">snekmer</span> <span class="pre">model</span></code> and <code class="docutils literal notranslate"><span class="pre">snekmer</span> <span class="pre">cluster</span></code> modes.</p></li>
+<li><p><a class="reference external" href="https://github.com/PNNL-CompBio/Snekmer/blob/main/resources/search.yaml">search.yaml</a>: Configuration file for <code class="docutils literal notranslate"><span class="pre">snekmer</span> <span class="pre">search</span></code> mode. Note that the Snekmer CLI automatically assumes that the configuration file will be named <em>config.yaml</em>, so to use the provided file, use <code class="docutils literal notranslate"><span class="pre">snekmer</span> <span class="pre">search</span> <span class="pre">--configfile</span> <span class="pre">search.yaml</span></code></p></li>
 </ul>
 </div></blockquote>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>snekmer <span class="o">[</span>mode<span class="o">]</span> --dryrun
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>snekmer <span class="o">{</span>mode<span class="o">}</span> --dryrun
 </pre></div>
 </div>
 <p>(For instance, in supervised mode, run <code class="docutils literal notranslate"><span class="pre">snekmer</span> <span class="pre">model</span> <span class="pre">--dryrun</span></code>.)</p>
@@ -114,7 +116,7 @@ input files. Users may choose a mode to best suit their use case.</p>
 pipeline. If no files are generated, double-check   that your directory
 structure matches the format specified above.</p>
 <p>When you are ready to process your files, run:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>snekmer <span class="o">[</span>mode<span class="o">]</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>snekmer <span class="o">{</span>mode<span class="o">}</span>
 </pre></div>
 </div>
 <section id="output">
@@ -139,6 +141,26 @@ found in the respective directories.</p>
 <span class="go">    │   └── B.txt              # kmer labels for B</span>
 <span class="go">    ├── features/</span>
 <span class="go">    └── ...</span>
+</pre></div>
+</div>
+</section>
+<section id="cluster-mode">
+<h2>Cluster Mode<a class="headerlink" href="#cluster-mode" title="Permalink to this heading"></a></h2>
+<p>Executing <code class="docutils literal notranslate"><span class="pre">snekmer</span> <span class="pre">cluster</span></code> produces the following output files
+and directories in addition to the files described previously.</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">.</span>
+<span class="go">└── output/</span>
+<span class="go">    ├── ...</span>
+<span class="go">    ├── features/</span>
+<span class="go">    │   └── full/     # kmer vectors in full kmer space for (alphabet, k)</span>
+<span class="go">    │       ├── A.json.gz</span>
+<span class="go">    │       └── B.json.gz</span>
+<span class="go">    └── cluster/</span>
+<span class="go">        ├── A.pkl     # A cluster model</span>
+<span class="go">        ├── B.pkl     # B cluster model</span>
+<span class="go">        └── figures/  # cluster figures (t-SNE)</span>
+<span class="go">            ├── A/</span>
+<span class="go">            └── B/</span>
 </pre></div>
 </div>
 </section>
@@ -174,33 +196,13 @@ and directories in addition to the files described previously.</p>
 </pre></div>
 </div>
 </section>
-<section id="cluster-mode">
-<h2>Cluster Mode<a class="headerlink" href="#cluster-mode" title="Permalink to this heading"></a></h2>
-<p>Executing <code class="docutils literal notranslate"><span class="pre">snekmer</span> <span class="pre">cluster</span></code> produces the following output files
-and directories in addition to the files described previously.</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">.</span>
-<span class="go">└── output/</span>
-<span class="go">    ├── ...</span>
-<span class="go">    ├── features/</span>
-<span class="go">    │   └── full/     # kmer vectors in full kmer space for (alphabet, k)</span>
-<span class="go">    │       ├── A.json.gz</span>
-<span class="go">    │       └── B.json.gz</span>
-<span class="go">    └── cluster/</span>
-<span class="go">        ├── A.pkl     # A cluster model</span>
-<span class="go">        ├── B.pkl     # B cluster model</span>
-<span class="go">        └── figures/  # cluster figures (t-SNE)</span>
-<span class="go">            ├── A/</span>
-<span class="go">            └── B/</span>
-</pre></div>
-</div>
-</section>
 <section id="search-mode">
 <h2>Search Mode<a class="headerlink" href="#search-mode" title="Permalink to this heading"></a></h2>
 <p>The <code class="docutils literal notranslate"><span class="pre">snekmer</span> <span class="pre">search</span></code> mode assumes that the user has pre-generated
-family models using the <cite>snekmer model</cite> workflow, and thus operates
+family models using the <code class="docutils literal notranslate"><span class="pre">snekmer</span> <span class="pre">model</span></code> workflow, and thus operates
 as an independent workflow. The location of the basis sets, scorers,
-and models must be specified in the configuration file (see:
-<strong>resources/search.yaml</strong>).</p>
+and models must be specified in the configuration file (see
+<a class="reference external" href="https://github.com/PNNL-CompBio/Snekmer/blob/main/resources/search.yaml">example</a>).</p>
 <p>For instance, say that the above output examples have already been
 produced. The user would then like to search a set of unknown
 sequences against the above families.</p>
@@ -218,8 +220,8 @@ structure is as follows:</p>
 <span class="go">│   └── ...</span>
 </pre></div>
 </div>
-<p>The user should then modify <strong>search.yaml</strong> to point toward the
-appropriate basis set, scorer, and model directories.</p>
+<p>The user should then modify their configuration file to point towards
+the appropriate basis set, scorer, and model directories.</p>
 <p>Executing <code class="docutils literal notranslate"><span class="pre">snekmer</span> <span class="pre">search</span> <span class="pre">--configfile</span> <span class="pre">search.yaml</span></code> produces the
 following output files and directories in addition to the files
 described previously.</p>

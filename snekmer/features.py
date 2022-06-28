@@ -263,9 +263,9 @@ def define_feature_space(
     alphabet : str
         Name of the alphabet (e.g. "reduced_alphabet_0")
         (default: "None"; applies no mapping).
-    start : int
+    start : int or None
         Start index of the sequence (for sequence slicing).
-    end : int
+    end : int or None
         End index of the sequence (for sequence slicing).
     min_rep_thresh : type
         Description of parameter `min_rep_thresh`.

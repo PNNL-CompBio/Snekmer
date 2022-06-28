@@ -22,7 +22,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Modes" href="modes.html" />
+    <link rel="next" title="Snekmer Modes" href="modes.html" />
     <link rel="prev" title="Installation" href="install.html" /> 
 </head>
 
@@ -49,11 +49,16 @@
 <li class="toctree-l2"><a class="reference internal" href="#partial-workflow">Partial Workflow</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="modes.html">Modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modes.html">Snekmer Modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="config.html">Setting up User Configuration</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorial</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../tutorial/index.html">Tutorial</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Troubleshooting</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../troubleshooting/common.html">Common Issues</a></li>
 </ul>
 
         </div>
@@ -83,7 +88,7 @@
   <section id="command-line-interface">
 <h1>Command Line Interface<a class="headerlink" href="#command-line-interface" title="Permalink to this heading"></a></h1>
 <p>To run any of the 3 Snekmer operation modes, simply call:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>snekmer <span class="o">[</span>mode<span class="o">]</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>snekmer <span class="o">{</span>mode<span class="o">}</span>
 </pre></div>
 </div>
 <p>Each mode has its own mode-specific options and parameters to be specified
@@ -92,12 +97,12 @@ on the command line or the <code class="docutils literal notranslate"><span clas
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>snekmer --help
 <span class="go">usage: snekmer [-h] [-v] [--dryrun] [--configfile PATH] [--config [KEY=VALUE ...]] [--unlock] [--until TARGET [TARGET ...]]</span>
 <span class="go">           [--latency SECONDS] [--touch] [--cores N] [--count N] [--countstart IDX] [--cluster PATH] [--jobs N]</span>
-<span class="go">           {model,cluster,search}</span>
+<span class="go">           {cluster,model,search}</span>
 
-<span class="go">Snekmer: A program to generate features and run SIEVE models on input sequences</span>
+<span class="go">Snekmer: A tool for kmer-based sequence analysis using amino acid reduction (AAR)</span>
 
 <span class="go">positional arguments:</span>
-<span class="go">{model,cluster,search}</span>
+<span class="go">{cluster,model,search}</span>
 
 <span class="go">options:</span>
 <span class="go">-h, --help            show this help message and exit</span>
@@ -123,15 +128,16 @@ on the command line or the <code class="docutils literal notranslate"><span clas
 </pre></div>
 </div>
 <section id="configuration">
-<h2>Configuration<a class="headerlink" href="#configuration" title="Permalink to this heading"></a></h2>
-<p>To run Snekmer, create a <strong>config.yaml</strong> file containing desired
-parameters. A template is provided at <strong>snekmer/config.yaml</strong>.
-Note that the <strong>config.yaml</strong> file should be stored in the same
-directory as input directory.</p>
-<p>Snekmer assumes that input files are stored in the <strong>input</strong> directory,
-and automatically creates an <strong>output</strong> directory to save all output
+<span id="getting-started-configuration"></span><h2>Configuration<a class="headerlink" href="#configuration" title="Permalink to this heading"></a></h2>
+<p>To run Snekmer, create a <code class="docutils literal notranslate"><span class="pre">config.yaml</span></code> file containing desired
+parameters. A <a class="reference external" href="https://github.com/PNNL-CompBio/Snekmer/blob/main/resources/config.yaml">template</a>
+is included in the repository. Note that a config file must be
+included, in the same directory as input directory, for Snekmer
+to operate.</p>
+<p>Snekmer assumes that input files are stored in the <code class="docutils literal notranslate"><span class="pre">input</span></code> directory,
+and automatically creates an <code class="docutils literal notranslate"><span class="pre">output</span></code> directory to save all output
 files. Snekmer also assumes background files, if any, are stored in
-<strong>input/background/</strong>. An example of the assumed directory structure
+<code class="docutils literal notranslate"><span class="pre">input/background</span></code>. An example of the assumed directory structure
 is shown below:</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">.</span>
 <span class="go">├── config.yaml</span>
@@ -154,7 +160,7 @@ is shown below:</p>
 <p>To execute only a part of the workflow, the <code class="docutils literal notranslate"><span class="pre">--until</span></code> option can be invoked.
 For instance, to execute the workflow only through the kmer vector generation
 step, run:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>snekmer <span class="o">[</span>mode<span class="o">]</span> --until vectorize
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>snekmer <span class="o">{</span>mode<span class="o">}</span> --until vectorize
 </pre></div>
 </div>
 </section>
@@ -165,7 +171,7 @@ step, run:</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="install.html" class="btn btn-neutral float-left" title="Installation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="modes.html" class="btn btn-neutral float-right" title="Modes" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="modes.html" class="btn btn-neutral float-right" title="Snekmer Modes" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

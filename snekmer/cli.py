@@ -29,7 +29,7 @@ FEAT_OUT_FMTS = {
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Snekmer: A program to generate features and run SIEVE models on input sequences"
+        description="Snekmer: A tool for kmer-based sequence analysis using amino acid reduction (AAR)"
     )
     parser.add_argument(
         "-v",
@@ -114,7 +114,7 @@ def main():
     )
 
     # create subparsers for both operation modes
-    parser.add_argument("mode", choices=["model", "cluster", "search"])
+    parser.add_argument("mode", choices=["cluster", "model", "search"])
 
     # parse args
     args = parser.parse_args()
@@ -138,9 +138,9 @@ def main():
         cluster = None
 
     # parse operation mode
-    if args.mode == "model":
+    if args.mode == "cluster":
         snakemake(
-            resource_filename("snekmer", "rules/model.smk"),
+            resource_filename("snekmer", "rules/cluster.smk"),
             configfiles=[args.configfile],
             config=config,
             cluster_config=args.cluster,
@@ -156,9 +156,9 @@ def main():
             latency_wait=args.latency,
         )
 
-    elif args.mode == "cluster":
+    elif args.mode == "model":
         snakemake(
-            resource_filename("snekmer", "rules/cluster.smk"),
+            resource_filename("snekmer", "rules/model.smk"),
             configfiles=[args.configfile],
             config=config,
             cluster_config=args.cluster,

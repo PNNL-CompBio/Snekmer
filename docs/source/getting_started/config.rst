@@ -21,19 +21,19 @@ Required Parameters
 
 Parameters which are required to be specified by the user in order to use Snekmer.
 
-====================  ==============================================================================================================================================================================================================
-     Parameter         Description
-====================  ==============================================================================================================================================================================================================
- ``k``                 K-mer length
- ``alphabet``          Reduced alphabet encoding
-                       (see `documentation <https://github.com/PNNL-CompBio/Snekmer/blob/main/snekmer/alphabet.py#L30>`_
-                       for more details). Alphabets may be specified by numbers 0-5 or by their names.
- ``min_rep_thresh``    Threshold for the minimum number of repetitions of a k-mer within a set. K-mers that do not meet
-                       this threshold are not included in the basis set for the given family.
- ``processes``         Number of processes spawned via Python multiprocessing.
-                       See the `official Python documentation <https://docs.python.org/3/library/multiprocessing.html>`_
-                       for more details.
-====================  ==============================================================================================================================================================================================================
+====================  ====================  ===================================================================================================
+     Parameter                Type           Description
+====================  ====================  ===================================================================================================
+ ``k``                 ``int``               K-mer length
+ ``alphabet``          ``str`` or ``int``    Reduced alphabet encoding
+                                             (see `documentation <https://github.com/PNNL-CompBio/Snekmer/blob/main/snekmer/alphabet.py#L30>`_
+                                             for more details). Alphabets may be specified by numbers 0-5 or by their names.
+ ``min_rep_thresh``    ``int``               Threshold for the minimum number of repetitions of a k-mer within a set. K-mers that do not meet
+                                             this threshold are not included in the basis set for the given family.
+ ``processes``         ``int``               Number of processes spawned via Python multiprocessing.
+                                             See the `official Python documentation <https://docs.python.org/3/library/multiprocessing.html>`_
+                                             for more details.
+====================  ====================  ===================================================================================================
 
 Alphabets 
 :::::::::
@@ -65,88 +65,88 @@ Input Parameters
 
 General parameters related to input sequences and files.
 
-========================  =========================================================================
-     Parameter             Description
-========================  =========================================================================
- ``example_index_file``    File contaning example indices (if False, assumes no file)
- ``kmer_set_file``         File containing k-mer basis set (if False, assumes no file)
- ``file_extensions``       File extensions to be considered as valid for input sequence files
- ``regex``                 Regular expression (regex) to parse family names from filenames
-========================  =========================================================================
+========================  ====================  =========================================================================
+     Parameter                    Type            Description
+========================  ====================  =========================================================================
+ ``example_index_file``    ``str``                File contaning example indices (if False, assumes no file)
+ ``kmer_set_file``         ``str``                File containing k-mer basis set (if False, assumes no file)
+ ``file_extensions``       ``list``               File extensions to be considered as valid for input sequence files
+ ``regex``                 ``str``                Regular expression (regex) to parse family names from filenames
+========================  ====================  =========================================================================
 
 Output Parameters
 `````````````````
 
 General parameters related to the output produced by Snekmer.
 
-========================  ========================================================================================
-     Parameter             Description
-========================  ========================================================================================
- ``nested_dir``            If True, saves files into nested directory structure, i.e. `{save_dir}/{alphabet}/{k}`
- ``verbose``               If True, print verbose output to log files
- ``format``                K-mer output format (choices: ``"simple"``, ``"gist"``, or ``"sieve"``)
- ``filter_duplicates``     If True, removes duplicate sequences
- ``n_terminal_file``       Specify file for n terminal fusion to sequence (if False, assumes no file)
- ``shuffle_n``             Number of sequences to scramble; only applies if ``shuffle_sequences`` is True
- ``shuffle_sequences``     if True, scramble sequences
-========================  ========================================================================================
+========================  =====================  ========================================================================================
+     Parameter                     Type           Description
+========================  =====================  ========================================================================================
+ ``nested_dir``            ``bool``               If True, saves files into nested directory structure, i.e. `{save_dir}/{alphabet}/{k}`
+ ``verbose``               ``bool``               If True, print verbose output to log files
+ ``format``                ``str``                K-mer output format (choices: ``"simple"``, ``"gist"``, or ``"sieve"``)
+ ``filter_duplicates``     ``bool``               If True, removes duplicate sequences
+ ``n_terminal_file``       ``str`` or ``bool``    Specify file for n terminal fusion to sequence (if False, assumes no file)
+ ``shuffle_n``             ``int`` or ``bool``    Number of sequences to scramble; only applies if ``shuffle_sequences`` is True
+ ``shuffle_sequences``     ``bool``               If True, scramble sequences
+========================  =====================  ========================================================================================
 
 Score Parameters
 ````````````````
 
 General parameters related to how Snekmer calculates family scores for k-mers.
 
-========================  =================================================================================
-     Parameter             Description
-========================  =================================================================================
- ``scaler``                *currently inactive*
- ``scaler_kwargs``         Dictionary of keyword arguments to pass to k-mer scaler object
- ``labels``                If None, uses default kmer set for scaler. Otherwise, uses the ones specified
- ``lname``                 Label name (e.g. ``"family"``)
-========================  =================================================================================
+========================  =====================  =================================================================================
+     Parameter                   Type             Description
+========================  =====================  =================================================================================
+ ``scaler``                                       *currently inactive*
+ ``scaler_kwargs``         ``dict``               Keyword arguments to pass to k-mer scaler object
+ ``labels``                ``str`` or ``None``    If None, uses default kmer set for scaler. Otherwise, uses the ones specified
+ ``lname``                 ``str`` or ``None``    Label name (e.g. ``"family"``)
+========================  =====================  =================================================================================
 
 Model Parameters
 ````````````````
 
 General parameters related to Snekmer's model mode (``snekmer model``), wherein supervised models are trained via the workflow.
 
-========================  =========================================================================
-     Parameter             Description
-========================  =========================================================================
- ``n``                     *currently inactive*
- ``cv``                    Number of cross-validation folds for model evaluation
- ``use_score``             *currently inactive*
- ``random_state``          random state for model evaluation
-========================  =========================================================================
+========================  =====================  =========================================================================
+     Parameter                    Type            Description
+========================  =====================  =========================================================================
+ ``n``                                            *currently inactive*
+ ``cv``                    ``int``                Number of cross-validation folds for model evaluation
+ ``use_score``                                    *currently inactive*
+ ``random_state``          ``int`` or ``None``    Random state for model evaluation
+========================  =====================  =========================================================================
 
 Cluster Parameters
 ``````````````````
 
 General parameters related to Snekmer's cluster mode (``snekmer cluster``), wherein unsupervised clusters are produced via the workflow.
 
-========================  =========================================================================
-     Parameter             Description
-========================  =========================================================================
- ``method``                Clustering method (options: ``"kmeans"``, ``"agglomerative"``,
-                           ``"correlation"``, ``"density"``, ``"birch"``, or ``"optics"``)
- ``params``                Dictionary of parameters to pass to the clustering algorithm
-========================  =========================================================================
+========================  ====================  =========================================================================
+     Parameter                    Type            Description
+========================  ====================  =========================================================================
+ ``method``                ``str``                Clustering method (options: ``"kmeans"``, ``"agglomerative"``,
+                                                  ``"correlation"``, ``"density"``, ``"birch"``, or ``"optics"``)
+ ``params``                ``dict``               Parameters to pass to the clustering algorithm
+========================  ====================  =========================================================================
 
 Optional Parameters
 ```````````````````
 
 Optional or inactive parameters for custom user-defined analyses.
 
-========================  =========================================================================
-     Parameter             Description
-========================  =========================================================================
- ``start``                 Start index of sequence (for sequence slicing)
- ``end``                   End index of sequence (for sequence slicing)
- ``nucleotide``            If True, use nucleotide residues as alphabet
- ``randomize_alphabet``    If True, select an alphabet at random
- ``walk``                  *set as False*; if True, do random kmer walk (note: currently inactive)
- ``mode``                  *set as None*
-========================  =========================================================================
+========================  =====================  =========================================================================
+     Parameter                    Type            Description
+========================  =====================  =========================================================================
+ ``start``                 ``int`` or ``None``    Start index of sequence (for sequence slicing)
+ ``end``                   ``int`` or ``None``    End index of sequence (for sequence slicing)
+ ``nucleotide``            ``bool``               If True, use nucleotide residues as alphabet
+ ``randomize_alphabet``    ``bool``               If True, select an alphabet at random
+ ``walk``                  ``False``              *set as False*; if True, do random kmer walk (note: currently inactive)
+ ``mode``                  ``None``               *set as None*
+========================  =====================  =========================================================================
  
 
 Parameter Descriptions for ``search.yaml``
@@ -154,27 +154,27 @@ Parameter Descriptions for ``search.yaml``
 
 The `search.yaml` file is required for `snekmer search`.
 
-========================  ========================================================================================
-     Parameter             Description
-========================  ========================================================================================
- ``file_extensions``       File extensions to be considered as valid for input sequence files
- ``model_dir``             Directory containing model object(s) (.model)
- ``basis_dir``             Directory containing k-mer basis set(s) (.kmers)
- ``score_dir``             Directory containing scoring object(s) (.scorer)
- ``k``                     See `Required Parameters`_
- ``alphabet``              See `Required Parameters`_
- ``min_rep_thresh``        See `Required Parameters`_
- ``processes``             See `Required Parameters`_
- ``nested_dir``            See `Output Parameters`_
- ``start``                 See `Optional Parameters`_
- ``end``                   See `Optional Parameters`_
- ``nucleotide``            See `Optional Parameters`_
- ``randomize_alphabet``    See `Optional Parameters`_
- ``regex``                 See `Input Parameters`_
- ``verbose``               See `Optional Parameters`_
- ``walk``                  See `Optional Parameters`_
- ``mode``                  See `Optional Parameters`_
-========================  ========================================================================================
+========================  =====================  ========================================================================================
+     Parameter                     Type           Description
+========================  =====================  ========================================================================================
+ ``file_extensions``       ``list``               File extensions to be considered as valid for input sequence files
+ ``model_dir``             ``str``                Directory containing model object(s) (.model)
+ ``basis_dir``             ``str``                Directory containing k-mer basis set(s) (.kmers)
+ ``score_dir``             ``str``                Directory containing scoring object(s) (.scorer)
+ ``k``                     ``int``                See `Required Parameters`_
+ ``alphabet``              ``int`` or ``str``     See `Required Parameters`_
+ ``min_rep_thresh``        ``int``                See `Required Parameters`_
+ ``processes``             ``int``                See `Required Parameters`_
+ ``nested_dir``            ``bool``               See `Output Parameters`_
+ ``start``                 ``int`` or ``None``    See `Optional Parameters`_
+ ``end``                   ``int`` or ``None``    See `Optional Parameters`_
+ ``nucleotide``            ``bool``               See `Optional Parameters`_
+ ``randomize_alphabet``    ``bool``               See `Optional Parameters`_
+ ``regex``                 ``str``                See `Input Parameters`_
+ ``verbose``               ``bool``               See `Optional Parameters`_
+ ``walk``                  ``False``              See `Optional Parameters`_
+ ``mode``                  ``None``               See `Optional Parameters`_
+========================  =====================  ========================================================================================
 
 
 Parameter Descriptions for ``cluster.yaml``
