@@ -95,7 +95,8 @@ rule all:
 # if any files are gzip zipped, unzip them
 use rule unzip from process_input with:
     output:
-        join("input", "{uz}"),
+        unzipped=join("input", "{uz}"),
+        zipped=join("input", "zipped", "{uz}.gz"),
 
 
 # read and process parameters from config

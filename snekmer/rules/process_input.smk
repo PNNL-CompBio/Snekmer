@@ -5,38 +5,52 @@ author: @christinehc
 """
 # imports
 from datetime import datetime
-from os import makedirs
+from os import makedirs, remove
 from os.path import dirname, exists, join
-
-from pandas import DataFrame
+import gzip
 
 import snekmer as skm
+from pandas import DataFrame
+
 
 # define rules
 rule unzip:
     input:
         join("input", "{uz}.gz"),
     output:
-        join("input", "{uz}"),
-    params:
-        outdir=join("input", "zipped"),
-    shell:
-        "mkdir -p {params.outdir} && gunzip -c {input} > {output} && mv {input} {params.outdir}/."
+        unzipped=join("input", "{uz}"),
+        zipped=join("input", "zipped", "{uz}.gz"),
+    run:
+        # preserve zipped file
+        copy(input[0], output.zipped)
+
+        # unzip and save file contents
+        with gzip.open(input[0], "rb") as openf, open(output.unzipped, "wb") as savef:
+            file_content = openf.readlines()
+            for line in file_content:
+                savef.write(line)
+
+        remove(input[0])
 
 
-# rule perform_kmer_walk:
-#     input:
-#         fasta=get_fasta_files
-#     output:
-#         # need to fix code to properly generate an output...
-#     run:
-#         skm.walk.kmer_walk(input.fasta)
+        # rule perform_kmer_walk:
+        #     input:
+        #         fasta=get_fasta_files
+        #     output:
+        #         # need to fix code to properly generate an output...
+        #     run:
+        #         skm.walk.kmer_walk(input.fasta)
 
 
-# read and process parameters from config
+        # read and process parameters from config
+
+
+
 rule preprocess:
     input:
-        fasta=lambda wildcards: join("input", f"{wildcards.nb}.{fa_map[wildcards.nb]}"),
+        fasta=lambda wildcards: join(
+            "input", f"{wildcards.nb}.{fa_map[wildcards.nb]}"
+        ),
     output:
         data=join("output", "processed", "{nb}.json"),
         desc=join("output", "processed", "{nb}_description.csv"),
@@ -219,3 +233,4 @@ rule preprocess:
 
         # record script runtime
         skm.utils.log_runtime(log[0], start_time)
+
