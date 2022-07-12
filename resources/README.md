@@ -16,4 +16,4 @@ The example YAML files included are:
 ## Tutorials
 
 The `tutorial` folder contains Jupyter notebooks outlining certain aspects
-of the Kmer pipeline.
+of Snekmer.

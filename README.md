@@ -5,7 +5,7 @@
 Pipeline to apply encoded Kmer analysis to protein sequences
 
 <p align="center">
-  <img align="center" src="resources/snekmer_workflow.png">
+  <img align="center" src="resources/snekmer_workflow.svg">
 </p>
 
 For installation instructions, documentation, and more, refer to

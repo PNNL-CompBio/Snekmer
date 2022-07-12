@@ -5,6 +5,7 @@ author: @christinehc
 """
 # imports
 import numpy as np
+from hdbscan import HDBSCAN
 from sklearn.base import ClusterMixin
 from sklearn.cluster import (
     AgglomerativeClustering,
@@ -14,6 +15,7 @@ from sklearn.cluster import (
     MiniBatchKMeans,
 )
 from scipy.cluster.hierarchy import fclusterdata
+from umap import UMAP
 
 
 # wrap scipy correlation clustering into sklearn-like API
@@ -56,6 +58,8 @@ MODELS = {
     "density": DBSCAN,
     "birch": Birch,
     "optics": OPTICS,
+    "hdbscan": HDBSCAN,
+    "umap": UMAP,
 }
 
 

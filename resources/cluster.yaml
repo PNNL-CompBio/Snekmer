@@ -1,6 +1,6 @@
 __default__:
   name: snekmer
-  account:
+  account: sbd_sfa
   time: "8:00:00"
   partition:
   nodes: 1

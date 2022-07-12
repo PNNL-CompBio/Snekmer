@@ -19,8 +19,8 @@ import sphinx_rtd_theme
 # -- Project information -----------------------------------------------------
 
 project = "Snekmer"
-copyright = "2022 by Christine Chang, William Nelson, and Jason McDermott"
-author = "Christine Chang, William Nelson, and Jason McDermott"
+copyright = "2022 by C. H. Chang, W. C. Nelson, and J. E. McDermott"
+author = "C. H. Chang, W. C. Nelson, and J. E. McDermott"
 
 
 # -- General configuration ---------------------------------------------------

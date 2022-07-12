@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Common Issues &mdash; Snekmer  documentation</title>
+  <title>Frequently Asked Questions &mdash; Snekmer  documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
@@ -53,8 +53,16 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Troubleshooting</span></p>
 <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Common Issues</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#installation-errors">Installation Errors</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Frequently Asked Questions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#installation">Installation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#the-conda-install-command-is-taking-a-long-time-why">The <code class="docutils literal notranslate"><span class="pre">conda</span> <span class="pre">install</span></code> command is taking a long time. Why?</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#usage">Usage</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#why-i-am-encountering-a-missinginputexception-when-i-try-to-run-snekmer">Why I am encountering a <code class="docutils literal notranslate"><span class="pre">MissingInputException</span></code> when I try to run Snekmer?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#i-cannot-build-models-correctly">I cannot build models correctly.</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -73,7 +81,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
-      <li>Common Issues</li>
+      <li>Frequently Asked Questions</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/troubleshooting/common.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -83,16 +91,34 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="common-issues">
-<h1>Common Issues<a class="headerlink" href="#common-issues" title="Permalink to this heading"></a></h1>
+  <section id="frequently-asked-questions">
+<h1>Frequently Asked Questions<a class="headerlink" href="#frequently-asked-questions" title="Permalink to this heading"></a></h1>
 <p>Some commonly encountered questions are addressed here. For more
 detailed or specific questions, feel free to <a class="reference external" href="https://github.com/PNNL-CompBio/Snekmer/issues">submit an issue on Github</a>.</p>
-<section id="installation-errors">
-<h2>Installation Errors<a class="headerlink" href="#installation-errors" title="Permalink to this heading"></a></h2>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">MissingInputException</span></code>: Typically, this means that Snekmer is unable to detect input files, and the input files may not follow the required directory structure. For more information, including an example of the file structure needed, see <a class="reference internal" href="../getting_started/cli.html#getting-started-configuration"><span class="std std-ref">Configuration</span></a>.</p></li>
-</ul>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this heading"></a></h2>
+<section id="the-conda-install-command-is-taking-a-long-time-why">
+<h3>The <code class="docutils literal notranslate"><span class="pre">conda</span> <span class="pre">install</span></code> command is taking a long time. Why?<a class="headerlink" href="#the-conda-install-command-is-taking-a-long-time-why" title="Permalink to this heading"></a></h3>
+<p>Installation of <code class="docutils literal notranslate"><span class="pre">snakemake</span></code> via conda typically requires a fairly
+long compile time. To avoid this, you can install Snakemake via
+<cite>Mamba &lt;https://github.com/mamba-org/mamba&gt;`_</cite> (see the official
+<a class="reference external" href="https://snakemake.readthedocs.io/en/stable/getting_started/installation.html">Snakemake installation instructions</a>
+for details).</p>
+</section>
+</section>
+<section id="usage">
+<h2>Usage<a class="headerlink" href="#usage" title="Permalink to this heading"></a></h2>
+<section id="why-i-am-encountering-a-missinginputexception-when-i-try-to-run-snekmer">
+<h3>Why I am encountering a <code class="docutils literal notranslate"><span class="pre">MissingInputException</span></code> when I try to run Snekmer?<a class="headerlink" href="#why-i-am-encountering-a-missinginputexception-when-i-try-to-run-snekmer" title="Permalink to this heading"></a></h3>
+<p>Typically, this means that Snekmer is unable to detect input files,
+and the input files may not follow the required directory structure.
+For more information, including an example of the file structure
+needed, see <a class="reference internal" href="../getting_started/cli.html#getting-started-configuration"><span class="std std-ref">Configuration</span></a>.</p>
+</section>
+<section id="i-cannot-build-models-correctly">
+<h3>I cannot build models correctly.<a class="headerlink" href="#i-cannot-build-models-correctly" title="Permalink to this heading"></a></h3>
 <p><em>To be continued…</em></p>
+</section>
 </section>
 </section>
 
@@ -106,7 +132,7 @@ detailed or specific questions, feel free to <a class="reference external" href=
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2022 by Christine Chang, William Nelson, and Jason McDermott.</p>
+    <p>&#169; Copyright 2022 by C. H. Chang, W. C. Nelson, and J. E. McDermott.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
