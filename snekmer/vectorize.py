@@ -10,6 +10,7 @@ from typing import Dict, Generator, Set, Union
 import numpy as np
 from numpy.typing import NDArray
 from .alphabet import FULL_ALPHABETS, get_alphabet, get_alphabet_keys
+from .utils import check_list
 
 # store kmer basis set and transform new vectors into fitted basis
 class KmerBasis:

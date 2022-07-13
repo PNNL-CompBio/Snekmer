@@ -333,7 +333,7 @@ rule model:
             df_test = df_test.merge(
                 pd.DataFrame(
                     scorer.predict(
-                        skm.model.to_feature_matrix(df_test["sequence_vector"]),
+                        skm.utils.to_feature_matrix(df_test["sequence_vector"]),
                         list(kmer.kmer_set.kmers),
                     )
                 ),

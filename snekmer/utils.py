@@ -5,7 +5,7 @@ author: @christinehc
 """
 # imports
 import collections.abc
-from datetime import datetime
+import datetime
 import re
 from os.path import basename, splitext
 from typing import Any, List, Optional, Tuple, Union
@@ -43,7 +43,7 @@ def _format_timedelta(timedelta: datetime.timedelta) -> str:
 
 
 def log_runtime(
-    filename: str, start_time: datetime.datetime, step: bool = False
+    filename: str, start_time: datetime.datetime, step: Optional[str] = None
 ) -> None:
     """Append runtimes to specified log file.
 
@@ -53,7 +53,7 @@ def log_runtime(
         /path/to/log/file.
     start_time : datetime.datetime object
         Previous `datetime.now()` result.
-    step : str or False (default: False)
+    step : str or None (default: None)
         Optional name for step
 
     Returns
@@ -62,8 +62,8 @@ def log_runtime(
         Appends runtime information to file and returns no output.
 
     """
-    end_time = datetime.now()
-    if not step:
+    end_time = datetime.datetime.now()
+    if step is None:
         step = "end"
 
     with open(filename, "a") as f:
