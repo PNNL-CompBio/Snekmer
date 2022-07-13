@@ -1,5 +1,5 @@
 from . import alphabet
-from . import transform
+from .rules.legacy import transform
 from .rules.legacy import features
 from . import utils
 from . import io
