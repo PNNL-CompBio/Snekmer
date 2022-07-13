@@ -195,7 +195,7 @@ def cv_pr_curve(clf, X, y, title="PR Curve", ax=None, dpi=400):
 
 
 # plot PCA explained variance
-def show_explained_variance_curve(feature_matrix):
+def explained_variance_curve(feature_matrix):
     X_scaled = StandardScaler().fit_transform(feature_matrix)
     pca = PCA()
     pca.fit(X_scaled)
@@ -211,10 +211,10 @@ def show_explained_variance_curve(feature_matrix):
 
 
 # plot clusters using tsne (requires scaling + pca)
-def get_tsne_clusters(feature_matrix, clusters, **tsne_args):
+def cluster_tsne(feature_matrix, clusters, **tsne_args):
     X_scaled = StandardScaler().fit_transform(feature_matrix)
     X_pca = PCA().fit_transform(X_scaled)
-    X_embedded = TSNE(**tsne_args).fit_transform(X_pca)  # [:, :100])#_unscaled)
+    X_embedded = TSNE(**tsne_args).fit_transform(X_pca)  # [:, :100])  #_unscaled)
 
     fig, ax = plt.subplots(dpi=200, figsize=(4, 3))
     sns.scatterplot(x=X_embedded[:, 0], y=X_embedded[:, 1], hue=clusters, ax=ax)

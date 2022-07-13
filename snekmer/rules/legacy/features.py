@@ -1,19 +1,21 @@
-"""features: Snekmer output feature processing.
+"""features: Output functions for kmer features.
 
 author: @christinehc
 
 """
 # imports
-from collections import Counter
-from itertools import repeat
-from multiprocessing import Pool
-from .transform import vectorize_string
+from typing import Any, Dict, IO, List, Optional
 
 
 # functions
 def output_features(
-    save_to, fformat, feature_sets=None, labels=None, mode="w", **kwargs
-):
+    save_to: str,
+    fformat: str,
+    feature_sets: Optional[List[List[Any]]] = None,
+    labels: Optional[List] = None,
+    mode: str = "w",
+    **kwargs,
+) -> None:
     """Generate output features based on input fasta file.
 
     Parameters
@@ -48,20 +50,25 @@ def output_features(
 
     # update any gist files
     if fformat in ["gist", "both"]:
-        output_gist(
+        _output_gist(
             save_to, labels=labels, feature_sets=feature_sets, mode=mode, **kwargs
         )
 
     # update any sieve files
     if fformat in ["sieve", "both"]:
-        output_sieve(save_to, feature_sets=feature_sets, mode=mode, **kwargs)
+        _output_sieve(save_to, feature_sets=feature_sets, mode=mode, **kwargs)
 
     # update matrix files
     if fformat == "matrix":
-        output_matrix(save_to, labels=labels, feature_sets=feature_sets, mode=mode)
+        _output_matrix(save_to, labels=labels, feature_sets=feature_sets, mode=mode)
 
 
-def output_gist(filename, labels=None, feature_sets=None, mode="w"):
+def _output_gist(
+    filename: str,
+    labels: List[str] = None,
+    feature_sets: Optional[List[str]] = None,
+    mode: str = "w",
+) -> None:
     """Output features in gist format.
 
     Parameters
@@ -96,21 +103,27 @@ def output_gist(filename, labels=None, feature_sets=None, mode="w"):
             for i in range(len(feature_sets[0]) - 1):
                 tf.write("\tlabel%d" % i)
         for features in feature_sets:
-            output_gist_features(tf, features, mode)
-            output_gist_class(tf, features, mode)
+            _output_gist_features(tf, features, mode)
+            _output_gist_class(tf, features, mode)
 
 
-def output_sieve(filename, feature_sets=None, mode="w", **kwargs):
+def _output_sieve(
+    filename: str,
+    feature_sets: List[str],
+    labels: Optional[List[str]] = None,
+    mode: str = "w",
+    **kwargs,
+) -> None:
     """Output features in sieve format.
 
     Parameters
     ----------
     filename : str
         /path/to/file.ext
-    labels : list
-        (default: None)
     feature_sets : type
         Description of parameter `feature_sets`.
+    labels : list
+        (default: None)
     mode : str
         (default: 'w')
 
@@ -121,7 +134,11 @@ def output_sieve(filename, feature_sets=None, mode="w", **kwargs):
 
     """
 
-    def output_sieve_features(features, filename, example_index=None):
+    def output_sieve_features(
+        features: List[str],
+        filename: str,
+        example_index: Optional[Dict[str, float]] = None,
+    ) -> None:
         """Write features to SIEVE output file.
 
         Parameters
@@ -141,7 +158,10 @@ def output_sieve(filename, feature_sets=None, mode="w", **kwargs):
         """
         # parse first item in feature list as feature ID
         fid = features[0]
-        value = example_index.get(fid, 0.0)
+        if example_index is not None:
+            value = example_index.get(fid, 0.0)
+        else:
+            value = 0.0
 
         with open(filename, "a") as f:
             f.write("pattern\t%s\t%d\n" % (fid, len(features) - 1))
@@ -153,12 +173,16 @@ def output_sieve(filename, feature_sets=None, mode="w", **kwargs):
             f.flush()
 
     # pattern_out = f"{filename}.pattern"
-    with open(filename, mode) as f:
-        for features in feature_sets:
-            output_sieve_features(features, f, **kwargs)
+    for features in feature_sets:
+        output_sieve_features(features, filename, **kwargs)
 
 
-def output_matrix(filename, labels=False, feature_sets=False, mode="w"):
+def _output_matrix(
+    filename: str,
+    labels: Optional[List[str]] = None,
+    feature_sets: List = None,
+    mode: str = "w",
+) -> None:
     """Output features in matrix format.
 
     Parameters
@@ -166,7 +190,7 @@ def output_matrix(filename, labels=False, feature_sets=False, mode="w"):
     filename : str
         /path/to/file.ext
     labels : list
-        (default: False)
+        (default: None)
     feature_sets : type
         Description of parameter `feature_sets`.
     mode : str
@@ -179,19 +203,19 @@ def output_matrix(filename, labels=False, feature_sets=False, mode="w"):
 
     """
     with open(filename, mode) as f:
-        if labels:
+        if labels is not None:
             f.write("%s" % labels[0])
             for label in labels[1:]:
                 f.write("\t%s" % label)
             f.write("\n")
             f.flush()
 
-    if feature_sets:
+    if feature_sets is not None:
         for features in feature_sets:
-            output_gist_features(filename, features, mode)
+            _output_gist_features(filename, features, mode)
 
 
-def output_gist_features(filename, features, mode="w"):
+def _output_gist_features(filename: str, features: List[str], mode: str = "w") -> None:
     """Write features to gist output file.
 
     Parameters
@@ -215,7 +239,12 @@ def output_gist_features(filename, features, mode="w"):
     # filename.flush()
 
 
-def output_gist_class(filename, features, example_index=None, mode="w"):
+def _output_gist_class(
+    filename: str,
+    features: List[str],
+    example_index: Optional[Dict[str, float]] = None,
+    mode: str = "w",
+) -> None:
     """Write gist class to specified output file.
 
     Parameters
@@ -236,106 +265,10 @@ def output_gist_class(filename, features, example_index=None, mode="w"):
     pattern = f"{filename.split('.')[0]}.pattern"
     with open(pattern, mode) as f:
         fid = features[0]
-        value = example_index.get(fid, -1)
+        if example_index is not None:
+            value = example_index.get(fid, -1)
+        else:
+            value = -1
         f.write("%s\t%d\n" % (features[0], value))
         # filename.flush()
 
-
-def define_feature_space(
-    sequence_dict,
-    k,
-    alphabet=None,
-    start=None,
-    end=None,
-    min_rep_thresh=2,
-    verbose=False,
-    log_file=False,
-    processes=2,
-):
-    """Create a feature dictionary defined from parameters.
-
-    Parameters
-    ----------
-    sequence_dict : dict
-        Sequence dictionary {ID: sequence}.
-    k : int
-        Sequence length k of the kmer.
-    alphabet : str
-        Name of the alphabet (e.g. "reduced_alphabet_0")
-        (default: "None"; applies no mapping).
-    start : int or None
-        Start index of the sequence (for sequence slicing).
-    end : int or None
-        End index of the sequence (for sequence slicing).
-    min_rep_thresh : type
-        Description of parameter `min_rep_thresh`.
-    verbose : bool
-        If True, enables verbose output (default: False).
-    log_file : str
-        /path/to/log.file for verbose outputs (default: False)
-        If False, pipes verbose outputs to console instead.
-    processes : int
-        (for multithreading) Number of partitions to create
-
-    Returns
-    -------
-    dict
-        Filtered feature dictionary {ID: sequence}.
-
-    """
-    # use multiprocessing to parallelize kmerization step
-    feature_dict = {}
-    with Pool(processes) as pool:
-        feature_dict = pool.starmap(
-            vectorize_string,
-            zip(
-                sequence_dict.values(),  # sequence
-                repeat(k),  # k
-                repeat(alphabet),  # alphabet
-                repeat(start),  # start
-                repeat(end),  # end
-                repeat(feature_dict),  # feature_dict
-                repeat(None),  # filter_list
-                repeat(None),  # exclude
-                repeat(True),  # return_dict
-                repeat(False),  # verbose
-                repeat(False),
-            ),  # log_file
-        )
-    # combine dictionaries and sum any values with common keys
-    feature_dict = dict(sum(map(Counter, feature_dict), Counter()))
-
-    # if this is between 0 and 1 then it's a percentage
-    if 0 < min_rep_thresh < 1:
-        min_rep_thresh = len(feature_dict.keys()) * min_rep_thresh
-
-    # filter out all those below the min_rep_thresh
-    if min_rep_thresh:
-        filter_dict = {}
-        for key in feature_dict.keys():
-            if feature_dict[key] >= min_rep_thresh:
-                filter_dict[key] = feature_dict[key]
-    else:
-        filter_dict = feature_dict
-
-    if verbose and log_file:
-        with open(log_file, "w") as f:
-            f.write(
-                (
-                    "Feature space: {0} kmers with more than "
-                    "{1} representation in {2} sequences"
-                ).format(len(filter_dict), min_rep_thresh, len(sequence_dict))
-            )
-    elif verbose and not log_file:
-        print(
-            (
-                "Feature space: {0} kmers with more than "
-                "{1} representation in {2} sequences"
-            ).format(len(filter_dict), min_rep_thresh, len(sequence_dict))
-        )
-
-    filter_list = filter_dict.keys()
-    if len(filter_list) == 0:
-        raise ValueError(("Prefiltered feature space cannot be empty."))
-
-    return filter_dict

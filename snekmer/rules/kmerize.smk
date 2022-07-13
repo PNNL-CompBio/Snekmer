@@ -3,6 +3,8 @@
 author: @christinehc
 
 """
+
+
 # include unzipping module
 include: "process_input.smk"
 
@@ -41,42 +43,11 @@ FA_MAP = {
 }
 
 
-# rule all:
-#     input:
-#         expand(join("input", '{uz}'), uz=UZS),  # require unzipping
-#         expand(join("output", "features", "{nb}", "{fa}.json"), nb=NON_BGS, fa=FAS)
-
-
-rule generate:
-    input:
-        params=join("output", "processed", "{nb}.json"),
-    output:
-        labels=join("output", "labels", "{nb}.txt"),
-    log:
-        join("output", "labels", "log", "{nb}.log"),
-    run:
-        start_time = datetime.now()
-
-        # read processed features
-        with open(input.params, "r") as f:
-            params = json.load(f)
-
-        # generate labels only
-        labels = skm.transform.generate_labels(
-            params["k"],
-            alphabet=params["alphabet"],
-            filter_list=params["filter_list"],
-        )
-        if config["output"]["format"] == "simple":
-            skm.features.output_features(output.labels, "matrix", labels=labels)
-
-        # record script runtime
-        skm.utils.log_runtime(log[0], start_time)
-
-
 rule vectorize:
     input:
-        fasta=lambda wildcards: join("input", f"{wildcards.nb}.{FA_MAP[wildcards.nb]}"),
+        fasta=lambda wildcards: join(
+            "input", f"{wildcards.nb}.{FA_MAP[wildcards.nb]}"
+        ),
     output:
         data=join("output", "vector", "{nb}.npz"),
         kmerobj=join("output", "kmerize", "{nb}.kmers"),
@@ -107,109 +78,3 @@ rule vectorize:
         with open(output.kmerobj, "wb") as f:
             pickle.dump(kmer, f)
 
-
-# old code from here
-rule vectorize_v0:
-    input:
-        kmers=join("output", "labels", "{nb}.txt"),
-        params=join("output", "processed", "{nb}.json"),
-        fastas=join("input", "{nb}.fasta"),
-    log:
-        join("output", "features", "log", "{nb}.log"),
-    output:
-        files=expand(join("output", "features", "full", "{{nb}}", "{fa}.json.gz"), fa=FAS),
-    run:
-        start_time = datetime.now()
-
-        # get kmers for this particular set of sequences
-        kmers = skm.io.read_output_kmers(input.kmers)
-
-        # read processed features
-        with open(input.params, "r") as f:
-            params = json.load(f)
-
-        # sort i/o lists to match wildcard order
-        fastas = sorted(input.fastas)
-        outfiles = sorted(output.files)
-
-        # revectorize based on full kmer list
-        for i, fa in enumerate(fastas):
-            results = {"seq_id": [], "vector": []}
-            seq_list, id_list = skm.io.read_fasta(fa)
-            for seq, sid in zip(seq_list, id_list):
-                results["seq_id"] += [sid]
-                results["vector"] += [
-                    skm.transform.vectorize_string(
-                        seq,
-                        params["k"],
-                        params["alphabet"],
-                        start=config["start"],
-                        end=config["end"],
-                        filter_list=kmers,  # params['filter_list'],
-                        verbose=False,  # way too noisy for batch process
-                        log_file=log[0],
-                    )
-                ]
-
-            # with open(outfiles[i], 'w') as f:
-            #     json.dump(results, f)
-
-            with gzip.open(outfiles[i], "wt", encoding="ascii") as zipfile:
-                json.dump(results, zipfile)
-
-        # record script runtime
-        skm.utils.log_runtime(log[0], start_time)
-
-
-rule vectorize_full:
-    input:
-        # kmers=join("output", "labels", "full", "{nb}.txt"),
-        params=join("output", "processed", "{nb}.json"),
-        fasta=join("input", "{nb}.fasta"),
-    log:
-        join("output", "features", "log", "{nb}.log"),
-    output:
-        file=join("output", "features", "full", "{nb}.json.gz"),
-        kmers=join("output", "labels", "full", "{nb}.txt")
-    run:
-        start_time = datetime.now()
-
-        # read processed features
-        with open(input.params, "r") as f:
-            params = json.load(f)
-
-        residues, _, _, _ = skm.transform.parse_mapping(params["alphabet"])
-
-        # generate full kmer lest
-        kmers = [
-            "".join(chars) for chars in itertools.product(residues, repeat=params["k"])
-        ]
-
-
-        # revectorize based on full kmer list
-        # for i, fa in enumerate(fastas):
-        results = {"seq_id": [], "vector": []}
-        seq_list, id_list = skm.io.read_fasta(input.fasta)
-        for seq, sid in zip(seq_list, id_list):
-            results["seq_id"] += [sid]
-            results["vector"] += [
-                skm.transform.vectorize_string(
-                    seq,
-                    params["k"],
-                    params["alphabet"],
-                    start=config["start"],
-                    end=config["end"],
-                    filter_list=kmers,  # params['filter_list'],
-                    verbose=False,  # way too noisy for batch process
-                    log_file=log[0],
-                )
-            ]
-
-        with gzip.open(output.file, "wt", encoding="ascii") as zipfile:
-            json.dump(results, zipfile)
-
-        if config["output"]["format"] == "simple":
-            skm.features.output_features(output.kmers, "matrix", labels=kmers)
-
-        # record script runtime
-        skm.utils.log_runtime(log[0], start_time)

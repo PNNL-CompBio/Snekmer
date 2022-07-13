@@ -1,6 +1,6 @@
 from . import alphabet
 from . import transform
-from . import features
+from .rules.legacy import features
 from . import utils
 from . import io
 from . import plot

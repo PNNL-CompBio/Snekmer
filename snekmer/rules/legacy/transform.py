@@ -7,117 +7,17 @@ author: @christinehc
 import random
 import re
 from multiprocessing import Pool
+from typing import Any, Dict, Optional
 
 import numpy as np
 from Bio import SeqIO
 
-from .alphabet import ALPHABET_ORDER, ALPHABETS, StandardAlphabet, get_alphabets
-from .utils import check_list
-
-
-# store kmer basis set and transform new vectors into fitted basis
-class KmerBasis:
-    """Store kmer basis set and perform basis set transforms.
-
-    Attributes
-    ----------
-    basis : list
-        Description of attribute `basis`.
-    basis_order : type
-        Description of attribute `basis_order`.
-
-    """
-
-    def __init__(self):
-        self.basis = []
-        self.basis_order = {}
-
-    def set_basis(self, basis):
-        """Specify kmer basis set.
-
-        Parameters
-        ----------
-        basis : list or array-like of str
-            Ordered array of kmer strings.
-
-        Returns
-        -------
-        self: object
-            Fitted KmerBasis object.
-
-        """
-        if not check_list(basis):
-            raise TypeError("`basis` input must be list or array-like.")
-
-        self.basis = basis
-        self.basis_order = {i: k for i, k in enumerate(basis)}
-
-    def transform(self, vector, vector_basis):
-        """Apply basis to new vector with separate basis.
-
-        e.g. If the basis is set to a list of p kmers, the input
-            vector array of size (m, n) -> (m, p).
-
-        Note: Order is preserved from kmer arrays. Kmer count
-        vectors are assumed to follow the order from corresponding
-        kmer basis sets.
-
-        Parameters
-        ----------
-        vector : list or array-like
-            Array of size (m, n).
-            Contains m vectors built from n kmers in the basis.
-        vector_basis : list or array-like of str
-            Array of size (n,) of ordered kmers.
-
-        Returns
-        -------
-        list or array-like
-            Transformed array of size (m, p).
-
-        """
-        if not check_list(vector_basis):
-            raise TypeError("`vector_basis` input must be list or array-like.")
-
-        if not isinstance(vector, np.ndarray):
-            vector = np.asarray(vector)
-
-        # make sure input vector matches shape of vector basis
-        try:
-            vector_size = vector.shape[1]
-        except IndexError:
-            vector_size = len(vector)
-
-        if vector_size != len(vector_basis):
-            raise ValueError(
-                "Vector and supplied basis shapes"
-                " must match (vector shape ="
-                f" {vector.shape}"
-                " and len(vector_basis) ="
-                f" {len(vector_basis)})."
-            )
-
-        # get index order of kmers in the vector basis set
-        vector_basis_order = {
-            k: i if k in self.basis else np.nan for i, k in enumerate(vector_basis)
-        }
-
-        # convert vector basis into set basis
-        i_convert = list()
-        for i in range(len(self.basis)):
-            kmer = self.basis_order[i]  # get basis set kmer in correct order
-            idx = vector_basis_order[kmer]  # locate kmer in the new vector
-            i_convert.append(idx)
-
-        # correctly index into ND or 1D array
-        try:
-            return vector[:, i_convert]
-        except IndexError as e:
-            return vector[i_convert]
+from ...alphabet import ALPHABET_ORDER, ALPHABETS, StandardAlphabet, get_alphabets
+from ...utils import check_list
 
 
 # functions
-def identity(character, mapping=None):
+def identity(character: Any, mapping: None = None) -> Any:
     """Return self.
 
     Used as a placeholder map function when applicable.
@@ -138,7 +38,7 @@ def identity(character, mapping=None):
     return character
 
 
-def baseconvert(n, k, digits="ACDEFGHIKLMNPQRSTVWY"):
+def baseconvert(n: int, k: int, digits: str = "ACDEFGHIKLMNPQRSTVWY") -> str:
     """Generate a kmer sequence from input integer representation.
 
     Parameters
@@ -185,15 +85,15 @@ def baseconvert(n, k, digits="ACDEFGHIKLMNPQRSTVWY"):
     return s
 
 
-def reduce_alphabet(character, mapping):
+def reduce_alphabet(character: str, mapping: Dict[str, str]) -> Optional[str]:
     """Reduce alphabet according to pre-defined alphabet mapping.
 
     Parameters
     ----------
-    character : type
-        Description of parameter `character`.
-    mapping : str
-        Name of map function.
+    character : str
+        Single character of a sequence.
+    mapping : Dict[str, str]
+        Map function as represented by a dict.
 
     Returns
     -------

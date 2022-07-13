@@ -5,18 +5,75 @@ author: @christinehc
 """
 # imports
 import collections.abc
-from ast import literal_eval
 from datetime import datetime
 import re
 from os.path import basename, splitext
+from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
-from Bio import SeqIO
+from numpy.typing import NDArray
 
 
 # functions
-def check_list(array):
+def _format_timedelta(timedelta: datetime.timedelta) -> str:
+    """Format datetime.timedelta object as str with units.
+
+    Parameters
+    ----------
+    timedelta : datetime.timedelta object
+        A datetime.timedelta object.
+
+    Returns
+    -------
+    str
+        Formatted string with the following format:
+            %%h %%m %%.%%s
+            (e.g. '01h 41m 20.01s')
+
+    """
+    # get milliseconds and round
+    milliseconds = round(timedelta.microseconds / 1000)
+
+    # get H, M, S
+    minutes, seconds = divmod(timedelta.seconds, 60)
+    hours, minutes = divmod(minutes, 60)
+
+    return f"{hours}h {minutes:02}m {seconds:02}.{milliseconds}s"
+
+
+def log_runtime(
+    filename: str, start_time: datetime.datetime, step: bool = False
+) -> None:
+    """Append runtimes to specified log file.
+
+    Parameters
+    ----------
+    filename : str
+        /path/to/log/file.
+    start_time : datetime.datetime object
+        Previous `datetime.now()` result.
+    step : str or False (default: False)
+        Optional name for step
+
+    Returns
+    -------
+    None
+        Appends runtime information to file and returns no output.
+
+    """
+    end_time = datetime.now()
+    if not step:
+        step = "end"
+
+    with open(filename, "a") as f:
+        f.write(f"start time:\t{start_time}\n")
+        f.write(f"{step} time:\t{end_time}\n")
+        f.write(f"total time:\t{_format_timedelta(end_time - start_time)}")
+    return
+
+
+def check_list(array: Any) -> bool:
     """Check whether input is a sequence, list, or array-like object.
 
     Parameters
@@ -35,66 +92,9 @@ def check_list(array):
     return True
 
 
-def count_sequences(fasta):
-    """Count the number of sequences contained in a fasta file.
-
-    Parameters
-    ----------
-    fasta : str
-        Filename or /path/to/fasta/file.
-
-    Returns
-    -------
-    int
-        Number of sequences in the input file.
-
-    """
-    return len([record for record in SeqIO.parse(fasta, "fasta")])
-
-
-def parse_fasta_description(fasta, df=True):
-    """Parse description field of a FASTA file.
-
-    Parameters
-    ----------
-    fasta : str
-        path/to/fasta.file
-    df : bool
-        If True, returns output as a pandas DataFrame (default: True)
-        If False, returns output as a dictionary.
-
-    Returns
-    -------
-    dict or pandas.DataFrame
-        Parsed values as {key: value} pairs or collated in DataFrame.
-
-    """
-    # collect parsed description data into dict
-    pdict = dict()
-    with open(fasta, "r") as f:
-        for record in SeqIO.parse(f, "fasta"):
-            pdict[record.id] = dict()
-            pdict[record.id]["protein_family"] = get_family(fasta)
-            s = f"{record.description} "  # trailing space needed for regex
-            parsed = re.findall(r"([\w]+[=][\w\", ]+)(?= )(?!=)", s)
-            for item in parsed:
-                key = item.split("=")[0].lower()
-                val = item.split("=")[1].replace('"', "")
-                #             print(key, val)
-                i = 1
-                while key in pdict[record.id].keys():
-                    key = f"{key.rstrip('0123456789_')}_{i}"
-                    i += 1
-                pdict[record.id][key] = val
-            pdict[record.id]["filename"] = basename(fasta)
-    if df:
-        pdict = (
-            pd.DataFrame(pdict).T.reset_index().rename(columns={"index": "sequence_id"})
-        )
-    return pdict
-
-
-def get_family(filename, regex=r"[a-z]{3}[A-Z]{1}", return_first=True):
+def get_family(
+    filename: str, regex: str = r"[a-z]{3}[A-Z]{1}", return_first: bool = True
+) -> Union[str, List[str]]:
     """Extract family from filename given regular expression format.
 
     Note: If no family matching the given regular expression is
@@ -143,33 +143,7 @@ def get_family(filename, regex=r"[a-z]{3}[A-Z]{1}", return_first=True):
     return filename.split(".")[0]
 
 
-def format_timedelta(timedelta):
-    """Format datetime.timedelta object as str with units.
-
-    Parameters
-    ----------
-    timedelta : datetime.timedelta object
-        A datetime.timedelta object.
-
-    Returns
-    -------
-    str
-        Formatted string with the following format:
-            %%h %%m %%.%%s
-            (e.g. '01h 41m 20.01s')
-
-    """
-    # get milliseconds and round
-    milliseconds = round(timedelta.microseconds / 1000)
-
-    # get H, M, S
-    minutes, seconds = divmod(timedelta.seconds, 60)
-    hours, minutes = divmod(minutes, 60)
-
-    return f"{hours}h {minutes:02}m {seconds:02}.{milliseconds}s"
-
-
-def split_file_ext(filename):
+def split_file_ext(filename: str) -> Tuple[str, str]:
     """Split file.ext into (file, ext).
 
     Ignores ".gz" for gzipped files; e.g. "file.ext.gz" returns
@@ -199,36 +173,9 @@ def split_file_ext(filename):
     return splitext(filename)[0], splitext(filename)[1].lstrip(".")
 
 
-def log_runtime(filename, start_time, step=False):
-    """Append runtimes to specified log file.
-
-    Parameters
-    ----------
-    filename : str
-        /path/to/log/file.
-    start_time : datetime.datetime object
-        Previous `datetime.now()` result.
-    step : str or False (default: False)
-        Optional name for step
-
-    Returns
-    -------
-    None
-        Appends runtime information to file and returns no output.
-
-    """
-    end_time = datetime.now()
-    if not step:
-        step = "end"
-
-    with open(filename, "a") as f:
-        f.write(f"start time:\t{start_time}\n")
-        f.write(f"{step} time:\t{end_time}\n")
-        f.write(f"total time:\t{format_timedelta(end_time - start_time)}")
-    return
-
-
-def to_feature_matrix(array):
+def to_feature_matrix(
+    array: List, length_array: Optional[Union[List, NDArray, pd.Series]] = None
+) -> NDArray:
     """Create properly shaped feature matrix for kmer scoring.
 
     Parameters
@@ -243,28 +190,8 @@ def to_feature_matrix(array):
         2D array version of the 2D array-like input.
 
     """
-    array = [np.array(a) for a in array]
+    if length_array is None:
+        length_array = np.ones(len(array))
+    array = [np.array(a) / length for a, length in zip(array, length_array)]
     return np.asarray(array)
 
-
-def str_to_array(array):
-    """Convert string array to array format.
-
-    Parameters
-    ----------
-    a : str or any type
-        Input array.
-
-    Returns
-    -------
-    type
-        Description of returned object.
-
-    """
-    if not isinstance(array, str):
-        return array
-
-    # remove all spaces in array
-    array = re.sub(" +", ",", array)
-    array = array.replace("\n", "").replace("[,", "[").replace(",]", "]")
-    return np.array(literal_eval(array))

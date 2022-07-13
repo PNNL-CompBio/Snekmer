@@ -4,11 +4,37 @@ author: @christinehc
 
 """
 # imports
-from .utils import read_fasta
 from .transform import vectorize_string
 
 
 # functions
+def read_fasta(fasta):
+    """Read fasta file and obtain sequences, IDs, and mappings.
+
+    Parameters
+    ----------
+    fasta : str
+        Filename or /path/to/fasta/file.
+
+    Returns
+    -------
+    (list, list)
+        Tuple containing (seq_list, id_list, id2seq), where:
+        seq_list : list
+            List of sequences (as strings) from fasta file.
+        id_list : list
+            List of IDs from fasta file.
+
+    """
+    # read in sequences from the fasta file
+    seq_list, id_list, = list(), list()
+    with open(fasta, "r") as f:
+        for record in SeqIO.parse(f, "fasta"):
+            seq_list.append(str(record.seq))
+            id_list.append(record.id)
+    return seq_list, id_list
+
+
 def kmer_walk(
     fasta, max_k=20, seq_dump=False, min_thresh=10, map_function="reduced_alphabet_0"
 ):

@@ -172,11 +172,11 @@ rule cluster:
         # insert plots here?
         if not exists(output.figs):
             makedirs(output.figs)
-        fig, ax = skm.plot.show_explained_variance_curve(full_feature_matrix)
+        fig, ax = skm.plot.explained_variance_curve(full_feature_matrix)
         fig.savefig(join(output.figs, "pca_explained_variance_curve.png"))
         plt.close("all")
 
-        fig, ax = skm.plot.get_tsne_clusters(full_feature_matrix, model.model.labels_)
+        fig, ax = skm.plot.cluster_tsne(full_feature_matrix, model.model.labels_)
         fig.savefig(join(output.figs, "tsne_clusters.png"))
         plt.close("all")
 

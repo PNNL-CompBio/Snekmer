@@ -4,14 +4,11 @@ author: @christinehc, @biodataganache
 
 """
 # imports
-from itertools import product, repeat
-from multiprocessing import Pool
 import numpy as np
 import pandas as pd
 
-from .transform import KmerBasis
+from .vectorize import KmerBasis
 from .utils import to_feature_matrix
-from sklearn.cluster import AgglomerativeClustering
 from sklearn.metrics.pairwise import pairwise_distances
 
 
@@ -171,36 +168,6 @@ def connection_matrix_from_features(feature_matrix, metric="jaccard"):
     else:
         sim = pairwise_distances(feature_matrix, metric=metric)
     return sim
-
-
-def cluster_feature_matrix(feature_matrix, method="agglomerative", n_clusters=2):
-    """Calculate clusters based on the feature matrix.
-
-    Note: sklearn has a wide range of clustering options.
-    See sklearn documentation for more details.
-
-    Parameters
-    ----------
-    feature_matrix : numpy.ndarray
-        Feature matrix in the form of rows (sequences), columns
-        (kmers), where values are kmer counts for each protein.
-    method : type
-        Description of parameter `method`.
-    **kwargs : dict
-        Keyword arguments for clustering class.
-
-    Returns
-    -------
-    numpy.ndarray
-        Array of clustered labels.
-
-    """
-    if method == "agglomerative":
-        clusters = AgglomerativeClustering(n_clusters=n_clusters).fit_predict(
-            feature_matrix
-        )
-
-    return clusters
 
 
 def _apply_probability(kmer, label, compare_label):
@@ -532,40 +499,6 @@ def apply_feature_probabilities(feature_matrix, scores, scaler=False, **kwargs):
     score_totals = np.array([np.sum(arr) for arr in score_matrix])
 
     return score_totals
-
-
-def append_cv_results(data, scores, method, family=None, alphabet=None, config=None):
-    """Append cross-validation results to input dataframe.
-
-    Parameters
-    ----------
-    data : _type_
-        _description_
-    scores : _type_
-        _description_
-    method : _type_
-        _description_
-    family : _type_, optional
-        _description_, by default None
-    alphabet : _type_, optional
-        _description_, by default None
-    config : _type_, optional
-        _description_, by default None
-
-    Returns
-    -------
-    _type_
-        _description_
-    """
-    # collate ROC-AUC results
-    data["family"] += [family] * config["model"]["cv"]
-    data["alphabet_name"] += [alphabet.lower()] * config["model"]["cv"]
-    data["k"] += [config["k"]] * config["model"]["cv"]
-    data["scoring"] += [method] * config["model"]["cv"]
-    data["score"] += score
-    # data['score'] += list(cross_val_score(clf, X, y, cv=cv, scoring='roc_auc'))
-    data["cv_split"] += [i + 1 for i in range(config["model"]["cv"])]
-    return data
 
 
 class KmerScorer:
