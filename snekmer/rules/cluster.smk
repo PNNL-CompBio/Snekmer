@@ -90,7 +90,7 @@ out_dir = skm.io.define_output_dir(
 rule all:
     input:
         expand(join("input", "{uz}"), uz=UZS),  # require unzipping
-        expand(join(out_dir, "cluster", "{nb}.pkl"), nb=NON_BGS),  # require model-building
+        join(out_dir, "cluster", "cluster.clust"),  # require cluster-building
 
 
 # if any files are gzip zipped, unzip them
@@ -118,15 +118,16 @@ use rule vectorize from kmerize with:
 
 
 # UNSUPERVISED WORKFLOW
+# collect all seq files and generate mega-cluster
 rule cluster:
     input:
-        kmerobj=join("output", "kmerize", "{nb}.kmers"),
+        kmerobj=expand(join("output", "kmerize", "{fa}.kmers"), fa=NON_BGS),
         data=expand(join("output", "vector", "{fa}.npz"), fa=NON_BGS),
     output:
-        clusters=join(out_dir, "cluster", "{nb}.pkl"),
-        figs=directory(join(out_dir, "cluster", "figures", "{nb}")),
+        clusters=join(out_dir, "cluster", "cluster.clust"),
+        figs=directory(join(out_dir, "cluster", "figures")),
     log:
-        join(out_dir, "cluster", "log", "{nb}.log"),
+        join(out_dir, "cluster", "log", "cluster.log"),
     run:
         # log script start time
         start_time = datetime.now()
@@ -136,8 +137,8 @@ rule cluster:
         # parse all data and label background files
         label = config["score"]["lname"]
 
-        # get kmers for this particular set of sequences
-        kmer = skm.io.load_pickle(input.kmerobj)
+        # assuming all kmer basis sets are identical, grab the first
+        kmer = skm.io.load_pickle(input.kmerobj[0])
 
         # tabulate vectorized seq data
         data = list()
