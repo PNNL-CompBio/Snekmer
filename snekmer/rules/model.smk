@@ -29,9 +29,9 @@ from sklearn.preprocessing import LabelEncoder
 import snekmer as skm
 
 # load modules
-module process_input:
+module process:
     snakefile:
-        "process_input.smk"
+        "process.smk"
     config:
         config
 
@@ -93,7 +93,7 @@ rule all:
 
 
 # if any files are gzip zipped, unzip them
-use rule unzip from process_input with:
+use rule unzip from process with:
     output:
         unzipped=join("input", "{uz}"),
         zipped=join("input", "zipped", "{uz}.gz"),
