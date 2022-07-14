@@ -11,9 +11,9 @@ ruleorder: vectorize > search
 
 
 # load modules
-module process_input:
+module process:
     snakefile:
-        "process_input.smk"
+        "process.smk"
     config:
         config
 
@@ -93,7 +93,7 @@ rule all:
 
 # if any files are gzip zipped, unzip them
 if len(UZS) > 0:
-    use rule unzip from process_input with:
+    use rule unzip from process with:
         output:
             join("input", "{uz}"),  # or join("input", "{uz}.{uzext}") ?
 # build kmer count vectors for each basis set

@@ -5,9 +5,9 @@ min_version("6.0")
 
 
 # load snakemake modules
-module process_input:
+module process:
     snakefile:
-        "process_input.smk"
+        "process.smk"
     config:
         config
 
@@ -33,6 +33,8 @@ from os.path import basename, dirname, exists, join, splitext
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import seaborn as sns
+import snekmer as skm
 from Bio import SeqIO
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegressionCV
@@ -40,9 +42,8 @@ from sklearn.model_selection import (StratifiedKFold, cross_val_score,
                                      train_test_split)
 from sklearn.preprocessing import LabelEncoder
 from sklearn.tree import DecisionTreeClassifier
+from umap import UMAP
 
-# external libraries
-import snekmer as skm
 
 # change matplotlib backend to non-interactive
 plt.switch_backend("Agg")
@@ -93,7 +94,7 @@ rule all:
 
 
 # if any files are gzip zipped, unzip them
-use rule unzip from process_input with:
+use rule unzip from process with:
     output:
         unzipped=join("input", "{uz}"),
         zipped=join("input", "zipped", "{uz}.gz"),
@@ -112,7 +113,7 @@ use rule vectorize from kmerize with:
 
 # [in-progress] kmer walk
 # if config['walk']:
-# use rule perform_kmer_walk from process_input with:
+# use rule perform_kmer_walk from process with:
 # output:
 
 
@@ -176,8 +177,24 @@ rule cluster:
         fig.savefig(join(output.figs, "pca_explained_variance_curve.png"))
         plt.close("all")
 
+        # plot tsne
         fig, ax = skm.plot.cluster_tsne(full_feature_matrix, model.model.labels_)
         fig.savefig(join(output.figs, "tsne_clusters.png"))
+        plt.close("all")
+
+        # plot umap
+        # model_embedding = model.predict(full_feature_matrix)
+        umap_embedding = UMAP(metric="jaccard", n_components=2).fit_transform(full_feature_matrix)
+        fig, ax = plt.subplots(dpi=150)
+        sns.scatterplot(
+            x=umap_embedding[:, 0],
+            y=umap_embedding[:, 1],
+            hue=model.model.labels_,
+            alpha=0.2,
+            ax=ax,
+        )
+
+        fig.savefig(join(output.figs, "umap_clusters.png"))
         plt.close("all")
 
         # record script endtime

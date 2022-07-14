@@ -1,13 +1,14 @@
-"""process_input.smk: Module for input file handling.
+"""process.smk: Module for input file processing.
 
 author: @christinehc
 
 """
 # imports
+import gzip
 from datetime import datetime
 from os import makedirs, remove
 from os.path import dirname, exists, join
-import gzip
+from shutil import copy
 
 import snekmer as skm
 from pandas import DataFrame

@@ -10,9 +10,9 @@ min_version("6.0")  # force snakemake v6.0+ (required for modules)
 
 
 # load modules
-module process_input:
+module process:
     snakefile:
-        "process_input.smk"
+        "process.smk"
     config:
         config
 
@@ -101,13 +101,13 @@ rule all:
 
 
 # if any files are gzip zipped, unzip them
-use rule unzip from process_input with:
+use rule unzip from process with:
     output:
         join("input", "{uz}"),
 
 
 # read and process parameters from config
-use rule preprocess from process_input with:
+use rule preprocess from process with:
     input:
         fasta=lambda wildcards: join("input", f"{wildcards.nb}.{FA_MAP[wildcards.nb]}"),
     output:
@@ -141,7 +141,7 @@ use rule vectorize_v0 from kmerize with:
 
 # [in-progress] kmer walk
 # if config['walk']:
-# use rule perform_kmer_walk from process_input with:
+# use rule perform_kmer_walk from process with:
 # output:
 
 

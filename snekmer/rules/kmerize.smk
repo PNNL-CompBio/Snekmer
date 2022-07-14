@@ -6,7 +6,7 @@ author: @christinehc
 
 
 # include unzipping module
-include: "process_input.smk"
+include: "process.smk"
 
 
 # built-in imports
