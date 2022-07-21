@@ -28,11 +28,6 @@ Parameters which are required to be specified by the user in order to use Snekme
  ``alphabet``          ``str`` or ``int``    Reduced alphabet encoding
                                              (see `documentation <https://github.com/PNNL-CompBio/Snekmer/blob/main/snekmer/alphabet.py#L30>`_
                                              for more details). Alphabets may be specified by numbers 0-5 or by their names.
- ``min_rep_thresh``    ``int``               Threshold for the minimum number of repetitions of a k-mer within a set. K-mers that do not meet
-                                             this threshold are not included in the basis set for the given family.
- ``processes``         ``int``               Number of processes spawned via Python multiprocessing.
-                                             See the `official Python documentation <https://docs.python.org/3/library/multiprocessing.html>`_
-                                             for more details.
 ====================  ====================  ===================================================================================================
 
 Alphabets 
@@ -60,36 +55,17 @@ options, including the option to skip recoding, are listed below.
  *n/a*         ``None``           20     No reduced alphabet
 =============  ===============  ======  ===========================================================================================
 
-Input Parameters
-````````````````
+Input/Output Parameters
+```````````````````````
 
-General parameters related to input sequences and files.
+General parameters related to input and output sequences and/or files.
 
 ========================  ====================  =========================================================================
      Parameter                    Type            Description
 ========================  ====================  =========================================================================
- ``example_index_file``    ``str``                File contaning example indices (if False, assumes no file)
- ``kmer_set_file``         ``str``                File containing k-mer basis set (if False, assumes no file)
- ``file_extensions``       ``list``               File extensions to be considered as valid for input sequence files
- ``regex``                 ``str``                Regular expression (regex) to parse family names from filenames
+ ``input_file_exts``       ``list``               File extensions to be considered as valid for input sequence files
+ ``nested_output``         ``bool``               If True, saves files into nested directory structure, i.e. `{save_dir}/{alphabet}/{k}`
 ========================  ====================  =========================================================================
-
-Output Parameters
-`````````````````
-
-General parameters related to the output produced by Snekmer.
-
-========================  =====================  ========================================================================================
-     Parameter                     Type           Description
-========================  =====================  ========================================================================================
- ``nested_dir``            ``bool``               If True, saves files into nested directory structure, i.e. `{save_dir}/{alphabet}/{k}`
- ``verbose``               ``bool``               If True, print verbose output to log files
- ``format``                ``str``                K-mer output format (choices: ``"simple"``, ``"gist"``, or ``"sieve"``)
- ``filter_duplicates``     ``bool``               If True, removes duplicate sequences
- ``n_terminal_file``       ``str`` or ``bool``    Specify file for n terminal fusion to sequence (if False, assumes no file)
- ``shuffle_n``             ``int`` or ``bool``    Number of sequences to scramble; only applies if ``shuffle_sequences`` is True
- ``shuffle_sequences``     ``bool``               If True, scramble sequences
-========================  =====================  ========================================================================================
 
 Score Parameters
 ````````````````
@@ -131,22 +107,6 @@ General parameters related to Snekmer's cluster mode (``snekmer cluster``), wher
                                                   ``"correlation"``, ``"density"``, ``"birch"``, or ``"optics"``)
  ``params``                ``dict``               Parameters to pass to the clustering algorithm
 ========================  ====================  =========================================================================
-
-Optional Parameters
-```````````````````
-
-Optional or inactive parameters for custom user-defined analyses.
-
-========================  =====================  =========================================================================
-     Parameter                    Type            Description
-========================  =====================  =========================================================================
- ``start``                 ``int`` or ``None``    Start index of sequence (for sequence slicing)
- ``end``                   ``int`` or ``None``    End index of sequence (for sequence slicing)
- ``nucleotide``            ``bool``               If True, use nucleotide residues as alphabet
- ``randomize_alphabet``    ``bool``               If True, select an alphabet at random
- ``walk``                  ``False``              *set as False*; if True, do random kmer walk (note: currently inactive)
- ``mode``                  ``None``               *set as None*
-========================  =====================  =========================================================================
  
 
 Parameter Descriptions for ``search.yaml``
@@ -157,27 +117,17 @@ The `search.yaml` file is required for `snekmer search`.
 ========================  =====================  ========================================================================================
      Parameter                     Type           Description
 ========================  =====================  ========================================================================================
- ``file_extensions``       ``list``               File extensions to be considered as valid for input sequence files
+ ``input_file_exts``       ``list``               File extensions to be considered as valid for input sequence files
  ``model_dir``             ``str``                Directory containing model object(s) (.model)
  ``basis_dir``             ``str``                Directory containing k-mer basis set(s) (.kmers)
  ``score_dir``             ``str``                Directory containing scoring object(s) (.scorer)
  ``k``                     ``int``                See `Required Parameters`_
  ``alphabet``              ``int`` or ``str``     See `Required Parameters`_
- ``min_rep_thresh``        ``int``                See `Required Parameters`_
- ``processes``             ``int``                See `Required Parameters`_
- ``nested_dir``            ``bool``               See `Output Parameters`_
- ``start``                 ``int`` or ``None``    See `Optional Parameters`_
- ``end``                   ``int`` or ``None``    See `Optional Parameters`_
- ``nucleotide``            ``bool``               See `Optional Parameters`_
- ``randomize_alphabet``    ``bool``               See `Optional Parameters`_
- ``regex``                 ``str``                See `Input Parameters`_
- ``verbose``               ``bool``               See `Optional Parameters`_
- ``walk``                  ``False``              See `Optional Parameters`_
- ``mode``                  ``None``               See `Optional Parameters`_
+ ``nested_output``         ``bool``               See `Output Parameters`_
 ========================  =====================  ========================================================================================
 
 
-Parameter Descriptions for ``cluster.yaml``
+Parameter Descriptions for ``clust.yaml``
 -------------------------------------------
 
 See `SLURM documentation <https://slurm.schedmd.com/sbatch.html>`_ for more information on cluster parameters.

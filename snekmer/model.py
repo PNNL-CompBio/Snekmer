@@ -4,15 +4,14 @@ author: @christinehc
 
 """
 # imports
-from .score import (
-    feature_class_probabilities,
-    apply_feature_probabilities,
-    KmerScoreScaler,
-)
+import pandas as pd
+from typing import Any, Dict, List, Optional
 from .vectorize import KmerBasis
+from numpy.typing import NDArray
+from sklearn.base import ClassifierMixin
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
-from sklearn.linear_model import LogisticRegressionCV
+from sklearn.linear_model import LogisticRegression  # LogisticRegressionCV
 from sklearn.model_selection import GridSearchCV, cross_validate
 from sklearn.pipeline import make_pipeline, Pipeline
 
@@ -25,15 +24,16 @@ MODEL_PARAMS = {
     "clf__max_depth": [3, 10, 25],
 }
 
-MODEL_NAME = {
+NAME2MODEL = {
     "decisiontree": DecisionTreeClassifier(),
     "randomforest": RandomForestClassifier(),
     "adaboost": AdaBoostClassifier(),
+    "logistic": LogisticRegression(),
 }
 
 
 # classification models for protein families
-class KmerModel:
+class SnekmerModel(ClassifierMixin):
     """Classify a protein family using kmer vectors as input.
 
     Attributes
@@ -60,7 +60,11 @@ class KmerModel:
     """
 
     def __init__(
-        self, scaler=None, model="decisiontree", params=MODEL_PARAMS, step_name="clf"
+        self,
+        scaler: Optional[Any] = None,
+        model: str = "decisiontree",
+        params: Dict[str, List] = MODEL_PARAMS,
+        step_name="clf",
     ):
         """Initialize KmerModel object.
 
@@ -78,13 +82,13 @@ class KmerModel:
         """
         self.scaler = scaler
         self.params = params
-        self.model = MODEL_NAME[model]
+        self.model = NAME2MODEL[model]
         self.step_name = step_name
 
         self.pipeline = None
         self.search = None
 
-    def fit(self, X, y, verbose=True):
+    def fit(self, X: NDArray, y: NDArray, verbose: bool = True):
         """Train model using gridsearch-tuned hyperparameters.
 
         Parameters
@@ -125,7 +129,7 @@ class KmerModel:
         self.model.fit(X, y)
         return
 
-    def score(self, X, y):
+    def score(self, X: NDArray, y: NDArray):
         """Score model on test set.
 
         Parameters
@@ -143,7 +147,7 @@ class KmerModel:
         """
         return self.search.score(X, y)
 
-    def predict(self, X):
+    def predict(self, X: NDArray):
         """Assign classification based on new input vector.
 
         Parameters
@@ -158,3 +162,110 @@ class KmerModel:
 
         """
         return self.model.predict(X)
+
+
+class SnekmerModelCV:
+    def __init__(self, model: str, cv: int = 5):
+        self.model = model
+        self.cv = cv
+
+    def train(
+        self,
+        X: NDArray,
+        y: NDArray,
+        i: NDArray,
+        label: str = "label",
+        random_state: Optional[int] = None,
+    ):
+        """_summary_
+
+        Parameters
+        ----------
+        X : NDArray
+            _description_
+        y : NDArray
+            _description_
+        i : NDArray
+            _description_
+        label : str, optional
+            _description_, by default "label"
+        random_state : Optional[int], optional
+            _description_, by default None
+
+        Raises
+        ------
+        ValueError
+            _description_
+
+        """
+        # set and format input and label arrays; initialize model objects
+        cols = [label, "alphabet_name", "k", "scoring"]
+
+        results = {col: [] for col in cols + ["score", "cv_split"]}
+        X, y = {i: {} for i in range(self.cv)}, {i: {} for i in range(self.cv)}
+        for n in range(self.cv):
+
+            # remove score cols that were generated from full dataset
+            unscored_cols = [col for col in list(data.columns) if "_score" not in col]
+
+            # filter data by training data per CV split
+            i_train = data[data[f"train_cv-{n + 1:02d}"]].index
+            i_test = data[~data[f"train_cv-{n + 1:02d}"]].index
+            df_train = data.iloc[i_train][unscored_cols].reset_index(drop=True)
+            df_test = data.iloc[i_test][unscored_cols].reset_index(drop=True)
+            df_train_labels = [
+                True if value == family else False for value in df_train[label]
+            ]
+            df_test_labels = [
+                True if value == family else False for value in df_test[label]
+            ]
+
+            # score kmers separately per split
+            scorer = skm.score.KmerScorer()
+            scorer.fit(
+                list(kmer.kmer_set.kmers),
+                df_train,
+                family,
+                label_col=label,
+                vec_col="sequence_vector",
+                **config["score"]["scaler_kwargs"],
+            )
+
+            # append scored sequences to dataframe
+            df_train = df_train.merge(
+                pd.DataFrame(scorer.scores["sample"]), left_index=True, right_index=True
+            )
+            if df_train.empty:
+                raise ValueError("Blank df")
+            df_test = df_test.merge(
+                pd.DataFrame(
+                    scorer.predict(
+                        skm.utils.to_feature_matrix(df_test["sequence_vector"]),
+                        list(kmer.kmer_set.kmers),
+                    )
+                ),
+                left_index=True,
+                right_index=True,
+            ).rename(columns={0: f"{family}_score"})
+
+            # save score loadings
+            scores = (
+                pd.DataFrame(scorer.probabilities, index=scorer.kmers.basis)
+                .reset_index()
+                .rename(columns={"index": "kmer"})
+            )
+
+            # save X,y array data for plot
+            X[n]["train"] = df_train[f"{family}_score"].values.reshape(-1, 1)
+            y[n]["train"] = le.transform(df_train_labels).ravel()
+
+            X[n]["test"] = df_test[f"{family}_score"].values.reshape(-1, 1)
+            y[n]["test"] = le.transform(df_test_labels).ravel()
+
+        # collate ROC-AUC results
+        results[label] += [family] * cv
+        results["alphabet_name"] += [alphabet_name.lower()] * cv
+        results["k"] += [config["k"]] * cv
+        results["scoring"] += ["auc_roc"] * cv
+        results["score"] += auc_rocs
+        results["cv_split"] += [i + 1 for i in range(cv)]

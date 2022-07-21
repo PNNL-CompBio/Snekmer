@@ -52,6 +52,10 @@
 <li class="toctree-l1"><a class="reference internal" href="modes.html">Snekmer Modes</a></li>
 <li class="toctree-l1"><a class="reference internal" href="config.html">Setting up User Configuration</a></li>
 </ul>
+<p class="caption" role="heading"><span class="caption-text">Background</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../background/index.html">Background</a></li>
+</ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorial</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../tutorial/index.html">Tutorial</a></li>
@@ -95,36 +99,18 @@
 on the command line or the <code class="docutils literal notranslate"><span class="pre">config.yaml</span></code> file, respectively.</p>
 <p>For an overview of Snekmer usage, reference the help command (<code class="docutils literal notranslate"><span class="pre">snekmer</span> <span class="pre">--help</span></code>).</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>snekmer --help
-<span class="go">usage: snekmer [-h] [-v] [--dryrun] [--configfile PATH] [--config [KEY=VALUE ...]] [--unlock] [--until TARGET [TARGET ...]]</span>
-<span class="go">           [--latency SECONDS] [--touch] [--cores N] [--count N] [--countstart IDX] [--cluster PATH] [--jobs N]</span>
-<span class="go">           {cluster,model,search}</span>
+<span class="go">usage: snekmer [-h] [-v] {cluster,model,search} ...</span>
 
 <span class="go">Snekmer: A tool for kmer-based sequence analysis using amino acid reduction (AAR)</span>
-
-<span class="go">positional arguments:</span>
-<span class="go">{cluster,model,search}</span>
 
 <span class="go">options:</span>
 <span class="go">-h, --help            show this help message and exit</span>
 <span class="go">-v, --version         print version and exit</span>
-<span class="go">--dryrun              perform a dry run</span>
-<span class="go">--configfile PATH     path to yaml configuration file</span>
-<span class="go">--config [KEY=VALUE ...]</span>
-<span class="go">                        Set or overwrite values in the workflow config object. The workflow config object is accessible as</span>
-<span class="go">                        variable config inside the workflow. Default values can be set by providing a JSON file.</span>
-<span class="go">--unlock              unlock directory</span>
-<span class="go">--until TARGET [TARGET ...]</span>
-<span class="go">                        run pipeline until reaching the target rule or files</span>
-<span class="go">--latency SECONDS, --latency-wait SECONDS</span>
-<span class="go">                        wait time, in seconds, for output file creation (default 30)</span>
-<span class="go">--touch               touch output files only</span>
-<span class="go">--cores N             number of cores used for execution (local execution only)</span>
-<span class="go">--count N             number of files to process (limits DAG size)</span>
-<span class="go">--countstart IDX      starting file index (for use with --count)</span>
 
-<span class="go">cluster arguments:</span>
-<span class="go">--cluster PATH        path to cluster execution yaml configuration file</span>
-<span class="go">--jobs N              number of simultaneous jobs to submit to a slurm queue</span>
+<span class="go">mode:</span>
+<span class="go">Snekmer mode</span>
+
+<span class="go">{cluster,model,search}</span>
 </pre></div>
 </div>
 <section id="configuration">

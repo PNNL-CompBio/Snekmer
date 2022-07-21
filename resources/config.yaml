@@ -1,38 +1,10 @@
 # required params
 k: 14
 alphabet: 0 # choices 0-5 or names (see alphabet module), or None
-min_rep_thresh: 1
-processes: 2
 
-# optional params
-start: False
-end: False
-nucleotide: False
-randomize_alphabet: False
-walk: False
-mode: None
-# custom_alphabet: {'custom_alphabet': {}}
-
-# input params
-input:
-  example_index_file: False
-  kmer_set_file: False # file containing kmer feature set
-  file_extensions: ["fasta", "fna", "faa", "fa"]
-  regex: "[a-z]{3}[A-Z]{1}" # regex to parse family from filename
-
-# output params
-output:
-  # active params
-  nested_dir: False # if True, saves into {save_dir}/{alphabet name}/{k}
-  verbose: True # if True, logs verbose outputs
-  format: "simple" # choices: ['simple', 'gist', 'sieve']
-  filter_duplicates: True
-  n_terminal_file: False
-  shuffle_n: False
-  shuffle_sequences: False
-  # currently inactive
-  filename: False # customize filename
-  kmer_output: True
+# input/output params
+input_file_exts: ["fasta", "fna", "faa", "fa"] # specify valid input file extensions
+nested_output: False # if True, saves into {save_dir}/{alphabet name}/{k}
 
 # scoring params
 score:
@@ -58,3 +30,28 @@ cluster:
       "metric": "correlation",
       "method": "weighted",
     }
+# optional params
+# future params
+# custom_alphabet: {'custom_alphabet': {}}
+# deprecated params
+# processes: 2
+# min_rep_thresh: 1
+# start: None
+# end: None
+# nucleotide: False
+# randomize_alphabet: False
+# walk: False
+# input:
+# example_index_file: None
+# kmer_set_file: None # file containing kmer feature set
+# regex: "[a-z]{3}[A-Z]{1}" # regex to parse family from filename
+# output:
+# verbose: True # if True, logs verbose outputs
+# format: "simple" # choices: ['simple', 'gist', 'sieve']
+# filter_duplicates: True
+# n_terminal_file: None
+# shuffle_n: False
+# shuffle_sequences: False
+# # currently inactive
+# filename: False # customize filename
+# kmer_output: True

@@ -51,7 +51,7 @@ input_files = glob(join("input", "*"))
 zipped = [fa for fa in input_files if fa.endswith(".gz")]
 unzipped = [
     fa.rstrip(".gz")
-    for fa, ext in product(input_files, config["input"]["file_extensions"])
+    for fa, ext in product(input_files, config["input_file_exts"])
     if fa.rstrip(".gz").endswith(f".{ext}")
 ]
 
@@ -81,7 +81,7 @@ skm.alphabet.check_valid(config["alphabet"])
 
 # define output directory (helpful for multiple runs)
 out_dir = skm.io.define_output_dir(
-    config["alphabet"], config["k"], nested=config["output"]["nested_dir"]
+    config["alphabet"], config["k"], nested=config["nested_output"]
 )
 
 

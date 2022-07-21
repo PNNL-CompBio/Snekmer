@@ -61,7 +61,7 @@ model_files = glob(join(config["model_dir"], "*.pkl"))
 zipped = [f for f in input_files if f.endswith(".gz")]
 unzipped = [
     f.rstrip(".gz")
-    for f, ext in product(input_files, config["file_extensions"])
+    for f, ext in product(input_files, config["input_file_exts"])
     if f.rstrip(".gz").endswith(f".{ext}")
 ]
 
@@ -78,7 +78,7 @@ FAMILIES = [skm.utils.get_family(f, regex=config["regex"]) for f in model_files]
 
 # define output directory (helpful for multiple runs)
 out_dir = skm.io.define_output_dir(
-    config["alphabet"], config["k"], nested=config["nested_dir"]
+    config["alphabet"], config["k"], nested=config["nested_output"]
 )
 
 

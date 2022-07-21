@@ -14,3 +14,5 @@ the [official documentation](https://snekmer.readthedocs.io).
 ## Acknowledgments
 
 (c) Christine Chang, Bill Nelson, Jason McDermott
+
+## License

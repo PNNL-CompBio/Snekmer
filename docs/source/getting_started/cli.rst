@@ -15,36 +15,18 @@ For an overview of Snekmer usage, reference the help command (``snekmer --help``
 .. code-block:: console
 
     $ snekmer --help
-    usage: snekmer [-h] [-v] [--dryrun] [--configfile PATH] [--config [KEY=VALUE ...]] [--unlock] [--until TARGET [TARGET ...]]
-               [--latency SECONDS] [--touch] [--cores N] [--count N] [--countstart IDX] [--cluster PATH] [--jobs N]
-               {cluster,model,search}
+    usage: snekmer [-h] [-v] {cluster,model,search} ...
 
     Snekmer: A tool for kmer-based sequence analysis using amino acid reduction (AAR)
-
-    positional arguments:
-    {cluster,model,search}
 
     options:
     -h, --help            show this help message and exit
     -v, --version         print version and exit
-    --dryrun              perform a dry run
-    --configfile PATH     path to yaml configuration file
-    --config [KEY=VALUE ...]
-                            Set or overwrite values in the workflow config object. The workflow config object is accessible as
-                            variable config inside the workflow. Default values can be set by providing a JSON file.
-    --unlock              unlock directory
-    --until TARGET [TARGET ...]
-                            run pipeline until reaching the target rule or files
-    --latency SECONDS, --latency-wait SECONDS
-                            wait time, in seconds, for output file creation (default 30)
-    --touch               touch output files only
-    --cores N             number of cores used for execution (local execution only)
-    --count N             number of files to process (limits DAG size)
-    --countstart IDX      starting file index (for use with --count)
 
-    cluster arguments:
-    --cluster PATH        path to cluster execution yaml configuration file
-    --jobs N              number of simultaneous jobs to submit to a slurm queue
+    mode:
+    Snekmer mode
+
+    {cluster,model,search}
 
 .. _getting_started-configuration:
 

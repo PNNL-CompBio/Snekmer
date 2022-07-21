@@ -121,6 +121,9 @@ def _generate(alphabet: Set[str], k: int):
 
 # iterator object for kmer basis set given alphabet and k
 class KmerSet:
+    """Given alphabet and k, creates iterator for kmer basis set.
+    """
+
     def __init__(self, alphabet: Union[str, int], k: int):
         self.alphabet = alphabet
         self.k = k

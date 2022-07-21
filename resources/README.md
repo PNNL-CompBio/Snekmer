@@ -8,7 +8,7 @@ The example YAML files included are:
 - `search.yaml`: Snekmer search mode configuration file; required
   for search mode, but not necessary if only model or cluster mode
   are desired
-- `cluster.yaml`: (optional) Cluster configuration file for
+- `clust.yaml`: (optional) Cluster configuration file for
   deploying Snekmer on a high-performance computing (HPC) cluster
   - Note: The parameter `account` must be filled in with the
     relevant account details.

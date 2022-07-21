@@ -28,27 +28,33 @@ FEAT_OUT_FMTS = {
 
 
 def main():
-    parser = argparse.ArgumentParser(
+    parser = {}
+
+    # main parser
+    parser["main"] = argparse.ArgumentParser(
         description="Snekmer: A tool for kmer-based sequence analysis using amino acid reduction (AAR)"
     )
-    parser.add_argument(
+    parser["main"].add_argument(
         "-v",
         "--version",
         action="version",
         version=__version__,
         help="print version and exit",
     )
-    # parser.add_argument('--mode', choices=['model', 'cluster'], help='select operation mode')
 
     # snakemake options
-    parser.add_argument("--dryrun", action="store_true", help="perform a dry run")
-    parser.add_argument(
+    parser["smk"] = argparse.ArgumentParser(add_help=False)
+    parser["smk"].add_argument(
+        "--dryrun", "-n", action="store_true", help="perform a dry run"
+    )
+    parser["smk"].add_argument(
         "--configfile",
         metavar="PATH",
         default="config.yaml",
         help="path to yaml configuration file",
     )
-    parser.add_argument(
+    parser["smk"].add_argument(
+        "-C",
         "--config",
         nargs="*",
         metavar="KEY=VALUE",
@@ -61,36 +67,50 @@ def main():
             " providing a JSON file."
         ),
     )
-    parser.add_argument("--unlock", action="store_true", help="unlock directory")
-    parser.add_argument(
+    parser["smk"].add_argument("--unlock", action="store_true", help="unlock directory")
+    parser["smk"].add_argument(
+        "-U",
         "--until",
         metavar="TARGET",
         nargs="+",
         help="run pipeline until reaching the target rule or files",
     )
-    parser.add_argument(
+    parser["smk"].add_argument(
+        "--keepgoing",
+        "--keep-going",
+        "-k",
+        action="store_true",
+        default=False,
+        help="go on with independent jobs if a job fails",
+    )
+    parser["smk"].add_argument(
         "--latency",
+        "-w",
+        "--output-wait",
         "--latency-wait",
         metavar="SECONDS",
         type=int,
         default=30,
         help="wait time, in seconds, for output file creation (default 30)",
     )
-    parser.add_argument("--touch", action="store_true", help="touch output files only")
-    parser.add_argument(
+    parser["smk"].add_argument(
+        "--touch", action="store_true", help="touch output files only"
+    )
+    parser["smk"].add_argument(
+        "-c",
         "--cores",
         metavar="N",
         type=int,
         default=cpu_count(),
         help="number of cores used for execution (local execution only)",
     )
-    parser.add_argument(
+    parser["smk"].add_argument(
         "--count",
         metavar="N",
         type=int,
         help="number of files to process (limits DAG size)",
     )
-    parser.add_argument(
+    parser["smk"].add_argument(
         "--countstart",
         metavar="IDX",
         type=int,
@@ -98,14 +118,15 @@ def main():
         help="starting file index (for use with --count)",
     )
 
-    # cluster options
-    clust = parser.add_argument_group("cluster arguments")
-    clust.add_argument(
-        "--cluster",
+    # clust execution options
+    parser["clust"] = parser["smk"].add_argument_group("cluster execution arguments")
+    parser["clust"].add_argument(
+        "--clust",
         metavar="PATH",
         help="path to cluster execution yaml configuration file",
     )
-    clust.add_argument(
+    parser["clust"].add_argument(
+        "-j",
         "--jobs",
         metavar="N",
         type=int,
@@ -113,11 +134,31 @@ def main():
         help="number of simultaneous jobs to submit to a slurm queue",
     )
 
-    # create subparsers for both operation modes
-    parser.add_argument("mode", choices=["cluster", "model", "search"])
+    # create subparsers for each operation mode
+    # parser.add_argument("mode", choices=["cluster", "model", "search"])
+    parser["subparsers"] = parser["main"].add_subparsers(
+        title="mode", description="Snekmer mode", dest="mode"
+    )
+
+    # subparsers
+    cluster_parser = parser["subparsers"].add_parser(
+        "cluster",
+        description="Apply unsupervised clustering via Snekmer",
+        parents=[parser["smk"]],
+    )
+    model_parser = parser["subparsers"].add_parser(
+        "model",
+        description="Train supervised models via Snekmer",
+        parents=[parser["smk"]],
+    )
+    search_parser = parser["subparsers"].add_parser(
+        "search",
+        description="Search sequences against pre-existing models via Snekmer",
+        parents=[parser["smk"]],
+    )
 
     # parse args
-    args = parser.parse_args()
+    args = parser["main"].parse_args()
     config = parse_config(args)
 
     # start/stop config
@@ -125,17 +166,16 @@ def main():
         config = {
             "start": args.countstart,
             "stop": args.countstart + args.count,
-            "mode": args.mode,
             **config,
         }
     else:
-        config = {"mode": args.mode, **config}
+        config = config
 
     # cluster config
-    if args.cluster is not None:
-        cluster = "sbatch -A {cluster.account} -N {cluster.nodes} -t {cluster.time} -J {cluster.name} --ntasks-per-node {cluster.ntasks} -p {cluster.partition}"
+    if args.clust is not None:
+        clust = "sbatch -A {clust.account} -N {clust.nodes} -t {clust.time} -J {clust.name} --ntasks-per-node {clust.ntasks} -p {clust.partition}"
     else:
-        cluster = None
+        clust = None
 
     # parse operation mode
     if args.mode == "cluster":
@@ -143,9 +183,9 @@ def main():
             resource_filename("snekmer", "rules/cluster.smk"),
             configfiles=[args.configfile],
             config=config,
-            cluster_config=args.cluster,
-            cluster=cluster,
-            keepgoing=True,
+            cluster_config=args.clust,
+            cluster=clust,
+            keepgoing=args.keepgoing,
             force_incomplete=True,
             cores=args.cores,
             nodes=args.jobs,
@@ -161,9 +201,9 @@ def main():
             resource_filename("snekmer", "rules/model.smk"),
             configfiles=[args.configfile],
             config=config,
-            cluster_config=args.cluster,
-            cluster=cluster,
-            keepgoing=True,
+            cluster_config=args.clust,
+            cluster=clust,
+            keepgoing=args.keepgoing,
             force_incomplete=True,
             cores=args.cores,
             nodes=args.jobs,
@@ -179,8 +219,8 @@ def main():
             resource_filename("snekmer", "rules/search.smk"),
             configfiles=[args.configfile],
             config=config,
-            cluster_config=args.cluster,
-            cluster=cluster,
+            cluster_config=args.clust,
+            cluster=clust,
             keepgoing=True,
             force_incomplete=True,
             cores=args.cores,
@@ -191,6 +231,9 @@ def main():
             touch=args.touch,
             latency_wait=args.latency,
         )
+
+    else:
+        parser["main"].print_help()
 
 
 if __name__ == "__main__":

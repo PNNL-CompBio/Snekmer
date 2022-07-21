@@ -42,7 +42,7 @@ from sklearn.model_selection import (StratifiedKFold, cross_val_score,
                                      train_test_split)
 from sklearn.preprocessing import LabelEncoder
 from sklearn.tree import DecisionTreeClassifier
-from umap import UMAP
+# from umap import UMAP
 
 
 # change matplotlib backend to non-interactive
@@ -53,7 +53,7 @@ input_files = glob(join("input", "*"))
 zipped = [fa for fa in input_files if fa.endswith(".gz")]
 unzipped = [
     fa.rstrip(".gz")
-    for fa, ext in product(input_files, config["input"]["file_extensions"])
+    for fa, ext in product(input_files, config["input_file_exts"])
     if fa.rstrip(".gz").endswith(f".{ext}")
 ]
 
@@ -82,7 +82,7 @@ skm.alphabet.check_valid(config["alphabet"])
 
 # define output directory (helpful for multiple runs)
 out_dir = skm.io.define_output_dir(
-    config["alphabet"], config["k"], nested=config["output"]["nested_dir"]
+    config["alphabet"], config["k"], nested=config["nested_output"]
 )
 
 
@@ -126,6 +126,7 @@ rule cluster:
     output:
         clusters=join(out_dir, "cluster", "cluster.clust"),
         figs=directory(join(out_dir, "cluster", "figures")),
+        table=join(out_dir, "cluster", "clusters.csv")
     log:
         join(out_dir, "cluster", "log", "cluster.log"),
     run:
@@ -160,13 +161,17 @@ rule cluster:
         if len(bg) > 0:
             bg_feature_matrix = skm.utils.to_feature_matrix(bg["sequence_vector"].values)
 
-        # fit and save clustering model
+        # fit and save fitted clusters
         model = skm.cluster.KmerClustering(
             config["cluster"]["method"], config["cluster"]["params"]
         )
         model.fit(full_feature_matrix)
         with open(output.clusters, "wb") as f:
             pickle.dump(model, f)
+
+        # save output
+        data["cluster"] = model.predict(data["sequence_vector"].values)
+        data = data.drop(columns=["sequence_vector"]).to_csv(output.table, index=False)
 
         # log time to compute clusters
         skm.utils.log_runtime(log[0], start_time, step="clustering")
@@ -185,18 +190,18 @@ rule cluster:
 
         # plot umap
         # model_embedding = model.predict(full_feature_matrix)
-        umap_embedding = UMAP(metric="jaccard", n_components=2).fit_transform(full_feature_matrix)
-        fig, ax = plt.subplots(dpi=150)
-        sns.scatterplot(
-            x=umap_embedding[:, 0],
-            y=umap_embedding[:, 1],
-            hue=model.model.labels_,
-            alpha=0.2,
-            ax=ax,
-        )
+        # umap_embedding = UMAP(metric="jaccard", n_components=2).fit_transform(full_feature_matrix)
+        # fig, ax = plt.subplots(dpi=150)
+        # sns.scatterplot(
+        #     x=umap_embedding[:, 0],
+        #     y=umap_embedding[:, 1],
+        #     hue=model.model.labels_,
+        #     alpha=0.2,
+        #     ax=ax,
+        # )
 
-        fig.savefig(join(output.figs, "umap_clusters.png"))
-        plt.close("all")
+        # fig.savefig(join(output.figs, "umap_clusters.png"))
+        # plt.close("all")
 
         # record script endtime
         skm.utils.log_runtime(log[0], start_time)
