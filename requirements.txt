@@ -1,6 +1,6 @@
 biopython
-numpy >= 1.22.3
+numpy == 1.22.3
 snakemake >= 6.0
 scikit-learn
-umap-learn
+# umap-learn
 hdbscan
