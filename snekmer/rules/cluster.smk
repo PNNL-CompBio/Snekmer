@@ -90,7 +90,7 @@ out_dir = skm.io.define_output_dir(
 rule all:
     input:
         expand(join("input", "{uz}"), uz=UZS),  # require unzipping
-        join(out_dir, "cluster", "cluster.clust"),  # require cluster-building
+        join(out_dir, "cluster", "cluster.cluster"),  # require cluster-building
 
 
 # if any files are gzip zipped, unzip them
@@ -124,7 +124,7 @@ rule cluster:
         kmerobj=expand(join("output", "kmerize", "{fa}.kmers"), fa=NON_BGS),
         data=expand(join("output", "vector", "{fa}.npz"), fa=NON_BGS),
     output:
-        clusters=join(out_dir, "cluster", "cluster.clust"),
+        clusters=join(out_dir, "cluster", "cluster.cluster"),
         figs=directory(join(out_dir, "cluster", "figures")),
         table=join(out_dir, "cluster", "clusters.csv")
     log:
