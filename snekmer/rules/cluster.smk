@@ -42,7 +42,7 @@ from sklearn.model_selection import (StratifiedKFold, cross_val_score,
                                      train_test_split)
 from sklearn.preprocessing import LabelEncoder
 from sklearn.tree import DecisionTreeClassifier
-# from umap import UMAP
+from umap import UMAP
 
 
 # change matplotlib backend to non-interactive
@@ -189,19 +189,19 @@ rule cluster:
         plt.close("all")
 
         # plot umap
-        # model_embedding = model.predict(full_feature_matrix)
-        # umap_embedding = UMAP(metric="jaccard", n_components=2).fit_transform(full_feature_matrix)
-        # fig, ax = plt.subplots(dpi=150)
-        # sns.scatterplot(
-        #     x=umap_embedding[:, 0],
-        #     y=umap_embedding[:, 1],
-        #     hue=model.model.labels_,
-        #     alpha=0.2,
-        #     ax=ax,
-        # )
+        model_embedding = model.predict(full_feature_matrix)
+        umap_embedding = UMAP(metric="jaccard", n_components=2).fit_transform(full_feature_matrix)
+        fig, ax = plt.subplots(dpi=150)
+        sns.scatterplot(
+            x=umap_embedding[:, 0],
+            y=umap_embedding[:, 1],
+            hue=model.model.labels_,
+            alpha=0.2,
+            ax=ax,
+        )
 
-        # fig.savefig(join(output.figs, "umap_clusters.png"))
-        # plt.close("all")
+        fig.savefig(join(output.figs, "umap_clusters.png"))
+        plt.close("all")
 
         # record script endtime
         skm.utils.log_runtime(log[0], start_time)
