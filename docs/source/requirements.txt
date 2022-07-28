@@ -1,6 +1,7 @@
 sphinx >=5
 sphinx-rtd-theme
 sphinx-copybutton
+sphinxcontrib-bibtex
 biopython
 numpy >= 1.22.3
 snakemake >= 6.0
