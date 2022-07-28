@@ -1,9 +1,0 @@
-input_file_exts: ["fasta", "fna", "faa", "fa"]
-model_dir: "/path/to/output/model/"
-basis_dir: "/path/to/output/labels/"
-score_dir: "/path/to/output/score/"
-
-# required params
-k: 14
-alphabet: 0 # choices 0-5 or names (see alphabet module), or None
-nested_output: False

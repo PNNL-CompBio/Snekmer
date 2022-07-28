@@ -28,7 +28,7 @@ author = "C. H. Chang, W. C. Nelson, and J. E. McDermott"
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ["sphinx_rtd_theme", "sphinx_copybutton"]
+extensions = ["sphinx_rtd_theme", "sphinx_copybutton", "sphinxcontrib.bibtex"]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -60,3 +60,9 @@ html_theme_options = {
     "logo_only": True,
     "display_version": False,
 }
+
+# -- Bibliography settings ---------------------------------------------------
+bibtex_bibfiles = ["refs.bib"]
+bibtex_encoding = "latin"
+bibtex_default_style = "unsrt"
+

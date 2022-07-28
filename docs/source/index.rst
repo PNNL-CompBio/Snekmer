@@ -33,13 +33,6 @@ and the models they wish to search their sequences against. Snekmer applies the 
 and outputs a table for each file containing model annotation probabilities for the given sequences.
 
 .. toctree::
-   :caption: Background
-   :maxdepth: 1
-   :hidden:
-
-   background/index
-
-.. toctree::
    :caption: Getting Started
    :maxdepth: 1
    :hidden:
@@ -55,6 +48,13 @@ and outputs a table for each file containing model annotation probabilities for 
    :hidden:
 
    tutorial/index
+
+.. toctree::
+   :caption: Background
+   :maxdepth: 1
+   :hidden:
+
+   background/index
 
 .. toctree::
    :caption: Troubleshooting
