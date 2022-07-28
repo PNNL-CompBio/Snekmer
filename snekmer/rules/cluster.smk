@@ -171,7 +171,8 @@ rule cluster:
 
         # save output
         data["cluster"] = model.predict(data["sequence_vector"].values)
-        data = data.drop(columns=["sequence_vector"]).to_csv(output.table, index=False)
+        data = data.drop(columns=["sequence_vector"])
+        data.to_csv(output.table, index=False)
 
         # log time to compute clusters
         skm.utils.log_runtime(log[0], start_time, step="clustering")

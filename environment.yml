@@ -6,7 +6,7 @@ channels:
 dependencies:
   - biopython
   - matplotlib
-  # - numpy >= 1.22.3
+  - numpy >= 1.22.3
   - pandas
   - seaborn
   - scikit-learn
