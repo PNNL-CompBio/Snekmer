@@ -119,13 +119,13 @@ def main():
     )
 
     # clust execution options
-    parser["hpc"] = parser["smk"].add_argument_group("cluster execution arguments")
-    parser["hpc"].add_argument(
+    parser["clust"] = parser["smk"].add_argument_group("cluster execution arguments")
+    parser["clust"].add_argument(
         "--clustfile",
         metavar="PATH",
         help="path to cluster execution yaml configuration file",
     )
-    parser["hpc"].add_argument(
+    parser["clust"].add_argument(
         "-j",
         "--jobs",
         metavar="N",
@@ -141,17 +141,17 @@ def main():
     )
 
     # subparsers
-    cluster_parser = parser["subparsers"].add_parser(
+    parser["cluster"] = parser["subparsers"].add_parser(
         "cluster",
         description="Apply unsupervised clustering via Snekmer",
         parents=[parser["smk"]],
     )
-    model_parser = parser["subparsers"].add_parser(
+    parser["model"] = parser["subparsers"].add_parser(
         "model",
         description="Train supervised models via Snekmer",
         parents=[parser["smk"]],
     )
-    search_parser = parser["subparsers"].add_parser(
+    parser["search"] = parser["subparsers"].add_parser(
         "search",
         description="Search sequences against pre-existing models via Snekmer",
         parents=[parser["smk"]],
@@ -172,12 +172,10 @@ def main():
         config = config
 
     # cluster config
-    if args.hpc is not None:
+    if args.clustfile is not None:
         clust = "sbatch -A {hpc.account} -N {hpc.nodes} -t {hpc.time} -J {hpc.name} --ntasks-per-node {hpc.ntasks} -p {hpc.partition}"
     else:
         clust = None
-
-    print(clust)
 
     # parse operation mode
     if args.mode == "cluster":
