@@ -191,6 +191,43 @@ def get_alphabet(
     return mapping[alphabet]
 
 
+def get_alphabet_name(
+    alphabet: Union[str, int], mapping: dict = ALPHABETS
+) -> Dict[str, str]:
+    """Get alphabet name given any input type.
+
+    Parameters
+    ----------
+    alphabet : Union[str, int]
+        Alphabet name (as str) or alphabet id (as int).
+        Must be one of the follwing:
+            0: "hydro",
+            1: "standard",
+            2: "solvacc",
+            3: "hydrocharge",
+            4: "hydrostruct",
+            5: "miqs"
+    mapping : dict
+        All alphabet maps (the default is ALPHABETS).
+
+    Returns
+    -------
+    dict
+        Dictionary map of amino acids to alphabet character.
+
+    Raises
+    ------
+    ValueError
+        Raised if alphabet not in pre-defined list.
+
+    """
+    check_valid(alphabet)
+
+    if isinstance(alphabet, int):
+        alphabet = ALPHABET_ORDER[alphabet]
+    return alphabet
+
+
 def get_alphabet_keys(
     alphabet: Union[str, int], mapping: dict = FULL_ALPHABETS
 ) -> Set[str]:

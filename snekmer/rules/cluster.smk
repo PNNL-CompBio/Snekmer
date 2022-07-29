@@ -90,7 +90,7 @@ out_dir = skm.io.define_output_dir(
 rule all:
     input:
         expand(join("input", "{uz}"), uz=UZS),  # require unzipping
-        join(out_dir, "cluster", "cluster.cluster"),  # require cluster-building
+        join(out_dir, "cluster", "snekmer.csv"),  # require cluster-building
 
 
 # if any files are gzip zipped, unzip them
@@ -124,9 +124,8 @@ rule cluster:
         kmerobj=expand(join("output", "kmerize", "{fa}.kmers"), fa=NON_BGS),
         data=expand(join("output", "vector", "{fa}.npz"), fa=NON_BGS),
     output:
-        clusters=join(out_dir, "cluster", "cluster.cluster"),
         figs=directory(join(out_dir, "cluster", "figures")),
-        table=join(out_dir, "cluster", "clusters.csv")
+        table=join(out_dir, "cluster", "snekmer.csv")
     log:
         join(out_dir, "cluster", "log", "cluster.log"),
     run:
@@ -166,31 +165,28 @@ rule cluster:
             config["cluster"]["method"], config["cluster"]["params"]
         )
         model.fit(full_feature_matrix)
-        with open(output.clusters, "wb") as f:
-            pickle.dump(model, f)
+        # with open(output.clusters, "wb") as f:
+        #     pickle.dump(model, f)
 
         # save output
-        data["cluster"] = model.predict(data["sequence_vector"].values)
+        data["cluster"] = model.labels_
         data = data.drop(columns=["sequence_vector"])
+        print(data.head())
         data.to_csv(output.table, index=False)
 
         # log time to compute clusters
         skm.utils.log_runtime(log[0], start_time, step="clustering")
 
-        # insert plots here?
+        # force create output dir
         if not exists(output.figs):
             makedirs(output.figs)
-        fig, ax = skm.plot.explained_variance_curve(full_feature_matrix)
-        fig.savefig(join(output.figs, "pca_explained_variance_curve.png"))
-        plt.close("all")
 
         # plot tsne
         fig, ax = skm.plot.cluster_tsne(full_feature_matrix, model.model.labels_)
-        fig.savefig(join(output.figs, "tsne_clusters.png"))
+        fig.savefig(join(output.figs, f"tsne.png"))
         plt.close("all")
 
         # plot umap
-        model_embedding = model.predict(full_feature_matrix)
         umap_embedding = UMAP(metric="jaccard", n_components=2).fit_transform(full_feature_matrix)
         fig, ax = plt.subplots(dpi=150)
         sns.scatterplot(
@@ -201,7 +197,7 @@ rule cluster:
             ax=ax,
         )
 
-        fig.savefig(join(output.figs, "umap_clusters.png"))
+        fig.savefig(join(output.figs, f"umap.png"))
         plt.close("all")
 
         # record script endtime
