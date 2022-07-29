@@ -121,7 +121,7 @@ def main():
     # clust execution options
     parser["hpc"] = parser["smk"].add_argument_group("cluster execution arguments")
     parser["hpc"].add_argument(
-        "--clust",
+        "--clustfile",
         metavar="PATH",
         help="path to cluster execution yaml configuration file",
     )
@@ -177,13 +177,15 @@ def main():
     else:
         clust = None
 
+    print(clust)
+
     # parse operation mode
     if args.mode == "cluster":
         snakemake(
             resource_filename("snekmer", "rules/cluster.smk"),
             configfiles=[args.configfile],
             config=config,
-            cluster_config=args.clust,
+            cluster_config=args.clustfile,
             cluster=clust,
             keepgoing=args.keepgoing,
             force_incomplete=True,
