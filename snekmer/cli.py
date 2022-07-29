@@ -172,8 +172,8 @@ def main():
         config = config
 
     # cluster config
-    if args.clust is not None:
-        clust = "sbatch -A {clust.account} -N {clust.nodes} -t {clust.time} -J {clust.name} --ntasks-per-node {clust.ntasks} -p {clust.partition}"
+    if args.hpc is not None:
+        clust = "sbatch -A {hpc.account} -N {hpc.nodes} -t {hpc.time} -J {hpc.name} --ntasks-per-node {hpc.ntasks} -p {hpc.partition}"
     else:
         clust = None
 
