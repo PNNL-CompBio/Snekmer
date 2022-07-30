@@ -172,6 +172,7 @@ def main():
         config = config
 
     # cluster config
+    print(args)
     if args.clustfile is not None:
         clust = "sbatch -A {clustfile.account} -N {clustfile.nodes} -t {clustfile.time} -J {clustfile.name} --ntasks-per-node {clustfile.ntasks} -p {clustfile.partition}"
     else:
