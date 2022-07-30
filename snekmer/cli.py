@@ -121,7 +121,7 @@ def main():
     # clust execution options
     parser["clust"] = parser["smk"].add_argument_group("cluster execution arguments")
     parser["clust"].add_argument(
-        "--clustfile",
+        "--clust",
         metavar="PATH",
         help="path to cluster execution yaml configuration file",
     )
@@ -173,8 +173,8 @@ def main():
 
     # cluster config
     print(args)
-    if args.clustfile is not None:
-        clust = "sbatch -A {clustfile.account} -N {clustfile.nodes} -t {clustfile.time} -J {clustfile.name} --ntasks-per-node {clustfile.ntasks} -p {clustfile.partition}"
+    if args.clust is not None:
+        clust = "sbatch -A {clust.account} -N {clust.nodes} -t {clust.time} -J {clust.name} --ntasks-per-node {clust.ntasks} -p {clust.partition}"
     else:
         clust = None
 
@@ -184,7 +184,7 @@ def main():
             resource_filename("snekmer", "rules/cluster.smk"),
             configfiles=[args.configfile],
             config=config,
-            cluster_config=args.clustfile,
+            cluster_config=args.clust,
             cluster=clust,
             keepgoing=args.keepgoing,
             force_incomplete=True,
