@@ -119,7 +119,9 @@ def main():
     )
 
     # clust execution options
-    parser["hpc"] = parser["smk"].add_argument_group("cluster execution arguments")
+    parser["clustexec"] = parser["smk"].add_argument_group(
+        "cluster execution arguments"
+    )
     parser["clustexec"].add_argument(
         "--clust",
         metavar="PATH",
