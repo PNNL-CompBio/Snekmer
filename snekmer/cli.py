@@ -119,15 +119,13 @@ def main():
     )
 
     # clust execution options
-    parser["clustexec"] = parser["smk"].add_argument_group(
-        "cluster execution arguments"
-    )
-    parser["clustexec"].add_argument(
+    parser["clust"] = parser["smk"].add_argument_group("cluster execution arguments")
+    parser["clust"].add_argument(
         "--clust",
         metavar="PATH",
         help="path to cluster execution yaml configuration file",
     )
-    parser["clustexec"].add_argument(
+    parser["clust"].add_argument(
         "-j",
         "--jobs",
         metavar="N",
@@ -174,11 +172,10 @@ def main():
         config = config
 
     # cluster config
-    print(args)
     if args.clust is not None:
-        clust = "sbatch -A {clust.account} -N {clust.nodes} -t {clust.time} -J {clust.name} --ntasks-per-node {clust.ntasks} -p {clust.partition}"
+        cluster = "sbatch -A {cluster.account} -N {cluster.nodes} -t {cluster.time} -J {cluster.name} --ntasks-per-node {cluster.ntasks} -p {cluster.partition}"
     else:
-        clust = None
+        cluster = None
 
     # parse operation mode
     if args.mode == "cluster":
@@ -187,7 +184,7 @@ def main():
             configfiles=[args.configfile],
             config=config,
             cluster_config=args.clust,
-            cluster=clust,
+            cluster=cluster,
             keepgoing=args.keepgoing,
             force_incomplete=True,
             cores=args.cores,
@@ -205,7 +202,7 @@ def main():
             configfiles=[args.configfile],
             config=config,
             cluster_config=args.clust,
-            cluster=clust,
+            cluster=cluster,
             keepgoing=args.keepgoing,
             force_incomplete=True,
             cores=args.cores,
