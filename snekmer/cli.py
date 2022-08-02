@@ -119,13 +119,13 @@ def main():
     )
 
     # clust execution options
-    parser["clust"] = parser["smk"].add_argument_group("cluster execution arguments")
-    parser["clust"].add_argument(
+    parser["hpc"] = parser["smk"].add_argument_group("cluster execution arguments")
+    parser["clustexec"].add_argument(
         "--clust",
         metavar="PATH",
         help="path to cluster execution yaml configuration file",
     )
-    parser["clust"].add_argument(
+    parser["clustexec"].add_argument(
         "-j",
         "--jobs",
         metavar="N",
