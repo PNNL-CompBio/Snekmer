@@ -74,7 +74,8 @@ General parameters related to Snekmer's cluster mode (``snekmer cluster``), wher
      Parameter                    Type            Description
 ========================  ====================  =========================================================================
  ``method``                ``str``                Clustering method (options: ``"kmeans"``, ``"agglomerative"``,
-                                                  ``"correlation"``, ``"density"``, ``"birch"``, or ``"optics"``)
+                                                  ``"correlation"``, ``"density"``, ``"birch"``, ``"optics"``,
+                                                  or ``"hdbscan"``)
  ``params``                ``dict``               Parameters to pass to the clustering algorithm
 ========================  ====================  =========================================================================
 

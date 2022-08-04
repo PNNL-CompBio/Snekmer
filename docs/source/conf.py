@@ -19,7 +19,9 @@ import sphinx_rtd_theme
 # -- Project information -----------------------------------------------------
 
 project = "Snekmer"
-copyright = "2022 by C. H. Chang, W. C. Nelson, and J. E. McDermott"
+copyright = (
+    "2022 by Pacific Northwest National Laboratory / Battelle Memorial Institute"
+)
 author = "C. H. Chang, W. C. Nelson, and J. E. McDermott"
 
 

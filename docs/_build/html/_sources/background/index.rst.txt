@@ -61,5 +61,3 @@ Citations
 :::::::::
 
 .. footbibliography::
-
-*to be continued...*
