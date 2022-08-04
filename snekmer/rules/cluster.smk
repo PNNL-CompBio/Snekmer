@@ -23,12 +23,13 @@ module kmerize:
 import gzip
 import json
 import pickle
+import struct
 from datetime import datetime
 from glob import glob
 from itertools import product, repeat
 from multiprocessing import Pool
 from os import makedirs
-from os.path import basename, dirname, exists, join, splitext
+from os.path import basename, dirname, exists, join, splitext, split
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -44,6 +45,15 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.tree import DecisionTreeClassifier
 from umap import UMAP
 
+try:
+    # make this conditional on the library being installed
+    import bsf
+    BSF_PRESENT = True
+except ImportError:
+    BSF_PRESENT = False
+
+from scipy.spatial.distance import squareform
+from scipy.spatial.distance import pdist, jaccard
 
 # change matplotlib backend to non-interactive
 plt.switch_backend("Agg")
@@ -84,7 +94,6 @@ skm.alphabet.check_valid(config["alphabet"])
 out_dir = skm.io.define_output_dir(
     config["alphabet"], config["k"], nested=config["nested_output"]
 )
-
 
 # define output files to be created by snekmer
 rule all:
@@ -144,7 +153,7 @@ rule cluster:
         data = list()
         for f in input.data:
             data.append(skm.io.load_npz(f))
-        
+
         data = pd.concat(data, ignore_index=True)
         data["background"] = [f in BGS for f in data["filename"]]
 
@@ -156,24 +165,115 @@ rule cluster:
         full_feature_matrix = skm.utils.to_feature_matrix(data["sequence_vector"].values)
         feature_matrix = skm.utils.to_feature_matrix(non_bg["sequence_vector"].values)
 
+        # print("Filtering?")
+        # filter by kmer occurrence
+        if "min_rep" in config["cluster"]:
+            min_rep = config["cluster"]["min_rep"]
+            print("Filtering by minimum %d" % min_rep)
+            ksums = full_feature_matrix.sum(axis=0)
+            full_feature_matrix = full_feature_matrix[:,ksums>min_rep]
+            print(full_feature_matrix.shape)
+        if "max_rep" in config["cluster"]:
+            max_rep = config["cluster"]["max_rep"]
+            print("Filtering by maximum %d" % max_rep)
+            ksums = full_feature_matrix.sum(axis=0)
+            full_feature_matrix = full_feature_matrix[:,ksums<max_rep]
+            print(full_feature_matrix.shape)
+
         # currently not used
         if len(bg) > 0:
             bg_feature_matrix = skm.utils.to_feature_matrix(bg["sequence_vector"].values)
-
-        # fit and save fitted clusters
+            
+        # initialize clustering model
         model = skm.cluster.KmerClustering(
             config["cluster"]["method"], config["cluster"]["params"]
         )
-        model.fit(full_feature_matrix)
-        # with open(output.clusters, "wb") as f:
-        #     pickle.dump(model, f)
+
+        # for bsf, make the input matrix a distance matrix
+        if config["cluster"]["method"] in ["bsf", "hdbsf", "aggbsf"]:
+            output_bsf = join(dirname(output.table), "bsf")
+            if not exists(output_bsf):
+                makedirs(output_bsf)
+
+            # kludge to check on options for agglomerative Clustering
+            if "distance_threshold" in config["cluster"]["params"]:
+                config["cluster"]["params"]["n_clusters"] = None
+                config["cluster"]["params"]["compute_full_tree"] = True
+                
+            model = skm.cluster.KmerClustering(config["cluster"]["method"], config["cluster"]["params"])
+
+            # if available, use BSF to create clustering distance matrix
+            if BSF_PRESENT:
+                # the uint64 type is required by bsf
+                full_feature_matrix = np.array(full_feature_matrix, dtype=np.uint64)
+
+                # the filename that bsf creates you can't specify exactly
+                # but we can reconstruct it here - this will likely break
+                # because I think bsf breaks large input matrices into chunks
+                # and will output multiple files
+                nsign, vlen = full_feature_matrix.shape
+
+                bsfname = join(output_bsf, "bin_%d_0_0_%d_%d_bsf.txt.bin" % (nsign,nsign,nsign))
+
+                if not exists(bsfname):
+                    # We can break this job in to chunks by setting the nsign to smaller
+                    #    than the row size - but we'll need to figure out how to read
+                    #    in the bin files and use them
+                    # bsf.analysis_with_chunk(full_feature_matrix, 10000, "bsf.txt", "%s/" % output.bsf)
+                    bsf.analysis_with_chunk(full_feature_matrix, nsign, "bsf.txt", "%s/" % output_bsf)
+                else:
+                    print("Using existing BSF similarity matrix...")
+
+                with open(bsfname, "rb") as f:
+                    bsf_mat = np.frombuffer(f.read(), dtype=np.uint32).reshape((nsign, nsign))
+                    #bsf_mat = np.frombuffer(f.read(), dtype=np.double).reshape((nsign, nsign))
+
+                # this is great for diagnostics - but takes a lot of time/space for large
+                # comparisons
+                #np.savetxt(output.bsfmat, bsf_mat, fmt="%.3f", delimiter=",")
+
+                # bsf only outputs the upper triangle so we'll copy that to the lower triangle
+                bsf_mat = bsf_mat + bsf_mat.T - np.diag(np.diag(bsf_mat))
+
+                # and fill the diagonals with max which is skipped by bsf
+                np.fill_diagonal(bsf_mat, 100)
+
+                # now transform the similarity matrix output by bsf to a
+                #     distance matrix - using inverse Jaccard similarity
+
+                # this gives Jaccard similarity (since all vectors are the same length)
+                # and subtracting it from 1 gives a distance
+                # bsf_mat = 1.0 - (bsf_mat / 100)
+                bsf_mat = 100-bsf_mat
+
+            else:
+                # calculate Jaccard distance
+                res = pdist(full_feature_matrix, 'jaccard')
+                bsf_mat = squareform(res)
+
+            if "dist_thresh" in config["cluster"]:
+                dist_thresh = config["cluster"]["dist_thresh"]
+                bsf_mat[bsf_mat > dist_thresh] = 100
+
+            # this is great for diagnostics - but takes a lot of time/space for large
+            # comparisons
+            # np.savetxt(output.distmat, bsf_mat, fmt="%.3f", delimiter=",")
+
+            model.fit(bsf_mat)
+
+        else:
+            # fit and save fitted clusters
+            # bsf here
+            model.fit(full_feature_matrix)
 
         # save output
         data["cluster"] = model.labels_
         data = data.drop(columns=["sequence_vector"])
-        print(data.head())
         data.to_csv(output.table, index=False)
 
+        # with open(output.clusters, "wb") as f:
+        #     pickle.dump(model, f)
+        
         # log time to compute clusters
         skm.utils.log_runtime(log[0], start_time, step="clustering")
 
@@ -181,24 +281,31 @@ rule cluster:
         if not exists(output.figs):
             makedirs(output.figs)
 
-        # plot tsne
-        fig, ax = skm.plot.cluster_tsne(full_feature_matrix, model.model.labels_)
-        fig.savefig(join(output.figs, f"tsne.png"))
-        plt.close("all")
+        # optionally generate plots
+        if ("cluster_plots" in config["cluster"]) and (config["cluster"]["cluster_plots"] == "True"):
+            # plot explained variance curve
+            fig, ax = skm.plot.explained_variance_curve(full_feature_matrix)
+            fig.savefig(join(output.figs, "pca_explained_variance_curve.png"))
+            plt.close("all")
 
-        # plot umap
-        umap_embedding = UMAP(metric="jaccard", n_components=2).fit_transform(full_feature_matrix)
-        fig, ax = plt.subplots(dpi=150)
-        sns.scatterplot(
-            x=umap_embedding[:, 0],
-            y=umap_embedding[:, 1],
-            hue=model.model.labels_,
-            alpha=0.2,
-            ax=ax,
-        )
+            # plot tsne
+            fig, ax = skm.plot.cluster_tsne(full_feature_matrix, model.model.labels_)
+            fig.savefig(join(output.figs, "tsne.png"))
+            plt.close("all")
+            
+            # plot umap
+            umap_embedding = UMAP(metric="jaccard", n_components=2).fit_transform(full_feature_matrix)
+            fig, ax = plt.subplots(dpi=150)
+            sns.scatterplot(
+                x=umap_embedding[:, 0],
+                y=umap_embedding[:, 1],
+                hue=model.model.labels_,
+                alpha=0.2,
+                ax=ax,
+            )
 
-        fig.savefig(join(output.figs, f"umap.png"))
-        plt.close("all")
+            fig.savefig(join(output.figs, f"umap.png"))
+            plt.close("all")
 
         # record script endtime
         skm.utils.log_runtime(log[0], start_time)
