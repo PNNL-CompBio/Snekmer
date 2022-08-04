@@ -23,6 +23,13 @@ cluster:
       "metric": "correlation",
       "method": "weighted",
     }
+  cluster_plots: True
+
+  # clustering distance matrix params
+  min_rep:
+  max_rep:
+  save_matrix: False
+  dist_thresh: 0
 
 # model params
 model:
