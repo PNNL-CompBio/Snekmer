@@ -4,10 +4,11 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Background &mdash; Snekmer  documentation</title>
+  <title>Overview &mdash; Snekmer  documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
+    <link rel="shortcut icon" href="../_static/favicon.svg"/>
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -19,11 +20,12 @@
         <script src="../_static/doctools.js"></script>
         <script src="../_static/clipboard.min.js"></script>
         <script src="../_static/copybutton.js"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Tutorial" href="../tutorial/index.html" />
-    <link rel="prev" title="Setting up User Configuration" href="../getting_started/config.html" /> 
+    <link rel="next" title="Frequently Asked Questions" href="../troubleshooting/common.html" />
+    <link rel="prev" title="Tutorial" href="../tutorial/index.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -31,7 +33,8 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../index.html" class="icon icon-home"> Snekmer
+            <a href="../index.html">
+            <img src="../_static/snekmer_logo.png" class="logo" alt="Logo"/>
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
@@ -44,21 +47,27 @@
               <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../getting_started/install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started/config.html">Setting up User Configuration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../getting_started/cli.html">Command Line Interface</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../getting_started/modes.html">Snekmer Modes</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../getting_started/config.html">Setting up User Configuration</a></li>
-</ul>
-<p class="caption" role="heading"><span class="caption-text">Background</span></p>
-<ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Background</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#what-is-a-kmer">What is a kmer?</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#amino-acid-recoding-aar">Amino Acid Recoding (AAR)</a></li>
-</ul>
-</li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorial</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../tutorial/index.html">Tutorial</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Background</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#what-is-a-kmer">What is a kmer?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#amino-acid-recoding-aar">Amino Acid Recoding (AAR)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#alphabets">Alphabets</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#citations">Citations</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Troubleshooting</span></p>
 <ul>
@@ -79,7 +88,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
-      <li>Background</li>
+      <li>Overview</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/background/index.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -89,14 +98,99 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="background">
-<h1>Background<a class="headerlink" href="#background" title="Permalink to this heading"></a></h1>
+  <section id="overview">
+<h1>Overview<a class="headerlink" href="#overview" title="Permalink to this heading"></a></h1>
+<p>Protein function annotation typically involves pairwise or multiple sequence alignment,
+followed by various search tools to query for sequence similarity across pre-annotated
+sequences. Snekmer aims to simplify this process by combining the kmer approach
+with amino acid recoding (AAR) to map the 20 amino acids into alphabets of smaller size.
+This combined approach represents protein sequences as AAR-kmer vectors, which preserve
+information about the parent sequence while also reducing the sheer size of kmer vectors
+based on the canonical amino acids (i.e. <span class="math notranslate nohighlight">\(20^{k}\)</span>).</p>
 <section id="what-is-a-kmer">
 <h2>What is a kmer?<a class="headerlink" href="#what-is-a-kmer" title="Permalink to this heading"></a></h2>
-<p>Kmers (or k-mers) are all of the subsequences of length <em>k</em> that comprise a sequence.</p>
+<p>Kmers (or k-mers) are all of the subsequences of length <em>k</em> that comprise a sequence.
+Kmers are commonly used to represent sequences, particularly DNA or RNA sequences, as
+counts vectors; in other words, kmer vectors simply store the number of times a given
+kmer appears in a sequence. This representation is commonly used to rapidly compare
+sequences based on the similarity of their kmer profiles and create vectorized
+representation of sequences that are amenable to machine learning-based approaches.</p>
 </section>
 <section id="amino-acid-recoding-aar">
 <h2>Amino Acid Recoding (AAR)<a class="headerlink" href="#amino-acid-recoding-aar" title="Permalink to this heading"></a></h2>
+<p>Amino acid recoding (AAR) is a process by which the set of 20 canonical amino acids
+is mapped to a smaller character set by grouping amino acids based on chemical properties
+or similar measures. This technique effectively reduces the space of kmers (subsequences)
+for sequence-to-sequence comparison. Proteins can thus be represented as simplified vectors
+that encode structural information relevant for functional differentiation. The combined
+AAR-kmer approach was successfully applied to develop machine learning (ML) models capable
+of classifying sets of proteins that are functionally related but with little sequence
+similarity that would thus not be detected via conventional similarity assessment techniques [1].</p>
+<section id="alphabets">
+<span id="id1"></span><h3>Alphabets<a class="headerlink" href="#alphabets" title="Permalink to this heading"></a></h3>
+<p>Snekmer comes with 6 different recoding schemes, or “alphabets”, by which AAR can occur.
+The available options, including the option to skip recoding, are listed below.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Alphabet No.</p></th>
+<th class="head"><p>Alphabet Name</p></th>
+<th class="head"><p>Size</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">0</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">hydro</span></code></p></td>
+<td><p>2</p></td>
+<td><p>2-value hydrophobicity alphabet <a class="footnote-reference brackets" href="#footcite-arnold2009" id="id2" role="doc-noteref"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">1</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">standard</span></code></p></td>
+<td><p>7</p></td>
+<td><p>“Standard” reduction alphabet <a class="footnote-reference brackets" href="#footcite-arnold2009" id="id3" role="doc-noteref"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">2</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">solvacc</span></code></p></td>
+<td><p>3</p></td>
+<td><p>Solvent accessibility alphabet <a class="footnote-reference brackets" href="#footcite-arnold2009" id="id4" role="doc-noteref"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">3</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">hydrocharge</span></code></p></td>
+<td><p>3</p></td>
+<td><p>2-value hydrophobicity with charged residues as a third category; by &#64;biodataganache</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">4</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">hydrostruct</span></code></p></td>
+<td><p>3</p></td>
+<td><p>2-value hydrophobicity with structural-breakers as a third category; by &#64;biodataganache</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">5</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">miqs</span></code></p></td>
+<td><p>10</p></td>
+<td><p>MIQS alphabet <a class="footnote-reference brackets" href="#footcite-yamada2014" id="id5" role="doc-noteref"><span class="fn-bracket">[</span>2<span class="fn-bracket">]</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><em>n/a</em></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p></td>
+<td><p>20</p></td>
+<td><p>No reduced alphabet</p></td>
+</tr>
+</tbody>
+</table>
+<section id="citations">
+<h4>Citations<a class="headerlink" href="#citations" title="Permalink to this heading"></a></h4>
+<div class="docutils container" id="id6">
+<aside class="footnote brackets" id="footcite-arnold2009" role="note">
+<span class="label"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></span>
+<span class="backrefs">(<a role="doc-backlink" href="#id2">1</a>,<a role="doc-backlink" href="#id3">2</a>,<a role="doc-backlink" href="#id4">3</a>)</span>
+<p>Roland Arnold, Stefan Brandmaier, Frederick Kleine, Patrick Tischler, Eva Heinz, Sebastian Behrens, Antti Niinikoski, Hans-Werner Mewes, Matthias Horn, and Thomas Rattei. Sequence-Based Prediction of Type III Secreted Proteins. <em>PLoS Pathogens</em>, 5(4):e1000376, Apr 2009. URL: <a class="reference external" href="https://dx.plos.org/10.1371/journal.ppat.1000376">https://dx.plos.org/10.1371/journal.ppat.1000376</a>, <a class="reference external" href="https://doi.org/10.1371/journal.ppat.1000376">doi:10.1371/journal.ppat.1000376</a>.</p>
+</aside>
+<aside class="footnote brackets" id="footcite-yamada2014" role="note">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id5">2</a><span class="fn-bracket">]</span></span>
+<p>Kazunori Yamada and Kentaro Tomii. Revisiting amino acid substitution matrices for identifying distantly related proteins. <em>Bioinformatics</em>, 30(3):317–325, Feb 2014. URL: <a class="reference external" href="https://academic.oup.com/bioinformatics/article-lookup/doi/10.1093/bioinformatics/btt694">https://academic.oup.com/bioinformatics/article-lookup/doi/10.1093/bioinformatics/btt694</a>, <a class="reference external" href="https://doi.org/10.1093/bioinformatics/btt694">doi:10.1093/bioinformatics/btt694</a>.</p>
+</aside>
+</div>
+</section>
+</section>
 </section>
 </section>
 
@@ -104,14 +198,14 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="../getting_started/config.html" class="btn btn-neutral float-left" title="Setting up User Configuration" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../tutorial/index.html" class="btn btn-neutral float-right" title="Tutorial" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="../tutorial/index.html" class="btn btn-neutral float-left" title="Tutorial" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../troubleshooting/common.html" class="btn btn-neutral float-right" title="Frequently Asked Questions" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2022 by C. H. Chang, W. C. Nelson, and J. E. McDermott.</p>
+    <p>&#169; Copyright 2022 by Pacific Northwest National Laboratory / Battelle Memorial Institute.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

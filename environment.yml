@@ -6,10 +6,11 @@ channels:
 dependencies:
   - biopython
   - matplotlib
-  - numpy == 1.22.1
+  - numpy >= 1.22.3
+  - scipy
   - pandas
   - seaborn
   - scikit-learn
   - snakemake >= 6.0
-  # - umap-learn
+  - umap-learn
   - hdbscan

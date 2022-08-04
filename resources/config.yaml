@@ -13,13 +13,6 @@ score:
   labels: None
   lname: None # label name
 
-# model params
-model:
-  n: 100
-  cv: 5
-  use_score: False
-  random_state: None
-
 # cluster params
 cluster:
   method: "correlation"
@@ -30,28 +23,13 @@ cluster:
       "metric": "correlation",
       "method": "weighted",
     }
-# optional params
-# future params
-# custom_alphabet: {'custom_alphabet': {}}
-# deprecated params
-# processes: 2
-# min_rep_thresh: 1
-# start: None
-# end: None
-# nucleotide: False
-# randomize_alphabet: False
-# walk: False
-# input:
-# example_index_file: None
-# kmer_set_file: None # file containing kmer feature set
-# regex: "[a-z]{3}[A-Z]{1}" # regex to parse family from filename
-# output:
-# verbose: True # if True, logs verbose outputs
-# format: "simple" # choices: ['simple', 'gist', 'sieve']
-# filter_duplicates: True
-# n_terminal_file: None
-# shuffle_n: False
-# shuffle_sequences: False
-# # currently inactive
-# filename: False # customize filename
-# kmer_output: True
+
+# model params
+model:
+  cv: 5
+  random_state: None
+
+# search params
+model_dir: "/path/to/output/model/"
+basis_dir: "/path/to/output/labels/"
+score_dir: "/path/to/output/score/"

@@ -4,10 +4,11 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Snekmer: K-mer Encoding for Protein Sequences &mdash; Snekmer  documentation</title>
+  <title>Snekmer: Reduced K-mer Encoding for Protein Sequences &mdash; Snekmer  documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="_static/copybutton.css" type="text/css" />
+    <link rel="shortcut icon" href="_static/favicon.svg"/>
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -30,7 +31,8 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="#" class="icon icon-home"> Snekmer
+            <a href="#">
+            <img src="_static/snekmer_logo.png" class="logo" alt="Logo"/>
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -43,17 +45,17 @@
               <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="getting_started/install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started/config.html">Setting up User Configuration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="getting_started/cli.html">Command Line Interface</a></li>
 <li class="toctree-l1"><a class="reference internal" href="getting_started/modes.html">Snekmer Modes</a></li>
-<li class="toctree-l1"><a class="reference internal" href="getting_started/config.html">Setting up User Configuration</a></li>
-</ul>
-<p class="caption" role="heading"><span class="caption-text">Background</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="background/index.html">Background</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorial</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="tutorial/index.html">Tutorial</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Background</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="background/index.html">Overview</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Troubleshooting</span></p>
 <ul>
@@ -74,7 +76,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="#" class="icon icon-home"></a> &raquo;</li>
-      <li>Snekmer: K-mer Encoding for Protein Sequences</li>
+      <li>Snekmer: Reduced K-mer Encoding for Protein Sequences</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -84,43 +86,25 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="snekmer-k-mer-encoding-for-protein-sequences">
-<h1>Snekmer: K-mer Encoding for Protein Sequences<a class="headerlink" href="#snekmer-k-mer-encoding-for-protein-sequences" title="Permalink to this heading"></a></h1>
-<p>Snekmer is a pipeline to apply encoded k-mer analysis to protein sequences for machine learning.</p>
+  <section id="snekmer-reduced-k-mer-encoding-for-protein-sequences">
+<h1>Snekmer: Reduced K-mer Encoding for Protein Sequences<a class="headerlink" href="#snekmer-reduced-k-mer-encoding-for-protein-sequences" title="Permalink to this heading"></a></h1>
+<p>Snekmer is a software package designed to reduce the representation of protein sequences
+by combining amino acid reduction (AAR) with the kmer approach. Based on the AAR-kmer representations,
+Snekmer subsequently (1) clusters sequences using various unsupervised clustering algorithms,
+(2) generates supervised machine learning models, or (3) searches sequences against pre-trained models
+to determine probabilistic annotations.</p>
 <a class="reference internal image-reference" href="_images/snekmer_workflow.svg"><img alt="Snekmer workflow overview" class="align-center" src="_images/snekmer_workflow.svg" width="700" /></a>
 <p>There are 3 operation modes for Snekmer: <code class="docutils literal notranslate"><span class="pre">cluster</span></code>, <code class="docutils literal notranslate"><span class="pre">model</span></code>,  and <code class="docutils literal notranslate"><span class="pre">search</span></code>.</p>
-<section id="cluster-mode">
-<h2>Cluster mode:<a class="headerlink" href="#cluster-mode" title="Permalink to this heading"></a></h2>
-<ul class="simple">
-<li><p><strong>Input:</strong> FASTA files containing protein sequences</p></li>
-<li><dl class="simple">
-<dt><strong>Output:</strong> Clusters of similar proteins</dt><dd><ul>
-<li><p><em>Evaluation output:</em> Assessment of how well the clusters of similar proteins represent functions</p></li>
-</ul>
-</dd>
-</dl>
-</li>
-</ul>
-</section>
-<section id="model-mode">
-<h2>Model mode:<a class="headerlink" href="#model-mode" title="Permalink to this heading"></a></h2>
-<ul>
-<li><p><strong>Input:</strong> FASTA files containing protein sequences in known families</p></li>
-<li><p><strong>Output:</strong> Models of the known protein families based on kmer vector analysis</p>
-<blockquote>
-<div><ul class="simple">
-<li><p><em>Evaluation output:</em> Assessment of model performance</p></li>
-</ul>
-</div></blockquote>
-</li>
-</ul>
-</section>
-<section id="search-mode">
-<h2>Search mode:<a class="headerlink" href="#search-mode" title="Permalink to this heading"></a></h2>
-<ul class="simple">
-<li><p><strong>Input:</strong> FASTA files containing protein sequences; Trained model (output from snekmer model mode)</p></li>
-<li><p><strong>Output:</strong> Predictions of family membership</p></li>
-</ul>
+<p><strong>Cluster mode:</strong> The user supplies files containing sequences in an appropriate format (e.g. FASTA).
+Snekmer applies the relevant workflow steps and outputs the resulting clustering results in tabular form (.CSV),
+as well as the cluster object itself (.cluster). Figures are also generated (e.g. t-SNE, UMAP) to help the user
+contextualize their results.</p>
+<p><strong>Model mode:</strong> The user supplies files containing sequences in an appropriate format (e.g. FASTA).
+Snekmer applies the relevant workflow steps and outputs the resulting models as objects (.model). Snekmer also
+displays K-fold cross validation results in the form of figures (AUC ROC and PR AUC curves) and a table (.CSV).</p>
+<p><strong>Search mode:</strong> The user supplies files containing sequences in an appropriate format (e.g. FASTA)
+and the models they wish to search their sequences against. Snekmer applies the relevant workflow steps
+and outputs a table for each file containing model annotation probabilities for the given sequences.</p>
 <div class="toctree-wrapper compound">
 </div>
 <div class="toctree-wrapper compound">
@@ -129,7 +113,6 @@
 </div>
 <div class="toctree-wrapper compound">
 </div>
-</section>
 </section>
 
 
@@ -142,7 +125,7 @@
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2022 by C. H. Chang, W. C. Nelson, and J. E. McDermott.</p>
+    <p>&#169; Copyright 2022 by Pacific Northwest National Laboratory / Battelle Memorial Institute.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

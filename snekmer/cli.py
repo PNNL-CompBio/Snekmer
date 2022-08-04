@@ -141,17 +141,17 @@ def main():
     )
 
     # subparsers
-    cluster_parser = parser["subparsers"].add_parser(
+    parser["cluster"] = parser["subparsers"].add_parser(
         "cluster",
         description="Apply unsupervised clustering via Snekmer",
         parents=[parser["smk"]],
     )
-    model_parser = parser["subparsers"].add_parser(
+    parser["model"] = parser["subparsers"].add_parser(
         "model",
         description="Train supervised models via Snekmer",
         parents=[parser["smk"]],
     )
-    search_parser = parser["subparsers"].add_parser(
+    parser["search"] = parser["subparsers"].add_parser(
         "search",
         description="Search sequences against pre-existing models via Snekmer",
         parents=[parser["smk"]],
@@ -173,9 +173,9 @@ def main():
 
     # cluster config
     if args.clust is not None:
-        clust = "sbatch -A {clust.account} -N {clust.nodes} -t {clust.time} -J {clust.name} --ntasks-per-node {clust.ntasks} -p {clust.partition}"
+        cluster = "sbatch -A {cluster.account} -N {cluster.nodes} -t {cluster.time} -J {cluster.name} --ntasks-per-node {cluster.ntasks} -p {cluster.partition}"
     else:
-        clust = None
+        cluster = None
 
     # parse operation mode
     if args.mode == "cluster":
@@ -184,7 +184,7 @@ def main():
             configfiles=[args.configfile],
             config=config,
             cluster_config=args.clust,
-            cluster=clust,
+            cluster=cluster,
             keepgoing=args.keepgoing,
             force_incomplete=True,
             cores=args.cores,
@@ -202,7 +202,7 @@ def main():
             configfiles=[args.configfile],
             config=config,
             cluster_config=args.clust,
-            cluster=clust,
+            cluster=cluster,
             keepgoing=args.keepgoing,
             force_incomplete=True,
             cores=args.cores,

@@ -27,7 +27,7 @@ version of Snakemake:
 
 .. code-block:: bash
   
-  conda create -n snekmer -c conda-forge -c bioconda biopython matplotlib numpy pandas seaborn snakemake-minimal scikit-learn
+  conda create -n snekmer -c conda-forge -c bioconda biopython matplotlib numpy scipy pandas seaborn snakemake-minimal scikit-learn
 
 Install Snekmer
 ---------------

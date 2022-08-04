@@ -135,7 +135,12 @@ class KmerClustering(ClusterMixin):
 
     def fit(self, X):
         self.model.fit(X)
-        self.labels_ = np.full(X.shape[0], -1, dtype=np.intp)
+        if self.method != "hdbscan":
+            self.labels_ = np.full(X.shape[0], -1, dtype=np.intp)
+        else:
+            self.labels_ = self.model.fit_predict(X)
 
     def predict(self, X):
-        return self.model.predict(X)
+        if self.method != "hdbscan":
+            return self.model.predict(X)
+        raise AttributeError("'HDBSCAN' object has no attribute 'predict'.")

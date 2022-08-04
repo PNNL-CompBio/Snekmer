@@ -43,7 +43,7 @@ from sklearn.model_selection import (StratifiedKFold, cross_val_score,
                                      train_test_split)
 from sklearn.preprocessing import LabelEncoder
 from sklearn.tree import DecisionTreeClassifier
-# from umap import UMAP
+from umap import UMAP
 
 try:
     # make this conditional on the library being installed
@@ -99,7 +99,7 @@ out_dir = skm.io.define_output_dir(
 rule all:
     input:
         expand(join("input", "{uz}"), uz=UZS),  # require unzipping
-        join(out_dir, "cluster", "cluster.clust"),  # require cluster-building
+        join(out_dir, "cluster", "snekmer.csv"),  # require cluster-building
 
 
 # if any files are gzip zipped, unzip them
@@ -133,9 +133,8 @@ rule cluster:
         kmerobj=expand(join("output", "kmerize", "{fa}.kmers"), fa=NON_BGS),
         data=expand(join("output", "vector", "{fa}.npz"), fa=NON_BGS),
     output:
-        clusters=join(out_dir, "cluster", "cluster.clust"),
         figs=directory(join(out_dir, "cluster", "figures")),
-        table=join(out_dir, "cluster", "clusters.csv")
+        table=join(out_dir, "cluster", "snekmer.csv")
     log:
         join(out_dir, "cluster", "log", "cluster.log"),
     run:
@@ -166,7 +165,7 @@ rule cluster:
         full_feature_matrix = skm.utils.to_feature_matrix(data["sequence_vector"].values)
         feature_matrix = skm.utils.to_feature_matrix(non_bg["sequence_vector"].values)
 
-        #print("Filtering?")
+        # print("Filtering?")
         # filter by kmer occurrence
         if "min_rep" in config["cluster"]:
             min_rep = config["cluster"]["min_rep"]
@@ -184,10 +183,15 @@ rule cluster:
         # currently not used
         if len(bg) > 0:
             bg_feature_matrix = skm.utils.to_feature_matrix(bg["sequence_vector"].values)
+            
+        # initialize clustering model
+        model = skm.cluster.KmerClustering(
+            config["cluster"]["method"], config["cluster"]["params"]
+        )
 
-        # for bsf we need to make the input matrix a distance matrix
-        if config["cluster"]["method"] in ["bsf","hdbsf", "aggbsf"]:
-            output_bsf = join(split(output.clusters)[0], "bsf")
+        # for bsf, make the input matrix a distance matrix
+        if config["cluster"]["method"] in ["bsf", "hdbsf", "aggbsf"]:
+            output_bsf = join(dirname(output.table), "bsf")
             if not exists(output_bsf):
                 makedirs(output_bsf)
 
@@ -195,9 +199,10 @@ rule cluster:
             if "distance_threshold" in config["cluster"]["params"]:
                 config["cluster"]["params"]["n_clusters"] = None
                 config["cluster"]["params"]["compute_full_tree"] = True
-
+                
             model = skm.cluster.KmerClustering(config["cluster"]["method"], config["cluster"]["params"])
 
+            # if available, use BSF to create clustering distance matrix
             if BSF_PRESENT:
                 # the uint64 type is required by bsf
                 full_feature_matrix = np.array(full_feature_matrix, dtype=np.uint64)
@@ -214,7 +219,7 @@ rule cluster:
                     # We can break this job in to chunks by setting the nsign to smaller
                     #    than the row size - but we'll need to figure out how to read
                     #    in the bin files and use them
-                    #bsf.analysis_with_chunk(full_feature_matrix, 10000, "bsf.txt", "%s/" % output.bsf)
+                    # bsf.analysis_with_chunk(full_feature_matrix, 10000, "bsf.txt", "%s/" % output.bsf)
                     bsf.analysis_with_chunk(full_feature_matrix, nsign, "bsf.txt", "%s/" % output_bsf)
                 else:
                     print("Using existing BSF similarity matrix...")
@@ -238,7 +243,7 @@ rule cluster:
 
                 # this gives Jaccard similarity (since all vectors are the same length)
                 # and subtracting it from 1 gives a distance
-                #bsf_mat = 1.0-(bsf_mat/100)
+                # bsf_mat = 1.0 - (bsf_mat / 100)
                 bsf_mat = 100-bsf_mat
 
             else:
@@ -252,62 +257,55 @@ rule cluster:
 
             # this is great for diagnostics - but takes a lot of time/space for large
             # comparisons
-            #np.savetxt(output.distmat, bsf_mat, fmt="%.3f", delimiter=",")
+            # np.savetxt(output.distmat, bsf_mat, fmt="%.3f", delimiter=",")
 
-            data["cluster"] = model.predict(bsf_mat)
-            with open(output.clusters, "wb") as f:
-                pickle.dump(model, f)
-
-            data = data.drop(columns=["sequence_vector"]).to_csv(output.table, index=False)
-            skm.utils.log_runtime(log[0], start_time, step="clustering")
+            model.fit(bsf_mat)
 
         else:
             # fit and save fitted clusters
             # bsf here
-            model = skm.cluster.KmerClustering(config["cluster"]["method"], config["cluster"]["params"])
-
             model.fit(full_feature_matrix)
-            # save output
-            #data["cluster"] = model.predict(data["sequence_vector"].values)
-            data["cluster"] = model.predict(full_feature_matrix)
 
-            with open(output.clusters, "wb") as f:
-                pickle.dump(model, f)
+        # save output
+        data["cluster"] = model.labels_
+        data = data.drop(columns=["sequence_vector"])
+        data.to_csv(output.table, index=False)
 
+        # with open(output.clusters, "wb") as f:
+        #     pickle.dump(model, f)
+        
+        # log time to compute clusters
+        skm.utils.log_runtime(log[0], start_time, step="clustering")
 
-            data = data.drop(columns=["sequence_vector"]).to_csv(output.table, index=False)
-
-            # log time to compute clusters
-            skm.utils.log_runtime(log[0], start_time, step="clustering")
-
+        # force create output dir
         if not exists(output.figs):
             makedirs(output.figs)
 
-        if "cluster_plots" in config["cluster"] and config["cluster"]["cluster_plots"] == "True":
-        # insert plots here?
+        # optionally generate plots
+        if ("cluster_plots" in config["cluster"]) and (config["cluster"]["cluster_plots"] == "True"):
+            # plot explained variance curve
             fig, ax = skm.plot.explained_variance_curve(full_feature_matrix)
             fig.savefig(join(output.figs, "pca_explained_variance_curve.png"))
             plt.close("all")
 
             # plot tsne
             fig, ax = skm.plot.cluster_tsne(full_feature_matrix, model.model.labels_)
-            fig.savefig(join(output.figs, "tsne_clusters.png"))
+            fig.savefig(join(output.figs, "tsne.png"))
             plt.close("all")
+            
+            # plot umap
+            umap_embedding = UMAP(metric="jaccard", n_components=2).fit_transform(full_feature_matrix)
+            fig, ax = plt.subplots(dpi=150)
+            sns.scatterplot(
+                x=umap_embedding[:, 0],
+                y=umap_embedding[:, 1],
+                hue=model.model.labels_,
+                alpha=0.2,
+                ax=ax,
+            )
 
-        # plot umap
-        # model_embedding = model.predict(full_feature_matrix)
-        # umap_embedding = UMAP(metric="jaccard", n_components=2).fit_transform(full_feature_matrix)
-        # fig, ax = plt.subplots(dpi=150)
-        # sns.scatterplot(
-        #     x=umap_embedding[:, 0],
-        #     y=umap_embedding[:, 1],
-        #     hue=model.model.labels_,
-        #     alpha=0.2,
-        #     ax=ax,
-        # )
-
-        # fig.savefig(join(output.figs, "umap_clusters.png"))
-        # plt.close("all")
+            fig.savefig(join(output.figs, f"umap.png"))
+            plt.close("all")
 
         # record script endtime
         skm.utils.log_runtime(log[0], start_time)
