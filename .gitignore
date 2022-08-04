@@ -1,5 +1,8 @@
-# hiding tests for now
-kmerfeatures/test/
+# Continuous integration
+.test/.snakemake
+.test/results
+.github
+.test
 
 # History files
 .Rhistory
