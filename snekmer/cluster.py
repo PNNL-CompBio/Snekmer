@@ -50,6 +50,7 @@ class CorrelationClustering(ClusterMixin):
     def predict(self, X):
         return fclusterdata(X, **self.model_params)
 
+
 # wrap scipy correlation clustering into sklearn-like API
 class BSFClustering(ClusterMixin):
     """Cluster input using BSF as distance matrix
@@ -81,6 +82,7 @@ class BSFClustering(ClusterMixin):
     def predict(self, X):
         return self.method.fit_predict(X)
 
+
 class HDBSFClustering(BSFClustering):
     def __init__(self, **model_params):
         model_params["metric"] = "precomputed"
@@ -88,12 +90,14 @@ class HDBSFClustering(BSFClustering):
         self.labels_ = None
         self.method = HDBSCAN(**model_params)
 
+
 class BSFAgglomerative(BSFClustering):
     def __init__(self, **model_params):
         model_params["affinity"] = "precomputed"
         self.model_params = dict(model_params)
         self.labels_ = None
         self.method = AgglomerativeClustering(**model_params)
+
 
 # define allowed model types
 MODELS = {
@@ -103,9 +107,9 @@ MODELS = {
     "density": DBSCAN,
     "birch": Birch,
     "optics": OPTICS,
-    "bsf":BSFClustering,
-    "hdbsf":HDBSFClustering,
-    "aggbsf":BSFAgglomerative,
+    "bsf": BSFClustering,
+    "hdbsf": HDBSFClustering,
+    "aggbsf": BSFAgglomerative,
     "hdbscan": HDBSCAN,
 }
 
