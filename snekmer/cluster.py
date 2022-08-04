@@ -50,6 +50,50 @@ class CorrelationClustering(ClusterMixin):
     def predict(self, X):
         return fclusterdata(X, **self.model_params)
 
+# wrap scipy correlation clustering into sklearn-like API
+class BSFClustering(ClusterMixin):
+    """Cluster input using BSF as distance matrix
+
+    Parameters
+    ----------
+    **model_params : dict or params
+        Parameters for model.
+
+    Attributes
+    ----------
+    model_params : dict
+        Model initialization parameters.
+    labels_ : list
+        Cluster-assigned labels.
+
+    """
+
+    def __init__(self, **model_params):
+        model_params["metric"] = "precomputed"
+        self.model_params = dict(model_params)
+        self.labels_ = None
+        self.method = DBSCAN(**model_params)
+
+    def fit(self, X):
+        self.method.fit(X)
+        self.labels_ = np.full(X.shape[0], -1, dtype=np.intp)
+
+    def predict(self, X):
+        return self.method.fit_predict(X)
+
+class HDBSFClustering(BSFClustering):
+    def __init__(self, **model_params):
+        model_params["metric"] = "precomputed"
+        self.model_params = dict(model_params)
+        self.labels_ = None
+        self.method = HDBSCAN(**model_params)
+
+class BSFAgglomerative(BSFClustering):
+    def __init__(self, **model_params):
+        model_params["affinity"] = "precomputed"
+        self.model_params = dict(model_params)
+        self.labels_ = None
+        self.method = AgglomerativeClustering(**model_params)
 
 # define allowed model types
 MODELS = {
@@ -59,6 +103,9 @@ MODELS = {
     "density": DBSCAN,
     "birch": Birch,
     "optics": OPTICS,
+    "bsf":BSFClustering,
+    "hdbsf":HDBSFClustering,
+    "aggbsf":BSFAgglomerative,
     "hdbscan": HDBSCAN,
 }
 
