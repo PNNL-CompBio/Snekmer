@@ -5,6 +5,46 @@ We recommend using `Anaconda <https://www.anaconda.com/download/>`_
 to handle installation. Anaconda will manage dependencies and
 versioning, which simplifies the process of installation.
 
+(optional) Install GCC for BSF
+------------------------------
+
+The `Blazing Signature Filter <https://github.com/PNNL-Compbio/bsf-jaccard-py>`_
+is a pairwise similarity algorithm that can optionally be used to efficiently
+compute a distance matrix for Snekmer's clustering mode.
+
+**Note that BSF is not required to run Snekmer.** For users that do not want
+to use BSF for clustering, these instructions can be ignored.
+
+In order for BSF to install correctly in subsequent steps, GCC 4.9+ must be
+installed on your system using the following instructions for the listed
+operating systems. Once GCC is installed successfully, follow the remaining
+setup steps.
+
+Mac
+```
+
+Install GCC and the relevant dependencies using Homebrew.
+
+.. code-block:: bash
+  
+  brew install gcc
+  brew install llvm
+  brew install libomp
+
+After installing ``llvm``, make sure to add it to the front of your ``$PATH``
+variable:
+
+.. code-block:: bash
+
+   echo 'export PATH="/usr/local/opt/llvm/bin:$PATH"' >> ~/.zshrc
+
+Windows or Linux/Unix
+`````````````````````
+
+Please refer to the
+`BSF documentation <https://github.com/PNNL-Compbio/bsf-jaccard-py#install-gcc-49-or-newers>`_
+for Linux/Unix or Windows instructions for installing GCC.
+
 Setup
 -----
 
@@ -17,6 +57,12 @@ using the ``git clone`` command.)
 .. code-block:: bash
 
 	conda env create -f environment.yml
+
+Note that if the BSF installation instructions above are not followed,
+you may encounter a ``CondaEnvException: Pip failed`` error during installation.
+However, even with this exception raised, conda will still install the
+required dependencies to run Snekmer without BSF, so this exception
+can be ignored.
 
 Troubleshooting Notes
 `````````````````````

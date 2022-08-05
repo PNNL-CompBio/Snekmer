@@ -14,3 +14,6 @@ dependencies:
   - snakemake >= 6.0
   - umap-learn
   - hdbscan
+  - pip
+  - pip:
+      - -e git+https://github.com/PNNL-Compbio/bsf-jaccard-py#egg=bsf

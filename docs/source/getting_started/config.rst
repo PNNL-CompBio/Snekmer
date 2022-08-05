@@ -70,14 +70,21 @@ Cluster Parameters
 
 General parameters related to Snekmer's cluster mode (``snekmer cluster``), wherein unsupervised clusters are produced via the workflow.
 
-========================  ====================  =========================================================================
+========================  ====================  ==============================================================================
      Parameter                    Type            Description
-========================  ====================  =========================================================================
+========================  ====================  ==============================================================================
  ``method``                ``str``                Clustering method (options: ``"kmeans"``, ``"agglomerative"``,
                                                   ``"correlation"``, ``"density"``, ``"birch"``, ``"optics"``,
                                                   or ``"hdbscan"``)
  ``params``                ``dict``               Parameters to pass to the clustering algorithm
-========================  ====================  =========================================================================
+ ``cluster_plots``         ``bool``               If True, generates plots illustrating clustering results
+ ``min_rep``               ``int`` or ``None``    Threshold for the minimum number of repetitions of a kmer within a set.
+                                                  Kmers that do not meet this threshold are discarded.
+ ``max_rep``               ``int`` or ``None``    Threshold for the maximum number of repetitions of a kmer within a set.
+                                                  Kmers that do not meet this threshold are discarded.
+ ``save_matrix``           ``bool``               If True, saves distance matrices (BSF). Not recommended for large datasets.
+ ``dist_thresh``           ``int``                Distance threshold for BSF matrix
+========================  ====================  ==============================================================================
 
 Parameter Descriptions for ``clust.yaml``
 -------------------------------------------
