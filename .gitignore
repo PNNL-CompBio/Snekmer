@@ -4,6 +4,12 @@
 .github
 .test
 
+# documentation
+docs/_build/
+
+# pip install temp files
+src/
+
 # History files
 .Rhistory
 .Rapp.history
