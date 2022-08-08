@@ -149,7 +149,7 @@ rule score:
         # parse family names and only add if some are valid
         families = [
             skm.utils.get_family(
-                skm.utils.split_file_ext(fn)[0], regex=config["input"]["regex"]
+                skm.utils.split_file_ext(fn)[0], regex=config["input_file_regex"]
             )
             for fn in data["filename"]
         ]
@@ -179,7 +179,7 @@ rule score:
         scorer.fit(
             list(kmer.kmer_set.kmers),
             data,
-            skm.utils.get_family(wildcards.nb, regex=config["input"]["regex"]),
+            skm.utils.get_family(wildcards.nb, regex=config["input_file_regex"]),
             label_col=label,
             vec_col="sequence_vector",
             **config["score"]["scaler_kwargs"],
@@ -220,7 +220,6 @@ rule score:
 
 rule model:
     input:
-        # files=rules.score.input.files,
         raw=rules.score.input.data,
         data=rules.score.output.data,
         weights=rules.score.output.weights,
@@ -249,7 +248,7 @@ rule model:
         ]
         scores = pd.read_csv(input.weights)
         family = skm.utils.get_family(
-            skm.utils.split_file_ext(input.weights)[0], regex=config["input"]["regex"]
+            skm.utils.split_file_ext(input.weights)[0], regex=config["input_file_regex"]
         )
         # get kmers for this particular set of sequences
         with open(input.kmerobj, "rb") as f:

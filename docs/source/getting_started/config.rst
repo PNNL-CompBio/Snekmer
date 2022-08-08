@@ -37,6 +37,7 @@ General parameters related to input and output sequences and/or files.
      Parameter                    Type            Description
 ========================  ====================  =========================================================================
  ``input_file_exts``       ``list``               File extensions to be considered as valid for input sequence files
+ ``input_file_regex``      ``str`` or ``None``    Regular expression for parsing family/annotation identifiers from filenames
  ``nested_output``         ``bool``               If True, saves files into nested directory structure, i.e. `{save_dir}/{alphabet}/{k}`
 ========================  ====================  =========================================================================
 
@@ -99,7 +100,8 @@ The following parameters are required in your config file for `snekmer search`.
 ========================  =====================  ========================================================================================
      Parameter                     Type           Description
 ========================  =====================  ========================================================================================
- ``input_file_exts``       ``list``               File extensions to be considered as valid for input sequence files
+ ``input_file_exts``       ``list``               See `Input/Output Parameters`_
+ ``input_file_regex``      ``str`` or ``None``    See `Input/Output Parameters`_
  ``model_dir``             ``str``                Directory containing model object(s) (.model)
  ``basis_dir``             ``str``                Directory containing k-mer basis set(s) (.kmers)
  ``score_dir``             ``str``                Directory containing scoring object(s) (.scorer)

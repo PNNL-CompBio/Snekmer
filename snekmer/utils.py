@@ -105,13 +105,14 @@ def get_family(
     ----------
     filename : str
         path/to/filename.ext
-    regex : str or r-string
+    regex : str or r-string or None
         Regular expression for matching a family name
         (default: "[a-z]{3}[A-Z]{1}").
         The default expression is 3 lowercase letters followed
             by one uppercase letter. To write a custom regular
             expression, see https://docs.python.org/3/library/re.html
             for more details on using the built-in re library.
+        If None, returns the full file basename.
     return_first : bool
         If True, returns only the first occurrence (default: True).
         If False, returns a list of all occurring regex matches.
@@ -125,12 +126,17 @@ def get_family(
     """
     # extract and simplify file basename
     filename = basename(filename)
+
     # account for directories
     if "." not in filename:  # and filename[-1] == "/"
         filename = f"{filename}.dir"
     s = "_".join(filename.split(".")[:-1]).replace("-", "_").replace(" ", "_")
+
     # explicitly define regex as an r-string
-    regex = r"{}".format(regex)
+    if regex is not None:
+        regex = r"{}".format(regex)
+    else:
+        return filename
     search = re.search(regex, s)
 
     # return list output

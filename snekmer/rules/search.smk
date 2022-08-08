@@ -74,7 +74,7 @@ FILE_MAP = {
 }
 UZS = [f"{f}.{ext}" for f, ext in UZ_MAP.items()]
 FILES = list(FILE_MAP.keys())
-FAMILIES = [skm.utils.get_family(f, regex=config["regex"]) for f in model_files]
+FAMILIES = [skm.utils.get_family(f, regex=config["input_file_regex"]) for f in model_files]
 
 # define output directory (helpful for multiple runs)
 out_dir = skm.io.define_output_dir(
