@@ -27,16 +27,29 @@ Install GCC and the relevant dependencies using Homebrew.
 
 .. code-block:: bash
   
-  brew install gcc
-  brew install llvm
-  brew install libomp
+  brew install gcc llvm libomp
 
-After installing ``llvm``, make sure to add it to the front of your ``$PATH``
-variable:
+After installing ``llvm``, some flags and your ``PATH`` variable may need to 
+be updated. Homebrew will output a "Caveats" message that may resemble the one
+shown below:
 
-.. code-block:: bash
+.. code-block:: none
 
-   echo 'export PATH="/usr/local/opt/llvm/bin:$PATH"' >> ~/.zshrc
+  To use the bundled libc++ please add the following LDFLAGS:
+    LDFLAGS="-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib"
+
+  llvm is keg-only, which means it was not symlinked into /usr/local,
+  because macOS already provides this software and installing another version in
+  parallel can cause all kinds of trouble.
+
+  If you need to have llvm first in your PATH, run:
+    echo 'export PATH="/usr/local/opt/llvm/bin:$PATH"' >> ~/.zshrc
+
+  For compilers to find llvm you may need to set:
+    export LDFLAGS="-L/usr/local/opt/llvm/lib"
+    export CPPFLAGS="-I/usr/local/opt/llvm/include"
+
+You may follow these instructions to ensure GCC is correctly pulled as needed.
 
 Windows or Linux/Unix
 `````````````````````
