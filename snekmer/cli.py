@@ -7,6 +7,7 @@ author: @christinehc, @biodataganache
 import argparse
 
 from multiprocessing import cpu_count
+from os.path import join
 from pkg_resources import resource_filename
 from snakemake import snakemake, parse_config
 from snekmer import __version__
@@ -117,6 +118,12 @@ def main():
         default=0,
         help="starting file index (for use with --count)",
     )
+    parser["smk"].add_argument(
+        "--verbose",
+        action="store_true",
+        default=False,
+        help="show additional debug output (default False)",
+    )
 
     # clust execution options
     parser["clust"] = parser["smk"].add_argument_group("cluster execution arguments")
@@ -180,7 +187,7 @@ def main():
     # parse operation mode
     if args.mode == "cluster":
         snakemake(
-            resource_filename("snekmer", "rules/cluster.smk"),
+            resource_filename("snekmer", join("rules", "cluster.smk")),
             configfiles=[args.configfile],
             config=config,
             cluster_config=args.clust,
@@ -194,11 +201,12 @@ def main():
             until=args.until,
             touch=args.touch,
             latency_wait=args.latency,
+            verbose=args.verbose,
         )
 
     elif args.mode == "model":
         snakemake(
-            resource_filename("snekmer", "rules/model.smk"),
+            resource_filename("snekmer", join("rules", "model.smk")),
             configfiles=[args.configfile],
             config=config,
             cluster_config=args.clust,
@@ -212,15 +220,16 @@ def main():
             until=args.until,
             touch=args.touch,
             latency_wait=args.latency,
+            verbose=args.verbose,
         )
 
     elif args.mode == "search":
         snakemake(
-            resource_filename("snekmer", "rules/search.smk"),
+            resource_filename("snekmer", join("rules", "search.smk")),
             configfiles=[args.configfile],
             config=config,
             cluster_config=args.clust,
-            cluster=clust,
+            cluster=cluster,
             keepgoing=True,
             force_incomplete=True,
             cores=args.cores,
@@ -230,6 +239,7 @@ def main():
             until=args.until,
             touch=args.touch,
             latency_wait=args.latency,
+            verbose=args.verbose,
         )
 
     else:
