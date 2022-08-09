@@ -166,15 +166,15 @@ rule cluster:
 
         # filter by kmer occurrence
         # print("Filtering?")
-        if config["cluster"]["min_rep"] is not None:
+        if str(config["cluster"]["min_rep"]) != "None":
             print("Filtering by minimum %d" % config["cluster"]["min_rep"])
             ksums = full_feature_matrix.sum(axis=0)
             full_feature_matrix = full_feature_matrix[:, ksums > config["cluster"]["min_rep"]]
             print(full_feature_matrix.shape)
 
-        if config["cluster"]["max_rep"] is not None:
+        if str(config["cluster"]["max_rep"]) != "None":
             max_rep = config["cluster"]["max_rep"]
-            print("Filtering by maximum %d" % max_rep)
+            print(f"Filtering by maximum {max_rep}")
             ksums = full_feature_matrix.sum(axis=0)
             full_feature_matrix = full_feature_matrix[:, ksums < max_rep]
             print(full_feature_matrix.shape)
@@ -280,7 +280,7 @@ rule cluster:
             makedirs(output.figs)
 
         # optionally generate plots
-        if config["cluster"]["cluster_plots"] == "True":
+        if str(config["cluster"]["cluster_plots"]) == "True":
             # plot explained variance curve
             fig, ax = skm.plot.explained_variance_curve(full_feature_matrix)
             fig.savefig(join(output.figs, "pca_explained_variance_curve.png"))

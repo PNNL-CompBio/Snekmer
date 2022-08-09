@@ -81,6 +81,7 @@ ALPHABETS = {
         **PTM_SELF_MAPPING,
         "_keys": StandardAlphabet + PTM_CHARS,
     },
+    "None": AA_SELF_MAPPING,
 }
 
 # reconfigure alphabet dict into "long-form"
@@ -163,13 +164,14 @@ def get_alphabet(
     ----------
     alphabet : Union[str, int]
         Alphabet name (as str) or alphabet id (as int).
-        Must be one of the follwing:
+        Must be one of the following:
             0: "hydro",
             1: "standard",
             2: "solvacc",
             3: "hydrocharge",
             4: "hydrostruct",
             5: "miqs"
+        or None.
     mapping : dict
         All alphabet maps (the default is ALPHABETS).
 
@@ -185,6 +187,10 @@ def get_alphabet(
 
     """
     check_valid(alphabet)
+
+    # enforce string for dict key
+    if alphabet is None:
+        alphabet = str(alphabet)
 
     if isinstance(alphabet, int):
         alphabet = ALPHABET_ORDER[alphabet]
@@ -223,6 +229,10 @@ def get_alphabet_name(
     """
     check_valid(alphabet)
 
+    # enforce string for dict key
+    if alphabet is None:
+        alphabet = str(alphabet)
+
     if isinstance(alphabet, int):
         alphabet = ALPHABET_ORDER[alphabet]
     return alphabet
@@ -246,6 +256,10 @@ def get_alphabet_keys(
         Description of returned object.
 
     """
+    # enforce string for dict key
+    if alphabet is None:
+        alphabet = str(alphabet)
+
     alphabet_map = get_alphabet(alphabet, mapping)
     if "_keys" in alphabet_map.keys():
         alphabet_map.pop("_keys")
