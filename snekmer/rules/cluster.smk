@@ -167,9 +167,10 @@ rule cluster:
         # filter by kmer occurrence
         # print("Filtering?")
         if str(config["cluster"]["min_rep"]) != "None":
-            print("Filtering by minimum %d" % config["cluster"]["min_rep"])
+            min_rep = max_rep = config["cluster"]["min_rep"]
+            print(f"Filtering by minimum {min_rep}")
             ksums = full_feature_matrix.sum(axis=0)
-            full_feature_matrix = full_feature_matrix[:, ksums > config["cluster"]["min_rep"]]
+            full_feature_matrix = full_feature_matrix[:, ksums > min_rep]
             print(full_feature_matrix.shape)
 
         if str(config["cluster"]["max_rep"]) != "None":
