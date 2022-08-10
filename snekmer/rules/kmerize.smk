@@ -27,7 +27,7 @@ from Bio import SeqIO
 input_files = glob(join("input", "*"))
 unzipped = [
     fa.rstrip(".gz")
-    for fa, ext in itertools.product(input_files, ["fasta"])
+    for fa, ext in itertools.product(input_files, config["input_file_exts"])
     if fa.rstrip(".gz").endswith(f".{ext}")
 ]
 zipped = [fa for fa in input_files if fa.endswith(".gz")]
