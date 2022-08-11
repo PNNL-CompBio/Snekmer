@@ -53,7 +53,9 @@ def cv_roc_curve(clf, X, y, title="ROC Curve", ax=None, dpi=400):
 
     """
     # initialize figure and define all axes
-    fig = plt.figure(dpi=dpi, figsize=(8, 4), facecolor="white")
+    fig = plt.figure(
+        dpi=dpi, figsize=(8, 4), facecolor="white", constrained_layout=True
+    )
     ax = ax or plt.gca()
 
     # create empty arrays to store data
@@ -141,7 +143,9 @@ def cv_pr_curve(clf, X, y, title="PR Curve", ax=None, dpi=400):
     """
 
     # initialize figure and define all axes
-    fig = plt.figure(dpi=dpi, figsize=(8, 4), facecolor="white")
+    fig = plt.figure(
+        dpi=dpi, figsize=(8, 4), facecolor="white", constrained_layout=True
+    )
     ax = ax or plt.gca()
 
     # create empty arrays to store data
@@ -200,7 +204,7 @@ def explained_variance_curve(feature_matrix):
     pca = PCA()
     pca.fit(X_scaled)
 
-    fig, ax = plt.subplots(dpi=200, figsize=(4, 3))
+    fig, ax = plt.subplots(dpi=200, figsize=(4, 3), constrained_layout=True)
     ax.plot(
         [0] + list(np.arange(1, pca.n_components_ + 1)),
         [0] + list(np.cumsum(pca.explained_variance_ratio_)),
@@ -216,6 +220,6 @@ def cluster_tsne(feature_matrix, clusters, **tsne_args):
     X_pca = PCA().fit_transform(X_scaled)
     X_embedded = TSNE(**tsne_args).fit_transform(X_pca)  # [:, :100])  #_unscaled)
 
-    fig, ax = plt.subplots(dpi=200, figsize=(4, 3))
+    fig, ax = plt.subplots(dpi=200, figsize=(4, 3), constrained_layout=True)
     sns.scatterplot(x=X_embedded[:, 0], y=X_embedded[:, 1], hue=clusters, ax=ax)
     return fig, ax

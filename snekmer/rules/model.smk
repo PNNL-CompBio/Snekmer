@@ -371,7 +371,6 @@ rule model:
         results["cv_split"] += [i + 1 for i in range(cv)]
 
         # save ROC-AUC figure
-        plt.tight_layout()
         if not exists(output.figs):
             makedirs(output.figs)
         fig.savefig(
@@ -399,7 +398,6 @@ rule model:
         results["cv_split"] += [i + 1 for i in range(cv)]
 
         # save PR-AUC figure
-        plt.tight_layout()
         fig.savefig(
             join(
                 output.figs,
