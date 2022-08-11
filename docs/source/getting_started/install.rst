@@ -58,11 +58,11 @@ Please refer to the
 `BSF documentation <https://github.com/PNNL-Compbio/bsf-jaccard-py#install-gcc-49-or-newers>`_
 for Linux/Unix or Windows instructions for installing GCC.
 
-Setup
------
+Install Snekmer
+---------------
 
-Use conda to install an environment from the YML file with all
-required dependencies. (Note: Users may either download the
+Use conda to install an environment from the YML file with Snekmer and 
+all of its dependencies. (Note: Users may either download the
 `YML file <https://github.com/PNNL-CompBio/Snekmer/blob/main/environment.yml>`_
 directly from the repository, or clone the repository beforehand
 using the ``git clone`` command.)
@@ -77,6 +77,8 @@ However, even with this exception raised, conda will still install the
 required dependencies to run Snekmer without BSF, so this exception
 can be ignored.
 
+The package should now be ready to use!
+
 Troubleshooting Notes
 `````````````````````
 
@@ -88,26 +90,24 @@ version of Snakemake:
   
   conda create -n snekmer -c conda-forge -c bioconda -c numba python>=3.9 biopython matplotlib numpy>=1.22.3 numba>=0.56 scipy pandas seaborn snakemake-minimal==7.0 scikit-learn
 
-Install Snekmer
----------------
+.. Install Snekmer
+.. ---------------
 
-Activate the conda environment:
+.. Activate the conda environment:
 
-.. code-block:: bash
+.. .. code-block:: bash
 
-	conda activate snekmer
+.. 	conda activate snekmer
 
-Then, install Snekmer using pip (note: git clone step is optional
-if you already have the repo cloned locally):
+.. Then, install Snekmer using pip (note: git clone step is optional
+.. if you already have the repo cloned locally):
 
-.. code-block:: bash
+.. .. code-block:: bash
 
-  # option 1: clone repository (if you haven't already) and install
-  git clone https://github.com/PNNL-CompBio/Snekmer.git
-  pip install Snekmer
+..   # option 1: clone repository (if you haven't already) and install
+..   git clone https://github.com/PNNL-CompBio/Snekmer.git
+..   pip install Snekmer
 
-  # option 2: direct install (no repository download required)
-  pip install git+https://github.com/PNNL-CompBio/Snekmer
-
-The package should now be ready to use!
+..   # option 2: direct install (no repository download required)
+..   pip install git+https://github.com/PNNL-CompBio/Snekmer
 
