@@ -142,6 +142,12 @@ rule cluster:
         with open(log[0], "a") as f:
             f.write(f"start time:\t{start_time}\n")
 
+        # print BSF status
+        if BSF_PRESENT:
+            print("Import BSF: success!")
+        else:
+            print("Warning: BSF not found; using alternate distance matrix.")
+
         # parse all data and label background files
         label = config["score"]["lname"]
 
@@ -201,6 +207,7 @@ rule cluster:
 
             # if available, use BSF to create clustering distance matrix
             if BSF_PRESENT:
+                print("Using BSF to compute distance matrix...")
                 full_feature_matrix = np.array(full_feature_matrix, dtype=np.uint64) # bsf requires uint64
 
                 # the filename that bsf creates you can't specify exactly
@@ -247,6 +254,8 @@ rule cluster:
                 bsf_mat = 100 - bsf_mat
 
             else:
+                print("Using Jaccard distance for distance matrix...")
+
                 # calculate Jaccard distance
                 res = pdist(full_feature_matrix, "jaccard")
                 bsf_mat = squareform(res)
@@ -261,6 +270,8 @@ rule cluster:
             model.fit(bsf_mat)
 
         else:
+            print("Using default distance matrix...")
+
             # fit and save fitted clusters
             # bsf here
             model.fit(full_feature_matrix)
