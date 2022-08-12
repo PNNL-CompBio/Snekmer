@@ -85,7 +85,7 @@ ALPHABETS = {
 }
 
 # reconfigure alphabet dict into "long-form"
-FULL_ALPHABETS: dict = {a: {} for a in ALPHABETS.keys()}
+FULL_ALPHABETS: Dict[str, dict] = {a: {} for a in ALPHABETS.keys()}
 for alphabet, mapping in ALPHABETS.items():
     for k, v in mapping.items():
         if k == "_keys":
@@ -239,7 +239,7 @@ def get_alphabet_name(
 
 
 def get_alphabet_keys(
-    alphabet: Union[str, int], mapping: dict = FULL_ALPHABETS
+    alphabet: Union[str, int], mapping: Dict[str, dict] = FULL_ALPHABETS
 ) -> Set[str]:
     """Retrieve keys for specified alphabet.
 
