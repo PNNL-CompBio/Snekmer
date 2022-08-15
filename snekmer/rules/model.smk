@@ -47,7 +47,8 @@ module kmerize:
 plt.switch_backend("Agg")
 
 # collect all fasta-like files, unzipped filenames, and basenames
-input_files = glob(join("input", "*"))
+input_dir = "input" if str(config["input_dir"]) == "None" else config["input_dir"]
+input_files = glob(join(input_dir, "*"))
 zipped = [fa for fa in input_files if fa.endswith(".gz")]
 unzipped = [
     fa.rstrip(".gz")
@@ -70,7 +71,7 @@ UZS = [f"{f}.{ext}" for f, ext in UZ_MAP.items()]
 FAS = list(FA_MAP.keys())
 
 # parse any background files
-bg_files = glob(join("input", "background", "*"))
+bg_files = glob(join(input_dir, "background", "*"))
 if len(bg_files) > 0:
     bg_files = [skm.utils.split_file_ext(basename(f))[0] for f in bg_files]
 NON_BGS, BGS = [f for f in FAS if f not in bg_files], bg_files
