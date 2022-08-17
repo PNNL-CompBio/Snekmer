@@ -21,12 +21,6 @@ MAP_FN_DESC = [
     "LoveHateBadstruct",
 ]
 MAP_FNS = {f"reduced_alphabet_{n}": MAP_FN_DESC[n] for n in range(5)}
-FEAT_OUT_FMTS = {
-    "simple": "Simple tab-delimited format",
-    "gist": "Input for gist",
-    "sieve": "Input for sieve",
-}
-
 
 def main():
     parser = {}
