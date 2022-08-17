@@ -21,12 +21,6 @@ MAP_FN_DESC = [
     "LoveHateBadstruct",
 ]
 MAP_FNS = {f"reduced_alphabet_{n}": MAP_FN_DESC[n] for n in range(5)}
-FEAT_OUT_FMTS = {
-    "simple": "Simple tab-delimited format",
-    "gist": "Input for gist",
-    "sieve": "Input for sieve",
-}
-
 
 def main():
     parser = {}
@@ -163,6 +157,11 @@ def main():
         description="Search sequences against pre-existing models via Snekmer",
         parents=[parser["smk"]],
     )
+    parser["learn"] = parser["subparsers"].add_parser(
+        "learn",
+        description="Learn kmer-annotation associations via Snekmer",
+        parents=[parser["smk"]],
+    )
 
     # parse args
     args = parser["main"].parse_args()
@@ -226,6 +225,25 @@ def main():
     elif args.mode == "search":
         snakemake(
             resource_filename("snekmer", join("rules", "search.smk")),
+            configfiles=[args.configfile],
+            config=config,
+            cluster_config=args.clust,
+            cluster=cluster,
+            keepgoing=True,
+            force_incomplete=True,
+            cores=args.cores,
+            nodes=args.jobs,
+            dryrun=args.dryrun,
+            unlock=args.unlock,
+            until=args.until,
+            touch=args.touch,
+            latency_wait=args.latency,
+            verbose=args.verbose,
+        )
+
+    elif args.mode == "learn":
+        snakemake(
+            resource_filename("snekmer", join("rules", "learn.smk")),
             configfiles=[args.configfile],
             config=config,
             cluster_config=args.clust,
