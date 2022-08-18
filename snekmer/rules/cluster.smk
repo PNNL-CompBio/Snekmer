@@ -58,7 +58,7 @@ except ImportError:
 plt.switch_backend("Agg")
 
 # collect all fasta-like files, unzipped filenames, and basenames
-input_dir = "input" if str(config["input_dir"]) == "None" else config["input_dir"]
+input_dir = "input" if (("input_dir" not in config) or (str(config["input_dir"]) == "None")) else config["input_dir"]
 input_files = glob(join(input_dir, "*"))
 zipped = [fa for fa in input_files if fa.endswith(".gz")]
 unzipped = [
