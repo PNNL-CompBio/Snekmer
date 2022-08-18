@@ -140,7 +140,8 @@ class KmerClustering(ClusterMixin):
     def fit(self, X):
         self.model.fit(X)
         if self.method != "hdbscan":
-            self.labels_ = np.full(X.shape[0], -1, dtype=np.intp)
+            #self.labels_ = np.full(X.shape[0], -1, dtype=np.intp)
+            self.labels_ = self.model.labels_
         else:
             self.labels_ = self.model.fit_predict(X)
 

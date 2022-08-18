@@ -17,13 +17,12 @@ score:
 
 # cluster params
 cluster:
-  method: "correlation"
+  method: "agglomerative"
   params:
     {
-      "t": 0.75,
-      "criterion": "distance",
-      "metric": "correlation",
-      "method": "weighted",
+      n_clusters: None,
+      distance_threshold: 95,
+      linkage: ward,
     }
   cluster_plots: True
 
