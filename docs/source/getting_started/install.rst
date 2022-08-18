@@ -18,11 +18,18 @@ using the ``git clone`` command.)
 
 	conda env create -f environment.yml
 
-Note that if the BSF installation instructions above are not followed,
-you may encounter a ``CondaEnvException: Pip failed`` error during installation.
-However, even with this exception raised, conda will still install the
-required dependencies to run Snekmer without BSF, so this exception
-can be ignored.
+
+Note that if you want to use the optional Blazing Signature Filter (BSF) to
+speed up clustering you must follow the BSF installation instructions below
+and then you can use the alternate conda environment.
+
+.. code-block:: bash
+  conda env create -f environment_BSF.yml
+
+After the install completes activate the conda environment
+
+.. code-block:: bash
+  conda activate snekmer
 
 The package should now be ready to use!
 

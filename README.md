@@ -1,6 +1,6 @@
 # Snekmer: A scalable pipeline for protein sequence fingerprinting using amino acid recoding (AAR)
 
-[![Documentation Status](https://readthedocs.org/projects/snekmer/badge/?version=latest)](https://snekmer.readthedocs.io/en/latest/?badge=latest)
+[![Documentation Status](https://readthedocs.org/projects/snekmer-docs/badge/?version=latest)](https://snekmer-docs.readthedocs.io/en/latest/?badge=latest)
 [![Snakemake](https://img.shields.io/badge/snakemake-=7.0.0-brightgreen.svg?style=flat)](https://snakemake.readthedocs.io)
 
 Snekmer is a software package designed to reduce the representation of protein sequences
@@ -13,7 +13,7 @@ to determine probabilistic annotations.
   <img align="center" src="resources/snekmer_workflow.svg">
 </p>
 
-There are 3 operation modes for Snekmer: `cluster`, `model`, and `search`.
+There are three operation modes for Snekmer: `cluster`, `model`, and `search`.
 
 **Cluster mode:** The user supplies files containing sequences in an appropriate format (e.g. FASTA).
 Snekmer applies the relevant workflow steps and outputs the resulting clustering results in tabular form (.CSV),
