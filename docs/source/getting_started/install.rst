@@ -121,7 +121,7 @@ Please refer to the
 for Linux/Unix or Windows instructions for installing GCC.
 
 BSF Install for Snekmer Use
-`````````````````````
+```````````````````````````
 In the snekmer conda environment use the command
 
 .. code-block:: bash
