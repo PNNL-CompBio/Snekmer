@@ -24,10 +24,16 @@ import snekmer as skm
 from Bio import SeqIO
 
 # get input files
-input_files = glob(join("input", "*"))
+input_dir = "input" if (("input_dir" not in config) or (str(config["input_dir"]) == "None")) else config["input_dir"]
+input_files = glob(join(input_dir, "*"))
+
+input_file_exts = ["fasta", "fna", "faa", "fa"]
+if "input_file_exts" in config:
+    input_file_exts = config["input_file_exts"]
+
 unzipped = [
     fa.rstrip(".gz")
-    for fa, ext in itertools.product(input_files, config["input_file_exts"])
+    for fa, ext in itertools.product(input_files, input_file_exts)
     if fa.rstrip(".gz").endswith(f".{ext}")
 ]
 zipped = [fa for fa in input_files if fa.endswith(".gz")]
@@ -77,4 +83,3 @@ rule vectorize:
 
         with open(output.kmerobj, "wb") as f:
             pickle.dump(kmer, f)
-

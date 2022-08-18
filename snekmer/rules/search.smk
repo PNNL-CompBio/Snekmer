@@ -57,11 +57,16 @@ plt.switch_backend("Agg")
 
 # collect all fasta-like files, unzipped filenames, and basenames
 input_files = glob(join("input", "*"))
-model_files = glob(join(config["model_dir"], "*.pkl"))
+model_files = glob(join(config["model_dir"], "*.model"))
 zipped = [f for f in input_files if f.endswith(".gz")]
+
+input_file_exts = ["fasta", "fna", "faa", "fa"]
+if "input_file_exts" in config:
+    input_file_exts = config["input_file_exts"]
+
 unzipped = [
     f.rstrip(".gz")
-    for f, ext in product(input_files, config["input_file_exts"])
+    for f, ext in product(input_files, input_file_exts)
     if f.rstrip(".gz").endswith(f".{ext}")
 ]
 
@@ -81,14 +86,12 @@ out_dir = skm.io.define_output_dir(
     config["alphabet"], config["k"], nested=config["nested_output"]
 )
 
-
 # define output files to be created by snekmer
 rule all:
     input:
         expand(join("input", "{uz}"), uz=UZS),  # require unzipping
         expand(join(out_dir, "vector", "{f}.npz"), f=FILES),
-        # expand(join(out_dir, "features", "{fam}", "{f}.json.gz"), fam=FAMILIES, f=FILES),  # correctly build features
-        expand(join(out_dir, "search", "{fam}.csv"), fam=FAMILIES),  # require model-building
+        expand(join(out_dir, "search", "{fam}.csv"), fam=FAMILIES),  # require search
 
 
 # if any files are gzip zipped, unzip them
