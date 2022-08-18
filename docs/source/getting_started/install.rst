@@ -24,11 +24,13 @@ speed up clustering you must follow the BSF installation instructions below
 and then you can use the alternate conda environment.
 
 .. code-block:: bash
+
   conda env create -f environment_BSF.yml
 
 After the install completes activate the conda environment
 
 .. code-block:: bash
+
   conda activate snekmer
 
 The package should now be ready to use!
