@@ -31,7 +31,10 @@ and outputs a table for each file containing model annotation probabilities for 
 ## How to Use Snekmer
 
 For installation instructions, documentation, and more, refer to
-the [official documentation](https://snekmer.readthedocs.io).
+the [official documentation](https://snekmer-docs.readthedocs.io).
+
+Run the demonstration example code in:
+     resources/tutorial/demo_example
 
 ## Acknowledgments
 
