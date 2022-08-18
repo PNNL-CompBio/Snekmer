@@ -151,8 +151,8 @@ rule search:
             df[family] = [True if p == 1 else False for p in predictions]
             df[f"{family}_probability"] = [p[1] for p in predicted_probas]
             df["filename"] = f"{filename}.{FILE_MAP[filename]}"
-            df["seq_length"] = seq_length
-            df["seq_ids"] = seq_id
+            #df["seq_length"] = seq_length
+            #df["seq_ids"] = seq_id
 
             results.append(df)
 

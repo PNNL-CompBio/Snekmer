@@ -66,7 +66,7 @@ rule vectorize:
         # initialize kmerization object
         kmer = skm.vectorize.KmerVec(alphabet=config["alphabet"], k=config["k"])
 
-        vecs, seqs, ids = list(), list(), list()
+        vecs, seqs, ids, lengths = list(), list(), list(), list()
         for f in fasta:
             vecs.append(kmer.reduce_vectorize(f.seq))
             seqs.append(
@@ -77,9 +77,10 @@ rule vectorize:
                 )
             )
             ids.append(f.id)
+            lengths.append(len(f.seq))
 
         # save seqIO output and transformed vecs
-        np.savez_compressed(output.data, ids=ids, seqs=seqs, vecs=vecs)
+        np.savez_compressed(output.data, ids=ids, seqs=seqs, vecs=vecs, lengths=lengths)
 
         with open(output.kmerobj, "wb") as f:
             pickle.dump(kmer, f)
