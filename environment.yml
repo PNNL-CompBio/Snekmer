@@ -20,4 +20,4 @@ dependencies:
   - pip
   - pip:
       - -e git+https://github.com/PNNL-CompBio/Snekmer#egg=snekmer
-      - -e git+https://github.com/PNNL-Compbio/bsf-jaccard-py#egg=bsf
+  
