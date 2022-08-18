@@ -40,5 +40,5 @@ model:
 
 # search params
 model_dir: "/path/to/output/model/"
-basis_dir: "/path/to/output/labels/"
-score_dir: "/path/to/output/score/"
+basis_dir: "/path/to/output/kmerize/"
+score_dir: "/path/to/output/scoring/"
