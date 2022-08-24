@@ -14,10 +14,10 @@ dependencies:
   - pandas
   - seaborn
   - scikit-learn
-  - snakemake == 7.0
+  - snakemake-minimal == 7.0
   - umap-learn
   - hdbscan
   - pip
   - pip:
       - -e git+https://github.com/PNNL-CompBio/Snekmer#egg=snekmer
-  
+
