@@ -374,15 +374,16 @@ rule model:
         # save ROC-AUC figure
         if not exists(output.figs):
             makedirs(output.figs)
-        plt.savefig(
+        fig.savefig(
             join(
                 output.figs,
                 (
                     f"{family}_roc-auc-curve_{alphabet_name.lower()}"
                     f"_k-{config['k']:02d}.png"
                 ),
-            )
+            ), dpi=fig.dpi
         )
+        fig.clf()
         plt.close("all")
 
         # PR-AUC figure
@@ -399,15 +400,16 @@ rule model:
         results["cv_split"] += [i + 1 for i in range(cv)]
 
         # save PR-AUC figure
-        plt.savefig(
+        fig.savefig(
             join(
                 output.figs,
                 (
                     f"{family}_aupr-curve_{alphabet_name.lower()}"
                     f"_k-{config['k']:02d}.png"
                 ),
-            )
+            ), dpi=fig.dpi
         )
+        fig.clf()
         plt.close("all")
 
         # save model
