@@ -79,6 +79,14 @@ rule vectorize:
             ids.append(f.id)
             lengths.append(len(f.seq))
 
+        # memfix: we need to reformat the vec array to reflect
+        #         the all observed kmers in a matrix - rather than
+        #         a list of lists of variable length. Then we'll also
+        #         add the kmer order to kmer to what we save - that way we
+        #         don't need to consider every possible kmer
+        vecs, kmerlist = skm.vectorize.make_feature_matrix(vecs)
+        kmer.set_kmer_set(kmer_set=kmerlist)
+
         # save seqIO output and transformed vecs
         np.savez_compressed(output.data, ids=ids, seqs=seqs, vecs=vecs, lengths=lengths)
 

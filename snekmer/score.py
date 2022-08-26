@@ -584,9 +584,13 @@ class KmerScorer:
             "background": list(data.index[data[bg_col]]),
         }
 
+
         # step 0: get feature matrix and all labels
         labels = data[label_col].values
         matrix = to_feature_matrix(data[vec_col])
+        print(data[vec_col][1])
+
+        #matrix,labels = to_feature_matrix(data[vec_col])
         # print(matrix.shape)
 
         # step 0: get indices for label (family) ids
@@ -598,6 +602,7 @@ class KmerScorer:
         # step 1: score sample sequences and fit score scaler
         sample_matrix = matrix[i_background["sample"]]
         s_labels = labels[i_background["sample"]]
+
         probas = feature_class_probabilities(
             sample_matrix.T, s_labels, kmers=self.kmers.basis
         )
