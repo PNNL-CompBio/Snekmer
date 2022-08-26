@@ -588,10 +588,10 @@ class KmerScorer:
         # step 0: get feature matrix and all labels
         labels = data[label_col].values
         matrix = to_feature_matrix(data[vec_col])
-        print(data[vec_col][1])
+        #print(data[vec_col][1])
 
         #matrix,labels = to_feature_matrix(data[vec_col])
-        # print(matrix.shape)
+        print(matrix.shape)
 
         # step 0: get indices for label (family) ids
         # i_label = {
