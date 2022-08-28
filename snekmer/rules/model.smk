@@ -120,6 +120,7 @@ rule score:
         data=join("output", "scoring", "sequences", "{nb}.csv.gz"),
         weights=join("output", "scoring", "weights", "{nb}.csv.gz"),
         scorer=join("output", "scoring", "{nb}.scorer"),
+        matrix=join("output", "scoring", "{nb}.matrix"),
     log:
         join("output", "scoring", "log", "{nb}.log"),
     run:
@@ -138,10 +139,24 @@ rule score:
 
         # tabulate vectorized seq data
         data = list()
+        kmer_sets = list()
         for f in input.data:
-            data.append(skm.io.load_npz(f))
+            this, kmerlist = skm.io.load_npz(f)
+            data.append(this)
+            kmer_sets.append(kmerlist)
+
+        # now we're loading all the other models in too
+        #   each has a different basis set - we need to
+        #   harmonize those in data before continuing
+        for i in range(len(data)):
+            this = data[i]
+            kmerlist = kmer_sets[i]
+            vecs = skm.utils.to_feature_matrix(this["sequence_vector"].values)
+            that = kmer.harmonize_data(vecs, kmerlist)
+            this["sequence_vector"] = that.tolist()
 
         data = pd.concat(data, ignore_index=True)
+
         data["background"] = [f in BGS for f in data["filename"]]
 
         # log conversion step runtime
@@ -203,6 +218,11 @@ rule score:
         # log time to compute class probabilities
         skm.utils.log_runtime(log[0], start_time, step="class_probabilities")
 
+        # this will be redundnat with the output csv file - except that
+        #      it will have the harmonized matrix included with it
+        with(open(output.matrix, "wb") as f):
+            pickle.dump(data, f)
+
         # save all files to respective outputs
         delete_cols = ["vec", "sequence_vector"]
         for col in delete_cols:
@@ -211,6 +231,7 @@ rule score:
         data.drop(columns="sequence_vector").to_csv(
             output.data, index=False, compression="gzip"
         )
+
         class_probabilities.to_csv(output.weights, index=False, compression="gzip")
         with open(output.scorer, "wb") as f:
             pickle.dump(scorer, f)
@@ -225,28 +246,35 @@ rule model:
         data=rules.score.output.data,
         weights=rules.score.output.weights,
         kmerobj=rules.score.input.kmerobj,
+        matrix=rules.score.output.matrix
     output:
         model=join("output", "model", "{nb}.model"),
         results=join("output", "model", "results", "{nb}.csv"),
         figs=directory(join("output", "model", "figures", "{nb}")),
     run:
         # create lookup table to match vector to sequence by file+ID
-        lookup = {}
-        for f in input.raw:
-            loaded = np.load(f)
-            lookup.update(
-                {
-                    (splitext(basename(f))[0], seq_id): seq_vec
-                    for seq_id, seq_vec in zip(loaded["ids"], loaded["vecs"])
-                }
-            )
+        #lookup = {}
+        #for f in input.raw:
+        #    loaded = np.load(f)
+        #    lookup.update(
+        #        {
+        #            (splitext(basename(f))[0], seq_id): seq_vec
+        #            for seq_id, seq_vec in zip(loaded["ids"], loaded["vecs"])
+        #        }
+        #    )
+        #print(lookup)
+        with open(input.matrix, "rb") as f:
+            matrix = pickle.load(f)
+
+        data = matrix
 
         # load all input data and encode rule-wide variables
-        data = pd.read_csv(input.data)
-        data["sequence_vector"] = [
-            lookup[(seq_f, seq_id)]
-            for seq_f, seq_id in zip(data["filename"], data["sequence_id"])
-        ]
+        #data = pd.read_csv(input.data)
+        #data["sequence_vector"] = [
+        #    lookup[(seq_f, seq_id)]
+        #    for seq_f, seq_id in zip(data["filename"], data["sequence_id"])
+        #]
+
         scores = pd.read_csv(input.weights)
         family = skm.utils.get_family(
             skm.utils.split_file_ext(input.weights)[0], regex=config["input_file_regex"]

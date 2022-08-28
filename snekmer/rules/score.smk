@@ -69,6 +69,7 @@ rule score:
             data["train"] = [idx in i_train for idx in data.index]
 
         # generate family scores and object
+
         scorer = skm.score.KmerScorer()
         scorer.fit(
             list(kmer.kmer_set.kmers),
@@ -110,4 +111,3 @@ rule score:
 
         # record script endtime
         skm.utils.log_runtime(log[0], start_time)
-
