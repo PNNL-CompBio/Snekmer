@@ -587,11 +587,25 @@ class KmerScorer:
 
         # step 0: get feature matrix and all labels
         labels = data[label_col].values
-        matrix = to_feature_matrix(data[vec_col])
-        #print(data[vec_col][1])
 
-        #matrix,labels = to_feature_matrix(data[vec_col])
-        print(matrix.shape)
+        #print(data[vec_col].shape)
+        #print(data[vec_col])
+
+        x = len(data[vec_col])
+        y = len(data[vec_col][0])
+        #print(x,y)
+
+        matrix = np.zeros(x*y).reshape((x,y))
+        #print(matrix.shape)
+
+        for i in range(x):
+            for j in range(y):
+                value = data[vec_col][i]
+                value = value[j]
+                matrix[i,j] = value
+        #matrix = np.asarray(np.concatenate(data[vec_col])).reshape((len(data[vec_col]), len(data[vec_col][0])))
+        #print(matrix.shape)
+
 
         # step 0: get indices for label (family) ids
         # i_label = {
@@ -702,10 +716,18 @@ class KmerScorer:
 
         """
         # fit new input data to the correct kmer basis
+        #self.kmers.set_basis(kmers)
         array = self.kmers.transform(array, kmers)
+
+        #return (
+        #    apply_feature_probabilities(
+        #        array, self.probabilities["sample"], scaler=self.scaler
+        #    )
+        #    / self.score_norm
+        #)
         return (
             apply_feature_probabilities(
-                array, self.probabilities["sample"], scaler=self.scaler
+                array, self.probabilities["sample"], scaler=False
             )
             / self.score_norm
         )

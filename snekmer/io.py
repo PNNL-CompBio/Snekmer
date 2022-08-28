@@ -47,7 +47,7 @@ def load_npz(
     columns: Dict[str, str] = {
         "ids": "sequence_id",
         "seqs": "sequence",
-        "vecs": "sequence_vector",
+        "vecs": "sequence_vector"
     },
 ) -> pd.DataFrame:
     """Compile .npz results into dataframe.
@@ -88,7 +88,7 @@ def load_npz(
             df.update({f"{out_col}_length": [len(s) for s in data[in_col]]})
     # df.update()
 
-    return pd.DataFrame(df)
+    return pd.DataFrame(df), data["kmerlist"]
 
 
 def read_output_kmers(filename: str) -> List[str]:

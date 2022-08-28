@@ -85,10 +85,12 @@ rule vectorize:
         #         add the kmer order to kmer to what we save - that way we
         #         don't need to consider every possible kmer
         vecs, kmerlist = skm.vectorize.make_feature_matrix(vecs)
+
         kmer.set_kmer_set(kmer_set=kmerlist)
 
         # save seqIO output and transformed vecs
-        np.savez_compressed(output.data, ids=ids, seqs=seqs, vecs=vecs, lengths=lengths)
+        np.savez_compressed(output.data, kmerlist=kmerlist, ids=ids,
+                        seqs=seqs, vecs=vecs, lengths=lengths)
 
         with open(output.kmerobj, "wb") as f:
             pickle.dump(kmer, f)

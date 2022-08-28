@@ -137,15 +137,18 @@ rule search:
         # load vectorized sequences, score, and predict scores
         results = list()
         for f in input.files:
-            df = skm.io.load_npz(f)
+            df, kmerlist = skm.io.load_npz(f)
             filename = skm.utils.split_file_ext(basename(f))[0]
 
             vecs = skm.utils.to_feature_matrix(df["sequence_vector"].values)
+            #vecs = df["sequence_vector"].values
+            #print(vecs)
+            base_kmers = list(kmer.kmer_set.kmers)
+            scores = scorer.predict(vecs, kmerlist)
 
-            scores = scorer.predict(vecs, list(kmer.kmer_set.kmers))
             predictions = model.predict(scores.reshape(-1, 1))
             predicted_probas = model.predict_proba(scores.reshape(-1, 1))
-
+            
             # display results (score, family assignment, and probability)
             df[f"{family}_score"] = scores  # scorer output
             df[family] = [True if p == 1 else False for p in predictions]

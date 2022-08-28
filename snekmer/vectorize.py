@@ -100,11 +100,26 @@ class KmerBasis:
         }
 
         # convert vector basis into set basis
+        # this version doesn't *add* vectors that aren't there
+        #      since it assumes that the vector basis is a
+        #      complete matrx of all possible kmers - which
+        #      won't be possible for many combinations
+
+        # we'll add a dummy column for all those that
+        # aren't present in the input basis
+        unseen = ([0] * vector.shape[0])
+        vector = np.insert(vector, vector.shape[1], unseen, axis=1)
+
         i_convert = list()
         for i in range(len(self.basis)):
             kmer = self.basis_order[i]  # get basis set kmer in correct order
-            idx = vector_basis_order[kmer]  # locate kmer in the new vector
+            if kmer in vector_basis_order:
+                idx = vector_basis_order[kmer]  # locate kmer in the new vector
+            else:
+                idx = vector.shape[1]-1
             i_convert.append(idx)
+            
+        return vector[:, i_convert]
 
         # correctly index into ND or 1D array
         try:
@@ -303,3 +318,28 @@ class KmerVec:
         # vector /= sum(kmer2count.values())
 
         return vector
+
+    def harmonize_data(self, record, kmerlist):
+        # a record is a record from kmerize
+        #   from different models/background
+        #   that need to be put on the same basis set
+        # just hacking through this now to get it to work
+        # This is going to be slooooooow
+        # Because I'm doing it the super-dumb way
+        vecs = record["sequence_vector"]
+        refkmers = list(self.kmer_set.kmers)
+
+        x = len(vecs)
+        y = len(refkmers)
+        #data = np.zeros(x*y).reshape((x,y))
+        #print(x,y)
+        data = list()
+
+        for i in range(x):
+            this = [0]*y
+            for j in range(y):
+                    thisk = refkmers[j]
+                    if thisk in kmerlist:
+                        this[j] = vecs[i][list(kmerlist).index(thisk)]
+            data.append(this)
+        return data
