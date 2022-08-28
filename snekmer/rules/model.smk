@@ -148,24 +148,14 @@ rule score:
         # now we're loading all the other models in too
         #   each has a different basis set - we need to
         #   harmonize those in data before continuing
-        stack = list()
         for i in range(len(data)):
             this = data[i]
             kmerlist = kmer_sets[i]
-            that = kmer.harmonize_data(this, kmerlist)
-            this["sequence_vector"] = that
-            stack.append(list(that))
-            #if (i == 0):
-            #    #stack = that
-            #    stack = list(that)
-            #else:
-            #    #stack = np.concatenate((stack, that))
-            #    stack.append(list(that))
+            vecs = skm.utils.to_feature_matrix(this["sequence_vector"].values)
+            that = kmer.harmonize_data(vecs, kmerlist)
+            this["sequence_vector"] = that.tolist()
 
         data = pd.concat(data, ignore_index=True)
-        #data["sequence_vector"] = stack
-        #print("a", stack)
-        #print("b", data["sequence_vector"])
 
         data["background"] = [f in BGS for f in data["filename"]]
 

@@ -100,11 +100,6 @@ class KmerBasis:
         }
 
         # convert vector basis into set basis
-        # this version doesn't *add* vectors that aren't there
-        #      since it assumes that the vector basis is a
-        #      complete matrx of all possible kmers - which
-        #      won't be possible for many combinations
-
         # we'll add a dummy column for all those that
         # aren't present in the input basis
         unseen = ([0] * vector.shape[0])
@@ -118,7 +113,7 @@ class KmerBasis:
             else:
                 idx = vector.shape[1]-1
             i_convert.append(idx)
-            
+
         return vector[:, i_convert]
 
         # correctly index into ND or 1D array
@@ -222,10 +217,12 @@ class KmerVec:
         self.k = k
         self.char_set = get_alphabet_keys(alphabet)
         self.vector = None
+        self.basis = KmerBasis()
         #self.kmer_set = KmerSet(alphabet, k)
 
     def set_kmer_set(self, kmer_set=list()):
         self.kmer_set = KmerSet(self.alphabet, self.k, kmer_set)
+        self.basis.set_basis(kmer_set)
 
     # iteratively get all kmers in a string
     def _kmer_gen(self, sequence: str) -> Generator[str, None, None]:
@@ -320,26 +317,4 @@ class KmerVec:
         return vector
 
     def harmonize_data(self, record, kmerlist):
-        # a record is a record from kmerize
-        #   from different models/background
-        #   that need to be put on the same basis set
-        # just hacking through this now to get it to work
-        # This is going to be slooooooow
-        # Because I'm doing it the super-dumb way
-        vecs = record["sequence_vector"]
-        refkmers = list(self.kmer_set.kmers)
-
-        x = len(vecs)
-        y = len(refkmers)
-        #data = np.zeros(x*y).reshape((x,y))
-        #print(x,y)
-        data = list()
-
-        for i in range(x):
-            this = [0]*y
-            for j in range(y):
-                    thisk = refkmers[j]
-                    if thisk in kmerlist:
-                        this[j] = vecs[i][list(kmerlist).index(thisk)]
-            data.append(this)
-        return data
+        return(self.basis.transform(record, kmerlist))
