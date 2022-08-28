@@ -156,8 +156,26 @@ rule cluster:
 
         # tabulate vectorized seq data
         data = list()
+        kmerbasis = list()
+        kmerlists = list()
         for f in input.data:
-            data.append(skm.io.load_npz(f))
+            dat,kmerlist = skm.io.load_npz(f)
+            # memfix: these need to be harmonized
+            data.append(dat)
+            kmerlists.append(kmerlist)
+            kmerbasis.extend(kmerlist)
+
+        # make a superset of kmers
+        kmerbasis = np.unique(kmerlist)
+        basis = skm.vectorize.KmerVec(config["alphabet"], config["k"])
+        basis.set_kmer_set(kmerbasis)
+
+        for i in range(len(data)):
+            this = data[i]
+            kmerlist = kmerlists[i]
+            vecs = skm.utils.to_feature_matrix(this["sequence_vector"].values)
+            that = basis.harmonize_data(vecs, kmerlist)
+            this["sequence_vector"] = that.tolist()
 
         data = pd.concat(data, ignore_index=True)
         data["background"] = [f in BGS for f in data["filename"]]
