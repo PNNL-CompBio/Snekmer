@@ -1,6 +1,6 @@
 # Snekmer: A scalable pipeline for protein sequence fingerprinting using amino acid recoding (AAR)
 
-[![Documentation Status](https://readthedocs.org/projects/snekmer-docs/badge/?version=latest)](https://snekmer-docs.readthedocs.io/en/latest/?badge=latest)
+[![Documentation Status](https://readthedocs.org/projects/snekmer/badge/?version=latest)](https://snekmer.readthedocs.io/en/latest/?badge=latest)
 [![Snakemake](https://img.shields.io/badge/snakemake-=7.0.0-brightgreen.svg?style=flat)](https://snakemake.readthedocs.io)
 
 Snekmer is a software package designed to reduce the representation of protein sequences
@@ -32,7 +32,7 @@ and outputs a table for each file containing model annotation probabilities for 
 ## How to Use Snekmer
 
 For installation instructions, documentation, and more, refer to
-the [official documentation](https://snekmer-docs.readthedocs.io).
+the [official documentation](https://snekmer.readthedocs.io).
 
 Run the demonstration example code in:
      resources/tutorial/demo_example
