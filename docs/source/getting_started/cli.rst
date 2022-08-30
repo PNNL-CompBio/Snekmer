@@ -1,7 +1,7 @@
 Command Line Interface
 ======================
 
-To run any of the 3 Snekmer operation modes, simply call:
+To run any of the three Snekmer operation modes, simply call:
 
 .. code-block:: bash
 
@@ -69,5 +69,5 @@ For instance, to execute the workflow only through the kmer vector generation
 step, run:
 
 .. code-block:: bash
-    
+
     snekmer {mode} --until vectorize

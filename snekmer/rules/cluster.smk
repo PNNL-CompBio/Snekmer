@@ -156,8 +156,26 @@ rule cluster:
 
         # tabulate vectorized seq data
         data = list()
+        kmerbasis = list()
+        kmerlists = list()
         for f in input.data:
-            data.append(skm.io.load_npz(f))
+            dat,kmerlist = skm.io.load_npz(f)
+            # memfix: these need to be harmonized
+            data.append(dat)
+            kmerlists.append(kmerlist)
+            kmerbasis.extend(kmerlist)
+
+        # make a superset of kmers
+        kmerbasis = np.unique(kmerlist)
+        basis = skm.vectorize.KmerVec(config["alphabet"], config["k"])
+        basis.set_kmer_set(kmerbasis)
+
+        for i in range(len(data)):
+            this = data[i]
+            kmerlist = kmerlists[i]
+            vecs = skm.utils.to_feature_matrix(this["sequence_vector"].values)
+            that = basis.harmonize_data(vecs, kmerlist)
+            this["sequence_vector"] = that.tolist()
 
         data = pd.concat(data, ignore_index=True)
         data["background"] = [f in BGS for f in data["filename"]]
@@ -189,6 +207,10 @@ rule cluster:
         # currently not used
         # if len(bg) > 0:
         #     bg_feature_matrix = skm.utils.to_feature_matrix(bg["sequence_vector"].values)
+        # kludge to check on options for agglomerative Clustering
+        if "n_clusters" in config["cluster"]["params"] and config["cluster"]["params"]["n_clusters"] == 'None':
+            config["cluster"]["params"]["n_clusters"] = None
+            config["cluster"]["params"]["compute_full_tree"] = True
 
         # initialize clustering model
         model = skm.cluster.KmerClustering(
@@ -201,9 +223,6 @@ rule cluster:
             if not exists(output_bsf):
                 makedirs(output_bsf)
 
-            # kludge to check on options for agglomerative Clustering
-            config["cluster"]["params"]["n_clusters"] = None
-            config["cluster"]["params"]["compute_full_tree"] = True
 
             # if available, use BSF to create clustering distance matrix
             if BSF_PRESENT:
@@ -265,7 +284,7 @@ rule cluster:
 
             # output matrix for diagnostics - time/space heavy for large comparisons
             # if config["cluster"]["save_matrix"] is True:
-            #     np.savetxt(join(output_bsf, "bsf_matrix.npz"), bsf_mat, fmt="%.3f", delimiter=",")
+            #       np.savetxt(join(output_bsf, "bsf_matrix.csv"), bsf_mat, fmt="%.3f", delimiter=",")
 
             model.fit(bsf_mat)
 

@@ -38,6 +38,6 @@ model:
   random_state: None
 
 # search params
-model_dir: "/path/to/output/model/"
-basis_dir: "/path/to/output/kmerize/"
-score_dir: "/path/to/output/scoring/"
+model_dir: "output/model/"
+basis_dir: "output/kmerize/"
+score_dir: "output/scoring/"

@@ -200,4 +200,3 @@ def to_feature_matrix(
         length_array = np.ones(len(array))
     array = [np.array(a) / length for a, length in zip(array, length_array)]
     return np.asarray(array)
-

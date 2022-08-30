@@ -18,8 +18,7 @@ The mode must be specified in the command line, e.g. to specify the
 In the `resources <https://github.com/PNNL-CompBio/Snekmer/tree/main/resources>`_,
 two example configuration files are included:
 
-  - `config.yaml <https://github.com/PNNL-CompBio/Snekmer/blob/main/resources/config.yaml>`_: Configuration file for ``snekmer model`` and ``snekmer cluster`` modes.
-  - `search.yaml <https://github.com/PNNL-CompBio/Snekmer/blob/main/resources/search.yaml>`_: Configuration file for ``snekmer search`` mode. Note that the Snekmer CLI automatically assumes that the configuration file will be named *config.yaml*, so to use the provided file, use ``snekmer search --configfile search.yaml``
+  - `config.yaml <https://github.com/PNNL-CompBio/Snekmer/blob/main/resources/config.yaml>`_: Configuration file for snekmer execution.
 
 .. code-block:: bash
 

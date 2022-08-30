@@ -24,10 +24,16 @@ import snekmer as skm
 from Bio import SeqIO
 
 # get input files
-input_files = glob(join("input", "*"))
+input_dir = "input" if (("input_dir" not in config) or (str(config["input_dir"]) == "None")) else config["input_dir"]
+input_files = glob(join(input_dir, "*"))
+
+input_file_exts = ["fasta", "fna", "faa", "fa"]
+if "input_file_exts" in config:
+    input_file_exts = config["input_file_exts"]
+
 unzipped = [
     fa.rstrip(".gz")
-    for fa, ext in itertools.product(input_files, config["input_file_exts"])
+    for fa, ext in itertools.product(input_files, input_file_exts)
     if fa.rstrip(".gz").endswith(f".{ext}")
 ]
 zipped = [fa for fa in input_files if fa.endswith(".gz")]
@@ -60,7 +66,7 @@ rule vectorize:
         # initialize kmerization object
         kmer = skm.vectorize.KmerVec(alphabet=config["alphabet"], k=config["k"])
 
-        vecs, seqs, ids = list(), list(), list()
+        vecs, seqs, ids, lengths = list(), list(), list(), list()
         for f in fasta:
             vecs.append(kmer.reduce_vectorize(f.seq))
             seqs.append(
@@ -71,10 +77,20 @@ rule vectorize:
                 )
             )
             ids.append(f.id)
+            lengths.append(len(f.seq))
+
+        # memfix: we need to reformat the vec array to reflect
+        #         the all observed kmers in a matrix - rather than
+        #         a list of lists of variable length. Then we'll also
+        #         add the kmer order to kmer to what we save - that way we
+        #         don't need to consider every possible kmer
+        vecs, kmerlist = skm.vectorize.make_feature_matrix(vecs)
+
+        kmer.set_kmer_set(kmer_set=kmerlist)
 
         # save seqIO output and transformed vecs
-        np.savez_compressed(output.data, ids=ids, seqs=seqs, vecs=vecs)
+        np.savez_compressed(output.data, kmerlist=kmerlist, ids=ids,
+                        seqs=seqs, vecs=vecs, lengths=lengths)
 
         with open(output.kmerobj, "wb") as f:
             pickle.dump(kmer, f)
-
