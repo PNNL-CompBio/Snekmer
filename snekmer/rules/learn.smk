@@ -47,6 +47,8 @@ unzipped = [
     if fa.rstrip(".gz").endswith(f".{ext}")
 ]
 
+annot_files = glob(join(input_dir, "annotations", "*.ann"))
+
 # map extensions to basename (basename.ext.gz -> {basename: ext})
 UZ_MAP = {
     skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in zipped
@@ -78,15 +80,15 @@ out_dir = skm.io.define_output_dir(
 # define output files to be created by snekmer
 rule all:
     input:
-        expand(join("input", "{uz}"), uz=UZS),  # require unzipping
+        expand(join(input_dir, "{uz}"), uz=UZS),  # require unzipping
         join(out_dir, "learn", "kmer-associations.csv"),  # require learning
 
 
 # if any files are gzip zipped, unzip them
 use rule unzip from process with:
     output:
-        unzipped=join("input", "{uz}"),
-        zipped=join("input", "zipped", "{uz}.gz"),
+        unzipped=join(input_dir, "{uz}"),
+        zipped=join(input_dir, "zipped", "{uz}.gz"),
 
 
 # build kmer count vectors for each basis set
@@ -105,6 +107,7 @@ rule learn:
     input:
         kmerobj=expand(join("output", "kmerize", "{fa}.kmers"), fa=NON_BGS),
         data=expand(join("output", "vector", "{fa}.npz"), fa=NON_BGS),
+        annotation=expand(join(input_dir, "annotations", "{an}.ann"), an=annot_files)
     output:
         table=join(out_dir, "learn", "kmer-associations.csv")
     log:
@@ -114,12 +117,6 @@ rule learn:
         start_time = datetime.now()
         with open(log[0], "a") as f:
             f.write(f"start time:\t{start_time}\n")
-
-        # parse all data and label background files
-        label = config["score"]["lname"]
-
-        # assuming all kmer basis sets are identical, grab the first
-        kmer = skm.io.load_pickle(input.kmerobj[0])
 
         # tabulate vectorized seq data
         data = list()

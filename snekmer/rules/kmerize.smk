@@ -61,12 +61,15 @@ rule vectorize:
         join("output", "kmerize", "log", "{nb}.log"),
     run:
         # read fasta using bioconda obj
+        print("parsing...")
         fasta = SeqIO.parse(input.fasta, "fasta")
+        print("finished...")
 
         # initialize kmerization object
         kmer = skm.vectorize.KmerVec(alphabet=config["alphabet"], k=config["k"])
 
         vecs, seqs, ids, lengths = list(), list(), list(), list()
+
         for f in fasta:
             vecs.append(kmer.reduce_vectorize(f.seq))
             seqs.append(
@@ -84,7 +87,9 @@ rule vectorize:
         #         a list of lists of variable length. Then we'll also
         #         add the kmer order to kmer to what we save - that way we
         #         don't need to consider every possible kmer
+        print("making kmer list")
         vecs, kmerlist = skm.vectorize.make_feature_matrix(vecs)
+        print("done")
 
         kmer.set_kmer_set(kmer_set=kmerlist)
 
