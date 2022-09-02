@@ -84,7 +84,10 @@ rule vectorize:
         #         a list of lists of variable length. Then we'll also
         #         add the kmer order to kmer to what we save - that way we
         #         don't need to consider every possible kmer
-        vecs, kmerlist = skm.vectorize.make_feature_matrix(vecs)
+        mnfilter = 1
+        if "min_filter" in config:
+                mnfilter = config["min_filter"]
+        vecs, kmerlist = skm.vectorize.make_feature_matrix(vecs, min_filter=mnfilter)
 
         kmer.set_kmer_set(kmer_set=kmerlist)
 
