@@ -20,6 +20,7 @@ from os.path import basename, join
 
 # external libraries
 import numpy as np
+import pandas as pd
 import snekmer as skm
 from Bio import SeqIO
 
@@ -54,6 +55,7 @@ rule vectorize:
         fasta=lambda wildcards: join(
             "input", f"{wildcards.nb}.{FA_MAP[wildcards.nb]}"
         ),
+        kmerbasis=join(input_dir, "common.basis"),   # this is optional
     output:
         data=join("output", "vector", "{nb}.npz"),
         kmerobj=join("output", "kmerize", "{nb}.kmers"),
@@ -65,10 +67,28 @@ rule vectorize:
 
         # initialize kmerization object
         kmer = skm.vectorize.KmerVec(alphabet=config["alphabet"], k=config["k"])
+        # read kmerbasis if present
+        mnfilter = 1
+        if os.path.exists(input.kmerbasis):
+            kmerbasis = pd.read_csv(input.kmerbasis)
+            kmerbasis = list(kmerbasis["common"])
 
+            # causes the output to be filtered
+            kmer.set_kmer_set(kmerbasis)
+        else:
+            # we will only allow filtering by number of kmers
+            # if we're not using a basis set as input -
+            if "min_filter" in config:
+                    mnfilter = config["min_filter"]
+
+        nseq = 0
         vecs, seqs, ids, lengths = list(), list(), list(), list()
         for f in fasta:
-            vecs.append(kmer.reduce_vectorize(f.seq))
+            nseq+=1
+            addvec = kmer.reduce_vectorize(f.seq)
+            vecs = np.append(vecs, addvec)
+            nkmers = len(addvec)
+            print(nkmers)
             seqs.append(
                 skm.vectorize.reduce(
                     f.seq,
@@ -79,17 +99,16 @@ rule vectorize:
             ids.append(f.id)
             lengths.append(len(f.seq))
 
-        # memfix: we need to reformat the vec array to reflect
-        #         the all observed kmers in a matrix - rather than
-        #         a list of lists of variable length. Then we'll also
-        #         add the kmer order to kmer to what we save - that way we
-        #         don't need to consider every possible kmer
-        mnfilter = 1
-        if "min_filter" in config:
-                mnfilter = config["min_filter"]
-        vecs, kmerlist = skm.vectorize.make_feature_matrix(vecs, min_filter=mnfilter)
+        vecs.reshape(nseq, nkmers)
 
+        vecs, kmerlist = skm.vectorize.make_feature_matrix(vecs, min_filter=mnfilter)
         kmer.set_kmer_set(kmer_set=kmerlist)
+        print(len(kmerlist))
+
+        # loop to assess memory usage
+        import time
+        while 1:
+            time.sleep(3)
 
         # save seqIO output and transformed vecs
         np.savez_compressed(output.data, kmerlist=kmerlist, ids=ids,

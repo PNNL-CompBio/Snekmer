@@ -78,8 +78,10 @@ def load_npz(
     """
     data = np.load(filename)
 
+    import time
     # fill in df based on desired output col names
     df = {"filename": splitext(basename(filename))[0]}
+
     for in_col, out_col in columns.items():
         df.update({out_col: list(data[in_col])})
 
@@ -89,7 +91,6 @@ def load_npz(
     # df.update()
 
     return pd.DataFrame(df), data["kmerlist"]
-
 
 def read_output_kmers(filename: str) -> List[str]:
     """Extract kmer identifiers from Snekmer output file.

@@ -95,8 +95,9 @@ out_dir = skm.io.define_output_dir(
 rule all:
     input:
         expand(join("input", "{uz}"), uz=UZS),  # require unzipping
+        join(input_dir, "common.basis"), # require common basis
         expand(join(out_dir, "vector", "{f}.npz"), f=FILES),
-        expand(join(out_dir, "search", "{fam}.csv"), fam=FAMILIES),  # require search
+        expand(join(out_dir, "search", "{fam}", "{f}.csv"), fam=FAMILIES, f=FILES),   # require search
 
 
 # if any files are gzip zipped, unzip them
@@ -106,10 +107,28 @@ if len(UZS) > 0:
             join("input", "{uz}"),  # or join("input", "{uz}.{uzext}") ?
 # build kmer count vectors for each basis set
 
+rule common_basis:
+    input:
+        kmerobjs=expand(join(config["basis_dir"], "{fam}.kmers"),fam=FAMILIES),
+    output:
+        kmerbasis=join(input_dir, "common.basis"),
+    log:
+        join(config["basis_dir"], "log", "common_basis.log"),
+    run:
+        common_basis = list()
+        for this in input.kmerobjs:
+            kmers = skm.io.load_pickle(this)
+            kmers = list(kmers.kmer_set.kmers)
+            common_basis.extend(kmers)
+        common_basis = np.unique(common_basis)
+
+        df = pd.DataFrame({'common':common_basis})
+        df.to_csv(output.kmerbasis, index=False)
 
 use rule vectorize from kmerize with:
     input:
-        fasta=lambda wildcards: join("input", f"{wildcards.f}.{FILE_MAP[wildcards.f]}"),
+        fasta=lambda wildcards: join(input_dir, f"{wildcards.f}.{FILE_MAP[wildcards.f]}"),
+        kmerbasis=join(input_dir, "common.basis"),
     output:
         data=join(out_dir, "vector", "{f}.npz"),
         kmerobj=join(out_dir, "kmerize", "{f}.kmers"),
@@ -119,47 +138,44 @@ use rule vectorize from kmerize with:
 
 rule search:
     input:
-        files=expand(join(out_dir, "vector", "{f}.npz"), f=FILES),  # change to data=join("output", "vector", "{nb}.npz")
+        vecs=join(out_dir, "vector", "{f}.npz"),  # change to data=join("output", "vector", "{nb}.npz")
         model=join(config["model_dir"], "{fam}.model"),
         kmerobj=join(config["basis_dir"], "{fam}.kmers"),
         scorer=join(config["score_dir"], "{fam}.scorer"),
     output:
-        results=join(out_dir, "search", "{fam}.csv"),
+        results=join(out_dir, "search", "{fam}", "{f}.csv"),
     run:
         # simplify variable name
         family = wildcards.fam
 
         # get kmers for this particular set of sequences
+        #print(f"starting {family}")
         kmer = skm.io.load_pickle(input.kmerobj)
         model = skm.io.load_pickle(input.model)
         scorer = skm.io.load_pickle(input.scorer)
+        #print(f"loaded model {family}")
 
         # load vectorized sequences, score, and predict scores
-        results = list()
-        for f in input.files:
-            df, kmerlist = skm.io.load_npz(f)
-            filename = skm.utils.split_file_ext(basename(f))[0]
+        # memory is blowing up here
+        df,kmerlist  = skm.io.load_npz(input.vecs)
+        filename = skm.utils.split_file_ext(basename(input.vecs))[0]
 
-            vecs = skm.utils.to_feature_matrix(df["sequence_vector"].values)
-            #vecs = df["sequence_vector"].values
-            #print(vecs)
-            base_kmers = list(kmer.kmer_set.kmers)
-            scores = scorer.predict(vecs, kmerlist)
+        #print(f"making feature matrix {family}")
+        vecs = skm.utils.to_feature_matrix(df["sequence_vector"].values)
 
-            predictions = model.predict(scores.reshape(-1, 1))
-            predicted_probas = model.predict_proba(scores.reshape(-1, 1))
-            
-            # display results (score, family assignment, and probability)
-            df[f"{family}_score"] = scores  # scorer output
-            df[family] = [True if p == 1 else False for p in predictions]
-            df[f"{family}_probability"] = [p[1] for p in predicted_probas]
-            df["filename"] = f"{filename}.{FILE_MAP[filename]}"
-            #df["seq_length"] = seq_length
-            #df["seq_ids"] = seq_id
+        #print(f"getting scores {family}")
+        scores = scorer.predict(vecs, kmerlist)
+        #print(f"making predictions {family}")
+        predictions = model.predict(scores.reshape(-1, 1))
+        #print(f"getting probabilities {family}")
+        predicted_probas = model.predict_proba(scores.reshape(-1, 1))
 
-            results.append(df)
+        # display results (score, family assignment, and probability)
+        df["score"] = scores  # scorer output
+        df["in_family"] = [True if p == 1 else False for p in predictions]
+        df["probability"] = [p[1] for p in predicted_probas]
+        df["filename"] = f"{filename}.{FILE_MAP[filename]}"
+        df["model"] = basename(input.model)
 
-        # save full results
-        results = pd.concat(results, ignore_index=True).drop(columns=["sequence_vector"])
-        results["model"] = basename(input.model)
-        results.to_csv(output.results, index=False)
+        df = df.drop(columns=["sequence_vector"])
+        df.to_csv(output.results, index=False)
