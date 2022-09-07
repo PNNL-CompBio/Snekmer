@@ -20,6 +20,7 @@ from os.path import basename, join
 
 # external libraries
 import numpy as np
+import pandas as pd
 import snekmer as skm
 from Bio import SeqIO
 
@@ -54,21 +55,63 @@ rule vectorize:
         fasta=lambda wildcards: join(
             "input", f"{wildcards.nb}.{FA_MAP[wildcards.nb]}"
         ),
+        kmerbasis=join(input_dir, "common.basis"),   # this is optional
     output:
         data=join("output", "vector", "{nb}.npz"),
         kmerobj=join("output", "kmerize", "{nb}.kmers"),
     log:
         join("output", "kmerize", "log", "{nb}.log"),
     run:
-        # read fasta using bioconda obj
-        fasta = SeqIO.parse(input.fasta, "fasta")
-
         # initialize kmerization object
         kmer = skm.vectorize.KmerVec(alphabet=config["alphabet"], k=config["k"])
+        # read kmerbasis if present
+        mnfilter = 1
+        if hasattr(input, "kmerbasis") and os.path.exists(input.kmerbasis):
+            kmerbasis = pd.read_csv(input.kmerbasis)
+            kmerbasis = list(kmerbasis["common"])
 
-        vecs, seqs, ids, lengths = list(), list(), list(), list()
+            # quick way to get the number of proteins in
+            #     the fasta file so we can set up an array
+            #     ahead of time
+            nprot = len([1 for line in open(input.fasta) if line.startswith(">")])
+        else:
+            # we make our own kmerbasis and filter for minimum
+            #    number of occurrences, etc.
+            # we will only allow filtering by number of kmers
+            # if we're not using a basis set as input -
+            if "min_filter" in config:
+                    mnfilter = config["min_filter"]
+
+            # make basis
+            kmerbasis = {}
+            fasta = SeqIO.parse(input.fasta, "fasta")
+
+            nprot = 0
+            for f in fasta:
+                nprot += 1
+                these = kmer.reduce_vectorize(f.seq)
+                for key in these:
+                    if key in kmerbasis:
+                        kmerbasis[key] += 1
+                    else:
+                        kmerbasis[key] = 1
+            kmerbasis = np.array(list(kmerbasis.keys()))[np.array(list(kmerbasis.values()))>mnfilter]
+
+        kmer.set_kmer_set(kmerbasis)
+
+        # (re)read fasta using bioconda obj
+        fasta = SeqIO.parse(input.fasta, "fasta")
+
+        # pre-allocate an array to keep results
+        vecs = np.zeros((nprot, len(kmerbasis)))
+
+        # I question whether we need to keep the reduced seqs here
+        seqs, ids, lengths = list(), list(), list()
+        n = 0
         for f in fasta:
-            vecs.append(kmer.reduce_vectorize(f.seq))
+            addvec = kmer.reduce_vectorize(f.seq)
+            vecs[n][np.isin(kmerbasis,addvec)] = 1
+            n += 1
             seqs.append(
                 skm.vectorize.reduce(
                     f.seq,
@@ -79,20 +122,8 @@ rule vectorize:
             ids.append(f.id)
             lengths.append(len(f.seq))
 
-        # memfix: we need to reformat the vec array to reflect
-        #         the all observed kmers in a matrix - rather than
-        #         a list of lists of variable length. Then we'll also
-        #         add the kmer order to kmer to what we save - that way we
-        #         don't need to consider every possible kmer
-        mnfilter = 1
-        if "min_filter" in config:
-                mnfilter = config["min_filter"]
-        vecs, kmerlist = skm.vectorize.make_feature_matrix(vecs, min_filter=mnfilter)
-
-        kmer.set_kmer_set(kmer_set=kmerlist)
-
         # save seqIO output and transformed vecs
-        np.savez_compressed(output.data, kmerlist=kmerlist, ids=ids,
+        np.savez_compressed(output.data, kmerlist=kmerbasis, ids=ids,
                         seqs=seqs, vecs=vecs, lengths=lengths)
 
         with open(output.kmerobj, "wb") as f:
