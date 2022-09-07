@@ -62,9 +62,6 @@ rule vectorize:
     log:
         join("output", "kmerize", "log", "{nb}.log"),
     run:
-        # read fasta using bioconda obj
-        fasta = SeqIO.parse(input.fasta, "fasta")
-
         # initialize kmerization object
         kmer = skm.vectorize.KmerVec(alphabet=config["alphabet"], k=config["k"])
         # read kmerbasis if present
@@ -73,22 +70,48 @@ rule vectorize:
             kmerbasis = pd.read_csv(input.kmerbasis)
             kmerbasis = list(kmerbasis["common"])
 
-            # causes the output to be filtered
-            kmer.set_kmer_set(kmerbasis)
+            # quick way to get the number of proteins in
+            #     the fasta file so we can set up an array
+            #     ahead of time
+            nprot = len([1 for line in open(input.fasta) if line.startswith(">")])
         else:
+            # we make our own kmerbasis and filter for minimum
+            #    number of occurrences, etc.
             # we will only allow filtering by number of kmers
             # if we're not using a basis set as input -
             if "min_filter" in config:
                     mnfilter = config["min_filter"]
 
-        nseq = 0
-        vecs, seqs, ids, lengths = list(), list(), list(), list()
+            # make basis
+            kmerbasis = {}
+            fasta = SeqIO.parse(input.fasta, "fasta")
+
+            nprot = 0
+            for f in fasta:
+                nprot += 1
+                these = kmer.reduce_vectorize(f.seq)
+                for kmer in these:
+                    if key in kmerbasis:
+                        kmerbasis[key] += 1
+                    else:
+                        kmerbasis[key] = 1
+            kmerbasis = kmerbasis.keys()[kmerbasis.values>min_filter]
+
+        kmer.set_kmer_set(kmerbasis)
+
+        # (re)read fasta using bioconda obj
+        fasta = SeqIO.parse(input.fasta, "fasta")
+
+        # pre-allocate an array to keep results
+        vecs = np.zeros((nprot, len(kmerbasis)))
+
+        # I question whether we need to keep the reduced seqs here
+        seqs, ids, lengths = list(), list(), list()
+        n = 0
         for f in fasta:
-            nseq+=1
             addvec = kmer.reduce_vectorize(f.seq)
-            vecs = np.append(vecs, addvec)
-            nkmers = len(addvec)
-            print(nkmers)
+            vecs[n][np.isin(kmerbasis,addvec)] = 1
+            n += 1
             seqs.append(
                 skm.vectorize.reduce(
                     f.seq,
@@ -99,19 +122,8 @@ rule vectorize:
             ids.append(f.id)
             lengths.append(len(f.seq))
 
-        vecs.reshape(nseq, nkmers)
-
-        vecs, kmerlist = skm.vectorize.make_feature_matrix(vecs, min_filter=mnfilter)
-        kmer.set_kmer_set(kmer_set=kmerlist)
-        print(len(kmerlist))
-
-        # loop to assess memory usage
-        import time
-        while 1:
-            time.sleep(3)
-
         # save seqIO output and transformed vecs
-        np.savez_compressed(output.data, kmerlist=kmerlist, ids=ids,
+        np.savez_compressed(output.data, kmerlist=kmerbasis, ids=ids,
                         seqs=seqs, vecs=vecs, lengths=lengths)
 
         with open(output.kmerobj, "wb") as f:
