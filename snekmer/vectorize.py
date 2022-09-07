@@ -189,27 +189,21 @@ def make_feature_matrix(vecs, min_filter=1, max_filter=1):
     kmerlist = list()
     for this in vecs:
         kmerlist.extend(this)
-    kmerlist = np.unique(kmerlist)
+    kmerlist, kmercounts = np.unique(kmerlist, return_counts=True)
+
+    # filter based on counts
+    kmerlist = kmerlist[kmercounts>min_filter]
+
     nk = len(kmerlist)
-
     #result = np.zeros(len(kmerlist)*len(vecs)).reshape(len(vecs),len(kmerlist))
-    result = list()
 
+    result = list()
     for i in range(len(vecs)):
-        # there is a much better way to do this with binary indexing that
-        # I can't figure out right now - so this will work
         this = np.zeros(nk)
-        for j in range(len(kmerlist)):
-            k = kmerlist[j]
-            if k in vecs[i]:
-                this[j] = 1
+        this[np.isin(kmerlist,vecs[i])] = 1
         result.append(this)
 
-    # we can filter results here for the min and max occurences
-    # TBD
-
     return result, kmerlist
-
 
 class KmerVec:
     def __init__(self, alphabet: Union[str, int], k: int):
