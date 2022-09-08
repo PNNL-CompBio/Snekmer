@@ -2,10 +2,10 @@ name: ci
 
 # specify trigger events for ci workflow
 on:
-  push:
-    branches: [main, tests]
-  pull_request:
-    branches: [main, tests]
+  [push]
+  #   branches: [main, tests]
+  # pull_request:
+  #   branches: [main, tests]
 
 jobs:
   # step 1: build
