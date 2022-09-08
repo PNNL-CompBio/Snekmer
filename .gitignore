@@ -1,8 +1,8 @@
 # Continuous integration
 .test/.snakemake
-.test/results
-.github
-.test
+# .test/results
+# .github
+# .test
 
 # documentation
 docs/_build/
