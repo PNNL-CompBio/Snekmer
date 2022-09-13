@@ -1,9 +1,9 @@
-name: ci
+name: CI
 
 # specify trigger events for ci workflow
 on:
-  [push]
-  #   branches: [main, tests]
+  push:
+    branches: [main, tests]
   # pull_request:
   #   branches: [main, tests]
 
@@ -44,7 +44,7 @@ jobs:
           channels: anaconda,conda-forge,bioconda,numba
           auto-activate-base: false
           activate-environment: snekmer
-          environment-file: environment.yml
+          environment-file: .test/test-env.yml
       - run: conda info
       - run: conda list
       - run: conda config --show
