@@ -31,14 +31,29 @@ jobs:
   #         snakefile: workflow/Snakefile
   #         args: "--lint"
 
+  # step 0: dependencies
+  install:
+    runs-on: ubuntu-latest
+
   # step 3: testing
   test:
     runs-on: ubuntu-latest
-    # needs:
+    needs:
+      - install
     #   - lint
     #   - format
     steps:
       - uses: actions/checkout@v2
+
+      # setup environment
+      - name: create_environment
+          uses: conda-incubator/setup-miniconda@v2
+          with:
+            # mamba-version: "*"
+            channels: anaconda,conda-forge,bioconda,numba
+            auto-activate-base: false
+            activate-environment: snekmer
+            environment-file: ../environment.yml
 
       # test clustering step
       - name: test_cluster
