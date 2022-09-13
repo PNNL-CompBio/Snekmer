@@ -44,8 +44,10 @@ jobs:
           channels: anaconda,conda-forge,bioconda,numba
           auto-activate-base: false
           activate-environment: snekmer
-          environment-file: ../environment.yml
-          # mamba-version: "*"
+          environment-file: environment.yml
+      - run: conda info
+      - run: conda list
+      - run: conda config --show
 
   # step 3: testing
   test:
