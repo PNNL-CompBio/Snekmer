@@ -47,13 +47,13 @@ jobs:
 
       # setup environment
       - name: create_environment
-          uses: conda-incubator/setup-miniconda@v2
-          with:
-            # mamba-version: "*"
-            channels: anaconda,conda-forge,bioconda,numba
-            auto-activate-base: false
-            activate-environment: snekmer
-            environment-file: ../environment.yml
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          # mamba-version: "*"
+          channels: anaconda,conda-forge,bioconda,numba
+          auto-activate-base: false
+          activate-environment: snekmer
+          environment-file: ../environment.yml
 
       # test clustering step
       - name: test_cluster
