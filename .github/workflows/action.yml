@@ -63,7 +63,7 @@ jobs:
         uses: snakemake/snakemake-github-action@v1
         with:
           directory: ".test"
-          snakefile: "snekmer/rules/cluster.smk"
+          snakefile: "../snekmer/rules/cluster.smk"
           args: "--cores 1 --use-conda --conda-cleanup-pkgs cache"
           stagein: "" # additional preliminary commands to run (can be multiline)
 
@@ -72,7 +72,7 @@ jobs:
         uses: snakemake/snakemake-github-action@v1
         with:
           directory: ".test"
-          snakefile: "snekmer/rules/model.smk"
+          snakefile: "../snekmer/rules/model.smk"
           args: "--cores 1"
 
     # - name: search
