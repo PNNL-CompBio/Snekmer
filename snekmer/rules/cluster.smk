@@ -166,7 +166,7 @@ rule cluster:
             # basis.extend(klist)
 
         # make a superset of kmers
-        kmerbasis = np.unique(kmers)
+        kmerbasis = np.unique(np.hstack(kmers))
         basis = skm.vectorize.KmerVec(config["alphabet"], config["k"])
         basis.set_kmer_set(kmerbasis)
 
