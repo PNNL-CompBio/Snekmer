@@ -47,7 +47,7 @@ def load_npz(
     columns: Dict[str, str] = {
         "ids": "sequence_id",
         "seqs": "sequence",
-        "vecs": "sequence_vector"
+        "vecs": "sequence_vector",
     },
 ) -> pd.DataFrame:
     """Compile .npz results into dataframe.
@@ -55,9 +55,9 @@ def load_npz(
     Parameters
     ----------
     filename : str
-        Description of parameter `filename`.
+        /path/to/filename for input .npz file.
     columns : Dict[str, str]
-        Description of parameter `columns` (the default is
+        Mapping for output data column names (the default is
             {
                 "ids": "sequence_id",
                 "seqs": "sequence",
@@ -68,17 +68,11 @@ def load_npz(
     Returns
     -------
     pd.DataFrame
-        Description of returned object.
-
-    Raises
-    ------
-    ExceptionName
-        Why the exception is raised.
+        Tabulated .npz data.
 
     """
     data = np.load(filename)
 
-    import time
     # fill in df based on desired output col names
     df = {"filename": splitext(basename(filename))[0]}
 
@@ -88,9 +82,9 @@ def load_npz(
         # get seq column for sequence lengths
         if "seq" in in_col:
             df.update({f"{out_col}_length": [len(s) for s in data[in_col]]})
-    # df.update()
 
-    return pd.DataFrame(df), data["kmerlist"]
+    return pd.DataFrame(df)
+
 
 def read_output_kmers(filename: str) -> List[str]:
     """Extract kmer identifiers from Snekmer output file.
