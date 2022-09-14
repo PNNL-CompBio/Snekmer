@@ -9,4 +9,4 @@ from . import vectorize
 
 # from . import walk
 
-__version__ = "1.0.0-beta"
+__version__ = "1.0.1"
