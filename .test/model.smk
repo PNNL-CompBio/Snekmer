@@ -1,0 +1,1 @@
+snekmer/rules/model.smk
