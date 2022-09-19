@@ -16,7 +16,7 @@ import json
 import pickle
 from datetime import datetime
 from glob import glob
-from os.path import basename, join
+from os.path import basename, exists, join
 
 # external libraries
 import numpy as np
@@ -25,7 +25,11 @@ import snekmer as skm
 from Bio import SeqIO
 
 # get input files
-input_dir = "input" if (("input_dir" not in config) or (str(config["input_dir"]) == "None")) else config["input_dir"]
+input_dir = (
+    "input"
+    if (("input_dir" not in config) or (str(config["input_dir"]) == "None"))
+    else config["input_dir"]
+)
 input_files = glob(join(input_dir, "*"))
 
 input_file_exts = ["fasta", "fna", "faa", "fa"]
@@ -55,7 +59,7 @@ rule vectorize:
         fasta=lambda wildcards: join(
             "input", f"{wildcards.nb}.{FA_MAP[wildcards.nb]}"
         ),
-        kmerbasis=join(input_dir, "common.basis"),   # this is optional
+        kmerbasis=join(input_dir, "basis.txt"), # this is optional
     output:
         data=join("output", "vector", "{nb}.npz"),
         kmerobj=join("output", "kmerize", "{nb}.kmers"),
@@ -64,23 +68,24 @@ rule vectorize:
     run:
         # initialize kmerization object
         kmer = skm.vectorize.KmerVec(alphabet=config["alphabet"], k=config["k"])
+
         # read kmerbasis if present
-        mnfilter = 1
-        if hasattr(input, "kmerbasis") and os.path.exists(input.kmerbasis):
-            kmerbasis = pd.read_csv(input.kmerbasis)
-            kmerbasis = list(kmerbasis["common"])
+        min_filter = 1
+        if hasattr(input, "kmerbasis") and exists(input.kmerbasis):
+            kmerbasis = skm.io.read_kmers(input.kmerbasis)
 
             # quick way to get the number of proteins in
             #     the fasta file so we can set up an array
             #     ahead of time
             nprot = len([1 for line in open(input.fasta) if line.startswith(">")])
+
         else:
             # we make our own kmerbasis and filter for minimum
             #    number of occurrences, etc.
             # we will only allow filtering by number of kmers
             # if we're not using a basis set as input -
             if "min_filter" in config:
-                    mnfilter = config["min_filter"]
+                min_filter = config["min_filter"]
 
             # make basis
             kmerbasis = {}
@@ -95,7 +100,9 @@ rule vectorize:
                         kmerbasis[key] += 1
                     else:
                         kmerbasis[key] = 1
-            kmerbasis = np.array(list(kmerbasis.keys()))[np.array(list(kmerbasis.values()))>mnfilter]
+            kmerbasis = np.array(list(kmerbasis.keys()))[
+                np.array(list(kmerbasis.values())) > min_filter
+            ]
 
         kmer.set_kmer_set(kmerbasis)
 
@@ -110,7 +117,7 @@ rule vectorize:
         n = 0
         for f in fasta:
             addvec = kmer.reduce_vectorize(f.seq)
-            vecs[n][np.isin(kmerbasis,addvec)] = 1
+            vecs[n][np.isin(kmerbasis, addvec)] = 1
             n += 1
             seqs.append(
                 skm.vectorize.reduce(
@@ -123,8 +130,15 @@ rule vectorize:
             lengths.append(len(f.seq))
 
         # save seqIO output and transformed vecs
-        np.savez_compressed(output.data, kmerlist=kmerbasis, ids=ids,
-                        seqs=seqs, vecs=vecs, lengths=lengths)
+        np.savez_compressed(
+            output.data,
+            kmerlist=kmerbasis,
+            ids=ids,
+            seqs=seqs,
+            vecs=vecs,
+            lengths=lengths,
+        )
 
         with open(output.kmerobj, "wb") as f:
             pickle.dump(kmer, f)
+

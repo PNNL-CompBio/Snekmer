@@ -18,12 +18,7 @@ score:
 # cluster params
 cluster:
   method: "agglomerative"
-  params:
-    {
-      n_clusters: None,
-      distance_threshold: 95,
-      linkage: ward,
-    }
+  params: { n_clusters: None, distance_threshold: 95, linkage: ward }
   cluster_plots: True
 
   # clustering distance matrix params

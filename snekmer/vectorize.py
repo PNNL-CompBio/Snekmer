@@ -134,7 +134,19 @@ class KmerSet:
     """Given alphabet and k, creates iterator for kmer basis set.
     """
 
-    def __init__(self, alphabet: Union[str, int], k: int, kmerlist: list = list()):
+    def __init__(self, alphabet: Union[str, int], k: int, kmers: list = None):
+        """Initialize KmerSet object
+
+        Parameters
+        ----------
+        alphabet : Union[str, int]
+            Alphabet name or identifier
+        k : int
+            Kmer length
+        kmers : list, optional
+            List of kmers to manually specify basis set, by default None
+
+        """
         self.alphabet = alphabet
         self.k = k
 
@@ -145,10 +157,11 @@ class KmerSet:
         #              into this problem. Only populate those
         #              kmers that exist. I think this was crashing
         #              my computer with a k=8 alphabet=5
-        if len(kmerlist) == 0:
+
+        if kmers is None:
             self._kmerlist = list(_generate(get_alphabet_keys(alphabet), k))
         else:
-            self._kmerlist = kmerlist
+            self._kmerlist = kmers
 
     @property
     def kmers(self):
