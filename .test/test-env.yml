@@ -7,6 +7,7 @@ channels:
 dependencies:
   - python >= 3.9
   - biopython
+  - mamba
   - matplotlib
   - numpy >= 1.22.3
   - numba >= 0.56
@@ -17,6 +18,6 @@ dependencies:
   # - snakemake == 7.0
   - umap-learn
   - hdbscan
-  # - pip
-  # - pip:
-  #     - -e git+https://github.com/PNNL-CompBio/Snekmer#egg=snekmer
+  - pip
+  - pip:
+      - -e git+https://github.com/PNNL-CompBio/Snekmer#egg=snekmer

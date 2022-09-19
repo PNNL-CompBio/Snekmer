@@ -63,12 +63,7 @@ jobs:
       - run: conda info
       - run: conda list
       - run: conda config --show
-
-      - name: Install snakemake
-        uses:
-        with:
-          directory:
-          stagein: "mamba install -c conda-forge -yn snakemake==7.0"
+      - run: "mamba install -c conda-forge -yn snakemake==7.0"
 
   # step 3: testing
   Test:
