@@ -63,8 +63,8 @@ jobs:
         uses: snakemake/snakemake-github-action@v1
         with:
           directory: ".test"
-          snakefile: "cluster.smk"
-          args: "--cores 1 --use-conda --conda-cleanup-pkgs cache"
+          snakefile: ""
+          args: "-s cluster.smk --cores 1 --use-conda --conda-cleanup-pkgs cache"
           stagein: "" # additional preliminary commands to run (can be multiline)
 
       # test modeling step
