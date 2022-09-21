@@ -3,6 +3,7 @@
 .test/results
 .github
 .test
+resources/tutorial/output
 
 # documentation
 docs/_build/
