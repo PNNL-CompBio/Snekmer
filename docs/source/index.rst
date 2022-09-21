@@ -48,13 +48,16 @@ and outputs a table for each file containing model annotation probabilities for 
    :hidden:
 
    tutorial/index
+   tutorial/results
 
 .. toctree::
    :caption: Background
    :maxdepth: 1
    :hidden:
 
-   background/index
+   background/overview
+   background/ml
+   background/params
 
 .. toctree::
    :caption: Troubleshooting

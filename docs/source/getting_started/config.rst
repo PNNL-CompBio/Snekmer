@@ -1,3 +1,5 @@
+.. _config-main:
+
 Setting up User Configuration
 =============================
 
