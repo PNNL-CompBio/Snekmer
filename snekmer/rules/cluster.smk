@@ -149,28 +149,28 @@ rule cluster:
         kmer = skm.io.load_pickle(input.kmerobj[0])
 
         # tabulate vectorized seq data
-        data = list()
-        kmerbasis = list()
-        kmerlists = list()
-        for f in input.data:
-            dat,kmerlist = skm.io.load_npz(f)
-            # memfix: these need to be harmonized
-            data.append(dat)
-            kmerlists.append(kmerlist)
-            kmerbasis.extend(kmerlist)
+        data, kmers = list(), list()
+        for dfile, kfile in zip(sorted(input.data), sorted(input.kmerobj)):
+            df = skm.io.load_npz(dfile)
+            data.append(df)
+
+            kobj = skm.io.load_pickle(kfile)
+            klist = kobj.kmer_set._kmerlist
+            kmers.append(klist)
+            # basis.extend(klist)
 
         # make a superset of kmers
-        # kmerbasis = np.unique(kmerlist)
-        kmerbasis = np.unique(kmerbasis)
+        kmerbasis = np.unique(np.hstack(kmers))
+
         basis = skm.vectorize.KmerVec(config["alphabet"], config["k"])
         basis.set_kmer_set(kmerbasis)
 
         for i in range(len(data)):
-            this = data[i]
-            kmerlist = kmerlists[i]
-            vecs = skm.utils.to_feature_matrix(this["sequence_vector"].values)
-            that = basis.harmonize_data(vecs, kmerlist)
-            this["sequence_vector"] = that.tolist()
+            df, kmerlist = data[i], kmers[i]
+            vecs = skm.utils.to_feature_matrix(df["sequence_vector"].values)
+
+            converted = basis.harmonize(vecs, kmerlist)
+            df["sequence_vector"] = converted.tolist()
 
         data = pd.concat(data, ignore_index=True)
         data["background"] = [f in BGS for f in data["filename"]]
