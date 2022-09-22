@@ -65,7 +65,7 @@ rule vectorize:
         # initialize kmerization object
         kmer = skm.vectorize.KmerVec(alphabet=config["alphabet"], k=config["k"])
         # read kmerbasis if present
-        mnfilter = 1
+        mnfilter = 0
         if hasattr(input, "kmerbasis") and os.path.exists(input.kmerbasis):
             kmerbasis = pd.read_csv(input.kmerbasis)
             kmerbasis = list(kmerbasis["common"])
@@ -95,6 +95,7 @@ rule vectorize:
                         kmerbasis[key] += 1
                     else:
                         kmerbasis[key] = 1
+            x = len(kmerbasis.keys())
             kmerbasis = np.array(list(kmerbasis.keys()))[np.array(list(kmerbasis.values()))>mnfilter]
 
         kmer.set_kmer_set(kmerbasis)
