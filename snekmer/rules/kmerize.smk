@@ -70,7 +70,8 @@ rule vectorize:
         kmer = skm.vectorize.KmerVec(alphabet=config["alphabet"], k=config["k"])
 
         # read kmerbasis if present
-        min_filter = 1
+
+        min_filter = 0
         if hasattr(input, "kmerbasis") and exists(input.kmerbasis):
             kmerbasis = skm.io.read_kmers(input.kmerbasis)
 
@@ -100,6 +101,7 @@ rule vectorize:
                         kmerbasis[key] += 1
                     else:
                         kmerbasis[key] = 1
+
             kmerbasis = np.array(list(kmerbasis.keys()))[
                 np.array(list(kmerbasis.values())) > min_filter
             ]
