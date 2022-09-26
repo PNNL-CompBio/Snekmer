@@ -151,7 +151,7 @@ rule cluster:
         # tabulate vectorized seq data
         data, kmers = list(), list()
         for dfile, kfile in zip(sorted(input.data), sorted(input.kmerobj)):
-            df = skm.io.load_npz(dfile)
+            kmerlist, df = skm.io.load_npz(dfile)
             data.append(df)
 
             kobj = skm.io.load_pickle(kfile)

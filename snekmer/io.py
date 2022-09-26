@@ -49,6 +49,7 @@ def load_npz(
         "seqs": "sequence",
         "vecs": "sequence_vector",
     },
+    objects: tuple = ("kmerlist",)
 ) -> pd.DataFrame:
     """Compile .npz results into dataframe.
 
@@ -83,7 +84,13 @@ def load_npz(
         if "seq" in in_col:
             df.update({f"{out_col}_length": [len(s) for s in data[in_col]]})
 
-    return pd.DataFrame(df)
+    # load things that don't fit in the data matrix format
+    #    such as kmerbasis
+    extras = list()
+    for obj in objects:
+        extras.append(data[obj])
+
+    return extras, pd.DataFrame(df)
 
 
 def read_kmers(filename: str) -> List[str]:

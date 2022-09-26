@@ -141,9 +141,9 @@ rule score:
         data = list()
         kmer_sets = list()
         for f in input.data:
-            this, kmerlist = skm.io.load_npz(f)
+            kmerlist, this = skm.io.load_npz(f)
             data.append(this)
-            kmer_sets.append(kmerlist)
+            kmer_sets.append(kmerlist[0])
 
         # now we're loading all the other models in too
         #   each has a different basis set - we need to
@@ -152,7 +152,7 @@ rule score:
             this = data[i]
             kmerlist = kmer_sets[i]
             vecs = skm.utils.to_feature_matrix(this["sequence_vector"].values)
-            that = kmer.harmonize_data(vecs, kmerlist)
+            that = kmer.harmonize(vecs, kmerlist)
             this["sequence_vector"] = that.tolist()
 
         data = pd.concat(data, ignore_index=True)
