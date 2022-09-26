@@ -4,6 +4,7 @@
 .github
 .test
 resources/tutorial/output
+resources/tutorial/*.py
 
 # documentation
 docs/_build/
