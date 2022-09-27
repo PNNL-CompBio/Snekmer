@@ -167,7 +167,6 @@ rule search:
         # print(f"loaded model {family}")
 
         # load vectorized sequences, score, and predict scores
-        # memory is blowing up here
         kmerlist, df  = skm.io.load_npz(input.vecs)
         filename = skm.utils.split_file_ext(basename(input.vecs))[0]
 
