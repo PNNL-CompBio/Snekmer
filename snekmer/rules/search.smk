@@ -187,5 +187,5 @@ rule search:
         df["filename"] = f"{filename}.{FILE_MAP[filename]}"
         df["model"] = basename(input.model)
 
-        df = df.drop(columns=["sequence_vector"])
+        df = df.drop(columns=["sequence_vector", "sequence"])
         df.to_csv(output.results, index=False)
