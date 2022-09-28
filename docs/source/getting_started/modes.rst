@@ -53,15 +53,12 @@ The following output directories and files are created in both operation modes:
     │   ├── A.fasta
     │   └── B.fasta
     └── output/
-        ├── processed/
-        │   ├── A.json             # processed parameter values for A
-        │   ├── B.json             # processed parameter values for B
-        │   ├── A_description.csv  # summary of sequences in A.fasta
-        │   └── B_description.csv  # summary of sequences in B.fasta
-        ├── labels/
-        │   ├── A.txt              # kmer labels for A
-        │   └── B.txt              # kmer labels for B
-        ├── features/
+        ├── kmerize/
+        │   ├── A.kmers  # kmer labels for A
+        │   └── B.kmers  # kmer labels for B
+        ├── vector/
+        │   ├── A.npz    # sequences, sequence IDs, and kmer vectors for A
+        │   └── B.npz    # sequences, sequence IDs, and kmer vectors for B
         └── ...
 
 Cluster Mode
@@ -75,10 +72,9 @@ and directories in addition to the files described previously.
     .
     └── output/
         ├── ...
-        ├── features/
-        │   └── full/     # kmer vectors in full kmer space for (alphabet, k)
-        │       ├── A.json.gz
-        │       └── B.json.gz
+        ├── kmerize/
+        │   ├── A.kmers
+        │   └── B.kmers
         └── cluster/
             ├── A.pkl     # A cluster model
             ├── B.pkl     # B cluster model

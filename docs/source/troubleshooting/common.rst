@@ -12,7 +12,7 @@ Why is the ``conda install`` command is taking a long time?
 
 Installation of ``snakemake`` via conda typically requires a fairly
 long compile time. To avoid this, you can install Snakemake via
-`Mamba <https://github.com/mamba-org/mamba>`_` (see the official
+`Mamba <https://github.com/mamba-org/mamba>`_ (see the official
 `Snakemake installation instructions <https://snakemake.readthedocs.io/en/stable/getting_started/installation.html>`_
 for details).
 
@@ -41,8 +41,8 @@ and the input files may not follow the required directory structure.
 For more information, including an example of the file structure
 needed, see :ref:`getting_started-configuration`.
 
-I cannot build models correctly.
-````````````````````````````````
+Snekmer model mode is not working.
+``````````````````````````````````
 
 If ``snekmer model`` is not building models as intended, check
 the following:

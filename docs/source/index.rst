@@ -48,6 +48,7 @@ and outputs a table for each file containing model annotation probabilities for 
    :hidden:
 
    tutorial/index
+   tutorial/snekmer_demo
 
 .. toctree::
    :caption: Background
