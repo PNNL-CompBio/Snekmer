@@ -142,12 +142,6 @@ rule cluster:
         with open(log[0], "a") as f:
             f.write(f"start time:\t{start_time}\n")
 
-        # print BSF status
-        if BSF_PRESENT:
-            print("Import BSF: success!")
-        else:
-            print("Warning: BSF not found; using alternate distance matrix.")
-
         # parse all data and label background files
         label = config["score"]["lname"]
 
@@ -157,7 +151,7 @@ rule cluster:
         # tabulate vectorized seq data
         data, kmers = list(), list()
         for dfile, kfile in zip(sorted(input.data), sorted(input.kmerobj)):
-            df = skm.io.load_npz(dfile)
+            kmerlist, df = skm.io.load_npz(dfile)
             data.append(df)
 
             kobj = skm.io.load_pickle(kfile)
@@ -167,6 +161,7 @@ rule cluster:
 
         # make a superset of kmers
         kmerbasis = np.unique(np.hstack(kmers))
+
         basis = skm.vectorize.KmerVec(config["alphabet"], config["k"])
         basis.set_kmer_set(kmerbasis)
 
@@ -218,11 +213,11 @@ rule cluster:
         )
 
         # for bsf, make the input matrix a distance matrix
-        if config["cluster"]["method"] in ["bsf", "hdbsf", "aggbsf"]:
+        if config["cluster"]["method"] in ["density-jaccard", "hdensity-jaccard", "agglomerative-jaccard"]:
+            # print BSF status
             output_bsf = join(dirname(output.table), "bsf")
             if not exists(output_bsf):
                 makedirs(output_bsf)
-
 
             # if available, use BSF to create clustering distance matrix
             if BSF_PRESENT:
@@ -270,34 +265,33 @@ rule cluster:
                 # this gives Jaccard similarity (since all vectors are the same length)
                 # and subtracting it from 1 gives a distance
                 # bsf_mat = 1.0 - (bsf_mat / 100)
-                bsf_mat = 100 - bsf_mat
+                bsf_mat = (100 - bsf_mat)/100.0
 
             else:
-                print("Using Jaccard distance for distance matrix...")
-
+                # If bsf isn't available we'll use scipy to
+                # calculate jaccard distance in a similar way
+                # but it will be slower and more memory intensive
+                # especially for larger clustering jobs
                 # calculate Jaccard distance
                 res = pdist(full_feature_matrix, "jaccard")
                 bsf_mat = squareform(res)
 
-            dist_thresh = config["cluster"]["dist_thresh"]
-            bsf_mat[bsf_mat > dist_thresh] = 100
+            #dist_thresh = config["cluster"]["dist_thresh"]
+            #bsf_mat[bsf_mat > dist_thresh] = 100
 
             # output matrix for diagnostics - time/space heavy for large comparisons
-            # if config["cluster"]["save_matrix"] is True:
-            #       np.savetxt(join(output_bsf, "bsf_matrix.csv"), bsf_mat, fmt="%.3f", delimiter=",")
+            if config["cluster"]["save_matrix"] is True:
+                   np.savetxt(join(output_bsf, "bsf_matrix.csv"), bsf_mat, fmt="%.3f", delimiter=",")
 
             model.fit(bsf_mat)
-
         else:
-            print("Using default distance matrix...")
-
             # fit and save fitted clusters
             # bsf here
             model.fit(full_feature_matrix)
 
         # save output
         data["cluster"] = model.labels_
-        data = data.drop(columns=["sequence_vector"])
+        data = data.drop(columns=["sequence","sequence_vector"])
         data.to_csv(output.table, index=False)
 
         # with open(output.clusters, "wb") as f:

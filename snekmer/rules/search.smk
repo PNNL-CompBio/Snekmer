@@ -95,7 +95,7 @@ out_dir = skm.io.define_output_dir(
 rule all:
     input:
         expand(join(input_dir, "{uz}"), uz=UZS),  # require unzipping
-        join(input_dir, "search_kmers.txt"), # require common basis
+        join(config["basis_dir"], "search_kmers.txt"), # require common basis
         expand(join(out_dir, "vector", "{f}.npz"), f=FILES),
         expand(join(out_dir, "search", "{fam}", "{f}.csv"), fam=FAMILIES, f=FILES),   # require search
 
@@ -167,15 +167,14 @@ rule search:
         # print(f"loaded model {family}")
 
         # load vectorized sequences, score, and predict scores
-        # memory is blowing up here
-        df, kmerlist  = skm.io.load_npz(input.vecs)
+        kmerlist, df  = skm.io.load_npz(input.vecs)
         filename = skm.utils.split_file_ext(basename(input.vecs))[0]
 
         # print(f"making feature matrix {family}")
         vecs = skm.utils.to_feature_matrix(df["sequence_vector"].values)
 
         # print(f"getting scores {family}")
-        scores = scorer.predict(vecs, kmerlist)
+        scores = scorer.predict(vecs, kmerlist[0])
         # print(f"making predictions {family}")
         predictions = model.predict(scores.reshape(-1, 1))
         # print(f"getting probabilities {family}")
@@ -188,5 +187,5 @@ rule search:
         df["filename"] = f"{filename}.{FILE_MAP[filename]}"
         df["model"] = basename(input.model)
 
-        df = df.drop(columns=["sequence_vector"])
+        df = df.drop(columns=["sequence_vector", "sequence"])
         df.to_csv(output.results, index=False)
