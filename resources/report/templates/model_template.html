@@ -1,0 +1,12 @@
+<html>
+    <head>
+        <title>{{page_title}}</title>
+    </head>
+    <body>
+            <h1>{{title}}</h1>
+            <p>{{text}}</p>
+            {% for image in images %}
+                <img src="{{image}}" width="auto" height="350"/>
+            {% endfor %}
+    </body>
+</html>
