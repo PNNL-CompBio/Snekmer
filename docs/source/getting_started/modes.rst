@@ -72,15 +72,13 @@ and directories in addition to the files described previously.
     .
     └── output/
         ├── ...
-        ├── kmerize/
-        │   ├── A.kmers
-        │   └── B.kmers
         └── cluster/
             ├── A.pkl     # A cluster model
             ├── B.pkl     # B cluster model
-            └── figures/  # cluster figures (t-SNE)
-                ├── A/
-                └── B/
+            └── figures/
+                ├── pca_explained_variance.png
+                ├── tsne.png
+                └── umap.png
 
 Model Mode
 ----------
