@@ -102,9 +102,22 @@ rule vectorize:
                     else:
                         kmerbasis[key] = 1
 
+            # if min_filter is specified as less than 1 it
+            #    will be treated as a percentage of the total
+            #    number of kmers *present* in the input set
+            # And I think it makes sense to have this be in the
+            #    reverse sense as the integer min_filter. That is
+            #    we will filter out 1-min_filter percentage of kmers
+            if min_filter > 0 and min_filter < 1:
+                min_filter = len(list(kmerbasis.keys()))*(1.0-min_filter)
+
             kmerbasis = np.array(list(kmerbasis.keys()))[
                 np.array(list(kmerbasis.values())) > min_filter
             ]
+
+            # an issue here is that the filter might remove all kmers
+            #    from the basis and break the code. We should check for
+            # this and exit gracefully
 
         kmer.set_kmer_set(kmerbasis)
 
@@ -143,4 +156,3 @@ rule vectorize:
 
         with open(output.kmerobj, "wb") as f:
             pickle.dump(kmer, f)
-
