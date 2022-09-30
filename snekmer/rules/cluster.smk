@@ -334,3 +334,25 @@ rule cluster:
 
         # record script endtime
         skm.utils.log_runtime(log[0], start_time)
+
+rule cluster_report:
+    input:
+        pca=join(out_dir, "cluster", "figures", "pca_explained_variance_curve.png"),
+        tsne=join(out_dir, "cluster", "figures", "tsne.png"),
+        umap=join(out_dir, "cluster", "figures", "umap.png")
+    output:
+        join(out_dir, 'Snekmer_Cluster_Report.html')
+    run:
+        # cluster
+        cluster_vars = dict(page_title='Snekmer Cluster Report',
+                            title='Snekmer Cluster Results',
+                            image1_name='PCA',
+                            image1_path=input.pca,
+                            image2_name='t-SNE',
+                            image2_path=input.tsne,
+                            image3_name='UMAP',
+                            image3_path=input.umap,
+                            text='These are the three figure outputs produced by the Snekmer Cluster command.')
+        cluster_template = 'cluster_template.html'
+
+        create_report(cluster_vars, join("templates", "cluster_template.html"), output[0])
