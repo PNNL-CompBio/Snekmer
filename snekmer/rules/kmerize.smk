@@ -118,6 +118,14 @@ rule vectorize:
             # an issue here is that the filter might remove all kmers
             #    from the basis and break the code. We should check for
             # this and exit gracefully
+            # So for now we will die and write a helpful message to
+            #  the logfile
+            if len(kmerbasis) == 0:
+                msg = "FATAL: min_filter application results in no remaining kmers\n"
+                print(msg)
+                with open(log[0], "a") as f:
+                    f.write(msg)
+                # this state will cause Snekmer to crash downstream
 
         kmer.set_kmer_set(kmerbasis)
 
