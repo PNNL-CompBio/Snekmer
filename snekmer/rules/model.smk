@@ -91,6 +91,7 @@ rule all:
     input:
         expand(join("input", "{uz}"), uz=UZS),  # require unzipping
         expand(join("output", "model", "{nb}.model"), nb=NON_BGS),  # require model-building
+        # join(out_dir, 'Snekmer_Model_Report.html')
 
 
 # if any files are gzip zipped, unzip them
@@ -447,3 +448,35 @@ rule model:
 
         # save full results
         pd.DataFrame(results).to_csv(output.results, index=False)
+
+
+def get_figures(wildcards):
+    return expand(
+        glob(join("output", "model", "figures", "{nb}", "*.png")),
+        nb=NON_BGS
+    )
+
+
+rule model_report:
+    input:
+        results=rules.model.output.results,
+        figs=get_figures,
+    output:
+        join(out_dir, 'Snekmer_Model_Report.html')
+    run:
+        model_vars = dict(
+            page_title="Snekmer Model Report",
+            title="Snekmer Model Results",
+            text=(
+                "Classifier model results "
+                f"({config['model']['cv']-Fold} Cross-Validation) "
+                "are shown below."
+            ),
+        )
+
+        create_report_many_images(
+            dirname(input.figs),
+            model_vars,
+            "model",
+            output[0]
+        )
