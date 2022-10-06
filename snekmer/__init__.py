@@ -6,6 +6,7 @@ from . import score
 from . import model
 from . import cluster
 from . import vectorize
+from . import report
 
 # from . import walk
 
