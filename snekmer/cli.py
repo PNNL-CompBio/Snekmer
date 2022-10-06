@@ -22,6 +22,7 @@ MAP_FN_DESC = [
 ]
 MAP_FNS = {f"reduced_alphabet_{n}": MAP_FN_DESC[n] for n in range(5)}
 
+
 def main():
     parser = {}
 
@@ -118,6 +119,19 @@ def main():
         default=False,
         help="show additional debug output (default False)",
     )
+    parser["smk"].add_argument(
+        "--quiet",
+        "-q",
+        nargs="*",
+        choices=["progress", "rules", "all"],
+        default=None,
+        help=(
+            "Do not output certain information. If used without "
+            "arguments, do not output any progress or rule "
+            "information. Defining 'all' results in no "
+            "information being printed at all."
+        ),
+    )
 
     # clust execution options
     parser["clust"] = parser["smk"].add_argument_group("cluster execution arguments")
@@ -172,6 +186,11 @@ def main():
     else:
         config = config
 
+    # set quiet output options
+    if args.quiet is not None and len(args.quiet) == 0:
+        # default case, set quiet to progress and rule
+        args.quiet = ["progress", "rules"]
+
     # cluster config
     if args.clust is not None:
         cluster = "sbatch -A {cluster.account} -N {cluster.nodes} -t {cluster.time} -J {cluster.name} --ntasks-per-node {cluster.ntasks} -p {cluster.partition}"
@@ -196,6 +215,7 @@ def main():
             touch=args.touch,
             latency_wait=args.latency,
             verbose=args.verbose,
+            quiet=args.quiet,
         )
 
     elif args.mode == "model":
@@ -215,6 +235,7 @@ def main():
             touch=args.touch,
             latency_wait=args.latency,
             verbose=args.verbose,
+            quiet=args.quiet,
         )
 
     elif args.mode == "search":
@@ -234,6 +255,7 @@ def main():
             touch=args.touch,
             latency_wait=args.latency,
             verbose=args.verbose,
+            quiet=args.quiet,
         )
 
     else:
