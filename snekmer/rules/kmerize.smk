@@ -67,10 +67,13 @@ rule vectorize:
         join("output", "kmerize", "log", "{nb}.log"),
     run:
         # initialize kmerization object
-        kmer = skm.vectorize.KmerVec(alphabet=config["alphabet"], k=config["k"])
+        alphabet = config["alphabet"]
+        k = config["k"]
+
+        kmer = skm.vectorize.KmerVec(alphabet=alphabet, k=k)
+        # we want to check to see if this is a ridiculous combination
 
         # read kmerbasis if present
-
         min_filter = 0
         if hasattr(input, "kmerbasis") and exists(input.kmerbasis):
             kmerbasis = skm.io.read_kmers(input.kmerbasis)
