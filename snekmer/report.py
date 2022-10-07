@@ -30,26 +30,17 @@ def correct_rel_path(filepath: str, out_dir: str = "output") -> str:
     str
         /path/to/file
     """
-    if os.sep not in filepath:
-        if "/" not in filepath:
-            raise ValueError(
-                "Path separator could not be determined; "
-                f"both OS separator '{os.sep}' and generic "
-                "separator ('/') were not found in file path."
-            )
-        else:
-            s = "/"
-    else:
-        s = os.sep
+    # force paths to use OS separator
+    filepath = filepath.replace("/", os.sep)
 
-    filepath = filepath.split(s)
-    out_dir = out_dir.split(s)
+    filepath = filepath.split(os.sep)
+    out_dir = out_dir.split(os.sep)
     for d in out_dir:
         try:
             filepath.remove(d)
         except ValueError:  # if output dirs not found, skip
             pass
-    return s.join(filepath)
+    return os.sep.join(filepath)
 
 
 # cluster can use just this function since the image outputs are fixed at 3
