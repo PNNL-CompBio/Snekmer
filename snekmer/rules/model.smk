@@ -452,12 +452,13 @@ rule model:
 
 rule model_report:
     input:
-        # results=rules.model.output.results,
+        results=expand(join("output", "model", "results", "{nb}.csv"), nb=NON_BGS),
         figs=expand(join("output", "model", "figures", "{nb}"), nb=NON_BGS),
     output:
         join(out_dir, 'Snekmer_Model_Report.html')
     run:
         fig_dir = dirname(input.figs[0])
+        tab_dir = dirname(input.results[0])
 
         model_vars = dict(
             page_title="Snekmer Model Report",
@@ -465,12 +466,13 @@ rule model_report:
             text=(
                 "Classifier model results "
                 f"({config['model']['cv']}-Fold Cross-Validation) "
-                f"are shown below."
+                f"are below."
             ),
         )
 
         skm.report.create_report_many_images(
             fig_dir,
+            tab_dir,
             model_vars,
             "model",
             output[0]

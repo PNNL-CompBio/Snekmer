@@ -72,14 +72,20 @@ def create_report(template_vars, template: str, report_file_name: str):
 
 # model or search
 def create_report_many_images(
-    path: str, rep_vars: dict, template: str, report_file_name: str
+    image_path: str,
+    table_path: str,
+    rep_vars: dict,
+    template: str,
+    report_file_name: str,
 ):
     """Create report for Snekmer model or search modes.
 
     Parameters
     ----------
-    path : str
+    image_path : str
         /path/to/images/
+    table_path : str
+        /path/to/tables/
     rep_vars : dict
         Variables defined in Jinja template
     template : str
@@ -93,11 +99,20 @@ def create_report_many_images(
         Creates file and exits.
 
     """
-    filelist = []
-    for root, dirs, files in os.walk(path):
+    image_list, table_list = list(), list()
+    # collate images
+    for root, dirs, files in os.walk(image_path):
         for file in files:
             if file.endswith(".png"):
-                filelist.append(os.path.join(root, file))
-    rep_vars["images"] = [correct_rel_path(f) for f in filelist]
+                image_list.append(os.path.join(root, file))
+
+    # collate tables
+    for root, dirs, files in os.walk(table_path):
+        for file in files:
+            if file.endswith(".csv"):
+                table_list.append(os.path.join(root, file))
+    rep_vars["images"] = [correct_rel_path(f) for f in image_list]
+    rep_vars["tables"] = [correct_rel_path(f) for f in table_list]
+
     create_report(rep_vars, template, report_file_name)
 
