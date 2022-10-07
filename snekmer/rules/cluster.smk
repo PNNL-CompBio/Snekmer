@@ -361,20 +361,3 @@ rule cluster_report:
             }
 
         skm.report.create_report(cluster_vars, "cluster", output[0])
-
-
-# rule render_jinja2_template:
-#     input:
-#         template=join(snekmer_path, "report", "templates", "cluster_template.html"),
-#         image1_path=join(out_dir, "cluster", "figures", "pca_explained_variance_curve.png"),
-#         image2_path=join(out_dir, "cluster", "figures", "tsne.png"),
-#         image3_path=join(out_dir, "cluster", "figures", "umap.png"),
-#     output:
-#          join(out_dir, 'Snekmer_Cluster_Report.html')
-#     params:
-#         image1_name='PCA',
-#         image2_name='t-SNE',
-#         image3_name='UMAP',
-#         text='These are the three figure outputs produced by the Snekmer Cluster command.'
-#     template_engine:
-#         "jinja2"

@@ -98,6 +98,7 @@ rule all:
         join(config["basis_dir"], "search_kmers.txt"), # require common basis
         expand(join(out_dir, "vector", "{f}.npz"), f=FILES),
         expand(join(out_dir, "search", "{fam}", "{f}.csv"), fam=FAMILIES, f=FILES),   # require search
+        join(out_dir, "Snekmer_Search_Report.html")
 
 
 # if any files are gzip zipped, unzip them
@@ -189,3 +190,22 @@ rule search:
 
         df = df.drop(columns=["sequence_vector", "sequence"])
         df.to_csv(output.results, index=False)
+
+
+rule search_report:
+    input:
+        files=expand(join(out_dir, "search", "{fam}", "{f}.csv"), fam=FAMILIES, f=FILES)
+    output:
+        join(out_dir, "Snekmer_Search_Report.html")
+    run:
+        file_dir = dirname(dirname(input.files[0]))
+
+        # search
+        search_vars = dict(
+            page_title="Snekmer Search Report",
+            title="Snekmer Search Results",
+            text="See the below link to access Snekmer Search results.",
+            dir=skm.report.correct_rel_path(file_dir),
+        )
+
+        skm.report.create_report(search_vars, "search", output[0])

@@ -1,3 +1,8 @@
+"""report: Snekmer report generation code.
+
+author: @abbyjerger, @christinehc
+
+"""
 from jinja2 import Environment, PackageLoader
 import os
 
@@ -11,7 +16,7 @@ TEMPLATES = {
 
 
 def correct_rel_path(filepath: str, out_dir: str = "output") -> str:
-    """Correct relative file paths for Jinja
+    """Correct relative file paths for Jinja.
 
     Parameters
     ----------
@@ -28,23 +33,31 @@ def correct_rel_path(filepath: str, out_dir: str = "output") -> str:
     filepath = filepath.split(os.sep)
     out_dir = out_dir.split(os.sep)
     for d in out_dir:
-        filepath.remove(d)
+        try:
+            filepath.remove(d)
+        except ValueError:  # if output dirs not found, skip
+            pass
     return os.sep.join(filepath)
 
 
 # cluster can use just this function since the image outputs are fixed at 3
 # model and search also eventually call this function
-def create_report(template_vars, template, report_file_name):
+def create_report(template_vars, template: str, report_file_name: str):
     """Create Snekmer reports.
 
     Parameters
     ----------
     template_vars : dict
-        _description_
+        Variables defined in Jinja template
     template : str
         Name of template ("cluster", "model", or "search")
-    report_file_name : _type_
-        _description_
+    report_file_name : str
+        /path/to/report_file.html
+
+    Returns
+    -------
+    None
+        Creates file and exits.
 
     """
     # look in this file folder for the templates
@@ -55,66 +68,33 @@ def create_report(template_vars, template, report_file_name):
 
 
 # model or search
-def create_report_many_images(path, rep_vars, template, report_file_name):
+def create_report_many_images(
+    path: str, rep_vars: dict, template: str, report_file_name: str
+):
     """Create report for Snekmer model or search modes.
 
     Parameters
     ----------
-    path : _type_
-        _description_
-    rep_vars : _type_
-        _description_
-    template : _type_
-        _description_
-    report_file_name : _type_
-        _description_
+    path : str
+        /path/to/images/
+    rep_vars : dict
+        Variables defined in Jinja template
+    template : str
+        Name of template ("cluster", "model", or "search")
+    report_file_name : str
+        /path/to/report_file.html
+
+    Returns
+    -------
+    None
+        Creates file and exits.
+
     """
     filelist = []
     for root, dirs, files in os.walk(path):
         for file in files:
             if file.endswith(".png"):
                 filelist.append(os.path.join(root, file))
-    rep_vars["images"] = filelist
+    rep_vars["images"] = [correct_rel_path(f) for f in filelist]
     create_report(rep_vars, template, report_file_name)
 
-
-# cluster
-cluster_vars = dict(
-    page_title="Snekmer Cluster Report",
-    title="Snekmer Cluster Results",
-    image1_name="PCA",
-    image1_path="/path/to/pca_explained_variance.png",
-    image2_name="t-SNE",
-    image2_path="/path/to/tsne.png",
-    image3_name="UMAP",
-    image3_path="/path/to/umap.png",
-    text="These are the three figure outputs produced by the Snekmer Cluster command.",
-)
-cluster_template = "cluster_template.html"
-cluster_report = "Snekmer_Cluster_Report.html"
-
-# create_report(cluster_vars, cluster_template, cluster_report)
-
-# model
-model_vars = dict(
-    page_title="Snekmer Model Report",
-    title="Snekmer Model Results",
-    text="These are the figure outputs produced by the Snekmer Model command.",
-)
-model_template = "model_template.html"
-model_report = "Snekmer_Model_Report.html"
-
-# create_report_many_images("output/model/figures", model_vars,
-#                           model_template, model_report)
-
-# search
-search_vars = dict(
-    page_title="Snekmer Search Report",
-    title="Snekmer Search Results",
-    text="These are the outputs file locations from Snekmer Search.",
-    dir="/path/to/search/",
-)
-search_template = "search_template.html"
-search_report = "Snekmer_Search_Report.html"
-
-# create_report(search_vars, search_template, search_report)
