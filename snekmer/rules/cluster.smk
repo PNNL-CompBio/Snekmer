@@ -133,9 +133,10 @@ rule cluster:
         kmerobj=expand(join("output", "kmerize", "{fa}.kmers"), fa=NON_BGS),
         data=expand(join("output", "vector", "{fa}.npz"), fa=NON_BGS),
     output:
-        pca=join(out_dir, "cluster", "figures", "pca_explained_variance_curve.png"),
-        tsne=join(out_dir, "cluster", "figures", "tsne.png"),
-        umap=join(out_dir, "cluster", "figures", "umap.png"),
+        figs = directory(join(out_dir, "cluster", "figures")),
+        # pca=join(out_dir, "cluster", "figures", "pca_explained_variance_curve.png"),
+        # tsne=join(out_dir, "cluster", "figures", "tsne.png"),
+        # umap=join(out_dir, "cluster", "figures", "umap.png"),
         table=join(out_dir, "cluster", "snekmer.csv")
     log:
         join(out_dir, "cluster", "log", "cluster.log"),
@@ -300,6 +301,10 @@ rule cluster:
         # with open(output.clusters, "wb") as f:
         #     pickle.dump(model, f)
 
+        # always create output figure directory
+        if not exists(output.figs):
+                makedirs(output.figs)
+
         # log time to compute clusters
         skm.utils.log_runtime(log[0], start_time, step="clustering")
 
@@ -307,12 +312,12 @@ rule cluster:
         if str(config["cluster"]["cluster_plots"]) == "True":
             # plot explained variance curve
             fig, ax = skm.plot.explained_variance_curve(full_feature_matrix)
-            fig.savefig(output.pca)
+            fig.savefig(join(output.figs, "pca_explained_variance_curve.png"))
             plt.close("all")
 
             # plot tsne
             fig, ax = skm.plot.cluster_tsne(full_feature_matrix, model.model.labels_)
-            fig.savefig(output.tsne)
+            fig.savefig(join(output.figs, "tsne.png"))
             plt.close("all")
 
             # plot umap
@@ -328,7 +333,7 @@ rule cluster:
                 ax=ax,
             )
 
-            fig.savefig(output.umap)
+            fig.savefig(join(output.figs, "umap.png"))
             plt.close("all")
 
         # record script endtime
@@ -336,28 +341,46 @@ rule cluster:
 
 rule cluster_report:
     input:
-        pca=rules.cluster.output.pca,
-        tsne=rules.cluster.output.tsne,
-        umap=rules.cluster.output.umap,
+        figs=rules.cluster.output.figs,
+        # pca=rules.cluster.output.pca,
+        # tsne=rules.cluster.output.tsne,
+        # umap=rules.cluster.output.umap,
         table=rules.cluster.output.table
     output:
         join(out_dir, 'Snekmer_Cluster_Report.html')
     run:
+        # check for figures
+        if str(config["cluster"]["cluster_plots"]) == "True":
+            fig_params = {
+                "image1_name": "PCA Explained Variance",
+                "image1_path": skm.report.correct_rel_path(join(input.figs, "pca_explained_variance_curve.png")),
+                "image2_name": "Clusters (UMAP)",
+                "image2_path": skm.report.correct_rel_path(join(input.figs, "umap.png")),
+                "image3_name": "Clusters (t-SNE)",
+                "image3_path": skm.report.correct_rel_path(join(input.figs, "tsne.png")),
+            }
+        else:
+            fig_params = {
+                "image1_name": "",
+                "image1_path": None,
+                "image2_name": "",
+                "image2_path": None,
+                "image3_name": "",
+                "image3_path": None,
+            }
+
         # cluster
         cluster_vars = {
             "page_title": "Snekmer Cluster Report",
             "title": "Snekmer Cluster Results",
             "text": (
-                "Snekmer clustering results and associated"
-                " figures are shown below."
+                "Snekmer clustering results are linked below. "
+                "If `cluster_plots` are enabled in the config, "
+                "they will be shown below."
                 ),
-            "table": dirname(skm.report.correct_rel_path(input.table)),
-            "image1_name": "PCA Explained Variance",
-            "image1_path": skm.report.correct_rel_path(input.pca),
-            "image2_name": "Clusters (UMAP)",
-            "image2_path": skm.report.correct_rel_path(input.umap),
-            "image3_name": "Clusters (t-SNE)",
-            "image3_path": skm.report.correct_rel_path(input.tsne),
+            "dir": dirname(skm.report.correct_rel_path(input.table)),
+            "table": skm.report.correct_rel_path(input.table),
+            **fig_params
             }
 
         skm.report.create_report(cluster_vars, "cluster", output[0])
