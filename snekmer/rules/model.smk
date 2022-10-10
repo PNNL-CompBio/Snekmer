@@ -468,6 +468,7 @@ rule model_report:
                 f"({config['model']['cv']}-Fold Cross-Validation) "
                 f"are below."
             ),
+            dir=skm.report.correct_rel_path(tab_dir)
         )
 
         skm.report.create_report_many_images(
