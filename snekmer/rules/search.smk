@@ -199,13 +199,12 @@ rule search_report:
         join(out_dir, "Snekmer_Search_Report.html")
     run:
         file_dir = dirname(dirname(input.files[0]))
-
+        
         # search
         search_vars = dict(
             page_title="Snekmer Search Report",
             title="Snekmer Search Results",
-            text="See the below link to access Snekmer Search results.",
-            dir=skm.report.correct_rel_path(file_dir),
+            text="See the below links to access Snekmer Search results.",
         )
 
-        skm.report.create_report(search_vars, "search", output[0])
+        skm.report.create_report_many_csvs(file_dir, search_vars, "search", output[0])

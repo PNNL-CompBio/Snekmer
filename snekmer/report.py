@@ -70,7 +70,7 @@ def create_report(template_vars, template: str, report_file_name: str):
         f.write(html)
 
 
-# model or search
+# model
 def create_report_many_images(
     image_path: str,
     table_path: str,
@@ -78,7 +78,7 @@ def create_report_many_images(
     template: str,
     report_file_name: str,
 ):
-    """Create report for Snekmer model or search modes.
+    """Create report for Snekmer model mode.
 
     Parameters
     ----------
@@ -116,3 +116,28 @@ def create_report_many_images(
 
     create_report(rep_vars, template, report_file_name)
 
+
+def create_report_many_csvs(
+    path: str, rep_vars: dict, template: str, report_file_name: str
+):
+    # create lists with directory names and file names
+    file_list = []
+    dirs_list = []
+    for root, dirs, files in os.walk(path):
+        for d in dirs:
+            dirs_list.append(d)
+        for file in files:
+            if file.endswith(".csv"):
+                file_list.append(os.path.join(root, file))
+
+    # combine both lists into one, in the correct order to print in the jinja template
+    ordered = []
+    for i in dirs_list:
+        ordered.append(i)
+        for j in file_list:
+            if os.path.split(os.path.split(j)[0])[1] == i:
+                ordered.append(j)
+
+    rep_vars['dirs_list'] = dirs_list
+    rep_vars['ordered'] = [correct_rel_path(f) for f in ordered]
+    create_report(rep_vars, template, report_file_name)
