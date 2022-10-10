@@ -4,8 +4,8 @@ Frequently Asked Questions
 Some commonly encountered questions are addressed here. For more
 detailed or specific questions, feel free to `submit an issue on Github <https://github.com/PNNL-CompBio/Snekmer/issues>`_.
 
-Installation
-------------
+Installation Questions
+----------------------
 
 Why is the ``conda install`` command is taking a long time?
 ```````````````````````````````````````````````````````````
@@ -30,8 +30,8 @@ followed by ``conda list``, to check that the environment was
 created successfully and that Snekmer was indeed installed.
 
 
-Usage
------
+Usage Questions
+---------------
 
 Why I am encountering a ``MissingInputException`` when I try to run Snekmer?
 ````````````````````````````````````````````````````````````````````````````
@@ -58,3 +58,14 @@ the following:
    has been placed in the top-level directory. Refer to
    :ref:`getting_started-configuration` for the file structure
    required for Snekmer.
+
+Snekmer cluster mode is producing an unusual number of clusters.
+````````````````````````````````````````````````````````````````
+If Snekmer cluster results in an unexpected number of clusters,
+we recommend tuning the parameter set used to generate the clusters.
+Most likely, the parameters used to generate the clusters are too
+generalized, or specific, for the given dataset. For instance, if
+Snekmer determines only 1 cluster for a given protein sequence set of
+many individual sequences, the parameters guiding the clustering
+algorithm is likely not sensitive enough to differentiate the underlying
+clusters. See :ref:`Parameter Selection <background-params>` for more details.

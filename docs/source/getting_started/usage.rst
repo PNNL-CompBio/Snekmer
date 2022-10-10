@@ -36,6 +36,8 @@ When you are ready to process your files, run:
 
     snekmer {mode}
 
+.. _usage-results:
+
 Accessing Results
 -----------------
 

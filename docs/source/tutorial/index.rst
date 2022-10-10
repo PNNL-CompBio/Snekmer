@@ -18,4 +18,6 @@ on a set of three input families and produce output files for each in output.
 Evaluating Results
 ------------------
 
+See the :ref:`Accessing Results <usage-results>` section for more details.
+
 *to be continued...*
