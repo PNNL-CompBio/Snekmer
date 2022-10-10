@@ -28,6 +28,9 @@ For an overview of Snekmer usage, reference the help command (``snekmer --help``
 
     {cluster,model,search}
 
+Tailored references for the individual operation modes can be accessed
+via ``snekmer {mode} --help``.
+
 .. _getting_started-configuration:
 
 Configuration

@@ -1,4 +1,4 @@
-Snekmer Modes
+Using Snekmer
 =============
 
 Snekmer has three operation modes: ``cluster`` (unsupervised clustering),
@@ -16,7 +16,7 @@ The mode must be specified in the command line, e.g. to specify the
     snekmer model [--options]
 
 In the `resources <https://github.com/PNNL-CompBio/Snekmer/tree/main/resources>`_,
-two example configuration files are included:
+an example configuration file is included:
 
   - `config.yaml <https://github.com/PNNL-CompBio/Snekmer/blob/main/resources/config.yaml>`_: Configuration file for snekmer execution.
 
@@ -36,15 +36,23 @@ When you are ready to process your files, run:
 
     snekmer {mode}
 
-Output
-------
+Accessing Results
+-----------------
 
-Each step in the Snekmer pipeline generates its own associated output files.
-Both operation modes will preprocess parameters, generate labels, and
-vectorize sequences based on labels. The associated output files can be
-found in the respective directories.
+Summary Reports
+:::::::::::::::
 
-The following output directories and files are created in both operation modes:
+Each step in the Snekmer pipeline will generate a report in HTML format.
+Users can find these reports, entitled **Snekmer_\<MODE\>_Report.html**,
+in the output directory.
+
+Snekmer Output Files
+::::::::::::::::::::
+
+All operation modes will preprocess input files and kmerize sequences.
+The associated output files can be found in the respective directories.
+
+The following output directories and files will always be created:
 
 .. code-block:: console
 
@@ -61,10 +69,15 @@ The following output directories and files are created in both operation modes:
         │   └── B.npz    # sequences, sequence IDs, and kmer vectors for B
         └── ...
 
-Cluster Mode
-------------
+Mode-Specific Output Files
+--------------------------
 
-Executing ``snekmer cluster`` produces the following output files
+The steps in the Snekmer pipeline generate their own associated output files.
+
+Snekmer Cluster Output Files
+............................
+
+Snekmer's cluster mode produces the following output files
 and directories in addition to the files described previously.
 
 .. code-block:: console
@@ -73,17 +86,16 @@ and directories in addition to the files described previously.
     └── output/
         ├── ...
         └── cluster/
-            ├── A.pkl     # A cluster model
-            ├── B.pkl     # B cluster model
-            └── figures/
-                ├── pca_explained_variance.png
+            ├── snekmer.csv     # Summary of clustering results
+            └── figures/        # Clustering figures
+                ├── pca_explained_variance_curve.png
                 ├── tsne.png
                 └── umap.png
 
-Model Mode
-----------
+Snekmer Model Output Files
+..........................
 
-Executing ``snekmer model`` produces the following output files
+Snekmer's model mode produces the following output files
 and directories in addition to the files described previously.
 
 .. code-block:: console
@@ -91,37 +103,33 @@ and directories in addition to the files described previously.
     .
     └── output/
         ├── ...
-        ├── features/
-        │   ├── A/            # kmer vectors in A kmer space
-        │   │   ├── A.json.gz
-        │   │   └── B.json.gz
-        │   └── B/            # kmer vectors in B kmer space
-        │       ├── A.json.gz
-        │       └── B.json.gz
-        ├── score/
-        │   ├── A.pkl         # A sequences, scored
-        │   ├── B.pkl         # B sequences, scored
+        ├── scoring/
+        │   ├── A.matrix    # Similarity matrix for A seqs
+        │   ├── B.matrix    # Similarity matrix for B seqs
+        │   ├── A.scorer    # Object to apply A scoring model
+        │   ├── B.scorer    # Object to apply B scoring model
         │   └── weights/
-        │       ├── A.csv.gz  # kmer score weights in A kmer space
-        │       └── B.csv.gz  # kmer score weights in B kmer space
+        │       ├── A.csv.gz    # Kmer score weights in A kmer space
+        │       └── B.csv.gz    # Kmer score weights in B kmer space
         └── model/
-            ├── A.pkl         # (A/not A) classification model
-            ├── B.pkl         # (B/not B) classification model
-            ├── results/      # cross-validation results table
+            ├── A.model     # (A/not A) classification model
+            ├── B.model     # (B/not B) classification model
+            ├── results/    # Cross-validation results tables
             │   ├── A.csv
             │   └── B.csv
-            └── figures/      # cross-validation results figures
+            └── figures/      # Cross-validation results figures
                 ├── A/
                 └── B/
 
-Search Mode
------------
+Snekmer Search Output Files
+...........................
 
 The ``snekmer search`` mode assumes that the user has pre-generated
 family models using the ``snekmer model`` workflow, and thus operates
 as an independent workflow. The location of the basis sets, scorers,
-and models must be specified in the configuration file (see
-`example <https://github.com/PNNL-CompBio/Snekmer/blob/main/resources/search.yaml>`_).
+and models must be specified in the configuration file (see the search
+params section in the provided
+`example <https://github.com/PNNL-CompBio/Snekmer/blob/main/resources/config.yaml>`_).
 
 For instance, say that the above output examples have already been
 produced. The user would then like to search a set of unknown
@@ -154,13 +162,14 @@ described previously.
 
     .
     └── output/
-        ├── features/
-        │   ├── A/
-        │   │   ├── unknown_1.json.gz
-        │   │   └── unknown_2.json.gz
-        │   └── B/
-        │       ├── unknown_1.json.gz
-        │       └── unknown_2.json.gz
+        ├── kmers/
+        │   └── common.basis  # Common kmer basis set for queried families
         └── search/
-            ├── A.csv  # A probabilities and predictions for unknown sequences
-            └── B.csv  # B probabilities and predictions for unknown sequences
+            ├── A   # A probabilities and predictions for unknown sequences
+            │   ├── unknown_1.csv
+            │   ├── unknown_2.csv
+            │   └── ...
+            └── B   # B probabilities and predictions for unknown sequences
+                ├── unknown_1.csv
+                ├── unknown_2.csv
+                └── ...  
