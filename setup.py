@@ -34,7 +34,7 @@ setup(
     license=license,
     packages=pkgs,
     entry_points={"console_scripts": ["snekmer = snekmer.cli:main"]},
-    package_data={"": ["rules/*.smk"]},  # ['Snakefile']},
+    package_data={"": ["rules/*.smk", "templates/*.html"]},
     # install_requires=required,
     include_package_data=True,
     keywords=[],
