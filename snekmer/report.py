@@ -124,6 +124,5 @@ def create_report_many_csvs(
                 ordered.append(j)
 
     rep_vars['dirs_list'] = dirs_list
-    rep_vars['ordered'] = ordered
+    rep_vars['ordered'] = [correct_rel_path(f) for f in ordered]
     create_report(rep_vars, template, report_file_name)
-

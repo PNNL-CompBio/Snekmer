@@ -199,7 +199,7 @@ rule search_report:
         join(out_dir, "Snekmer_Search_Report.html")
     run:
         file_dir = dirname(dirname(input.files[0]))
-
+        
         # search
         search_vars = dict(
             page_title="Snekmer Search Report",
