@@ -112,7 +112,7 @@ rule vectorize:
             #    reverse sense as the integer min_filter. That is
             #    we will filter out 1-min_filter percentage of kmers
             if min_filter > 0 and min_filter < 1:
-                min_filter = len(list(kmerbasis.keys()))*(1.0-min_filter)
+                min_filter = len(list(kmerbasis.keys())) * (1.0 - min_filter)
 
             kmerbasis = np.array(list(kmerbasis.keys()))[
                 np.array(list(kmerbasis.values())) > min_filter
@@ -125,10 +125,10 @@ rule vectorize:
             #  the logfile
             if len(kmerbasis) == 0:
                 msg = "FATAL: min_filter application results in no remaining kmers\n"
-                print(msg)
                 with open(log[0], "a") as f:
                     f.write(msg)
                 # this state will cause Snekmer to crash downstream
+                raise ValueError(msg)
 
         kmer.set_kmer_set(kmerbasis)
 
