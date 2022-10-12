@@ -40,10 +40,18 @@ from pathlib import Path
 import copy
 from scipy.stats import rankdata
 import csv
+import sys
+import time
+import pyarrow as pa
+import pyarrow.csv as csv
+import itertools
+#Note:
+#Pyarrow installed via "conda install -c conda-forge pyarrow"
 
 # collect all fasta-like files, unzipped filenames, and basenames
 input_dir = "input" if (("input_dir" not in config) or (str(config["input_dir"]) == "None")) else config["input_dir"]
 input_files = glob(join(input_dir, "*"))
+# base_file = glob(join(input_dir,"base" "*"))
 zipped = [fa for fa in input_files if fa.endswith(".gz")]
 unzipped = [
     fa.rstrip(".gz")
@@ -52,6 +60,7 @@ unzipped = [
 ]
 
 annot_files = glob(join("annotations", "*.ann"))
+base_file = glob(join(input_dir, "base", "*.csv"))
 
 # map extensions to basename (basename.ext.gz -> {basename: ext})
 UZ_MAP = {
@@ -60,6 +69,7 @@ UZ_MAP = {
 FA_MAP = {
     skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in unzipped
 }
+
 
 # get unzipped filenames
 UZS = [f"{f}.{ext}" for f, ext in UZ_MAP.items()]
@@ -84,8 +94,10 @@ out_dir = skm.io.define_output_dir(
 # define output files to be created by snekmer
 rule all:
     input:
-        #expand(join(input_dir, "{uz}"), uz=UZS),  # require unzipping
-        join("output", "learn", "kmer-associations.csv"),  # require learning
+        # expand(join(input_dir, "{uz}"), uz=UZS),  # require unzipping
+        expand(join("output", "learn", "kmer-counts-{fas}.csv"), fas=FAS),
+        join("output", "learn", "kmer-counts-total.csv"),
+        join("output", "learn", "kmer-associations.csv"),
 
 
 # if any files are gzip zipped, unzip them
@@ -109,11 +121,13 @@ use rule vectorize from kmerize with:
 # collect all seq files and generate mega-cluster
 rule learn:
     input:
-        data=expand(join("output", "vector", "{fa}.npz"), fa=NON_BGS),
+        data=expand(join("output", "vector", "{fas}.npz"),fas = FAS),
+        #data=rules.vectorize.output.data,
         annotation=expand("{an}", an=annot_files),
+        base_counts=expand("{bf}", bf=base_file),
     output:
-        table=join("output", "learn", "kmer-associations.csv"),
-        summary=join("output", "learn", "kmer-summary.csv"),
+        table=expand(join("output", "learn", "kmer-counts-{fas}.csv"), fas=FAS),
+        totals=join("output", "learn", "kmer-counts-total.csv"),
     log:
         join(out_dir, "learn", "log", "learn.log"),
     run:
@@ -122,145 +136,177 @@ rule learn:
         with open(log[0], "a") as f:
             f.write(f"start time:\t{start_time}\n")
 
-        #load in the kmerbasis and vectors
-        for f in input.data:
-            df, kmerlist = skm.io.load_npz(f)
-            seqids = df["sequence_id"]
-            vecs = skm.utils.to_feature_matrix(df["sequence_vector"].values)
-            
-        def count_kmer(sequence, kmer):
-            count = start = 0
-            while True:
-                start = sequence.find(kmer, start) + 1
-                if start > 0:
-                    count+=1
-                else:
-                    return count
-
-        # vecs is now an numpy array with columns corresponding to kmerlist
-        #      each row is a protein with names given by seqids
-        # seqids: >tr|A0A0C2DJP9|A0A0C2DJP9_9STAP Lipid kinase OS=Salinicoccus roseus OX=45670 GN=SN16_09640 PE=3 SV=1
-
-        # read in the annotation files which should be in the format
-        #    column 1: sequence id
-        #    column 2: annotation
-        # annotations: A0A0C2DJP9	IPR016064
-
-        # The plan is to build a matrix of kmer-annotation associations
-        #    by calculating the probability that a kmer is associated with
-        #    each annotation (label). Options should give the ability to
-        #    filter out low information associations from the output
-        # And then output an output/learn/kmer-associations.csv file (or some
-        #    format file)
-
-
+        #Note - if the same protein (determined by seqID) is read multiple times in the same FASTA, only the last version is kept. (earlier ones are overwritten)
+       
         annots = list()
         for f in input.annotation:
             annots.append(pd.read_table(f))
         annotations = pd.concat(annots)
 
-        klist_length = len(kmerlist)
-        seq_kmer_dict = {}
-        counter = 0
-        for seq in seqids:
-            seq_kmer_dict[seq] = [None]*klist_length
-            seq_kmer_dict[seq].insert(0,(df["sequence"][counter]))
-            counter +=1
+        master_seq_annot_dict = {}
+        master_seq_set= annots[0]['id'].tolist()
+        master_annot_set = annots[0]['InterPro'].tolist()
 
-        kmer_totals = {}
-        for item in kmerlist:
-            kmer_totals[item] = 0
+        for i,seqid in enumerate(master_seq_set):
+            master_seq_annot_dict[seqid] = master_annot_set[i]
+        master_seq_set = set(master_seq_set)
+        master_annot_set = set(master_annot_set)
 
-        for seq in seq_kmer_dict:
-            count=1
-            for kmer in kmerlist:
-                kmers_in_seq = count_kmer(str(seq_kmer_dict[seq][0]),str(kmer))
-                seq_kmer_dict[seq][count] = kmers_in_seq
-                kmer_totals[kmer] += kmers_in_seq
-                count+=1
-                
-        for seq in seq_kmer_dict:
-            count=1
-            for kmer in kmerlist:
-                seq_kmer_dict[seq][count] = (seq_kmer_dict[seq][count]/kmer_totals[kmer])
-                count+=1
+        #store dataframes generated for each fasta file in all_DFS
+        all_DFS = list()
+        for f in input.data:
+            df, kmerlist = skm.io.load_npz(f)
+            seqids = df["sequence_id"]
 
+            kmer_totals = []
+            for item in kmerlist:
+                kmer_totals.append(0)
 
-        seq_kmer_dict = {seq: seq_kmer_dict[seq][1:] for seq in seq_kmer_dict}
+            k_len = len(kmerlist[0])
 
-        #probability vector will be saved as kmer-associations.csv
-        probability_vector = []
-        for value in seq_kmer_dict.values():
-            probability_vector.append(value)
-
-
-
-        # Filter Methods - optional
-        # Filter by value = 0
-        # Filter by percentile = 1
-        # Filter by rank = 2
-
-        filter_method = 2
-
-        filtered_pv = copy.deepcopy(probability_vector)
-
-        #keep kmers greater than N probability value
-        if filter_method == 0:
-            filter_by_value = .01
-            for i,row in enumerate(probability_vector):
-                for j,column in enumerate(row):
-                    if column < filter_by_value:
-                        filtered_pv[i][j] = 0
-
-        #Filter out lower N percent of kmers
-        if filter_method == 1:
-            filter_by_percent = 90
-            pv_np = np.array(probability_vector).astype("float")
-            pv_np[pv_np==0] =np.nan
-            for i,row in enumerate(probability_vector):
-                filt = np.nanpercentile(pv_np[i],filter_by_percent)
-                for j,column in enumerate(row):
-                    if column < filt:
-                        filtered_pv[i][j] = 0
-        #Filter kmers not in top N 
-        if filter_method == 2:
-            filter_by_rank = 10
-            pv_np = np.array(probability_vector)
-            ranked_pv = copy.deepcopy(probability_vector)
-            for i,row in enumerate(probability_vector):
-                ranked_pv[i] = rankdata(row, method="ordinal")
-            for i,row in enumerate(probability_vector):
-                for j,column in enumerate(row):
-                    if ranked_pv[i][j] <= (len(row)-filter_by_rank):
-                        filtered_pv[i][j] = 0
+            #Generate kmer counts
+            seq_kmer_dict = {}
+            counter = 0
+            for i,seq in enumerate(seqids):
+                v = df["sequence"][i]
+                kmer_counts = dict()
+                items = []
+                #kmerize seq
+                for item in range(0,(len((v)) - k_len +1)):
+                    items.append(v[item:(item+k_len)])
+                #create kmer:count dict
+                for j in items:
+                    kmer_counts[j] = kmer_counts.get(j, 0) + 1  
+                store = []
+                #convert kmer:count dict to same order as kmerlist, fill in 0s
+                for i,item in enumerate(kmerlist):
+                    if item in kmer_counts:
+                        store.append(kmer_counts[item])
+                        kmer_totals[i] += kmer_counts[item]
+                    else:
+                        store.append(0)
+                #store values in kmer_seq_dict
+                seq_kmer_dict[seq]= store
 
 
-        #summary vector for kmer-summary.csv
-        summary_vect = []
-        for i,row in enumerate(filtered_pv):
-            row_summary = []
-            row_summary.append(list(seq_kmer_dict.keys())[i])
-            for j,value in enumerate(row):
-                if value != 0:
-                    row_summary.append(kmerlist[j])
-                    row_summary.append(value)
-            summary_vect.append(row_summary)
-                
+            #Filter out annotations not in master list
+            #keep kmer counts
+            #keep annotation counts
+            annotation_count_dict = {}
+            total_seqs = len(seq_kmer_dict)
+            for seqid in list(seq_kmer_dict):
+                x =re.findall(r'\|(.*?)\|', seqid)[0]
+                if x not in master_seq_set:
+                    del seq_kmer_dict[seqid]
+                else:
+                    if master_seq_annot_dict[x] not in seq_kmer_dict:
+                        seq_kmer_dict[master_seq_annot_dict[x]] = seq_kmer_dict.pop(seqid)
+                    else:
+                        zipped_lists = zip(seq_kmer_dict.pop(seqid), seq_kmer_dict[master_seq_annot_dict[x]])
+                        seq_kmer_dict[master_seq_annot_dict[x]] = [x + y for (x, y) in zipped_lists]
 
-        with open("output/learn/kmer-associations.csv", "w", newline="") as f:
-            writer = csv.writer(f)
-            writer.writerows(probability_vector)
-              
-        # Summary Format based on filter: (SeqID: kmer,weight,kmer,weight,etc)
-        with open("output/learn/kmer-summary.csv", "w", newline="") as fl:
-            writer = csv.writer(fl)
-            writer.writerows(summary_vect)
+                    if master_seq_annot_dict[x] not in annotation_count_dict:
+                        annotation_count_dict[master_seq_annot_dict[x]] = 1
+                    else: 
+                        annotation_count_dict[master_seq_annot_dict[x]] += 1
 
+
+            #construct final output
+            counts_and_sums_df = pd.DataFrame(seq_kmer_dict.values())        
+            counts_and_sums_df.insert(0,"Annotations",annotation_count_dict.values(),True)
+            kmer_totals.insert(0,total_seqs)
+            colnames = ["Annotation Count"] + list(kmerlist)
+            counts_and_sums_df = pd.DataFrame(np.insert(counts_and_sums_df.values, 0, values=kmer_totals, axis=0))
+            counts_and_sums_df.columns = colnames
+
+            new_index = ["Totals"] + list(annotation_count_dict.keys())
+            counts_and_sums_df.index = new_index
+        
+            print("Newly Generated Database\n")
+            print(counts_and_sums_df)
+
+            out_name = "output/learn/kmer-counts-" + str(f)[14:-4] + ".csv"
+            counts_and_sums_df.to_csv(out_name)
+            all_DFS.append(counts_and_sums_df)
+
+        #Merge Step - joined with learn because it was much faster.
+        base_check = False
+
+        print("\nChecking for base file to merge with.\n")
+        if "csv" in str(input.base_counts):
+            print("CSV detected. Matching annotations, kmers, and totals will be summed. New annotations and kmers will be added.\n")
+            base_check = True
+        elif input.base_counts == "": 
+            print("No base directory detected\n")
+        elif str(input.base_counts) == "input/base": 
+            print("Empty base directory detected\n")
+        else:
+            print("No file type detected. Please use a .csv file in input/base directory.\n")
+
+
+        initial_merge = (pd.concat(all_DFS).reset_index().groupby('index', sort=False).sum(min_count=1)).fillna(0)
+        print(initial_merge)
+
+        #check that kmer lengths and alphabets match base file
+        if base_check == True:
+            #read_csv is slow, likely replaceable
+            base_df = pd.read_csv(str(input.base_counts), index_col=0, header=0)
+            print("\nBase Database: \n")
+            print(base_df)
+            # Here is an assumption which is likely true but in cases with extremely high kmer values / large alphabets, the odds decrease.
+            # I assume that all kmer alphabet values will be found within the first 2000 items in kmerlist.
+            # This is to check that these two data structures use the same two alphabets. 
+            check_1 = 2000
+            check_2 = 2000
+            if len(initial_merge.columns.values) < 2000:
+                check_1 = len(initial_merge.columns.values)
+            if len(initial_merge.columns.values) < 2000:
+                check_1 = len(initial_merge.columns.values)
+            alphabet_initial = set(itertools.chain(*[list(x) for x in initial_merge.columns.values[1:check_1]]))
+            alphabet_base = set(itertools.chain(*[list(x) for x in base_df.columns.values[1:check_1]]))
+            if alphabet_base == alphabet_initial:
+                base_check = True
+            else: 
+                base_check = False
+                print("Different Alphabets Detected. Base File not merged.")
+        
+        if base_check == True:
+            print(len(str(initial_merge.columns.values[1])))
+            if len(str(initial_merge.columns.values[1])) == len(str(base_df.columns.values[1])):
+                base_check = True
+            else: 
+                base_check = False
+                print("Different kmer lengths detected. Base File not merged.")
+
+        if base_check == True:
+            print("\nMerged Database \n")
+            xy = (pd.concat([base_df, initial_merge]).reset_index().groupby('index', sort=False).sum(min_count=1)).fillna(0)
+            xy.to_csv("output/learn/kmer-counts-total.csv")
+            print(xy)
+        else:
+            initial_merge.to_csv("output/learn/kmer-counts-total.csv")
+        
         skm.utils.log_runtime(log[0], start_time)
 
-      #Validation - Due to rounding, these are not exactly equal to 1, but very close
-        # sums_vector = [0]*klist_length
-        # for i,value in enumerate(probability_vector):
-        #     for index in range(0,klist_length):
-        #         sums_vector[index] += value[index]
-        # print(sums_vector)
+
+rule generate_probabilities:
+    input:
+        totals=join("output", "learn", "kmer-counts-total.csv"),
+    output:
+        join("output", "learn", "kmer-associations.csv"),
+    log:
+        join(out_dir, "learn", "log", "learn_generate.log"),
+    run:
+        start_time = datetime.now()
+        with open(log[0], "a") as f:
+            f.write(f"start time:\t{start_time}\n")
+
+        #read_csv is slow, likely replaceable
+        totals = pd.read_csv(input.totals, index_col=0, header=0)
+        prob = totals.iloc[1:, 1:].div(totals.loc["Totals"].tolist()[1:], axis="columns")
+        prob_2 = prob.div(totals["Annotation Count"].tolist()[1:], axis = "rows")
+        prob_2 = pa.Table.from_pandas(prob_2)
+        csv.write_csv(prob_2, 'output/learn/kmer-associations.csv')
+
+        
+        skm.utils.log_runtime(log[0], start_time)
