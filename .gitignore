@@ -3,8 +3,7 @@
 .test/results
 .github
 .test
-resources/tutorial/output
-resources/tutorial/*.py
+resources/tutorial/demo_example/*
 
 # documentation
 docs/_build/
