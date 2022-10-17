@@ -21,8 +21,8 @@ cluster:
   params:
     {
       "n_clusters": None,
-      "linkage":"average",
-      "distance_threshold":0.92,
+      "linkage": "average",
+      "distance_threshold": 0.92,
       "compute_full_tree": True,
     }
   cluster_plots: False

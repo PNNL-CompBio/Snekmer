@@ -1,4 +1,9 @@
-#!/bin/bash
+# !/bin/bash
+
+# reset files
+mv input/zipped/*.gz input/
+rm -rf output
+
 # run snekmer cluster on examples using provided config.yaml
 snekmer cluster --configfile=../../config.yaml
 
@@ -13,4 +18,3 @@ mv output/scoring/*scorer output/example-model/
 
 # run snekmer search on examples using provided config.yaml
 snekmer search --configfile=../../config.yaml
-
