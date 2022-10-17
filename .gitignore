@@ -3,7 +3,9 @@
 .test/results
 .github
 .test
-resources/tutorial/demo_example/*
+
+# tutorial output files
+resources/tutorial/demo_example/output
 
 # documentation
 docs/_build/
