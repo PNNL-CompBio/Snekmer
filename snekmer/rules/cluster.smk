@@ -28,7 +28,7 @@ from datetime import datetime
 from glob import glob
 from itertools import product, repeat
 from multiprocessing import Pool
-from os import makedirs
+from os import makedirs, sep
 from os.path import basename, dirname, exists, join, splitext, split
 
 import matplotlib.pyplot as plt
@@ -99,7 +99,8 @@ out_dir = skm.io.define_output_dir(
 rule all:
     input:
         expand(join("input", "{uz}"), uz=UZS),  # require unzipping
-        join(out_dir, "cluster", "snekmer.csv"),  # require cluster-building
+        join(out_dir, 'Snekmer_Cluster_Report.html')
+        # join(out_dir, "cluster", "snekmer.csv"),  # require cluster-building
 
 
 # if any files are gzip zipped, unzip them
@@ -132,7 +133,10 @@ rule cluster:
         kmerobj=expand(join("output", "kmerize", "{fa}.kmers"), fa=NON_BGS),
         data=expand(join("output", "vector", "{fa}.npz"), fa=NON_BGS),
     output:
-        figs=directory(join(out_dir, "cluster", "figures")),
+        figs = directory(join(out_dir, "cluster", "figures")),
+        # pca=join(out_dir, "cluster", "figures", "pca_explained_variance_curve.png"),
+        # tsne=join(out_dir, "cluster", "figures", "tsne.png"),
+        # umap=join(out_dir, "cluster", "figures", "umap.png"),
         table=join(out_dir, "cluster", "snekmer.csv")
     log:
         join(out_dir, "cluster", "log", "cluster.log"),
@@ -141,12 +145,6 @@ rule cluster:
         start_time = datetime.now()
         with open(log[0], "a") as f:
             f.write(f"start time:\t{start_time}\n")
-
-        # print BSF status
-        if BSF_PRESENT:
-            print("Import BSF: success!")
-        else:
-            print("Warning: BSF not found; using alternate distance matrix.")
 
         # parse all data and label background files
         label = config["score"]["lname"]
@@ -157,7 +155,7 @@ rule cluster:
         # tabulate vectorized seq data
         data, kmers = list(), list()
         for dfile, kfile in zip(sorted(input.data), sorted(input.kmerobj)):
-            df = skm.io.load_npz(dfile)
+            kmerlist, df = skm.io.load_npz(dfile)
             data.append(df)
 
             kobj = skm.io.load_pickle(kfile)
@@ -166,7 +164,8 @@ rule cluster:
             # basis.extend(klist)
 
         # make a superset of kmers
-        kmerbasis = np.unique(kmers)
+        kmerbasis = np.unique(np.hstack(kmers))
+
         basis = skm.vectorize.KmerVec(config["alphabet"], config["k"])
         basis.set_kmer_set(kmerbasis)
 
@@ -218,11 +217,11 @@ rule cluster:
         )
 
         # for bsf, make the input matrix a distance matrix
-        if config["cluster"]["method"] in ["bsf", "hdbsf", "aggbsf"]:
+        if config["cluster"]["method"] in ["density-jaccard", "hdensity-jaccard", "agglomerative-jaccard"]:
+            # print BSF status
             output_bsf = join(dirname(output.table), "bsf")
             if not exists(output_bsf):
                 makedirs(output_bsf)
-
 
             # if available, use BSF to create clustering distance matrix
             if BSF_PRESENT:
@@ -270,45 +269,44 @@ rule cluster:
                 # this gives Jaccard similarity (since all vectors are the same length)
                 # and subtracting it from 1 gives a distance
                 # bsf_mat = 1.0 - (bsf_mat / 100)
-                bsf_mat = 100 - bsf_mat
+                bsf_mat = (100 - bsf_mat)/100.0
 
             else:
-                print("Using Jaccard distance for distance matrix...")
-
+                # If bsf isn't available we'll use scipy to
+                # calculate jaccard distance in a similar way
+                # but it will be slower and more memory intensive
+                # especially for larger clustering jobs
                 # calculate Jaccard distance
                 res = pdist(full_feature_matrix, "jaccard")
                 bsf_mat = squareform(res)
 
-            dist_thresh = config["cluster"]["dist_thresh"]
-            bsf_mat[bsf_mat > dist_thresh] = 100
+            #dist_thresh = config["cluster"]["dist_thresh"]
+            #bsf_mat[bsf_mat > dist_thresh] = 100
 
             # output matrix for diagnostics - time/space heavy for large comparisons
-            # if config["cluster"]["save_matrix"] is True:
-            #       np.savetxt(join(output_bsf, "bsf_matrix.csv"), bsf_mat, fmt="%.3f", delimiter=",")
+            if config["cluster"]["save_matrix"] is True:
+                   np.savetxt(join(output_bsf, "bsf_matrix.csv"), bsf_mat, fmt="%.3f", delimiter=",")
 
             model.fit(bsf_mat)
-
         else:
-            print("Using default distance matrix...")
-
             # fit and save fitted clusters
             # bsf here
             model.fit(full_feature_matrix)
 
         # save output
         data["cluster"] = model.labels_
-        data = data.drop(columns=["sequence_vector"])
+        data = data.drop(columns=["sequence","sequence_vector"])
         data.to_csv(output.table, index=False)
 
         # with open(output.clusters, "wb") as f:
         #     pickle.dump(model, f)
 
+        # always create output figure directory
+        if not exists(output.figs):
+                makedirs(output.figs)
+
         # log time to compute clusters
         skm.utils.log_runtime(log[0], start_time, step="clustering")
-
-        # force create output dir
-        if not exists(output.figs):
-            makedirs(output.figs)
 
         # optionally generate plots
         if str(config["cluster"]["cluster_plots"]) == "True":
@@ -340,3 +338,49 @@ rule cluster:
 
         # record script endtime
         skm.utils.log_runtime(log[0], start_time)
+
+rule cluster_report:
+    input:
+        figs=rules.cluster.output.figs,
+        # pca=rules.cluster.output.pca,
+        # tsne=rules.cluster.output.tsne,
+        # umap=rules.cluster.output.umap,
+        table=rules.cluster.output.table
+    output:
+        join(out_dir, 'Snekmer_Cluster_Report.html')
+    run:
+        # check for figures
+        if str(config["cluster"]["cluster_plots"]) == "True":
+            fig_params = {
+                "image1_name": "PCA Explained Variance",
+                "image1_path": skm.report.correct_rel_path(join(input.figs, "pca_explained_variance_curve.png")),
+                "image2_name": "Clusters (UMAP)",
+                "image2_path": skm.report.correct_rel_path(join(input.figs, "umap.png")),
+                "image3_name": "Clusters (t-SNE)",
+                "image3_path": skm.report.correct_rel_path(join(input.figs, "tsne.png")),
+            }
+        else:
+            fig_params = {
+                "image1_name": "",
+                "image1_path": None,
+                "image2_name": "",
+                "image2_path": None,
+                "image3_name": "",
+                "image3_path": None,
+            }
+
+        # cluster
+        cluster_vars = {
+            "page_title": "Snekmer Cluster Report",
+            "title": "Snekmer Cluster Results",
+            "text": (
+                "Snekmer clustering results are linked below. "
+                "If `cluster_plots` are enabled in the config, "
+                "they will be shown below."
+                ),
+            "dir": dirname(skm.report.correct_rel_path(input.table)),
+            "table": skm.report.correct_rel_path(input.table),
+            **fig_params
+            }
+
+        skm.report.create_report(cluster_vars, "cluster", output[0])

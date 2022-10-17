@@ -91,6 +91,7 @@ rule all:
     input:
         expand(join("input", "{uz}"), uz=UZS),  # require unzipping
         expand(join("output", "model", "{nb}.model"), nb=NON_BGS),  # require model-building
+        join(out_dir, 'Snekmer_Model_Report.html'),
 
 
 # if any files are gzip zipped, unzip them
@@ -141,9 +142,9 @@ rule score:
         data = list()
         kmer_sets = list()
         for f in input.data:
-            this, kmerlist = skm.io.load_npz(f)
+            kmerlist, this = skm.io.load_npz(f)
             data.append(this)
-            kmer_sets.append(kmerlist)
+            kmer_sets.append(kmerlist[0])
 
         # now we're loading all the other models in too
         #   each has a different basis set - we need to
@@ -152,7 +153,7 @@ rule score:
             this = data[i]
             kmerlist = kmer_sets[i]
             vecs = skm.utils.to_feature_matrix(this["sequence_vector"].values)
-            that = kmer.harmonize_data(vecs, kmerlist)
+            that = kmer.harmonize(vecs, kmerlist)
             this["sequence_vector"] = that.tolist()
 
         data = pd.concat(data, ignore_index=True)
@@ -447,3 +448,33 @@ rule model:
 
         # save full results
         pd.DataFrame(results).to_csv(output.results, index=False)
+
+
+rule model_report:
+    input:
+        results=expand(join("output", "model", "results", "{nb}.csv"), nb=NON_BGS),
+        figs=expand(join("output", "model", "figures", "{nb}"), nb=NON_BGS),
+    output:
+        join(out_dir, 'Snekmer_Model_Report.html')
+    run:
+        fig_dir = dirname(input.figs[0])
+        tab_dir = dirname(input.results[0])
+
+        model_vars = dict(
+            page_title="Snekmer Model Report",
+            title="Snekmer Model Results",
+            text=(
+                "Classifier model results "
+                f"({config['model']['cv']}-Fold Cross-Validation) "
+                f"are below."
+            ),
+            dir=skm.report.correct_rel_path(tab_dir)
+        )
+
+        skm.report.create_report_many_images(
+            fig_dir,
+            tab_dir,
+            model_vars,
+            "model",
+            output[0]
+        )
