@@ -1,9 +1,11 @@
 # required params
-k: 6
-alphabet: "standard" # choices 0-5 or names (see alphabet module), or None
+k: 14
+alphabet: 0 # choices 0-5 or names (see alphabet module), or None
 
 # input/output params
+#input_dir: None # defaults to 'input'
 input_file_exts: ["fasta", "fna", "faa", "fa"] # specify valid input file extensions
+input_file_regex: ".*" # regex to parse family from filename
 nested_output: False # if True, saves into {save_dir}/{alphabet name}/{k}
 
 # scoring params
@@ -15,21 +17,21 @@ score:
 
 # cluster params
 cluster:
-  method: "correlation"
+  method: "agglomerative-jaccard"
   params:
     {
-      "t": 0.75,
-      "criterion": "distance",
-      "metric": "correlation",
-      "method": "weighted",
+      "n_clusters": None,
+      "linkage": "average",
+      "distance_threshold": 0.92,
+      "compute_full_tree": True,
     }
-  cluster_plots: True
+  cluster_plots: False
 
   # clustering distance matrix params
   min_rep:
   max_rep:
-  save_matrix: False
-  dist_thresh: 0
+  save_matrix: True
+  dist_thresh: 100
 
 # model params
 model:
@@ -37,6 +39,6 @@ model:
   random_state: None
 
 # search params
-model_dir: "/path/to/output/model/"
-basis_dir: "/path/to/output/labels/"
-score_dir: "/path/to/output/score/"
+model_dir: "output/example-model/"
+basis_dir: "output/example-model/"
+score_dir: "output/example-model/"

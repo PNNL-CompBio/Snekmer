@@ -78,7 +78,7 @@ jobs:
     steps:
       # test clustering step
       - name: Snekmer Cluster
-        uses: snakemake/snakemake-github-action@v1
+        uses: snakemake/snakemake-github-action@v1.24.0
         with:
           directory: .test
           snakefile: snekmer/rules/cluster.smk
@@ -88,7 +88,7 @@ jobs:
 
       # test modeling step
       - name: Snekmer Model
-        uses: snakemake/snakemake-github-action@v1
+        uses: snakemake/snakemake-github-action@v1.24.0
         with:
           directory: .test
           snakefile: snekmer/rules/model.smk
