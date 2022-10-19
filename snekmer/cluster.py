@@ -98,6 +98,9 @@ class BSFAgglomerative(BSFClustering):
         self.labels_ = None
         self.method = AgglomerativeClustering(**model_params)
 
+    def fit(self, X):
+        self.method.fit(X)
+        self.labels_ = self.method.labels_
 
 # define allowed model types
 MODELS = {
@@ -107,9 +110,9 @@ MODELS = {
     "density": DBSCAN,
     "birch": Birch,
     "optics": OPTICS,
-    "bsf": BSFClustering,
-    "hdbsf": HDBSFClustering,
-    "aggbsf": BSFAgglomerative,
+    "density-jaccard": BSFClustering,
+    "hdensity-jaccard": HDBSFClustering,
+    "agglomerative-jaccard": BSFAgglomerative,
     "hdbscan": HDBSCAN,
 }
 

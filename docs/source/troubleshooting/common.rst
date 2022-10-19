@@ -4,21 +4,34 @@ Frequently Asked Questions
 Some commonly encountered questions are addressed here. For more
 detailed or specific questions, feel free to `submit an issue on Github <https://github.com/PNNL-CompBio/Snekmer/issues>`_.
 
-Installation
-------------
+Installation Questions
+----------------------
 
-The ``conda install`` command is taking a long time. Why?
-`````````````````````````````````````````````````````````
+Why is the ``conda install`` command is taking a long time?
+```````````````````````````````````````````````````````````
 
 Installation of ``snakemake`` via conda typically requires a fairly
 long compile time. To avoid this, you can install Snakemake via
-`Mamba <https://github.com/mamba-org/mamba>`_` (see the official
+`Mamba <https://github.com/mamba-org/mamba>`_ (see the official
 `Snakemake installation instructions <https://snakemake.readthedocs.io/en/stable/getting_started/installation.html>`_
 for details).
 
+Why am I getting a ``CondaEnvException: Pip failed``? Does this mean my Snekmer installation failed?
+````````````````````````````````````````````````````````````````````````````````````````````````````
 
-Usage
------
+This error appears when `BSF <https://github.com/PNNL-CompBio/bsf-jaccard-py>`_
+is unable to be installed on a user's system. However, conda still
+installs Snekmer and its dependencies without BSF, despite the error.
+Since BSF is optional for Snekmer, Snekmer should still run without
+any issues.
+
+To verify this, run ``conda activate <ENV_NAME>`` (i.e. ``conda activate snekmer``),
+followed by ``conda list``, to check that the environment was
+created successfully and that Snekmer was indeed installed.
+
+
+Usage Questions
+---------------
 
 Why I am encountering a ``MissingInputException`` when I try to run Snekmer?
 ````````````````````````````````````````````````````````````````````````````
@@ -28,7 +41,31 @@ and the input files may not follow the required directory structure.
 For more information, including an example of the file structure
 needed, see :ref:`getting_started-configuration`.
 
-I cannot build models correctly.
-````````````````````````````````
+Snekmer model mode is not working.
+``````````````````````````````````
 
-*To be continued...*
+If ``snekmer model`` is not building models as intended, check
+the following:
+
+1. At least two input files are in the input directory. Note
+   that Snekmer will not run as intended without 2+ input files.
+2. All configuration parameters have been correctly specified.
+   For more details and parameter descriptions, refer to
+   :ref:`config-main`. Verify that no misspellings or invalid
+   parameter specifications have been entered.
+3. The ``snekmer model`` command is executed from the directory
+   containing the input directory, and that a config.yaml file
+   has been placed in the top-level directory. Refer to
+   :ref:`getting_started-configuration` for the file structure
+   required for Snekmer.
+
+Snekmer cluster mode is producing an unusual number of clusters.
+````````````````````````````````````````````````````````````````
+If Snekmer cluster results in an unexpected number of clusters,
+we recommend tuning the parameter set used to generate the clusters.
+Most likely, the parameters used to generate the clusters are too
+generalized, or specific, for the given dataset. For instance, if
+Snekmer determines only 1 cluster for a given protein sequence set of
+many individual sequences, the parameters guiding the clustering
+algorithm is likely not sensitive enough to differentiate the underlying
+clusters. See :ref:`Parameter Selection <background-params>` for more details.

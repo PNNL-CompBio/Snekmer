@@ -32,7 +32,7 @@ rule score:
         # tabulate vectorized seq data
         data = list()
         for f in input.data:
-            data.append(skm.io.load_npz(f))
+            data.append(skm.io.load_npz(f)[1])
 
         data = pd.concat(data, ignore_index=True)
         data["background"] = [f in BGS for f in data["filename"]]

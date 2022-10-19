@@ -70,7 +70,7 @@ version of Snakemake:
 (optional) Install GCC for BSF
 ------------------------------
 
-The `Blazing Signature Filter <https://github.com/PNNL-Compbio/bsf-jaccard-py>`_
+The `Blazing Signature Filter <https://github.com/PNNL-CompBio/bsf-jaccard-py>`_
 is a pairwise similarity algorithm that can optionally be used to efficiently
 compute a distance matrix for Snekmer's clustering mode.
 
