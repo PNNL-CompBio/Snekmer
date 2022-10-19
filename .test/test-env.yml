@@ -7,6 +7,7 @@ channels:
 dependencies:
   - python >= 3.9
   - biopython
+  - jinja2
   - mamba
   - matplotlib
   - numpy >= 1.22.3
