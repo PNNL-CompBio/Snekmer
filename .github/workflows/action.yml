@@ -4,34 +4,38 @@ name: CI
 on:
   push:
     branches: [main, tests]
-  # pull_request:
-  #   branches: [main, tests]
+  pull_request:
+    branches: [main, tests]
 
 jobs:
   # step 0: dependencies
   Build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       # setup environment
       - name: Create environment
         uses: conda-incubator/setup-miniconda@v2
         with:
+          mamba-version: "*"
           channels: anaconda,conda-forge,bioconda,numba
           auto-activate-base: false
           activate-environment: snekmer
           environment-file: .test/test-env.yml
-      - run: conda info
-      - run: conda list
-      - run: conda config --show
-      - run: "mamba install -c conda-forge -yn snakemake==7.0"
+      - shell: bash -l {0}
+        run: |
+          conda info
+          conda list
+          conda config --show
+      - shell: bash -l {0}
+        run: mamba install -c conda-forge -yn snakemake==7.0
 
   # step 2: apply formating and linting
   Format:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Apply snakefmt
         uses: github/super-linter@v4
         env:
@@ -47,7 +51,7 @@ jobs:
     needs:
       - Build
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Lint cluster.smk
         uses: snakemake/snakemake-github-action@v1.24.0
         with:
