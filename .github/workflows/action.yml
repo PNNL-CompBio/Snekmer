@@ -78,21 +78,22 @@ jobs:
 
       # test clustering step
       - name: Snekmer Cluster
-        uses: snakemake/snakemake-github-action@v1.24.0
+        # uses: snakemake/snakemake-github-action@v1.24.0
         with:
           directory: .test
-          snakefile: snekmer/rules/cluster.smk
-          args: "--cores 1 --use-conda --conda-cleanup-pkgs cache --show-failed-logs --conda-frontend mamba"
-          stagein: |
+          # snakefile: snekmer/rules/cluster.smk
+          # args: ""
+          run: |
             export PATH="/usr/share/miniconda/bin:$PATH"
             conda info --envs
             source activate snekmer
             conda config --get channel_priority --json
+            snakemake -s snekmer/rules/cluster.smk --configfile .test/config.yaml --cores 1 --use-conda --conda-cleanup-pkgs cache --show-failed-logs --conda-frontend mamba
             rm -rf .test/output
 
       # test modeling step
       - name: Snekmer Model
-        uses: snakemake/snakemake-github-action@v1.24.0
+        # uses: snakemake/snakemake-github-action@v1.24.0
         with:
           directory: .test
           snakefile: snekmer/rules/model.smk
@@ -101,6 +102,7 @@ jobs:
             export PATH="/usr/share/miniconda/bin:$PATH"
             conda info --envs
             source activate snekmer
+            snakemake -s snekmer/rules/model.smk --configfile .test/config.yaml --cores 1 --use-conda --conda-cleanup-pkgs cache --show-failed-logs --conda-frontend mamba
             rm -rf .test/output
 
     # - name: search
