@@ -59,6 +59,7 @@ jobs:
       # - Lint
 
     steps:
+      - uses: actions/checkout@v3
       - name: Build test environment
         uses: conda-incubator/setup-miniconda@v2
         with:
