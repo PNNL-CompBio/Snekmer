@@ -87,7 +87,9 @@ jobs:
           directory: .test
           snakefile: snekmer/rules/cluster.smk
           args: "--cores 1 --use-conda --conda-cleanup-pkgs cache --show-failed-logs --conda-frontend mamba"
-          stagein: conda config --get channel_priority --json |
+          stagein: |
+            conda activate snekmer
+            conda config --get channel_priority --json
             rm -rf .test/output
 
       # test modeling step
@@ -98,6 +100,7 @@ jobs:
           snakefile: snekmer/rules/model.smk
           args: "--cores 1"
           stagein: |
+            conda activate snekmer
             rm -rf .test/output
 
     # - name: search
