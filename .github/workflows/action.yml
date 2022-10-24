@@ -7,15 +7,58 @@ on:
   pull_request:
     branches: [main, tests]
 
-jobs:
-  # step 0: dependencies
-  Build:
+  # apply formating and linting
+  Format:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - name: Apply snakefmt
+        uses: github/super-linter@v4
+        env:
+          VALIDATE_ALL_CODEBASE: false
+          DEFAULT_BRANCH: main
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # setup environment
-      - name: Create environment
+          LINTER_RULES_PATH: snekmer/rules/
+          VALIDATE_SNAKEMAKE_SNAKEFMT: true
+
+  # Lint:
+  #   runs-on: ubuntu-latest
+  #   needs:
+  #     - Build
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - name: Lint cluster.smk
+  #       uses: snakemake/snakemake-github-action@v1.24.0
+  #       with:
+  #         directory: .test
+  #         snakefile: snekmer/rules/cluster.smk
+  #         args: "--lint"
+  #         stagein: "conda activate snekmer"
+  #     - name: Lint model.smk
+  #       uses: snakemake/snakemake-github-action@v1.24.0
+  #       with:
+  #         directory: .test
+  #         snakefile: snekmer/rules/model.smk
+  #         args: "--lint"
+  #         stagein: "conda activate snekmer"
+  #     - name: Lint search.smk
+  #       uses: snakemake/snakemake-github-action@v1.24.0
+  #       with:
+  #         directory: .test
+  #         snakefile: snekmer/rules/search.smk
+  #         args: "--lint"
+  #         stagein: "conda activate snekmer"
+
+  # run all tests
+  Test:
+    runs-on: ubuntu-latest
+    needs:
+      - Format
+      # - Lint
+
+    steps:
+      - name: Build test environment
         uses: conda-incubator/setup-miniconda@v2
         with:
           mamba-version: "*"
@@ -31,58 +74,6 @@ jobs:
       - shell: bash -l {0}
         run: mamba install -c conda-forge -y snakemake==7.0
 
-  # step 2: apply formating and linting
-  Format:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Apply snakefmt
-        uses: github/super-linter@v4
-        env:
-          VALIDATE_ALL_CODEBASE: false
-          DEFAULT_BRANCH: main
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-          LINTER_RULES_PATH: snekmer/rules/
-          VALIDATE_SNAKEMAKE_SNAKEFMT: true
-
-  Lint:
-    runs-on: ubuntu-latest
-    needs:
-      - Build
-    steps:
-      - uses: actions/checkout@v3
-      - name: Lint cluster.smk
-        uses: snakemake/snakemake-github-action@v1.24.0
-        with:
-          directory: .test
-          snakefile: snekmer/rules/cluster.smk
-          args: "--lint"
-          stagein: "conda activate snekmer"
-      - name: Lint model.smk
-        uses: snakemake/snakemake-github-action@v1.24.0
-        with:
-          directory: .test
-          snakefile: snekmer/rules/model.smk
-          args: "--lint"
-          stagein: "conda activate snekmer"
-      - name: Lint search.smk
-        uses: snakemake/snakemake-github-action@v1.24.0
-        with:
-          directory: .test
-          snakefile: snekmer/rules/search.smk
-          args: "--lint"
-          stagein: "conda activate snekmer"
-
-  # step 3: testing
-  Test:
-    runs-on: ubuntu-latest
-    needs:
-      - Format
-      - Lint
-      - Build
-
-    steps:
       # test clustering step
       - name: Snekmer Cluster
         uses: snakemake/snakemake-github-action@v1.24.0
