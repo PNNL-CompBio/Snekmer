@@ -60,6 +60,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+
       - name: Build test environment
         uses: conda-incubator/setup-miniconda@v2
         with:
@@ -78,6 +79,7 @@ jobs:
 
       # test clustering step
       - name: Snekmer Cluster
+        uses: actions/checkout@v3
         # uses: snakemake/snakemake-github-action@v1.24.0
         with:
           directory: .test
@@ -93,6 +95,7 @@ jobs:
 
       # test modeling step
       - name: Snekmer Model
+        uses: actions/checkout@v3
         # uses: snakemake/snakemake-github-action@v1.24.0
         with:
           directory: .test
