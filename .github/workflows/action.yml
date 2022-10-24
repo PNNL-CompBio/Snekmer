@@ -84,7 +84,8 @@ jobs:
           snakefile: snekmer/rules/cluster.smk
           args: "--cores 1 --use-conda --conda-cleanup-pkgs cache --show-failed-logs --conda-frontend mamba"
           stagein: |
-            conda activate snekmer
+            export PATH="/usr/share/miniconda/bin:$PATH"
+            source activate snekmer
             conda config --get channel_priority --json
             rm -rf .test/output
 
@@ -96,7 +97,8 @@ jobs:
           snakefile: snekmer/rules/model.smk
           args: "--cores 1"
           stagein: |
-            conda activate snekmer
+            export PATH="/usr/share/miniconda/bin:$PATH"
+            source activate snekmer
             rm -rf .test/output
 
     # - name: search
