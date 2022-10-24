@@ -71,11 +71,11 @@ jobs:
           mv .test/output/kmerize/*.kmers .test/output/example-model/
           mv .test/output/scoring/*.scorer .test/output/example-model/
 
-    # search against previously generated model files
-    - name: Snekmer Search
-      uses: actions/checkout@v3
-      run: |
-        export PATH="/usr/share/miniconda/bin:$PATH"
-        source activate snekmer
-        snakemake -s snekmer/rules/search.smk --configfile .test/config.yaml -d .test --cores 1 --use-conda --conda-cleanup-pkgs cache --show-failed-logs --conda-frontend mamba
-        rm -rf .test/output
+      # search against previously generated model files
+      - name: Snekmer Search
+        uses: actions/checkout@v3
+        run: |
+          export PATH="/usr/share/miniconda/bin:$PATH"
+          source activate snekmer
+          snakemake -s snekmer/rules/search.smk --configfile .test/config.yaml -d .test --cores 1 --use-conda --conda-cleanup-pkgs cache --show-failed-logs --conda-frontend mamba
+          rm -rf .test/output
