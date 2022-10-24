@@ -66,7 +66,6 @@ jobs:
             export PATH="/usr/share/miniconda/bin:$PATH"
             source activate snekmer
             snakemake -s snekmer/rules/model.smk --configfile .test/config.yaml -d .test --cores 1 --use-conda --conda-cleanup-pkgs cache --show-failed-logs --conda-frontend mamba
-
             mkdir .test/output/example-model
             mv .test/output/model/*.model .test/output/example-model/
             mv .test/output/kmerize/*.kmers .test/output/example-model/
