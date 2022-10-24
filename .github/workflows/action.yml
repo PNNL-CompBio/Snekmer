@@ -7,6 +7,7 @@ on:
   pull_request:
     branches: [main, tests]
 
+jobs:
   # apply formating and linting
   Format:
     runs-on: ubuntu-latest
@@ -22,11 +23,40 @@ on:
           LINTER_RULES_PATH: snekmer/rules/
           VALIDATE_SNAKEMAKE_SNAKEFMT: true
 
+  # Lint:
+  #   runs-on: ubuntu-latest
+  #   needs:
+  #     - Build
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - name: Lint cluster.smk
+  #       uses: snakemake/snakemake-github-action@v1.24.0
+  #       with:
+  #         directory: .test
+  #         snakefile: snekmer/rules/cluster.smk
+  #         args: "--lint"
+  #         stagein: "conda activate snekmer"
+  #     - name: Lint model.smk
+  #       uses: snakemake/snakemake-github-action@v1.24.0
+  #       with:
+  #         directory: .test
+  #         snakefile: snekmer/rules/model.smk
+  #         args: "--lint"
+  #         stagein: "conda activate snekmer"
+  #     - name: Lint search.smk
+  #       uses: snakemake/snakemake-github-action@v1.24.0
+  #       with:
+  #         directory: .test
+  #         snakefile: snekmer/rules/search.smk
+  #         args: "--lint"
+  #         stagein: "conda activate snekmer"
+
   # run all tests
   Test:
     runs-on: ubuntu-latest
     needs:
       - Format
+      # - Lint
 
     steps:
       - name: Build test environment
