@@ -62,7 +62,7 @@ jobs:
       - name: Snekmer Model
         uses: actions/checkout@v3
         with:
-          stagein: |
+          run: |
             export PATH="/usr/share/miniconda/bin:$PATH"
             source activate snekmer
             snakemake -s snekmer/rules/model.smk --configfile .test/config.yaml -d .test --cores 1 --use-conda --conda-cleanup-pkgs cache --show-failed-logs --conda-frontend mamba
@@ -72,10 +72,10 @@ jobs:
             mv .test/output/kmerize/*.kmers .test/output/example-model/
             mv .test/output/scoring/*.scorer .test/output/example-model/
 
-    - name: search
+    - name: Snekmer Sarch
       uses: actions/checkout@v3
         with:
-          stagein: |
+          run: |
             export PATH="/usr/share/miniconda/bin:$PATH"
             source activate snekmer
             snakemake -s snekmer/rules/search.smk --configfile .test/config.yaml -d .test --cores 1 --use-conda --conda-cleanup-pkgs cache --show-failed-logs --conda-frontend mamba
