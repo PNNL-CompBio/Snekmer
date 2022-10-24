@@ -85,6 +85,7 @@ jobs:
           args: "--cores 1 --use-conda --conda-cleanup-pkgs cache --show-failed-logs --conda-frontend mamba"
           stagein: |
             export PATH="/usr/share/miniconda/bin:$PATH"
+            conda info --envs
             source activate snekmer
             conda config --get channel_priority --json
             rm -rf .test/output
@@ -98,6 +99,7 @@ jobs:
           args: "--cores 1"
           stagein: |
             export PATH="/usr/share/miniconda/bin:$PATH"
+            conda info --envs
             source activate snekmer
             rm -rf .test/output
 
