@@ -72,9 +72,6 @@ jobs:
             mv .test/output/kmerize/*.kmers .test/output/example-model/
             mv .test/output/scoring/*.scorer .test/output/example-model/
 
-# run snekmer search on examples using provided config.yaml
-snekmer search --configfile=../../config.yaml
-
     - name: search
       uses: actions/checkout@v3
         with:
