@@ -58,18 +58,21 @@ jobs:
           directory: .test
           snakefile: snekmer/rules/cluster.smk
           args: "--lint"
+          stagein: "conda activate snekmer"
       - name: Lint model.smk
         uses: snakemake/snakemake-github-action@v1.24.0
         with:
           directory: .test
           snakefile: snekmer/rules/model.smk
           args: "--lint"
+          stagein: "conda activate snekmer"
       - name: Lint search.smk
         uses: snakemake/snakemake-github-action@v1.24.0
         with:
           directory: .test
           snakefile: snekmer/rules/search.smk
           args: "--lint"
+          stagein: "conda activate snekmer"
 
   # step 3: testing
   Test:
