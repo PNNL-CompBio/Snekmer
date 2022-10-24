@@ -50,7 +50,6 @@ jobs:
 
       # test clustering step
       - name: Snekmer Cluster
-        uses: actions/checkout@v3
         run: |
           export PATH="/usr/share/miniconda/bin:$PATH"
           conda info --envs
@@ -61,7 +60,6 @@ jobs:
 
       # run modeling step and move output files for search
       - name: Snekmer Model
-        uses: actions/checkout@v3
         run: |
           export PATH="/usr/share/miniconda/bin:$PATH"
           source activate snekmer
@@ -73,7 +71,6 @@ jobs:
 
       # search against previously generated model files
       - name: Snekmer Search
-        uses: actions/checkout@v3
         run: |
           export PATH="/usr/share/miniconda/bin:$PATH"
           source activate snekmer
