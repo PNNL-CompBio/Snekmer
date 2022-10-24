@@ -8,7 +8,7 @@ on:
     branches: [main, tests]
 
 jobs:
-  # apply formating and linting
+  # apply formating (snakefmt)
   Format:
     runs-on: ubuntu-latest
     steps:
@@ -23,40 +23,11 @@ jobs:
           LINTER_RULES_PATH: snekmer/rules/
           VALIDATE_SNAKEMAKE_SNAKEFMT: true
 
-  # Lint:
-  #   runs-on: ubuntu-latest
-  #   needs:
-  #     - Build
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - name: Lint cluster.smk
-  #       uses: snakemake/snakemake-github-action@v1.24.0
-  #       with:
-  #         directory: .test
-  #         snakefile: snekmer/rules/cluster.smk
-  #         args: "--lint"
-  #         stagein: "conda activate snekmer"
-  #     - name: Lint model.smk
-  #       uses: snakemake/snakemake-github-action@v1.24.0
-  #       with:
-  #         directory: .test
-  #         snakefile: snekmer/rules/model.smk
-  #         args: "--lint"
-  #         stagein: "conda activate snekmer"
-  #     - name: Lint search.smk
-  #       uses: snakemake/snakemake-github-action@v1.24.0
-  #       with:
-  #         directory: .test
-  #         snakefile: snekmer/rules/search.smk
-  #         args: "--lint"
-  #         stagein: "conda activate snekmer"
-
   # run all tests
   Test:
     runs-on: ubuntu-latest
     needs:
       - Format
-      # - Lint
 
     steps:
       - uses: actions/checkout@v3
@@ -77,38 +48,38 @@ jobs:
       - shell: bash -l {0}
         run: mamba install -c conda-forge -y snakemake==7.0
 
-      # test clustering step
       - name: Snekmer Cluster
         uses: actions/checkout@v3
-        # uses: snakemake/snakemake-github-action@v1.24.0
         with:
-          directory: .test
-          # snakefile: snekmer/rules/cluster.smk
-          # args: ""
           run: |
             export PATH="/usr/share/miniconda/bin:$PATH"
-            conda info --envs
             source activate snekmer
             conda config --get channel_priority --json
-            snakemake -s snekmer/rules/cluster.smk --configfile .test/config.yaml --cores 1 --use-conda --conda-cleanup-pkgs cache --show-failed-logs --conda-frontend mamba
+            snakemake -s snekmer/rules/cluster.smk --configfile .test/config.yaml -d .test --cores 1 --use-conda --conda-cleanup-pkgs cache --show-failed-logs --conda-frontend mamba
+            cat .test/output/cluster/snekmer.csv
             rm -rf .test/output
 
-      # test modeling step
       - name: Snekmer Model
         uses: actions/checkout@v3
-        # uses: snakemake/snakemake-github-action@v1.24.0
         with:
-          directory: .test
-          snakefile: snekmer/rules/model.smk
-          args: "--cores 1"
           stagein: |
             export PATH="/usr/share/miniconda/bin:$PATH"
-            conda info --envs
             source activate snekmer
-            snakemake -s snekmer/rules/model.smk --configfile .test/config.yaml --cores 1 --use-conda --conda-cleanup-pkgs cache --show-failed-logs --conda-frontend mamba
-            rm -rf .test/output
+            snakemake -s snekmer/rules/model.smk --configfile .test/config.yaml -d .test --cores 1 --use-conda --conda-cleanup-pkgs cache --show-failed-logs --conda-frontend mamba
 
-    # - name: search
-    #   uses: snakemake/snakemake-github-action@v1
-    #   with:
-    #     snakefile: "snekmer/rules/search.smk"
+            mkdir .test/output/example-model
+            mv .test/output/model/*.model .test/output/example-model/
+            mv .test/output/kmerize/*.kmers .test/output/example-model/
+            mv .test/output/scoring/*.scorer .test/output/example-model/
+
+# run snekmer search on examples using provided config.yaml
+snekmer search --configfile=../../config.yaml
+
+    - name: search
+      uses: actions/checkout@v3
+        with:
+          stagein: |
+            export PATH="/usr/share/miniconda/bin:$PATH"
+            source activate snekmer
+            snakemake -s snekmer/rules/search.smk --configfile .test/config.yaml -d .test --cores 1 --use-conda --conda-cleanup-pkgs cache --show-failed-logs --conda-frontend mamba
+            rm -rf .test/output
