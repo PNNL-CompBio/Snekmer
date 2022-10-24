@@ -74,9 +74,9 @@ jobs:
 
     - name: Snekmer Sarch
       uses: actions/checkout@v3
-        with:
-          run: |
-            export PATH="/usr/share/miniconda/bin:$PATH"
-            source activate snekmer
-            snakemake -s snekmer/rules/search.smk --configfile .test/config.yaml -d .test --cores 1 --use-conda --conda-cleanup-pkgs cache --show-failed-logs --conda-frontend mamba
-            rm -rf .test/output
+      with:
+        run: |
+          export PATH="/usr/share/miniconda/bin:$PATH"
+          source activate snekmer
+          snakemake -s snekmer/rules/search.smk --configfile .test/config.yaml -d .test --cores 1 --use-conda --conda-cleanup-pkgs cache --show-failed-logs --conda-frontend mamba
+          rm -rf .test/output
