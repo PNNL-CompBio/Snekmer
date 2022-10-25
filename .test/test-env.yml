@@ -19,6 +19,6 @@ dependencies:
   # - snakemake == 7.0
   - umap-learn
   - hdbscan
-  # - pip
-  # - pip:
-  #     - -e git+https://github.com/PNNL-CompBio/Snekmer@tests#egg=snekmer
+  - pip
+  - pip:
+      - -e git+https://github.com/PNNL-CompBio/Snekmer#egg=snekmer
