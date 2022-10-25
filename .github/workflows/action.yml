@@ -6,6 +6,8 @@ on:
     branches: [main]
   pull_request:
     types: [opened, edited, reopened, review_requested]
+  pull_request_target:
+    types: [synchronize]
 
 jobs:
   # apply formating and linting
