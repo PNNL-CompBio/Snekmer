@@ -3,9 +3,9 @@ name: CI
 # specify trigger events for ci workflow
 on:
   push:
-    branches: [main, tests]
+    branches: [main]
   pull_request:
-    branches: [main, tests]
+    branches: [main]
 
 jobs:
   # apply formating and linting
