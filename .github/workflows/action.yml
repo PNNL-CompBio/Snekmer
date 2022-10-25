@@ -55,7 +55,7 @@ jobs:
           conda info --envs
           source activate snekmer
           conda config --get channel_priority --json
-          snakemake -s snekmer/rules/cluster.smk --configfile .test/config.yaml --cores 1 --use-conda --conda-cleanup-pkgs cache --show-failed-logs --conda-frontend mamba
+          snakemake -s snekmer/rules/cluster.smk --configfile .test/config.yaml -d .test --cores 1 --use-conda --conda-cleanup-pkgs cache --show-failed-logs --conda-frontend mamba
           rm -rf .test/output
 
       # run modeling step and move output files for search
