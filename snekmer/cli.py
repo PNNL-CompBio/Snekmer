@@ -132,6 +132,16 @@ def main():
             "information being printed at all."
         ),
     )
+    parser["smk"].add_argument(
+        "--directory",
+        "-d",
+        metavar="DIR",
+        action="store",
+        help=(
+            "Specify working directory (relative paths in "
+            "the snakefile will use this as their origin)."
+        ),
+    )
 
     # clust execution options
     parser["clust"] = parser["smk"].add_argument_group("cluster execution arguments")
@@ -209,6 +219,7 @@ def main():
             force_incomplete=True,
             cores=args.cores,
             nodes=args.jobs,
+            workdir=args.directory,
             dryrun=args.dryrun,
             unlock=args.unlock,
             until=args.until,

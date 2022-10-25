@@ -55,15 +55,17 @@ jobs:
           conda info --envs
           source activate snekmer
           conda config --get channel_priority --json
-          snakemake -s snekmer/rules/cluster.smk --configfile .test/config.yaml -d .test --cores 1 --use-conda --conda-cleanup-pkgs cache --show-failed-logs --conda-frontend mamba
+          snakemake -s snekmer/rules/cluster.smk --configfile .test/config.yaml -d .test --cores 1
           rm -rf .test/output
+
+      #  --use-conda --conda-cleanup-pkgs cache --show-failed-logs --conda-frontend mamba
 
       # run modeling step and move output files for search
       - name: Snekmer Model
         run: |
           export PATH="/usr/share/miniconda/bin:$PATH"
           source activate snekmer
-          snakemake -s snekmer/rules/model.smk --configfile .test/config.yaml -d .test --cores 1 --use-conda --conda-cleanup-pkgs cache --show-failed-logs --conda-frontend mamba
+          snakemake -s snekmer/rules/model.smk --configfile .test/config.yaml -d .test --cores 1
           mkdir .test/output/example-model
           mv .test/output/model/*.model .test/output/example-model/
           mv .test/output/kmerize/*.kmers .test/output/example-model/
@@ -74,5 +76,5 @@ jobs:
         run: |
           export PATH="/usr/share/miniconda/bin:$PATH"
           source activate snekmer
-          snakemake -s snekmer/rules/search.smk --configfile .test/config.yaml -d .test --cores 1 --use-conda --conda-cleanup-pkgs cache --show-failed-logs --conda-frontend mamba
+          snakemake -s snekmer/rules/search.smk --configfile .test/config.yaml -d .test --cores 1
           rm -rf .test/output
