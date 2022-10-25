@@ -46,7 +46,7 @@ jobs:
           conda list
           conda config --show
       - shell: bash -l {0}
-        run: mamba install -c conda-forge -y snakemake==7.0 tabulate==0.8
+        run: mamba install -y -c conda-forge snakemake==7.0 tabulate==0.8.10
 
       # test clustering step
       - name: Snekmer Cluster
