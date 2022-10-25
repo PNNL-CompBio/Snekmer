@@ -1,5 +1,6 @@
 # Snekmer: A scalable pipeline for protein sequence fingerprinting using amino acid recoding (AAR)
 
+[![CI](https://github.com/PNNL-CompBio/Snekmer/actions/workflows/action.yml/badge.svg)](https://github.com/PNNL-CompBio/Snekmer/actions)
 [![Documentation Status](https://readthedocs.org/projects/snekmer/badge/?version=latest)](https://snekmer.readthedocs.io/en/latest/?badge=latest)
 [![Snakemake](https://img.shields.io/badge/snakemake-=7.0.0-brightgreen.svg?style=flat)](https://snakemake.readthedocs.io)
 
@@ -28,14 +29,13 @@ displays K-fold cross validation results in the form of figures (AUC ROC and PR 
 and the models they wish to search their sequences against. Snekmer applies the relevant workflow steps
 and outputs a table for each file containing model annotation probabilities for the given sequences.
 
-
 ## How to Use Snekmer
 
 For installation instructions, documentation, and more, refer to
 the [official documentation](https://snekmer.readthedocs.io).
 
 Run the demonstration example code in:
-     resources/tutorial/demo_example
+resources/tutorial/demo_example
 
 ## Acknowledgments
 

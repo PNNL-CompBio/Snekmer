@@ -1,0 +1,24 @@
+name: snekmer
+channels:
+  - anaconda
+  - bioconda
+  - numba
+  - conda-forge
+dependencies:
+  - python >= 3.9
+  - biopython
+  - jinja2
+  - mamba
+  - matplotlib
+  - numpy >= 1.22.3
+  - numba >= 0.56
+  - scipy
+  - pandas
+  - seaborn
+  - scikit-learn
+  # - snakemake == 7.0
+  - umap-learn
+  - hdbscan
+  - pip
+  - pip:
+      - -e git+https://github.com/PNNL-CompBio/Snekmer#egg=snekmer
