@@ -5,9 +5,7 @@ on:
   push:
     branches: [main]
   pull_request:
-    types: [opened, edited, reopened, review_requested]
-  pull_request_target:
-    types: [synchronize]
+    types: [opened, edited, reopened, synchronize, review_requested]
 
 jobs:
   # apply formating and linting
