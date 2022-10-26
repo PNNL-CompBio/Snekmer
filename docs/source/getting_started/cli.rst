@@ -74,3 +74,13 @@ step, run:
 .. code-block:: bash
 
     snekmer {mode} --until vectorize
+
+.. _getting_started-all_options:
+
+All Options
+-----------
+
+.. argparse::
+   :module: snekmer.cli
+   :func: get_main_args
+   :prog: snekmer

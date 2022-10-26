@@ -2,7 +2,8 @@ Frequently Asked Questions
 ==========================
 
 Some commonly encountered questions are addressed here. For more
-detailed or specific questions, feel free to `submit an issue on Github <https://github.com/PNNL-CompBio/Snekmer/issues>`_.
+detailed or specific questions that have not been included below, feel free to
+`submit an issue on Github <https://github.com/PNNL-CompBio/Snekmer/issues>`_.
 
 Installation Questions
 ----------------------
@@ -30,16 +31,47 @@ followed by ``conda list``, to check that the environment was
 created successfully and that Snekmer was indeed installed.
 
 
-Usage Questions
----------------
+Troubleshooting Error Messages
+------------------------------
 
-Why I am encountering a ``MissingInputException`` when I try to run Snekmer?
-````````````````````````````````````````````````````````````````````````````
+MissingInputException
+`````````````````````
 
 Typically, this means that Snekmer is unable to detect input files,
 and the input files may not follow the required directory structure.
 For more information, including an example of the file structure
 needed, see :ref:`getting_started-configuration`.
+
+/bin/sh: line 0: cd: {PATH}: No such file or directory
+``````````````````````````````````````````````````````
+
+This is a `known issue with Snakemake v7.3.0+ <https://github.com/snakemake/snakemake/issues/1546>`_.
+Check your Snakemake version and reinstall a lower version if necessary
+(we recommend Snakemake v7.0).
+
+FileNotFoundError
+`````````````````
+
+This error usually indicates that the file system latency is not
+sufficiently long. In order words, the system is taking longer to
+create the file than Snakemake is allotting to wait for the file to
+be created. To troubleshoot this issue, we recommend increasing
+the ``--latency`` parameter (see :ref:`getting_started-all_options`).
+The default is set to 30 seconds, but the parameter can be adjusted
+to suit your individual system.
+
+General Usage Questions
+-----------------------
+
+My logs are very long, resulting in large log file sizes. How can I reduce this?
+````````````````````````````````````````````````````````````````````````````````
+
+By default, Snekmer logs all Snakemake output, including construction of the DAG
+and information about individual jobs. However, the default settings will produce
+very big log files if several files are being evaluated at once. To reduce the
+verbosity of output logs, we recommend invoking the ``--quiet`` parameter
+(see :ref:`getting_started-all_options`).
+
 
 Snekmer model mode is not working.
 ``````````````````````````````````

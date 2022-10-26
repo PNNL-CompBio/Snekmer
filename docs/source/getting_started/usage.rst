@@ -77,7 +77,7 @@ Mode-Specific Output Files
 The steps in the Snekmer pipeline generate their own associated output files.
 
 Snekmer Cluster Output Files
-............................
+::::::::::::::::::::::::::::
 
 Snekmer's cluster mode produces the following output files
 and directories in addition to the files described previously.
@@ -95,7 +95,7 @@ and directories in addition to the files described previously.
                 └── umap.png
 
 Snekmer Model Output Files
-..........................
+::::::::::::::::::::::::::
 
 Snekmer's model mode produces the following output files
 and directories in addition to the files described previously.
@@ -124,7 +124,7 @@ and directories in addition to the files described previously.
                 └── B/
 
 Snekmer Search Output Files
-...........................
+:::::::::::::::::::::::::::
 
 The ``snekmer search`` mode assumes that the user has pre-generated
 family models using the ``snekmer model`` workflow, and thus operates
