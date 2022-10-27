@@ -191,6 +191,31 @@ def get_argument_parser():
             "the snakefile will use this as their origin)."
         ),
     )
+    parser["smk"].add_argument(
+        "--forcerun",
+        "-R",
+        nargs="*",
+        metavar="TARGET",
+        help=(
+            "Force the re-execution or creation of the given rules or files."
+            " Use this option if you changed a rule and want to have all its "
+            "output in your workflow updated."
+        ),
+    )
+    parser["smk"].add_argument(
+        "--list-code-changes",
+        "--lc",
+        action="store_true",
+        help="List all output files for which the rule body (run or shell) have "
+        "changed in the Snakefile.",
+    )
+    parser["smk"].add_argument(
+        "--list-params-changes",
+        "--lp",
+        action="store_true",
+        help="List all output files for which the defined params have changed "
+        "in the Snakefile.",
+    )
 
     # clust execution options
     parser["clust"] = parser["smk"].add_argument_group("Cluster Execution Arguments")
@@ -278,11 +303,14 @@ def main():
             cluster=cluster,
             keepgoing=args.keepgoing,
             force_incomplete=True,
+            forcerun=args.forcerun,
             cores=args.cores,
             nodes=args.jobs,
             workdir=args.directory,
             dryrun=args.dryrun,
             unlock=args.unlock,
+            list_code_changes=args.list_code_changes,
+            list_params_changes=args.list_params_changes,
             until=args.until,
             touch=args.touch,
             latency_wait=args.latency,
@@ -299,11 +327,14 @@ def main():
             cluster=cluster,
             keepgoing=args.keepgoing,
             force_incomplete=True,
+            forcerun=args.forcerun,
             cores=args.cores,
             nodes=args.jobs,
             workdir=args.directory,
             dryrun=args.dryrun,
             unlock=args.unlock,
+            list_code_changes=args.list_code_changes,
+            list_params_changes=args.list_params_changes,
             until=args.until,
             touch=args.touch,
             latency_wait=args.latency,
@@ -320,11 +351,14 @@ def main():
             cluster=cluster,
             keepgoing=True,
             force_incomplete=True,
+            forcerun=args.forcerun,
             cores=args.cores,
             nodes=args.jobs,
             workdir=args.directory,
             dryrun=args.dryrun,
             unlock=args.unlock,
+            list_code_changes=args.list_code_changes,
+            list_params_changes=args.list_params_changes,
             until=args.until,
             touch=args.touch,
             latency_wait=args.latency,

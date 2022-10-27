@@ -34,6 +34,12 @@ created successfully and that Snekmer was indeed installed.
 Troubleshooting Error Messages
 ------------------------------
 
+If you encounter an error while using Snekmer, we recommend first
+checking the `Snakemake FAQs page <https://snakemake.readthedocs.io/en/stable/project_info/faq.html>`_
+for a solution. We have also listed some common error messages below.
+If your error message cannot be solved, feel free to let us know via
+`Github issues <https://github.com/PNNL-CompBio/Snekmer/issues>`_.
+
 MissingInputException
 `````````````````````
 
@@ -41,13 +47,6 @@ Typically, this means that Snekmer is unable to detect input files,
 and the input files may not follow the required directory structure.
 For more information, including an example of the file structure
 needed, see :ref:`getting_started-configuration`.
-
-/bin/sh: line 0: cd: {PATH}: No such file or directory
-``````````````````````````````````````````````````````
-
-This is a `known issue with Snakemake v7.3.0+ <https://github.com/snakemake/snakemake/issues/1546>`_.
-Check your Snakemake version and reinstall a lower version if necessary
-(we recommend Snakemake v7.0).
 
 FileNotFoundError
 `````````````````
@@ -59,6 +58,22 @@ be created. To troubleshoot this issue, we recommend increasing
 the ``--latency`` parameter (see :ref:`getting_started-all_options`).
 The default is set to 30 seconds, but the parameter can be adjusted
 to suit your individual system.
+
+/bin/sh: line 0: cd: {PATH}: No such file or directory
+``````````````````````````````````````````````````````
+
+This is a `known issue with Snakemake v7.3.0+ <https://github.com/snakemake/snakemake/issues/1546>`_.
+Check your Snakemake version and reinstall a lower version if necessary
+(we recommend Snakemake v7.0).
+
+Error: Directory cannot be locked.
+``````````````````````````````````
+The full error message should provide further instructions, but this
+error will appear when Snekmer has been unexpectedly terminated.
+Run ``snekmer {mode} --unlock`` (note: this command will not execute the
+workflow) before rerunning the workflow.
+
+If the error persists, delete the ``.snakemake`` directory and try again.
 
 General Usage Questions
 -----------------------
