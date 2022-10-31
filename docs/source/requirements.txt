@@ -1,7 +1,9 @@
 sphinx >=5
+sphinx-argparse
 sphinx-rtd-theme
 sphinx-copybutton
 sphinxcontrib-bibtex
+mock
 nbsphinx
 nbconvert==7.2.1
 mistune>=2
