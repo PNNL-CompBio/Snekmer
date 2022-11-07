@@ -62,14 +62,14 @@ The following output directories and files will always be created:
     ├── input/
     │   ├── A.fasta
     │   └── B.fasta
-    └── output/
-        ├── kmerize/
-        │   ├── A.kmers  # kmer labels for A
-        │   └── B.kmers  # kmer labels for B
-        ├── vector/
-        │   ├── A.npz    # sequences, sequence IDs, and kmer vectors for A
-        │   └── B.npz    # sequences, sequence IDs, and kmer vectors for B
-        └── ...
+    ├── output/
+    │   ├── kmerize/
+    │   │   ├── A.kmers  # kmer labels for A
+    │   │   └── B.kmers  # kmer labels for B
+    │   ├── vector/
+    │   │   ├── A.npz    # sequences, sequence IDs, and kmer vectors for A
+    │   │   └── B.npz    # sequences, sequence IDs, and kmer vectors for B
+    │   ├── ...
 
 Mode-Specific Output Files
 --------------------------
@@ -103,25 +103,25 @@ and directories in addition to the files described previously.
 .. code-block:: console
 
     .
-    └── output/
-        ├── ...
-        ├── scoring/
-        │   ├── A.matrix    # Similarity matrix for A seqs
-        │   ├── B.matrix    # Similarity matrix for B seqs
-        │   ├── A.scorer    # Object to apply A scoring model
-        │   ├── B.scorer    # Object to apply B scoring model
-        │   └── weights/
-        │       ├── A.csv.gz    # Kmer score weights in A kmer space
-        │       └── B.csv.gz    # Kmer score weights in B kmer space
-        └── model/
-            ├── A.model     # (A/not A) classification model
-            ├── B.model     # (B/not B) classification model
-            ├── results/    # Cross-validation results tables
-            │   ├── A.csv
-            │   └── B.csv
-            └── figures/      # Cross-validation results figures
-                ├── A/
-                └── B/
+    ├── output/
+    │   ├── ...
+    │   ├── scoring/
+    │   │   ├── A.matrix    # Similarity matrix for A seqs
+    │   │   ├── B.matrix    # Similarity matrix for B seqs
+    │   │   ├── A.scorer    # Object to apply A scoring model
+    │   │   ├── B.scorer    # Object to apply B scoring model
+    │   │   └── weights/
+    │   │       ├── A.csv.gz    # Kmer score weights in A kmer space
+    │   │       └── B.csv.gz    # Kmer score weights in B kmer space
+    │   ├── model/
+    │   │   ├── A.model     # (A/not A) classification model
+    │   │   ├── B.model     # (B/not B) classification model
+    │   │   ├── results/    # Cross-validation results tables
+    │   │   │   ├── A.csv
+    │   │   │   └── B.csv
+    │   │   └── figures/      # Cross-validation results figures
+    │   │       ├── A/
+    │   │       └── B/
 
 Snekmer Search Output Files
 :::::::::::::::::::::::::::

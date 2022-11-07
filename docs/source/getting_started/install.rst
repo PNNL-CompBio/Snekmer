@@ -1,23 +1,34 @@
 Installation
 ============
 
-We recommend using `Anaconda <https://www.anaconda.com/download/>`_
-to handle installation. Anaconda will manage dependencies and
-versioning, which simplifies the process of installation.
+We recommend `Mamba <https://mamba.readthedocs.io/en/latest/installation.html>`_
+for installation handling. `Conda <https://www.anaconda.com/download/>`_ can be
+used as an alternative, but Conda can take a long time to resolve dependencies,
+thus rendering installation via Conda
+significantly slower than installation via Mamba. Mamba/Conda will
+both manage dependencies and versioning, which simplifies the
+process of installation.
 
-Install Snekmer
----------------
-
-Use conda to install an environment from the YML file with Snekmer and
-all of its dependencies. (Note: Users may either download the
-`YML file <https://github.com/PNNL-CompBio/Snekmer/blob/main/environment.yml>`_
-directly from the repository, or clone the repository beforehand
-using the ``git clone`` command.)
+If you already have Conda but wish to use Mamba for installation,
+you can install Mamba by running the following:
 
 .. code-block:: bash
 
-	conda env create -f environment.yml
+  conda install -c conda-forge mamba
 
+Install Snekmer via Mamba/Conda
+-------------------------------
+
+The simplest method for installation is via the included YML file, which will create
+a new environment containing Snekmer and all of its dependencies. Users may either
+directly download the
+`YML file <https://github.com/PNNL-CompBio/Snekmer/blob/main/environment.yml>`_
+directly, or clone/fork the repository to obtain a local copy of the repository and all
+included files.
+
+.. code-block:: bash
+
+	mamba env create -f environment.yml
 
 Note that if you want to use the optional Blazing Signature Filter (BSF) to
 speed up clustering you must follow the BSF installation instructions below
@@ -25,7 +36,7 @@ and then you can use the alternate conda environment.
 
 .. code-block:: bash
 
-  conda env create -f environment_BSF.yml
+  mamba env create -f environment_BSF.yml
 
 After the install completes activate the conda environment
 
@@ -35,16 +46,20 @@ After the install completes activate the conda environment
 
 The package should now be ready to use!
 
+Note that the instructions above can be replicated, subsituting ``mamba``
+for ``conda``, for users who wish to use Conda to manage installation.
+
 Troubleshooting Notes
 `````````````````````
 
-If you are a Windows user and running into conflicts/errors when
-creating the conda environment, you may need to install the minimal
-version of Snakemake:
+The full version of Snakemake is
+`incompatible with Windows <https://snakemake.readthedocs.io/en/stable/getting_started/installation.html#full-installation>`_.
+Thus, you will need to install the environment specifications that
+include only the minimal version of Snakemake:
 
 .. code-block:: bash
 
-  conda create -n snekmer -c conda-forge -c bioconda -c numba python>=3.9 biopython matplotlib numpy>=1.22.3 numba>=0.56 scipy pandas seaborn snakemake-minimal==7.0 scikit-learn
+  mamba env create -f environment_Windows.yml
 
 .. Install Snekmer
 .. ---------------
@@ -66,6 +81,22 @@ version of Snakemake:
 
 ..   # option 2: direct install (no repository download required)
 ..   pip install git+https://github.com/PNNL-CompBio/Snekmer
+
+Install Snekmer via pip
+-----------------------
+
+**Warning:** Installation of Snekmer using ``pip`` is not recommended due to the complexity
+of dependencies associated with Snakemake. Mamba/Conda will handle these automatically,
+whereas ``pip`` will not.
+
+The ``pip`` implementation has not been fully tested, but users may attempt installation
+using the included specifications:
+
+.. code-block:: bash
+
+  pip install -r requirements.txt
+  pip install -e git+https://github.com/PNNL-CompBio/Snekmer#egg=snekmer
+
 
 (optional) Install GCC for BSF
 ------------------------------
@@ -117,7 +148,7 @@ Windows or Linux/Unix
 `````````````````````
 
 Please refer to the
-`BSF documentation <https://github.com/PNNL-Compbio/bsf-jaccard-py#install-gcc-49-or-newers>`_
+`BSF documentation <https://github.com/PNNL-CompBio/bsf-jaccard-py#install-gcc-49-or-newers>`_
 for Linux/Unix or Windows instructions for installing GCC.
 
 BSF Install for Snekmer Use
@@ -126,4 +157,4 @@ In the snekmer conda environment use the command
 
 .. code-block:: bash
 
-   pip install git+https://github.com/PNNL-Compbio/bsf-jaccard-py#egg=bsf
+   pip install git+https://github.com/PNNL-CompBio/bsf-jaccard-py#egg=bsf
