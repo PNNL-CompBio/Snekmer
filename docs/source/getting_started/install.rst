@@ -46,7 +46,7 @@ After the install completes activate the conda environment
 
 The package should now be ready to use!
 
-Note that the instructions above can be replicated, subsituting ``mamba``
+Note that the instructions above can be replicated, substituting ``mamba``
 for ``conda``, for users who wish to use Conda to manage installation.
 
 Troubleshooting Notes
