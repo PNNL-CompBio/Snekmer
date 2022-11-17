@@ -57,9 +57,8 @@ def get_argument_parser():
     )
     parser["smk"].add_argument(
         "--configfile",
-        "--configfiles",
         nargs="+",
-        metavar="FILE",
+        metavar="PATH",
         help=(
             "Specify or overwrite the config file of the workflow (see the docs). "
             "Values specified in JSON or YAML format are available in the global config "
