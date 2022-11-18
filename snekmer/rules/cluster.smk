@@ -115,10 +115,10 @@ use rule vectorize from kmerize with:
     input:
         fasta=lambda wildcards: join(input_dir, f"{wildcards.nb}.{FA_MAP[wildcards.nb]}"),
     output:
-        data=join("output", "vector", "{nb}.npz"),
-        kmerobj=join("output", "kmerize", "{nb}.kmers"),
+        data=join(out_dir, "vector", "{nb}.npz"),
+        kmerobj=join(out_dir, "kmerize", "{nb}.kmers"),
     log:
-        join("output", "kmerize", "log", "{nb}.log"),
+        join(out_dir, "kmerize", "log", "{nb}.log"),
 
 # [in-progress] kmer walk
 # if config['walk']:
@@ -134,9 +134,6 @@ rule cluster:
         data=expand(join("output", "vector", "{fa}.npz"), fa=NON_BGS),
     output:
         figs = directory(join(out_dir, "cluster", "figures")),
-        # pca=join(out_dir, "cluster", "figures", "pca_explained_variance_curve.png"),
-        # tsne=join(out_dir, "cluster", "figures", "tsne.png"),
-        # umap=join(out_dir, "cluster", "figures", "umap.png"),
         table=join(out_dir, "cluster", "snekmer.csv")
     log:
         join(out_dir, "cluster", "log", "cluster.log"),
@@ -342,9 +339,6 @@ rule cluster:
 rule cluster_report:
     input:
         figs=rules.cluster.output.figs,
-        # pca=rules.cluster.output.pca,
-        # tsne=rules.cluster.output.tsne,
-        # umap=rules.cluster.output.umap,
         table=rules.cluster.output.table
     output:
         join(out_dir, 'Snekmer_Cluster_Report.html')

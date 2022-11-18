@@ -106,24 +106,24 @@ use rule vectorize from kmerize with:
     input:
         fasta=lambda wildcards: join("input", f"{wildcards.nb}.{FA_MAP[wildcards.nb]}"),
     output:
-        data=join("output", "vector", "{nb}.npz"),
-        kmerobj=join("output", "kmerize", "{nb}.kmers"),
+        data=join(out_dir, "vector", "{nb}.npz"),
+        kmerobj=join(out_dir, "kmerize", "{nb}.kmers"),
     log:
-        join("output", "kmerize", "log", "{nb}.log"),
+        join(out_dir, "kmerize", "log", "{nb}.log"),
 
 
 # build family score basis
 rule score:
     input:
-        kmerobj=join("output", "kmerize", "{nb}.kmers"),
-        data=expand(join("output", "vector", "{fa}.npz"), fa=NON_BGS),
+        kmerobj=join(out_dir, "kmerize", "{nb}.kmers"),
+        data=expand(join(out_dir, "vector", "{fa}.npz"), fa=NON_BGS),
     output:
-        data=join("output", "scoring", "sequences", "{nb}.csv.gz"),
-        weights=join("output", "scoring", "weights", "{nb}.csv.gz"),
-        scorer=join("output", "scoring", "{nb}.scorer"),
-        matrix=join("output", "scoring", "{nb}.matrix"),
+        data=join(out_dir, "scoring", "sequences", "{nb}.csv.gz"),
+        weights=join(out_dir, "scoring", "weights", "{nb}.csv.gz"),
+        scorer=join(out_dir, "scoring", "{nb}.scorer"),
+        matrix=join(out_dir, "scoring", "{nb}.matrix"),
     log:
-        join("output", "scoring", "log", "{nb}.log"),
+        join(out_dir, "scoring", "log", "{nb}.log"),
     run:
         # log script start time
         start_time = datetime.now()
@@ -249,9 +249,9 @@ rule model:
         kmerobj=rules.score.input.kmerobj,
         matrix=rules.score.output.matrix
     output:
-        model=join("output", "model", "{nb}.model"),
-        results=join("output", "model", "results", "{nb}.csv"),
-        figs=directory(join("output", "model", "figures", "{nb}")),
+        model=join(out_dir, "model", "{nb}.model"),
+        results=join(out_dir, "model", "results", "{nb}.csv"),
+        figs=directory(join(out_dir, "model", "figures", "{nb}")),
     run:
         # create lookup table to match vector to sequence by file+ID
         #lookup = {}
@@ -452,8 +452,8 @@ rule model:
 
 rule model_report:
     input:
-        results=expand(join("output", "model", "results", "{nb}.csv"), nb=NON_BGS),
-        figs=expand(join("output", "model", "figures", "{nb}"), nb=NON_BGS),
+        results=expand(join(out_dir, "model", "results", "{nb}.csv"), nb=NON_BGS),
+        figs=expand(join(out_dir, "model", "figures", "{nb}"), nb=NON_BGS),
     output:
         join(out_dir, 'Snekmer_Model_Report.html')
     run:
