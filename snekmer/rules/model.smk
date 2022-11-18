@@ -90,7 +90,7 @@ out_dir = skm.io.define_output_dir(
 rule all:
     input:
         expand(join("input", "{uz}"), uz=UZS),  # require unzipping
-        expand(join("output", "model", "{nb}.model"), nb=NON_BGS),  # require model-building
+        expand(join(out_dir, "model", "{nb}.model"), nb=NON_BGS),  # require model-building
         join(out_dir, 'Snekmer_Model_Report.html'),
 
 
