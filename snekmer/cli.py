@@ -57,7 +57,6 @@ def get_argument_parser():
     )
     parser["smk"].add_argument(
         "--configfile",
-        nargs="+",
         metavar="PATH",
         help=(
             "Specify or overwrite the config file of the workflow (see the docs). "
