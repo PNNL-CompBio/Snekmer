@@ -41,8 +41,7 @@ from scipy.spatial.distance import squareform
 from scipy.spatial.distance import pdist, jaccard
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegressionCV
-from sklearn.model_selection import (StratifiedKFold, cross_val_score,
-                                     train_test_split)
+from sklearn.model_selection import StratifiedKFold, cross_val_score, train_test_split
 from sklearn.preprocessing import LabelEncoder
 from sklearn.tree import DecisionTreeClassifier
 from umap import UMAP
@@ -51,6 +50,7 @@ try:
     # make this conditional on the library being installed
     import bsf
     BSF_PRESENT = True
+
 except ImportError:
     BSF_PRESENT = False
 
@@ -58,7 +58,11 @@ except ImportError:
 plt.switch_backend("Agg")
 
 # collect all fasta-like files, unzipped filenames, and basenames
-input_dir = "input" if (("input_dir" not in config) or (str(config["input_dir"]) == "None")) else config["input_dir"]
+input_dir = (
+    "input"
+    if (("input_dir" not in config) or (str(config["input_dir"]) == "None"))
+    else config["input_dir"]
+)
 input_files = glob(join(input_dir, "*"))
 zipped = [fa for fa in input_files if fa.endswith(".gz")]
 unzipped = [
@@ -95,12 +99,12 @@ out_dir = skm.io.define_output_dir(
     config["alphabet"], config["k"], nested=config["nested_output"]
 )
 
+
 # define output files to be created by snekmer
 rule all:
     input:
         expand(join("input", "{uz}"), uz=UZS),  # require unzipping
-        join(out_dir, 'Snekmer_Cluster_Report.html')
-        # join(out_dir, "cluster", "snekmer.csv"),  # require cluster-building
+        join(out_dir, "Snekmer_Cluster_Report.html")
 
 
 # if any files are gzip zipped, unzip them
@@ -113,12 +117,15 @@ use rule unzip from process with:
 # build kmer count vectors for each basis set
 use rule vectorize from kmerize with:
     input:
-        fasta=lambda wildcards: join(input_dir, f"{wildcards.nb}.{FA_MAP[wildcards.nb]}"),
+        fasta=lambda wildcards: join(
+            input_dir, f"{wildcards.nb}.{FA_MAP[wildcards.nb]}"
+        ),
     output:
         data=join(out_dir, "vector", "{nb}.npz"),
         kmerobj=join(out_dir, "kmerize", "{nb}.kmers"),
     log:
         join(out_dir, "kmerize", "log", "{nb}.log"),
+
 
 # [in-progress] kmer walk
 # if config['walk']:
@@ -133,8 +140,8 @@ rule cluster:
         kmerobj=expand(join("output", "kmerize", "{fa}.kmers"), fa=NON_BGS),
         data=expand(join("output", "vector", "{fa}.npz"), fa=NON_BGS),
     output:
-        figs = directory(join(out_dir, "cluster", "figures")),
-        table=join(out_dir, "cluster", "snekmer.csv")
+        figs=directory(join(out_dir, "cluster", "figures")),
+        table=join(out_dir, "cluster", "snekmer.csv"),
     log:
         join(out_dir, "cluster", "log", "cluster.log"),
     run:
@@ -158,7 +165,7 @@ rule cluster:
             kobj = skm.io.load_pickle(kfile)
             klist = kobj.kmer_set._kmerlist
             kmers.append(klist)
-            # basis.extend(klist)
+        # basis.extend(klist)
 
         # make a superset of kmers
         kmerbasis = np.unique(np.hstack(kmers))
@@ -181,7 +188,9 @@ rule cluster:
 
         # define feature matrix of kmer vectors not from background set
         bg, non_bg = data[data["background"]], data[~data["background"]]
-        full_feature_matrix = skm.utils.to_feature_matrix(data["sequence_vector"].values)
+        full_feature_matrix = skm.utils.to_feature_matrix(
+            data["sequence_vector"].values
+        )
         feature_matrix = skm.utils.to_feature_matrix(non_bg["sequence_vector"].values)
 
         # filter by kmer occurrence
@@ -204,7 +213,10 @@ rule cluster:
         # if len(bg) > 0:
         #     bg_feature_matrix = skm.utils.to_feature_matrix(bg["sequence_vector"].values)
         # kludge to check on options for agglomerative Clustering
-        if "n_clusters" in config["cluster"]["params"] and config["cluster"]["params"]["n_clusters"] == 'None':
+        if (
+            "n_clusters" in config["cluster"]["params"]
+            and config["cluster"]["params"]["n_clusters"] == 'None'
+        ):
             config["cluster"]["params"]["n_clusters"] = None
             config["cluster"]["params"]["compute_full_tree"] = True
 
@@ -214,7 +226,9 @@ rule cluster:
         )
 
         # for bsf, make the input matrix a distance matrix
-        if config["cluster"]["method"] in ["density-jaccard", "hdensity-jaccard", "agglomerative-jaccard"]:
+        if config["cluster"]["method"] in [
+            "density-jaccard", "hdensity-jaccard", "agglomerative-jaccard"
+        ]:
             # print BSF status
             output_bsf = join(dirname(output.table), "bsf")
             if not exists(output_bsf):
@@ -223,7 +237,9 @@ rule cluster:
             # if available, use BSF to create clustering distance matrix
             if BSF_PRESENT:
                 print("Using BSF to compute distance matrix...")
-                full_feature_matrix = np.array(full_feature_matrix, dtype=np.uint64) # bsf requires uint64
+                full_feature_matrix = np.array(
+                    full_feature_matrix, dtype=np.uint64
+                ) # bsf requires uint64
 
                 # the filename that bsf creates you can't specify exactly
                 # but we can reconstruct it here - this will likely break
@@ -247,8 +263,10 @@ rule cluster:
                     print("Using existing BSF similarity matrix...")
 
                 with open(bsfname, "rb") as f:
-                    bsf_mat = np.frombuffer(f.read(), dtype=np.uint32).reshape((nsign, nsign))
-                    # bsf_mat = np.frombuffer(f.read(), dtype=np.double).reshape((nsign, nsign))
+                    bsf_mat = np.frombuffer(f.read(), dtype=np.uint32).reshape(
+                        (nsign, nsign)
+                    )
+                # bsf_mat = np.frombuffer(f.read(), dtype=np.double).reshape((nsign, nsign))
 
                 # this is great for diagnostics - but takes a lot of time/space for large
                 # comparisons
@@ -266,7 +284,7 @@ rule cluster:
                 # this gives Jaccard similarity (since all vectors are the same length)
                 # and subtracting it from 1 gives a distance
                 # bsf_mat = 1.0 - (bsf_mat / 100)
-                bsf_mat = (100 - bsf_mat)/100.0
+                bsf_mat = (100 - bsf_mat) / 100.0
 
             else:
                 # If bsf isn't available we'll use scipy to
@@ -277,12 +295,14 @@ rule cluster:
                 res = pdist(full_feature_matrix, "jaccard")
                 bsf_mat = squareform(res)
 
-            #dist_thresh = config["cluster"]["dist_thresh"]
-            #bsf_mat[bsf_mat > dist_thresh] = 100
+            # dist_thresh = config["cluster"]["dist_thresh"]
+            # bsf_mat[bsf_mat > dist_thresh] = 100
 
             # output matrix for diagnostics - time/space heavy for large comparisons
             if config["cluster"]["save_matrix"] is True:
-                   np.savetxt(join(output_bsf, "bsf_matrix.csv"), bsf_mat, fmt="%.3f", delimiter=",")
+                np.savetxt(
+                    join(output_bsf, "bsf_matrix.csv"), bsf_mat, fmt="%.3f", delimiter=","
+                )
 
             model.fit(bsf_mat)
         else:
@@ -292,7 +312,7 @@ rule cluster:
 
         # save output
         data["cluster"] = model.labels_
-        data = data.drop(columns=["sequence","sequence_vector"])
+        data = data.drop(columns=["sequence", "sequence_vector"])
         data.to_csv(output.table, index=False)
 
         # with open(output.clusters, "wb") as f:
@@ -300,7 +320,7 @@ rule cluster:
 
         # always create output figure directory
         if not exists(output.figs):
-                makedirs(output.figs)
+            makedirs(output.figs)
 
         # log time to compute clusters
         skm.utils.log_runtime(log[0], start_time, step="clustering")
@@ -336,22 +356,29 @@ rule cluster:
         # record script endtime
         skm.utils.log_runtime(log[0], start_time)
 
+
 rule cluster_report:
     input:
         figs=rules.cluster.output.figs,
-        table=rules.cluster.output.table
+        table=rules.cluster.output.table,
     output:
-        join(out_dir, 'Snekmer_Cluster_Report.html')
+        join(out_dir, "Snekmer_Cluster_Report.html")
     run:
         # check for figures
         if str(config["cluster"]["cluster_plots"]) == "True":
             fig_params = {
                 "image1_name": "PCA Explained Variance",
-                "image1_path": skm.report.correct_rel_path(join(input.figs, "pca_explained_variance_curve.png")),
+                "image1_path": skm.report.correct_rel_path(
+                    join(input.figs, "pca_explained_variance_curve.png")
+                ),
                 "image2_name": "Clusters (UMAP)",
-                "image2_path": skm.report.correct_rel_path(join(input.figs, "umap.png")),
+                "image2_path": skm.report.correct_rel_path(
+                    join(input.figs, "umap.png")
+                ),
                 "image3_name": "Clusters (t-SNE)",
-                "image3_path": skm.report.correct_rel_path(join(input.figs, "tsne.png")),
+                "image3_path": skm.report.correct_rel_path(
+                    join(input.figs, "tsne.png")
+                ),
             }
         else:
             fig_params = {
@@ -371,10 +398,10 @@ rule cluster_report:
                 "Snekmer clustering results are linked below. "
                 "If `cluster_plots` are enabled in the config, "
                 "they will be shown below."
-                ),
+            ),
             "dir": dirname(skm.report.correct_rel_path(input.table)),
             "table": skm.report.correct_rel_path(input.table),
             **fig_params
-            }
+        }
 
         skm.report.create_report(cluster_vars, "cluster", output[0])

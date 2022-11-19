@@ -28,6 +28,7 @@ from sklearn.preprocessing import LabelEncoder
 
 import snekmer as skm
 
+
 # load modules
 module process:
     snakefile:
@@ -47,7 +48,11 @@ module kmerize:
 plt.switch_backend("Agg")
 
 # collect all fasta-like files, unzipped filenames, and basenames
-input_dir = "input" if (("input_dir" not in config) or (str(config["input_dir"]) == "None")) else config["input_dir"]
+input_dir = (
+    "input"
+    if (("input_dir" not in config) or (str(config["input_dir"]) == "None"))
+    else config["input_dir"]
+)
 input_files = glob(join(input_dir, "*"))
 zipped = [fa for fa in input_files if fa.endswith(".gz")]
 unzipped = [
@@ -91,7 +96,7 @@ rule all:
     input:
         expand(join("input", "{uz}"), uz=UZS),  # require unzipping
         expand(join(out_dir, "model", "{nb}.model"), nb=NON_BGS),  # require model-building
-        join(out_dir, 'Snekmer_Model_Report.html'),
+        join(out_dir, "Snekmer_Model_Report.html"),
 
 
 # if any files are gzip zipped, unzip them
@@ -219,9 +224,9 @@ rule score:
         # log time to compute class probabilities
         skm.utils.log_runtime(log[0], start_time, step="class_probabilities")
 
-        # this will be redundnat with the output csv file - except that
+        # this will be redundant with the output csv file - except that
         #      it will have the harmonized matrix included with it
-        with(open(output.matrix, "wb") as f):
+        with open(output.matrix, "wb") as f:
             pickle.dump(data, f)
 
         # save all files to respective outputs
@@ -247,15 +252,15 @@ rule model:
         data=rules.score.output.data,
         weights=rules.score.output.weights,
         kmerobj=rules.score.input.kmerobj,
-        matrix=rules.score.output.matrix
+        matrix=rules.score.output.matrix,
     output:
         model=join(out_dir, "model", "{nb}.model"),
         results=join(out_dir, "model", "results", "{nb}.csv"),
         figs=directory(join(out_dir, "model", "figures", "{nb}")),
     run:
         # create lookup table to match vector to sequence by file+ID
-        #lookup = {}
-        #for f in input.raw:
+        # lookup = {}
+        # for f in input.raw:
         #    loaded = np.load(f)
         #    lookup.update(
         #        {
@@ -263,18 +268,18 @@ rule model:
         #            for seq_id, seq_vec in zip(loaded["ids"], loaded["vecs"])
         #        }
         #    )
-        #print(lookup)
+        # print(lookup)
         with open(input.matrix, "rb") as f:
             matrix = pickle.load(f)
 
         data = matrix
 
         # load all input data and encode rule-wide variables
-        #data = pd.read_csv(input.data)
-        #data["sequence_vector"] = [
+        # data = pd.read_csv(input.data)
+        # data["sequence_vector"] = [
         #    lookup[(seq_f, seq_id)]
         #    for seq_f, seq_id in zip(data["filename"], data["sequence_id"])
-        #]
+        # ]
 
         scores = pd.read_csv(input.weights)
         family = skm.utils.get_family(
@@ -410,7 +415,8 @@ rule model:
                     f"{family}_roc-auc-curve_{alphabet_name.lower()}"
                     f"_k-{config['k']:02d}.png"
                 ),
-            ), dpi=fig.dpi
+            ),
+            dpi=fig.dpi
         )
         fig.clf()
         plt.close("all")
@@ -436,7 +442,8 @@ rule model:
                     f"{family}_aupr-curve_{alphabet_name.lower()}"
                     f"_k-{config['k']:02d}.png"
                 ),
-            ), dpi=fig.dpi
+            ),
+            dpi=fig.dpi
         )
         fig.clf()
         plt.close("all")
@@ -455,7 +462,7 @@ rule model_report:
         results=expand(join(out_dir, "model", "results", "{nb}.csv"), nb=NON_BGS),
         figs=expand(join(out_dir, "model", "figures", "{nb}"), nb=NON_BGS),
     output:
-        join(out_dir, 'Snekmer_Model_Report.html')
+        join(out_dir, "Snekmer_Model_Report.html")
     run:
         fig_dir = dirname(input.figs[0])
         tab_dir = dirname(input.results[0])
@@ -468,13 +475,9 @@ rule model_report:
                 f"({config['model']['cv']}-Fold Cross-Validation) "
                 f"are below."
             ),
-            dir=skm.report.correct_rel_path(tab_dir)
+            dir=skm.report.correct_rel_path(tab_dir),
         )
 
         skm.report.create_report_many_images(
-            fig_dir,
-            tab_dir,
-            model_vars,
-            "model",
-            output[0]
+            fig_dir, tab_dir, model_vars, "model", output[0]
         )
