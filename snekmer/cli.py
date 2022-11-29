@@ -133,8 +133,9 @@ def get_argument_parser():
         "--cores",
         "-c",
         action="store",
-        const=cpu_count(),
-        nargs="?",
+        default=cpu_count(),
+        type=int,
+        # nargs="?",
         metavar="N",
         help=(
             "Use at most N CPU cores/jobs in parallel. "
