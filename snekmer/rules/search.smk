@@ -148,6 +148,8 @@ rule common_basis:  # build kmer count vectors for each basis set
 
 
 
+
+
 use rule vectorize from kmerize with:
     input:
         fasta=lambda wildcards: join(
