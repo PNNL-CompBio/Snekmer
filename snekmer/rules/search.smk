@@ -116,10 +116,9 @@ if len(UZS) > 0:
     use rule unzip from process with:
         output:
             join("input", "{uz}"),  # or join("input", "{uz}.{uzext}") ?
-# build kmer count vectors for each basis set
 
 
-rule common_basis:
+rule common_basis:  # build kmer count vectors for each basis set
     input:
         kmerobjs=expand(join(config["basis_dir"], "{fam}.kmers"), fam=FAMILIES),
     output:
@@ -146,6 +145,7 @@ rule common_basis:
                 f.write(f"{kmer}\n")
         # df = pd.DataFrame({'common': common_basis})
         # df.to_csv(output.kmerbasis, index=False)
+
 
 
 use rule vectorize from kmerize with:
