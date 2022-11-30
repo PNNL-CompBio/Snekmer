@@ -68,12 +68,21 @@ Check your Snakemake version and reinstall a lower version if necessary
 
 Error: Directory cannot be locked.
 ``````````````````````````````````
+
 The full error message should provide further instructions, but this
 error will appear when Snekmer has been unexpectedly terminated.
 Run ``snekmer {mode} --unlock`` (note: this command will not execute the
 workflow) before rerunning the workflow.
 
 If the error persists, delete the ``.snakemake`` directory and try again.
+
+AttributeError in _load_configfile
+``````````````````````````````````
+Typically, this error arises if the path to the config.yaml file is not
+specified correctly. To resolve this error, check that your config.yaml
+file is located in the same directory from which you are executing Snekmer.
+You can also specify the location of the config.yaml file,
+e.g. ``snekmer {mode} --configfile /path/to/config.yaml``, to fix the issue.
 
 General Usage Questions
 -----------------------
