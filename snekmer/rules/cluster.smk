@@ -23,6 +23,7 @@ module kmerize:
 from glob import glob
 from itertools import product
 from os.path import basename, dirname, join
+from pkg_resources import resource_filename
 
 import matplotlib.pyplot as plt
 import numpy as np
