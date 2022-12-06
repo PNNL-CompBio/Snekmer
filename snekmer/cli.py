@@ -5,11 +5,11 @@ author: @christinehc, @biodataganache, @snakemake
 """
 # imports
 import argparse
+import os
 
 from multiprocessing import cpu_count
-from os.path import join
 from pkg_resources import resource_filename
-from snakemake import snakemake, parse_config
+from snakemake import snakemake, parse_config, get_profile_file
 from snekmer import __version__
 
 # define options
@@ -57,6 +57,8 @@ def get_argument_parser():
     )
     parser["smk"].add_argument(
         "--configfile",
+        nargs="+",
+        # default="config.yaml",
         metavar="PATH",
         help=(
             "Specify or overwrite the config file of the workflow (see the docs). "
@@ -220,6 +222,7 @@ def get_argument_parser():
     parser["clust"] = parser["smk"].add_argument_group("Cluster Execution Arguments")
     parser["clust"].add_argument(
         "--clust",
+        nargs="+",
         metavar="PATH",
         help="Path to cluster execution yaml configuration file.",
     )
@@ -292,11 +295,22 @@ def main():
     else:
         cluster = None
 
+    # fix configfile path
+    if args.configfile is None:
+        configfile = ["config.yaml"]
+    else:
+        configfile = args.configfile
+
+    if (args.directory is not None) and (args.configfile is None):
+        configfile = [os.path.join(args.directory, c) for c in configfile]
+    else:
+        configfile = list(map(os.path.abspath, configfile))
+
     # parse operation mode
     if args.mode == "cluster":
         snakemake(
-            resource_filename("snekmer", join("rules", "cluster.smk")),
-            configfiles=[args.configfile],
+            resource_filename("snekmer", os.path.join("rules", "cluster.smk")),
+            configfiles=configfile,
             config=config,
             cluster_config=args.clust,
             cluster=cluster,
@@ -319,8 +333,8 @@ def main():
 
     elif args.mode == "model":
         snakemake(
-            resource_filename("snekmer", join("rules", "model.smk")),
-            configfiles=[args.configfile],
+            resource_filename("snekmer", os.path.join("rules", "model.smk")),
+            configfiles=configfile,
             config=config,
             cluster_config=args.clust,
             cluster=cluster,
@@ -343,8 +357,8 @@ def main():
 
     elif args.mode == "search":
         snakemake(
-            resource_filename("snekmer", join("rules", "search.smk")),
-            configfiles=[args.configfile],
+            resource_filename("snekmer", os.path.join("rules", "search.smk")),
+            configfiles=configfile,
             config=config,
             cluster_config=args.clust,
             cluster=cluster,
