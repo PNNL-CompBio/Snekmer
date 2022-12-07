@@ -134,10 +134,8 @@ def get_argument_parser():
     parser["smk"].add_argument(
         "--cores",
         "-c",
-        action="store",
         default=cpu_count(),
         type=int,
-        # nargs="?",
         metavar="N",
         help=(
             "Use at most N CPU cores/jobs in parallel. "
