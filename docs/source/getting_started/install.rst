@@ -97,6 +97,30 @@ using the included specifications:
   pip install -r requirements.txt
   pip install -e git+https://github.com/PNNL-CompBio/Snekmer#egg=snekmer
 
+Install Snekmer via Docker
+-----------------------
+
+Snekmer has been installed into a  public docker image hosted on `Dockerhub <https://hub.docker.com/repository/docker/jjacobson95/snekmer_env>`_. Usage  requires the of installation of `Docker Desktop <https://docs.docker.com/desktop/>`_. This container is intended to be used via an interactive shell. Here, we provide the simplest method of usage.
+
+To download and run a container:
+
+.. code-block:: bash
+
+  docker pull jjacobson95/snekmer_env:v1.0
+  docker run jjacobson95/snekmer_env:v1.0
+
+
+To use the command line interface within the container:
+
+.. code-block:: bash
+
+  docker ps       #This will display <container ID>
+  docker exec -it <container ID> /bin/bash
+
+
+Additional 'docker' commands could be used to copy data into the container or to mount it to a local directory.   
+**Note:** This container is designed to run indefinitely and should be stopped after use.
+
 
 (optional) Install GCC for BSF
 ------------------------------
