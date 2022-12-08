@@ -40,9 +40,7 @@ plt.switch_backend("Agg")
 #    )
 # print(lookup)
 with open(snakemake.input.matrix, "rb") as f:
-    matrix = pickle.load(f)
-
-data = matrix
+    data = pickle.load(f)
 
 # load all input data and encode rule-wide variables
 # data = pd.read_csv(input.data)

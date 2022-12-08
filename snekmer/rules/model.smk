@@ -52,7 +52,9 @@ unzipped = [
     fa.rstrip(".gz")
     for fa, ext in product(input_files, config["input_file_exts"])
     if fa.rstrip(".gz").endswith(f".{ext}")
+    and skm.utils.check_n_seqs(fa, config["model"]["cv"], show_warning=False)
 ]
+
 
 # map extensions to basename (basename.ext.gz -> {basename: ext})
 UZ_MAP = {
@@ -61,6 +63,11 @@ UZ_MAP = {
 FA_MAP = {
     skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in unzipped
 }
+
+# final file map: checks that files are large enough for model building
+# FA_MAP = {
+#     k: v for k, v in f_map.items() if skm.utils.check_n_seqs(k, config["model"]["cv"])
+# }
 
 # get unzipped filenames
 UZS = [f"{f}.{ext}" for f, ext in UZ_MAP.items()]
@@ -82,6 +89,11 @@ out_dir = skm.io.define_output_dir(
     config["alphabet"], config["k"], nested=config["nested_output"]
 )
 
+# show warnings if files excluded
+onstart:
+    [
+        skm.utils.check_n_seqs(fa, config["model"]["cv"], show_warning=True) for fa in input_files
+    ]
 
 # define output files to be created by snekmer
 rule all:
