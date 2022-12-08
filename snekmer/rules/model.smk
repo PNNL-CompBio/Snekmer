@@ -89,11 +89,14 @@ out_dir = skm.io.define_output_dir(
     config["alphabet"], config["k"], nested=config["nested_output"]
 )
 
+
 # show warnings if files excluded
 onstart:
     [
-        skm.utils.check_n_seqs(fa, config["model"]["cv"], show_warning=True) for fa in input_files
+        skm.utils.check_n_seqs(fa, config["model"]["cv"], show_warning=True)
+        for fa in input_files
     ]
+
 
 # define output files to be created by snekmer
 rule all:
