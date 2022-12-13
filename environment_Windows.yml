@@ -16,6 +16,7 @@ dependencies:
   - seaborn
   - scikit-learn
   - snakemake-minimal == 7.0
+  - tabulate == 0.8.10
   - umap-learn
   - hdbscan
   - pip
