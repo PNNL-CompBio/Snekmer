@@ -1,0 +1,63 @@
+Running Learn / Apply.
+
+Added to config file -
+#learn apply parameters
+learnapp:
+  type: cosine  # options are cosine (best), score (poor), score_enhanced (so-so).  
+  save_summary: True    #this adds time to the run, but allows you to see ranked top annotation matches.
+  summary_topN: 1000   #choose the topN annotation matches that you want to see.  
+  save_apply_associations: False    # generally not needed to be saved. maybe for score or score_enhanced
+  save_results: True  #this will output the end matrix of sequence and annotation score.
+
+###
+#To Run "score" or "score_enhanced"
+#In Directory 1 (snek_learn)
+Place training files in 'input'.
+Place Interpro Annotations in 'annotations'
+Check config file. Best so far has been library 0, kmer 14.  ("type" option in learnapp config)
+Run 'learn'
+
+#In Directory 2  (snek_apply)
+Now it is time to run apply.
+Place validation/unknown files in 'input'. (This must be different from the intital learn input)
+Within 'input', create 'compare' directory. 
+In 'compare, place the output of learn. "output/learn/kmer-associations.csv".
+Place Interpro Annotations in 'annotations'.  This is needed for validation phases.
+Check config file. Use the same one as in learn.
+Run 'apply'.
+
+
+###
+#To Run "cosine"
+#In Directory 1 (snek_learn)
+Place training files in 'input'.
+Place Interpro Annotations in 'annotations'
+Check config file. Best so far has been library 0, kmer 8. #Note this is the only one tested with the latest version of cosine.
+Run 'learn'
+
+#In Directory 2  (snek_apply)
+Now it is time to run apply.
+Place validation/unknown files in 'input'. (This must be different from the intital learn input)
+Within 'input', create 'compare' directory.
+In 'compare, place the output of learn. "output/learn/kmer-counts-total.csv".  #NOTE - THIS IS DIFFERENT FROM "score" METHODS.
+Place Interpro Annotations in 'annotations'.  This is needed for validation phases.
+Check config file. Use the same one as in learn.
+Run 'apply'.
+
+###
+#Results
+Output is in the form of "Seq-Annotation-Scores-[basename].csv" for each validation file.
+
+
+#To see if it worked you must use the validation scripts.
+
+#Basic Metrics
+Snek_eval.py is with the summary data. This will tell you how many correct annotations were in the top 1, top 10, etc.
+File paths will need to be modifed on a user basis.
+
+#To run RUO
+Generate_TF_for_RUO.py is first used with the Seq-Annotation-Scores data. It will generate ./ruo_output/RUO_AUC_TF_data_[basename]. These files are 
+matrixes filled with 0s and 1s which have the true values of seqs / annotations.
+
+RUO_for_snekmer.Rmd is now used to find the RUO value and plot histogram distributions and violin plots. Again, you will have to modify filepaths within.
+The Inputs are ruo_output data from Generate_TF_for_RUO.py and Seq-Annotation-Scores in output/apply.

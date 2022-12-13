@@ -1,0 +1,98 @@
+---
+title: "ROC Curve for Snekmer"
+author: "JJ"
+date: '2022-11-28'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(pROC)
+library(caret)
+library(tidyverse)
+library(ggplot2)
+```
+
+
+
+#load and filter data
+```{r}
+#Edit file paths to match your system.
+
+
+tf_data <- list.files(path="/Users/jaco059/OneDrive - PNNL/Desktop/Snekmer_Project/100_Genome_Validation/ruo_output", full.names = TRUE, pattern = "\\.csv$") %>% lapply(read_csv) %>% bind_rows 
+
+#Note - make sure only the Seq-Annotation-Scores-[basename].csv are in this directory
+scores_data <- list.files(path="/Users/jaco059/OneDrive - PNNL/Desktop/Snekmer_Project/100_Genome_Validation/snek_apply/output/learn", full.names = TRUE, pattern = "\\.csv$") %>% lapply(read_csv) %>% bind_rows 
+
+# tf_data
+# scores_data
+
+#remove index
+tf_data["__index_level_0__"] <- list(NULL)
+scores_data["__index_level_0__"] <- list(NULL)
+
+#remove columns with fewer than 3 T observations.
+cols_to_drop = c((colSums(tf_data[,1:ncol(tf_data)])>3))
+
+tf_filtered_data <- tf_data[,cols_to_drop]
+scores_filtered_data <- scores_data[,cols_to_drop]
+
+
+tf_filtered_data
+scores_filtered_data
+
+```
+
+
+#Run ROC
+```{r}
+
+score_cols = colnames(scores_filtered_data)
+tf_cols = colnames(tf_filtered_data)
+
+#Run ROC
+dist = list()
+for (item in 2:(length(tf_cols))) {
+  ROC_1 <- roc(tf_filtered_data[[item]], scores_filtered_data[[item]])
+  # print(ROC_1)
+  # plot(ROC_1)
+  dist <-append(dist,auc(ROC_1)[1])
+}
+
+#convert to format for plots
+dist_2 <- unlist(dist)
+
+```
+
+#plot and find mean AUC
+```{r}
+#create different types of plots
+
+#hist
+hist(dist_2,xlab = "Area Under the Curve", main= "AUC Distribution",breaks=25)
+hist(dist_2,breaks=bins)
+
+#hist
+bins = c(0,.05,.1,.15,.2,.25,.3,.35,.4,.45,.5,.55,.6,.65,.7,.75,.8,.85,.9,.95,1)
+ggplot(vio_data, aes(x=AUC)) +geom_histogram( bins = 25,color="black", fill="white") + ggtitle(label="AUC Distribution") + theme(plot.title = element_text(hjust = 0.5))
+
+#see mean
+mean(dist_2)
+
+#Violin Plot
+vio_data <- do.call(rbind, Map(data.frame, AUC=dist_2, Exp=rep(1,length(dist_2))))
+ggplot(vio_data, aes(x=Exp, y=AUC)) + geom_violin() + ggtitle(label="AUC Violin Plot") + theme(plot.title = element_text(hjust = 0.5))
+
+
+
+```
+
+
+
+
+
+
+
+
+
