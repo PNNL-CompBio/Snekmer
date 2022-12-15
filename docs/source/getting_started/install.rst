@@ -98,9 +98,11 @@ using the included specifications:
   pip install -e git+https://github.com/PNNL-CompBio/Snekmer#egg=snekmer
 
 Install Snekmer via Docker
------------------------
+--------------------------
 
-Snekmer has been installed into a  public docker image hosted on `Dockerhub <https://hub.docker.com/repository/docker/jjacobson95/snekmer_env>`_. Usage  requires the of installation of `Docker Desktop <https://docs.docker.com/desktop/>`_. This container is intended to be used via an interactive shell. Here, we provide the simplest method of usage.
+Snekmer has been installed into a  public docker image hosted on `Dockerhub <https://hub.docker.com/repository/docker/jjacobson95/snekmer_env>`_.
+Usage requires the of installation of `Docker Desktop <https://docs.docker.com/desktop/>`_.
+This container is intended to be used via an interactive shell. Here, we provide the simplest method of usage.
 
 To download and run a container:
 
@@ -114,7 +116,7 @@ To use the command line interface within the container:
 
 .. code-block:: bash
 
-  docker ps       #This will display <container ID>
+  docker ps       # This will display <container ID>
   docker exec -it <container ID> /bin/bash
 
 

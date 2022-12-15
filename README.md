@@ -39,7 +39,13 @@ resources/tutorial/demo_example
 
 ## Acknowledgments
 
-Snekmer is written and maintained by Christine Chang, Bill Nelson, and Jason McDermott.
+Snekmer is written and maintained by the development team:
+
+- Christine Chang (PNNL)
+- Jeremy Jacobson (PNNL)
+- Abby Jerger (PNNL)
+- Bill Nelson (PNNL)
+- Jason McDermott (PNNL)
 
 ## License
 
