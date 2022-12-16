@@ -7,6 +7,8 @@ author: @christinehc, @biodataganache
 from snakemake.utils import min_version
 
 min_version("6.0")  # force snakemake v6.0+ (required for modules)
+
+
 ruleorder: vectorize > search
 
 
@@ -16,6 +18,7 @@ module process:
         "process.smk"
     config:
         config
+
 
 module kmerize:
     snakefile:
@@ -44,8 +47,7 @@ import pandas as pd
 from Bio import SeqIO
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
-from sklearn.model_selection import (StratifiedKFold, cross_val_score,
-                                     train_test_split)
+from sklearn.model_selection import StratifiedKFold, cross_val_score, train_test_split
 from sklearn.preprocessing import LabelEncoder
 from sklearn.tree import DecisionTreeClassifier
 
@@ -56,7 +58,11 @@ import snekmer as skm
 plt.switch_backend("Agg")
 
 # collect all fasta-like files, unzipped filenames, and basenames
-input_dir = "input" if (("input_dir" not in config) or (str(config["input_dir"]) == "None")) else config["input_dir"]
+input_dir = (
+    "input"
+    if (("input_dir" not in config) or (str(config["input_dir"]) == "None"))
+    else config["input_dir"]
+)
 input_files = glob(join(input_dir, "*"))
 
 model_files = glob(join(config["model_dir"], "*.model"))
@@ -84,31 +90,35 @@ FILES = list(FILE_MAP.keys())
 
 input_file_regex = ".*"
 
-FAMILIES = [skm.utils.get_family(f, regex=config["input_file_regex"]) for f in model_files]
+FAMILIES = [
+    skm.utils.get_family(f, regex=config["input_file_regex"]) for f in model_files
+]
 
 # define output directory (helpful for multiple runs)
 out_dir = skm.io.define_output_dir(
     config["alphabet"], config["k"], nested=config["nested_output"]
 )
 
+
 # define output files to be created by snekmer
 rule all:
     input:
         expand(join(input_dir, "{uz}"), uz=UZS),  # require unzipping
-        join(config["basis_dir"], "search_kmers.txt"), # require common basis
+        join(config["basis_dir"], "search_kmers.txt"),  # require common basis
         expand(join(out_dir, "vector", "{f}.npz"), f=FILES),
-        expand(join(out_dir, "search", "{fam}", "{f}.csv"), fam=FAMILIES, f=FILES),   # require search
-        join(out_dir, "Snekmer_Search_Report.html")
+        expand(join(out_dir, "search", "{fam}", "{f}.csv"), fam=FAMILIES, f=FILES),  # require search
+        join(out_dir, "Snekmer_Search_Report.html"),
 
 
 # if any files are gzip zipped, unzip them
 if len(UZS) > 0:
+
     use rule unzip from process with:
         output:
             join("input", "{uz}"),  # or join("input", "{uz}.{uzext}") ?
 
-# build kmer count vectors for each basis set
-rule common_basis:
+
+rule common_basis:  # build kmer count vectors for each basis set
     input:
         kmerobjs=expand(join(config["basis_dir"], "{fam}.kmers"), fam=FAMILIES),
     output:
@@ -137,9 +147,14 @@ rule common_basis:
         # df.to_csv(output.kmerbasis, index=False)
 
 
+
+
+
 use rule vectorize from kmerize with:
     input:
-        fasta=lambda wildcards: join(input_dir, f"{wildcards.f}.{FILE_MAP[wildcards.f]}"),
+        fasta=lambda wildcards: join(
+            input_dir, f"{wildcards.f}.{FILE_MAP[wildcards.f]}"
+        ),
         kmerbasis=rules.common_basis.output.kmerbasis,
     output:
         data=join(out_dir, "vector", "{f}.npz"),
@@ -168,7 +183,7 @@ rule search:
         # print(f"loaded model {family}")
 
         # load vectorized sequences, score, and predict scores
-        kmerlist, df  = skm.io.load_npz(input.vecs)
+        kmerlist, df = skm.io.load_npz(input.vecs)
         filename = skm.utils.split_file_ext(basename(input.vecs))[0]
 
         # print(f"making feature matrix {family}")
@@ -194,12 +209,12 @@ rule search:
 
 rule search_report:
     input:
-        files=expand(join(out_dir, "search", "{fam}", "{f}.csv"), fam=FAMILIES, f=FILES)
+        files=expand(join(out_dir, "search", "{fam}", "{f}.csv"), fam=FAMILIES, f=FILES),
     output:
-        join(out_dir, "Snekmer_Search_Report.html")
+        join(out_dir, "Snekmer_Search_Report.html"),
     run:
         file_dir = dirname(dirname(input.files[0]))
-        
+
         # search
         search_vars = dict(
             page_title="Snekmer Search Report",

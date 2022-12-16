@@ -56,10 +56,8 @@ FA_MAP = {
 
 rule vectorize:
     input:
-        fasta=lambda wildcards: join(
-            "input", f"{wildcards.nb}.{FA_MAP[wildcards.nb]}"
-        ),
-        kmerbasis=join(input_dir, "basis.txt"), # this is optional
+        fasta=lambda wildcards: join("input", f"{wildcards.nb}.{FA_MAP[wildcards.nb]}"),
+        kmerbasis=join(input_dir, "basis.txt"),  # this is optional
     output:
         data=join("output", "vector", "{nb}.npz"),
         kmerobj=join("output", "kmerize", "{nb}.kmers"),
@@ -143,4 +141,3 @@ rule vectorize:
 
         with open(output.kmerobj, "wb") as f:
             pickle.dump(kmer, f)
-

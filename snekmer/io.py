@@ -8,8 +8,9 @@ import gzip
 import json
 import pickle
 import re
+from ast import literal_eval
 from os.path import basename, join, splitext
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -49,8 +50,8 @@ def load_npz(
         "seqs": "sequence",
         "vecs": "sequence_vector",
     },
-    objects: tuple = ("kmerlist",)
-) -> pd.DataFrame:
+    objects: Tuple = ("kmerlist",),
+) -> Tuple[List, pd.DataFrame]:
     """Compile .npz results into dataframe.
 
     Parameters
@@ -65,11 +66,13 @@ def load_npz(
                 "vecs": "sequence_vector",
             }
         ).
+    objects : Tuple[str]
+        Column names for additional objects to return
 
     Returns
     -------
-    pd.DataFrame
-        Tabulated .npz data.
+    Tuple[List, pd.DataFrame]
+        Tuple with list of data objects and tabulated .npz data.
 
     """
     data = np.load(filename)
@@ -181,6 +184,8 @@ def define_output_dir(alphabet: Union[str, int], k: int, nested: bool = False) -
         Name of output directory, given nested directory parameters.
 
     """
+    if isinstance(nested, str):
+        nested = literal_eval(nested)
     if not nested:
         return "output"
     if not isinstance(alphabet, str):
