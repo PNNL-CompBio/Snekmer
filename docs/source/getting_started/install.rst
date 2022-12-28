@@ -190,7 +190,7 @@ shown below:
 You may follow these instructions to ensure GCC is correctly pulled as needed.
 
 **Note:** BSF is not compatible with Apple silicon systems; see the ongoing log
-of `known Apple silicon issues <https://github.com/PNNL-CompBio/Snekmer/issues/60>`_.
+of `known Apple silicon issues <https://github.com/PNNL-CompBio/Snekmer/issues/102>`_.
 
 Windows or Linux/Unix
 `````````````````````
