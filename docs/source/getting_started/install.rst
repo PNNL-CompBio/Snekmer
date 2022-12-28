@@ -120,8 +120,27 @@ To use the command line interface within the container:
   docker exec -it <container ID> /bin/bash
 
 
-Additional 'docker' commands could be used to copy data into the container or to mount it to a local directory.   
+Additional ``docker`` commands can be used to copy data into the container or to mount it to a local directory.
+
+The current version of the Docker image requires the ``--configfile`` flag
+to be called explicitly (see :ref:`getting_started-all_options`).
+
 **Note:** This container is designed to run indefinitely and should be stopped after use.
+
+Notes on Using Snekmer Docker Image with Apple Silicon (M1/M2 Mac) Systems
+``````````````````````````````````````````````````````````````````````````
+
+The current Docker image of Snekmer has not been built for compatibility with ARM64
+systems (e.g. Apple silicon systems with the Apple M1/M2 chip). To use the Docker image
+on an Apple silicon system, Rosetta 2 is required. See the
+`relevant Docker documentation page <https://docs.docker.com/desktop/install/mac-install/>`_
+for more information.
+
+Rosetta 2 can be installed on the command line using ``softwareupdate``:
+
+.. code-block:: bash
+
+  softwareupdate --install-rosetta
 
 
 (optional) Install GCC for BSF
@@ -169,6 +188,9 @@ shown below:
     export CPPFLAGS="-I/usr/local/opt/llvm/include"
 
 You may follow these instructions to ensure GCC is correctly pulled as needed.
+
+**Note:** BSF is not compatible with Apple silicon systems; see the ongoing log
+of `known Apple silicon issues <https://github.com/PNNL-CompBio/Snekmer/issues/60>`_.
 
 Windows or Linux/Unix
 `````````````````````

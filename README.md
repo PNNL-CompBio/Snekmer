@@ -34,8 +34,8 @@ and outputs a table for each file containing model annotation probabilities for 
 For installation instructions, documentation, and more, refer to
 the [official documentation](https://snekmer.readthedocs.io).
 
-Run the demonstration example code in:
-resources/tutorial/demo_example
+To run the demonstration example, see 
+[resources/tutorial/demo_example](https://github.com/PNNL-CompBio/Snekmer/tree/main/resources/tutorial/demo_example).
 
 ## Acknowledgments
 
