@@ -8,6 +8,17 @@ detailed or specific questions that have not been included below, feel free to
 Installation Questions
 ----------------------
 
+For errors encountered during the installation process,
+unless installation is successful for all packages but
+specifically fails during the installation of the Snekmer
+package itself, we recommend searching the
+`Conda troubleshooting page <https://conda.io/projects/conda/en/latest/user-guide/troubleshooting.html>`_
+for the issue. If packages other than Snekmer are also failing
+to install, or else the environment is not created successfully,
+the installation issues likely involve either Conda or the
+user's individual configuration.
+
+
 Why is the ``conda install`` command is taking a long time?
 ```````````````````````````````````````````````````````````
 
@@ -43,10 +54,22 @@ If your error message cannot be solved, feel free to let us know via
 MissingInputException
 `````````````````````
 
-Typically, this means that Snekmer is unable to detect input files,
+Non-Windows Systems
+:::::::::::::::::::
+
+Generally, this error type means that Snekmer is unable to detect input files,
 and the input files may not follow the required directory structure.
 For more information, including an example of the file structure
 needed, see :ref:`getting_started-configuration`.
+
+Windows Systems
+:::::::::::::::
+
+For Windows systems specifically, there is a `known issue <https://github.com/PNNL-CompBio/Snekmer/issues/60>`_
+with handling unzipping files that will raise a ``MissingInputException``
+and cause Snekmer to terminate under failure. We are aware of this issue
+and are actively working on a resolution; in the meantime, we recommend
+separately unzipping any zipped files prior to evaluation via Snekmer.
 
 FileNotFoundError
 `````````````````
@@ -95,7 +118,6 @@ and information about individual jobs. However, the default settings will produc
 very big log files if several files are being evaluated at once. To reduce the
 verbosity of output logs, we recommend invoking the ``--quiet`` parameter
 (see :ref:`getting_started-all_options`).
-
 
 Snekmer model mode is not working.
 ``````````````````````````````````
