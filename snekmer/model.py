@@ -6,14 +6,16 @@ author: @christinehc
 # imports
 import pandas as pd
 from typing import Any, Dict, List, Optional
+from ._version import __version__
 from .vectorize import KmerBasis
 from numpy.typing import NDArray
-from sklearn.base import ClassifierMixin
+from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 from sklearn.linear_model import LogisticRegression  # LogisticRegressionCV
 from sklearn.model_selection import GridSearchCV, cross_validate
 from sklearn.pipeline import make_pipeline, Pipeline
+from sklearn.svm import SVC
 
 # define default gridsearch param dict
 MODEL_PARAMS = {
@@ -25,15 +27,16 @@ MODEL_PARAMS = {
 }
 
 NAME2MODEL = {
-    "decisiontree": DecisionTreeClassifier(),
-    "randomforest": RandomForestClassifier(),
-    "adaboost": AdaBoostClassifier(),
-    "logistic": LogisticRegression(),
+    "decisiontree": DecisionTreeClassifier,
+    "randomforest": RandomForestClassifier,
+    "adaboost": AdaBoostClassifier,
+    "logistic": LogisticRegression,
+    "svc": SVC,
 }
 
 
 # classification models for protein families
-class SnekmerModel(ClassifierMixin):
+class SnekmerModel(ClassifierMixin, BaseEstimator):
     """Classify a protein family using kmer vectors as input.
 
     Attributes
@@ -62,7 +65,8 @@ class SnekmerModel(ClassifierMixin):
     def __init__(
         self,
         scaler: Optional[Any] = None,
-        model: str = "decisiontree",
+        model: str = "logistic",
+        model_params: Optional[Dict[Any, Any]] = {},
         params: Dict[str, List] = MODEL_PARAMS,
         step_name="clf",
     ):
@@ -80,15 +84,19 @@ class SnekmerModel(ClassifierMixin):
             Optional custom name for classifier pipeline step.
 
         """
+        # always compute svc probability
+        if model == "svc":
+            model_params["probability"] = True
+
         self.scaler = scaler
         self.params = params
-        self.model = NAME2MODEL[model]
+        self.model = NAME2MODEL[model](**model_params)
         self.step_name = step_name
+        self.snekmer_version = __version__
 
-        self.pipeline = None
-        self.search = None
-
-    def fit(self, X: NDArray, y: NDArray, verbose: bool = True):
+    def fit(
+        self, X: NDArray, y: NDArray, gridsearch: bool = False, verbose: bool = True
+    ):
         """Train model using gridsearch-tuned hyperparameters.
 
         Parameters
@@ -99,8 +107,11 @@ class SnekmerModel(ClassifierMixin):
             Target values (class labels) as integers or strings.
         scores : array-like of shape (n_features,) or (n_features, n_outputs)
             NOT IMPLEMENTED YET-- for KmerScaler integration.
+        gridsearch: bool (default: False)
+            If True, uses grid search to determine hyperparameters.
         verbose : bool (default: True)
             If True, prints best gridsearch CV results to console.
+            Only active if `gridsearch=True`.
 
         Returns
         -------
@@ -109,25 +120,26 @@ class SnekmerModel(ClassifierMixin):
 
         """
         # define pipeline and gridsearch
-        self.pipeline = Pipeline(
-            steps=[("scaler", self.scaler), (self.step_name, self.model)]
-        )
-        self.search = GridSearchCV(self.pipeline, self.params)
-
-        # use gridsearch on training data to find best parameter set
-        self.search.fit(X, y)
-        if verbose:
-            print(
-                "best mean cross-validation score: {:.3f}".format(
-                    self.search.best_score_
-                )
+        if gridsearch:
+            self.pipeline = Pipeline(
+                steps=[("scaler", self.scaler), (self.step_name, self.model)]
             )
-            print("best parameters:", self.search.best_params_)
+            self.search = GridSearchCV(self.pipeline, self.params)
+
+            # use gridsearch on training data to find best parameter set
+            self.search.fit(X, y)
+            if verbose:
+                print(
+                    "best mean cross-validation score: {:.3f}".format(
+                        self.search.best_score_
+                    )
+                )
+                print("best parameters:", self.search.best_params_)
 
         # fit model with best gridsearch parameters
         #         self.scaler.fit(scores)
         self.model.fit(X, y)
-        return
+        return self
 
     def score(self, X: NDArray, y: NDArray):
         """Score model on test set.

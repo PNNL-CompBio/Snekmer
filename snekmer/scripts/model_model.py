@@ -151,9 +151,17 @@ for n in range(cv):
     y[n]["test"] = le.transform(df_test_labels).ravel()
 
 # ROC-AUC figure
-clf = LogisticRegression(
-    random_state=random_state, solver="liblinear", class_weight="balanced"
+clf = skm.model.SnekmerModel(
+    model="logistic",
+    params={
+        "random_state": random_state,
+        "solver": "liblinear",
+        "class_weight": "balanced",
+    },
 )
+# clf = LogisticRegression(
+#     random_state=random_state, solver="liblinear", class_weight="balanced"
+# )
 fig, ax, auc_rocs = skm.plot.cv_roc_curve(
     clf, X, y, title=f"{family} ROC Curve ({alphabet_name}, k={config['k']})"
 )
