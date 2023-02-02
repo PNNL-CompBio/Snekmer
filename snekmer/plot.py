@@ -4,29 +4,32 @@ author: @christinehc
 
 """
 # imports
+from typing import Optional
+
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+from numpy.typing import ArrayLike
 from sklearn.metrics import (
-    accuracy_score,
+    PrecisionRecallDisplay,
+    RocCurveDisplay,
     auc,
     average_precision_score,
-    roc_curve,
     precision_recall_curve,
 )
-from sklearn.model_selection import (
-    KFold,
-    train_test_split,
-    RandomizedSearchCV,
-    StratifiedKFold,
-)
-from sklearn.svm import SVC
-from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 
 
-def cv_roc_curve(clf, X, y, title="ROC Curve", ax=None, dpi=400):
+def cv_roc_curve(
+    clf,
+    X: ArrayLike,
+    y: ArrayLike,
+    title: str = "ROC Curve",
+    ax: Optional[plt.Axes] = None,
+    dpi: int = 400,
+):
     """Plot cross-validated receiver operator characteristics curve.
 
     Adapted from example in sklearn documentation [1].
@@ -34,15 +37,15 @@ def cv_roc_curve(clf, X, y, title="ROC Curve", ax=None, dpi=400):
 
     Parameters
     ----------
-    clf : dict of Classifier objects
+    clf : object
         Classifier object (e.g. DecisionTreeClassifier()).
-    X : dict of arrays
-        Feature arrays.
-    y : dict of arrays
-        Response arrays.
+    X : numpy.typing.ArrayLike
+        Feature array.
+    y : numpy.typing.ArrayLike
+        Response array.
     title : str
         Plot title.
-    ax : matplotlib.axes.Axes object or None (default: None)
+    ax : matplotlib.axes.Axes or None (default: None)
         Axis object, if already created.
     dpi : int (default: 400)
         Figure resolution.
@@ -64,21 +67,23 @@ def cv_roc_curve(clf, X, y, title="ROC Curve", ax=None, dpi=400):
 
     # take each cv result
     for i in X.keys():
-        probabilities = clf.fit(X[i]["train"], y[i]["train"]).predict_proba(
-            X[i]["test"]
+        clf.fit(X[i]["train"], y[i]["train"])
+        viz = RocCurveDisplay.from_estimator(
+            clf.model,
+            X[i]["test"],
+            y[i]["test"],
+            name=f"ROC fold {i}",
+            alpha=0.3,
+            lw=1,
+            ax=ax,
         )
+        interp_tpr = np.interp(mean_fpr, viz.fpr, viz.tpr)
+        interp_tpr[0] = 0.0
+        tprs.append(interp_tpr)
+        auc_rocs.append(viz.roc_auc)
 
-        # calculate roc curve/area, and interpolate values
-        fpr, tpr, _ = roc_curve(y[i]["test"], probabilities[:, 1])
-        tprs.append(np.interp(mean_fpr, fpr, tpr))
-
-        tprs[-1][0] = 0.0
-        roc_auc = auc(fpr, tpr)
-        auc_rocs.append(roc_auc)
-        ax.plot(fpr, tpr, lw=1, alpha=0.3, label=f"ROC fold {i} (AUC = {roc_auc:0.2f})")
-
-    # plot y = x (50% chance) reference line
-    ax.plot([0, 1], [0, 1], linestyle="--", lw=2, color="r", label="Chance", alpha=0.8)
+    # plot random chance reference line
+    ax.plot([0, 1], [0, 1], "k--", label="Chance level (AUC = 0.5)")
 
     # calculate mean and stdev roc_auc and show in plot
     mean_tpr = np.mean(tprs, axis=0)
@@ -118,20 +123,27 @@ def cv_roc_curve(clf, X, y, title="ROC Curve", ax=None, dpi=400):
     return fig, ax, auc_rocs
 
 
-def cv_pr_curve(clf, X, y, title="PR Curve", ax=None, dpi=400):
+def cv_pr_curve(
+    clf,
+    X: ArrayLike,
+    y: ArrayLike,
+    title: str = "PR Curve",
+    ax: Optional[plt.Axes] = None,
+    dpi: int = 400,
+):
     """Plot cross-validated precision-recall curve.
 
     Parameters
     ----------
     clf : Classifer object
         Classifier object (e.g. DecisionTreeClassifier()).
-    X : dict
-        Feature dataframe.
-    y : dict
-        Response dataframe.
+    X : numpy.typing.ArrayLike
+        Feature array.
+    y : numpy.typing.ArrayLike
+        Response array.
     title : str
         Plot title.
-    ax : matplotlib.axes.Axes object or None (default: None)
+    ax : matplotlib.axes.Axes or None (default: None)
         Axis object, if already created.
     dpi : int (default: 400)
         Figure resolution.
@@ -141,7 +153,6 @@ def cv_pr_curve(clf, X, y, title="PR Curve", ax=None, dpi=400):
     fig, ax, pr_aucs
 
     """
-
     # initialize figure and define all axes
     fig = plt.figure(
         dpi=dpi, figsize=(8, 4), facecolor="white", constrained_layout=True
@@ -152,38 +163,37 @@ def cv_pr_curve(clf, X, y, title="PR Curve", ax=None, dpi=400):
     y_real, y_proba, pr_aucs = [], [], []
 
     for i in X.keys():
-        probabilities = clf.fit(X[i]["train"], y[i]["train"]).predict_proba(
-            X[i]["test"]
+        clf.fit(X[i]["train"], y[i]["train"])
+        probabilities = clf.model.predict_proba(X[i]["test"])
+        precision, recall, _ = precision_recall_curve(
+            y[i]["test"], clf.predict(X[i]["test"])
         )
-        # Compute ROC curve and area the curve
-        precision, recall, _ = precision_recall_curve(y[i]["test"], probabilities[:, 1])
-        avg_precision = average_precision_score(y[i]["test"], probabilities[:, 1])
-
-        # Plotting each individual PR Curve
-        ax.plot(
-            recall,
-            precision,
-            lw=1,
+        viz = PrecisionRecallDisplay.from_estimator(
+            clf.model,
+            X[i]["test"],
+            y[i]["test"],
+            name=f"ROC fold {i}",
             alpha=0.3,
-            label=f"PR fold {i} (AUC = {avg_precision:0.2f})",
+            lw=1,
+            ax=ax,
         )
 
         y_real.append(y[i]["test"])
         y_proba.append(probabilities[:, 1])
-        pr_aucs.append(avg_precision)
+        pr_aucs.append(viz.average_precision)
 
     y_real = np.concatenate(y_real)
     y_proba = np.concatenate(y_proba)
 
     precision, recall, _ = precision_recall_curve(y_real, y_proba)
-    avg_total_precision = average_precision_score(y_real, y_proba)
+    # avg_total_precision = average_precision_score(y_real, y_proba)
 
     # plot average p-r curve
     ax.plot(
         recall,
         precision,
         color="b",
-        label=f"Precision-Recall (AUC = {avg_total_precision:0.2f})",
+        label=f"Precision-Recall (AUC = {viz.average_precision:0.2f})",
         lw=2,
         alpha=0.8,
     )
