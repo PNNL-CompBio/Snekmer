@@ -1,7 +1,6 @@
 # Snekmer: A scalable pipeline for protein sequence fingerprinting using amino acid recoding (AAR)
 
-# [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7662597.svg)](https://doi.org/10.5281/zenodo.7662597)
-
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7662597.svg)](https://doi.org/10.5281/zenodo.7662597)
 [![CI](https://github.com/PNNL-CompBio/Snekmer/actions/workflows/action.yml/badge.svg)](https://github.com/PNNL-CompBio/Snekmer/actions)
 [![Documentation Status](https://readthedocs.org/projects/snekmer/badge/?version=latest)](https://snekmer.readthedocs.io/en/latest/?badge=latest)
 [![Snakemake](https://img.shields.io/badge/snakemake-=7.0.0-brightgreen.svg?style=flat)](https://snakemake.readthedocs.io)
