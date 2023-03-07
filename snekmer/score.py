@@ -7,6 +7,7 @@ author: @christinehc, @biodataganache
 import numpy as np
 import pandas as pd
 
+from ._version import __version__
 from .vectorize import KmerBasis
 from .utils import to_feature_matrix
 from sklearn.metrics.pairwise import pairwise_distances
@@ -536,6 +537,7 @@ class KmerScorer:
         self.scores = {"sample": {}, "background": {}}
         self.score_norm = None
         self.probabilities = {"sample": {}, "background": {}}
+        self.snekmer_version = __version__
 
     # load list of kmers and both seq and bg feature matrices
     def fit(
@@ -584,28 +586,26 @@ class KmerScorer:
             "background": list(data.index[data[bg_col]]),
         }
 
-
         # step 0: get feature matrix and all labels
         labels = data[label_col].values
 
-        #print(data[vec_col].shape)
-        #print(data[vec_col])
+        # print(data[vec_col].shape)
+        # print(data[vec_col])
 
         x = len(data[vec_col])
         y = len(data[vec_col][0])
-        #print(x,y)
+        # print(x,y)
 
-        matrix = np.zeros(x*y).reshape((x,y))
-        #print(matrix.shape)
+        matrix = np.zeros(x * y).reshape((x, y))
+        # print(matrix.shape)
 
         for i in range(x):
             for j in range(y):
                 value = data[vec_col][i]
                 value = value[j]
-                matrix[i,j] = value
-        #matrix = np.asarray(np.concatenate(data[vec_col])).reshape((len(data[vec_col]), len(data[vec_col][0])))
-        #print(matrix.shape)
-
+                matrix[i, j] = value
+        # matrix = np.asarray(np.concatenate(data[vec_col])).reshape((len(data[vec_col]), len(data[vec_col][0])))
+        # print(matrix.shape)
 
         # step 0: get indices for label (family) ids
         # i_label = {
@@ -716,15 +716,15 @@ class KmerScorer:
 
         """
         # fit new input data to the correct kmer basis
-        #self.kmers.set_basis(kmers)
+        # self.kmers.set_basis(kmers)
         array = self.kmers.transform(array, kmers)
 
-        #return (
+        # return (
         #    apply_feature_probabilities(
         #        array, self.probabilities["sample"], scaler=self.scaler
         #    )
         #    / self.score_norm
-        #)
+        # )
         return (
             apply_feature_probabilities(
                 array, self.probabilities["sample"], scaler=False
