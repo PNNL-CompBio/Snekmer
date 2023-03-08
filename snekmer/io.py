@@ -43,6 +43,28 @@ def load_pickle(filename: str, mode: str = "rb") -> Any:
         return pickle.load(f)
 
 
+def save_pickle(obj: Any, filename: str, mode: str = "wb") -> Any:
+    """Load a pickled object (wrapper for `pickle.dump`).
+
+    Parameters
+    ----------
+    obj : Any
+        Object to save
+    filename : str
+        Description of parameter `filename`.
+    mode : str
+        Description of parameter `mode` (the default is "rb").
+
+    Returns
+    -------
+    Any
+        Description of returned object.
+
+    """
+    with open(filename, mode) as f:
+        return pickle.dump(obj, f)
+
+
 def load_npz(
     filename: str,
     columns: Dict[str, str] = {
