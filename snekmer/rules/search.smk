@@ -194,7 +194,7 @@ rule search:
         # print(f"making predictions {family}")
         predictions = model.predict(scores.reshape(-1, 1))
         # print(f"getting probabilities {family}")
-        predicted_probas = model.predict_proba(scores.reshape(-1, 1))
+        predicted_probas = model.model.predict_proba(scores.reshape(-1, 1))
 
         # display results (score, family assignment, and probability)
         df["score"] = scores  # scorer output
