@@ -269,7 +269,7 @@ rule merge:
         #check that kmer lengths and alphabets match base file
         if base_check == True:
             #read_csv is slow, likely replaceable
-            base_df = pd.read_csv(str(input.base_counts), index_col=-1, header=0, engine="pyarrow")
+            base_df = pd.read_csv(str(input.base_counts), index_col='__index_level_0__', header=0, engine="pyarrow")
             print("\nBase Database: \n")
             print(base_df)
             # Here is an assumption which is likely true but in cases with extremely high kmer values / large alphabets, the odds decrease.
