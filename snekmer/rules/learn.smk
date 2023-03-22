@@ -138,7 +138,6 @@ rule learn:
         with open(log[0], "a") as f:
             f.write(f"start time:\t{start_time}\n")
         #Note - if the same protein (determined by seqID) is read multiple times in the same FASTA, only the last version is kept. (earlier ones are overwritten)
-       
 
         annots = list()
         for f in input.annotation:
@@ -229,77 +228,9 @@ rule learn:
         new_index = ["Totals"] + list(annotation_count_dict.keys())
         counts_and_sums_df.index = new_index
     
-        # print("Newly Generated Database\n")
-        # print(counts_and_sums_df)
         out_name = "output/learn/kmer-counts-" + str(f)[14:-4] + ".csv"
         counts_and_sums_df_out = pa.Table.from_pandas(counts_and_sums_df,preserve_index=True)
         csv.write_csv(counts_and_sums_df_out, out_name)
-        #Before, this would merge all at once. 
-        #this has been changed to merge one at a time.
-        #this keeps a single running merge file
-        #and reduces memory from list of databases to merge at end.
-        #     if file_num == 0:
-        #         initial_merge = counts_and_sums_df
-        #     elif file_num == 1:
-        #         running_merge = (pd.concat([initial_merge,counts_and_sums_df]).reset_index().groupby('index', sort=False).sum(min_count=1)).fillna(0)
-        #     elif file_num > 1:
-        #         running_merge = (pd.concat([running_merge,counts_and_sums_df]).reset_index().groupby('index', sort=False).sum(min_count=1)).fillna(0)
-
-
-        # #Merge Step - joined with learn because it was much faster.
-        # base_check = False
-        # print("\nChecking for base file to merge with.\n")
-        # if "csv" in str(input.base_counts):
-        #     print("CSV detected. Matching annotations, kmers, and totals will be summed. New annotations and kmers will be added.\n")
-        #     base_check = True
-        # elif input.base_counts == "": 
-        #     print("No base directory detected\n")
-        # elif str(input.base_counts) == "input/base": 
-        #     print("Empty base directory detected\n")
-        # else:
-        #     print("No file type detected. Please use a .csv file in input/base directory.\n")
-        # #check that kmer lengths and alphabets match base file
-        # if base_check == True:
-        #     #read_csv is slow, likely replaceable
-        #     base_df = pd.read_csv(str(input.base_counts), index_col=0, header=0, engine="pyarrow")
-        #     print("\nBase Database: \n")
-        #     print(base_df)
-        #     # Here is an assumption which is likely true but in cases with extremely high kmer values / large alphabets, the odds decrease.
-        #     # I assume that all kmer alphabet values will be found within the first 4000 items in kmerlist.
-        #     # This is to check that these two data structures use the same two alphabets. This is done for speed purposes, but may not be nesessary
-        #     check_1 = 4000
-        #     check_2 = 4000
-        #     if len(running_merge.columns.values) < 4000:
-        #         check_1 = len(running_merge.columns.values)
-        #     if len(running_merge.columns.values) < 4000:
-        #         check_1 = len(running_merge.columns.values)
-        #     alphabet_initial = set(itertools.chain(*[list(x) for x in running_merge.columns.values[1:check_1]]))
-        #     alphabet_base = set(itertools.chain(*[list(x) for x in base_df.columns.values[1:check_1]]))
-        #     if alphabet_base == alphabet_initial:
-        #         base_check = True
-        #     else: 
-        #         base_check = False
-        #         print("Different Alphabets Detected. Base File not merged.")
-        
-        # if base_check == True:
-        #     print(len(str(running_merge.columns.values[1])))
-        #     if len(str(running_merge.columns.values[1])) == len(str(base_df.columns.values[1])):
-        #         base_check = True
-        #     else: 
-        #         base_check = False
-        #         print("Different kmer lengths detected. Base File not merged.")
-        # if base_check == True:
-        #     print("\nMerged Database \n")
-        #     xy = (pd.concat([base_df, running_merge]).reset_index().groupby('index', sort=False).sum(min_count=1)).fillna(0)
-        #     #xy.to_csv("output/learn/kmer-counts-total.csv")
-        #     xy_out = pa.Table.from_pandas(xy,preserve_index=True)
-        #     csv.write_csv(xy_out, "output/learn/kmer-counts-total.csv")
-        #     print(xy)
-        # else:
-        #     #running_merge.to_csv("output/learn/kmer-counts-total.csv")
-        #     running_merge_out = pa.Table.from_pandas(running_merge,preserve_index=True)
-        #     csv.write_csv(running_merge_out, "output/learn/kmer-counts-total.csv")
-        
         skm.utils.log_runtime(log[0], start_time)
 
 rule merge:
@@ -350,15 +281,15 @@ rule merge:
                 check_1 = len(running_merge.columns.values)
             if len(running_merge.columns.values) < 4000:
                 check_1 = len(running_merge.columns.values)
-            alphabet_initial = set(itertools.chain(*[list(x) for x in running_merge.columns.values[1:check_1]]))
-            alphabet_base = set(itertools.chain(*[list(x) for x in base_df.columns.values[1:check_1]]))
+            alphabet_initial = set(itertools.chain(*[list(x) for x in running_merge.columns.values[3:check_1]]))
+            alphabet_base = set(itertools.chain(*[list(x) for x in base_df.columns.values[3:check_1]]))
             print(alphabet_initial)
             print(alphabet_base)
-            # if alphabet_base == alphabet_initial:
-            #     base_check = True
-            # else: 
-            #     base_check = False
-            #     print("Different Alphabets Detected. Base File not merged.")
+            if alphabet_base == alphabet_initial:
+                base_check = True
+            else: 
+                base_check = False
+                print("Different Alphabets Detected. Base File not merged.")
         
         if base_check == True:
             print(len(str(running_merge.columns.values[1])))
@@ -370,12 +301,10 @@ rule merge:
         if base_check == True:
             print("\nMerged Database \n")
             xy = (pd.concat([base_df, running_merge]).reset_index().groupby('__index_level_0__', sort=False).sum(min_count=1)).fillna(0)
-            #xy.to_csv("output/learn/kmer-counts-total.csv")
             xy_out = pa.Table.from_pandas(xy,preserve_index=True)
             csv.write_csv(xy_out, "output/learn/kmer-counts-total.csv")
             print(xy)
         else:
-            #running_merge.to_csv("output/learn/kmer-counts-total.csv")
             print("\Database Merged. Not merged with base file. \n")
             running_merge_out = pa.Table.from_pandas(running_merge,preserve_index=True)
             csv.write_csv(running_merge_out, "output/learn/kmer-counts-total.csv")
@@ -402,7 +331,5 @@ rule generate_probabilities:
         print(prob_2)
         prob_2 = pa.Table.from_pandas(prob_2,preserve_index=True)
         csv.write_csv(prob_2, 'output/learn/kmer-associations.csv')
-
-        
         
         skm.utils.log_runtime(log[0], start_time)
