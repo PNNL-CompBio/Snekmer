@@ -65,10 +65,13 @@ rule vectorize:
         join("output", "kmerize", "log", "{nb}.log"),
     run:
         # initialize kmerization object
-        kmer = skm.vectorize.KmerVec(alphabet=config["alphabet"], k=config["k"])
+        alphabet = config["alphabet"]
+        k = config["k"]
+
+        kmer = skm.vectorize.KmerVec(alphabet=alphabet, k=k)
+        # we want to check to see if this is a ridiculous combination
 
         # read kmerbasis if present
-
         min_filter = 0
         if hasattr(input, "kmerbasis") and exists(input.kmerbasis):
             kmerbasis = skm.io.read_kmers(input.kmerbasis)
@@ -100,9 +103,30 @@ rule vectorize:
                     else:
                         kmerbasis[key] = 1
 
+            # if min_filter is specified as less than 1 it
+            #    will be treated as a percentage of the total
+            #    number of kmers *present* in the input set
+            # And I think it makes sense to have this be in the
+            #    reverse sense as the integer min_filter. That is
+            #    we will filter out 1-min_filter percentage of kmers
+            if min_filter > 0 and min_filter < 1:
+                min_filter = len(list(kmerbasis.keys())) * (1.0 - min_filter)
+
             kmerbasis = np.array(list(kmerbasis.keys()))[
                 np.array(list(kmerbasis.values())) > min_filter
             ]
+
+            # an issue here is that the filter might remove all kmers
+            #    from the basis and break the code. We should check for
+            # this and exit gracefully
+            # So for now we will die and write a helpful message to
+            #  the logfile
+            if len(kmerbasis) == 0:
+                msg = "FATAL: min_filter application results in no remaining kmers\n"
+                with open(log[0], "a") as f:
+                    f.write(msg)
+                # this state will cause Snekmer to crash downstream
+                raise ValueError(msg)
 
         kmer.set_kmer_set(kmerbasis)
 
