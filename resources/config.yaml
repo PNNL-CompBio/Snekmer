@@ -42,3 +42,7 @@ model:
 model_dir: "output/example-model/"
 basis_dir: "output/example-model/"
 score_dir: "output/example-model/"
+
+# motif params
+motif:
+  n: 2000

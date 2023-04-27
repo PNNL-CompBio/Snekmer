@@ -1,4 +1,4 @@
-"""motif: Identification of structurally and functionally relevant motifs.
+"""motif: Identification of structurally and functionally relevant motifs with Snekmer.
 Created on Fri Apr 21 15:25:54 2023
 
 author: @tnitka
