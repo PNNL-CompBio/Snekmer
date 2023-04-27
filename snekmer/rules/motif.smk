@@ -79,7 +79,7 @@ FAS = list(FA_MAP.keys())
 bg_files = glob(join(input_dir, "background", "*"))
 if len(bg_files) > 0:
     bgs = [skm.utils.split_file_ext(basename(f))[0] for f in bg_files]
-NON_BGS, BGS = [f for f in FAS if f not in bgs], bg_files
+NON_BGS, BGS = [f for f in FAS if f not in bgs], bgs
 
 # terminate with error if invalid alphabet specified
 skm.alphabet.check_valid(config["alphabet"])
