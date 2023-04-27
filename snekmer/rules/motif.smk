@@ -79,7 +79,7 @@ FAS = list(FA_MAP.keys())
 bg_files = glob(join(input_dir, "background", "*"))
 if len(bg_files) > 0:
     bgs = [skm.utils.split_file_ext(basename(f))[0] for f in bg_files]
-NON_BGS, BGS = [f for f in FAS if f not in bgs], bgs
+NON_BGS, BGS = [f for f in FAS if f not in bgs], bg_files
 
 # terminate with error if invalid alphabet specified
 skm.alphabet.check_valid(config["alphabet"])
@@ -104,7 +104,7 @@ rule all:
         expand(join("input", "{uz}"), uz=UZS),  # require unzipping
 	join(config["basis_dir"], "search_kmers.txt"), # require common basis
 #        expand(join(out_dir, "model", "{nb}.model"), nb=NON_BGS),  # require model-building
-	join(out_dir, "scoring", "weights", "{nb}.csv.gz"), # require scoring
+	expand(join(out_dir, "scoring", "weights", "{nb}.csv.gz"), nb=NON_BGS), # require scoring
 	join(out_dir, "motif", "p_values", "{nb}.csv") # require motif identification 
 
 # if any files are gzip zipped, unzip them
