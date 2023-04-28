@@ -41,7 +41,7 @@ config = snakemake.config
 #     f.write(f"start time:\t{{start_time}}\n")
     
 # load input data
-with open(pd.read_csv(snakemake.input.matrix, "rb")) as f:
+with open(snakemake.input.matrix, "rb") as f:
     data = pickle.load(f)
     
 kmers = skm.io.load_pickle(snakemake.input.kmerobj)
