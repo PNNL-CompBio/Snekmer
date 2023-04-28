@@ -105,10 +105,10 @@ rule all:
     	join(config["basis_dir"], "search_kmers.txt"), # require common basis
 #        expand(join(out_dir, "model", "{nb}.model"), nb=NON_BGS),  # require model-building
     	expand(join(out_dir, "scoring", "weights", "{nb}.csv.gz"), nb=NON_BGS), # require scoring
-    	expand(join(out_dir, "motif", "p_values", "{nb}.csv"), nb=NON_BGS) # require motif identification 
+    	expand(join(out_dir, "motif", "p_values", "{nb}.csv.gz")), # require motif identification 
 
 # if any files are gzip zipped, unzip them
-use rule unzip from process with:
+use rule unzip from process with: 
     output:
         unzipped=join("input", "{uz}"),
         zipped=join("input", "zipped", "{uz}.gz"),
