@@ -186,7 +186,7 @@ rule motif:
         raw=rules.score.input.data,
         data=rules.score.output.data,
         weights=rules.score.output.weights,
-        kmers=rules.commonbasis.output.kmerbasis
+        kmers=rules.commonbasis.output.kmerbasis,
         kmerobj=rules.score.input.kmerobj,
         matrix=rules.score.output.matrix,
     output:
