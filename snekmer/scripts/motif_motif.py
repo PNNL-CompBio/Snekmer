@@ -42,11 +42,11 @@ config = snakemake.config
 #     f.write(f"start time:\t{{start_time}}\n")
     
 # load input data
-with gzip.open(snakemake.input.matrix, "rb") as f:
+with open(snakemake.input.matrix, "rb") as f:
     data = pickle.load(f)
     
 kmers = skm.io.load_pickle(snakemake.input.kmerobj)
-with open(snakemake.input.weights, "rb") as f:
+with gzip.open(snakemake.input.weights, "rb") as f:
     weights = pickle.load(f)
 scores = weights[0, :] #TODO check whether this is the correct column
 family = skm.utils.get_family(
