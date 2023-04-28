@@ -45,7 +45,7 @@ config = snakemake.config
 with open(snakemake.input.matrix, "rb") as f:
     data = pickle.load(f)
     
-kmers = skm.io.load_pickle(snakemake.input.kmerobj)
+kmers = skm.io.load_pickle(snakemake.input.kmers)
 with gzip.open(snakemake.input.weights, "rb") as f:
     weights = pd.DataFrame.to_numpy(pd.read_csv(f))
 scores = weights[1, :] #TODO check whether this is the correct column
@@ -71,6 +71,8 @@ label = config["score"]["lname"] if str(config["score"]["lname"]) != "None" else
 # prevent kmer NA being read as np.nan
 if config["k"] == 2:
     scores["kmer"] = scores["kmer"].fillna("NA")
+if config["k"] == 2:
+    scores["kmers"] = scores["kmers"].fillna("NA")
 
 # get alphabet name
 if config["alphabet"] in skm.alphabet.ALPHABET_ORDER.keys():
