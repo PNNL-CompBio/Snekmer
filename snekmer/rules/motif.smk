@@ -78,8 +78,8 @@ FAS = list(FA_MAP.keys())
 # parse any background files
 bg_files = glob(join(input_dir, "background", "*"))
 if len(bg_files) > 0:
-    bgs = [skm.utils.split_file_ext(basename(f))[0] for f in bg_files]
-NON_BGS, BGS = [f for f in FAS if f not in bgs], bg_files
+    bg_files = [skm.utils.split_file_ext(basename(f))[0] for f in bg_files]
+NON_BGS, BGS = [f for f in FAS if f not in bg_files], bg_files
 
 # terminate with error if invalid alphabet specified
 skm.alphabet.check_valid(config["alphabet"])
@@ -112,7 +112,32 @@ use rule unzip from process with:
     output:
         unzipped=join("input", "{uz}"),
         zipped=join("input", "zipped", "{uz}.gz"),
+        
+rule common_basis:  # build kmer count vectors for each basis set
+    input:
+        kmerobjs=expand(join(config["basis_dir"], "{nb}.kmers"), nb=NON_BGS),
+    output:
+        kmerbasis=join(config["basis_dir"], "search_kmers.txt"),
+    log:
+        join(config["basis_dir"], "log", "common_basis.log"),
+    run:
+        common_basis = list()
+        for kobj in input.kmerobjs:
+            kmers = skm.io.load_pickle(kobj)
 
+            # consolidate overly long lists of duplicate kmers
+            if len(common_basis) > 1e10:
+                common_basis = list(set(common_basis))
+            common_basis.extend(list(kmers.kmer_set.kmers))
+
+        # capture common basis set -- is faster than np.unique
+        common_basis = set(common_basis)
+        common_basis = sorted(list(common_basis))
+
+        # output type: plaintext (no pandas) would likely be more compact
+        with open(output.kmerbasis, "w") as f:
+            for kmer in common_basis:
+                f.write(f"{kmer}\n")
 
 # build kmer count vectors for each basis set
 use rule vectorize from kmerize with:
@@ -164,8 +189,8 @@ rule motif:
         kmerobj=rules.score.input.kmerobj,
         matrix=rules.score.output.matrix,
     output:
-        data=join(out_dir, "motif", "sequences", "{nb}.csv"),
-        p_values=join(out_dir, "motif", "p_values", "{nb}.csv"),
+        data=join(out_dir, "motif", "sequences", "{nb}.csv.gz"),
+        p_values=join(out_dir, "motif", "p_values", "{nb}.csv.gz"),
     script:
         resource_filename("snekmer", join("scripts/motif_motif.py"))
 

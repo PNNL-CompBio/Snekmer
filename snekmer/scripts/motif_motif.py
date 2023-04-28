@@ -35,7 +35,7 @@ config = snakemake.config
 # log script start time
 start_time = datetime.now()
 label = (
-    config["model"]["lname"] if str(config["model"]["lname"]) != "None" else "Label"
+    config["score"]["lname"] if str(config["score"]["lname"]) != "None" else "label"
     )
 with open(snakemake.log[0], "a") as f:
     f.write(f"start time:\t{start_time}\n")
