@@ -45,10 +45,12 @@ config = snakemake.config
 with open(snakemake.input.matrix, "rb") as f:
     data = pickle.load(f)
     
+print(data) # TODO remove this once matrix shape is ascertained
+    
 kmers = skm.io.load_pickle(snakemake.input.kmerobj)
 #with gzip.open(snakemake.input.weights, "rb") as f:
 #    weights = pickle.load(f)
-scores = data[1, :] #TODO check whether this is the correct column; POSSIBLY CHANGE THIS BACK TO USING WEIGHTS [0, :]
+scores = data[2, :] #TODO check whether this is the correct column; POSSIBLY CHANGE THIS BACK TO USING WEIGHTS [0, :]
 family = skm.utils.get_family(
     skm.utils.split_file_ext(snakemake.input.weights)[0],
     regex=config["input_file_regex"],
