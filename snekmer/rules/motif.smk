@@ -25,7 +25,7 @@ module kmerize:
 
 
 # imports
-from glob import glob
+#from glob import glob
 from itertools import product
 from os.path import basename, dirname, join, splitext
 from pkg_resources import resource_filename
