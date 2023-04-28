@@ -38,7 +38,7 @@ label = (
     config["score"]["lname"] if str(config["score"]["lname"]) != "None" else "label"
     )
 with open(snakemake.log[0], "a") as f:
-    f.write(f"start time:\t{start_time}\n")
+    f.write(f"start time:\t{{start_time}}\n")
     
 # load input data
 with open(snakemake.input.matrix, "rb") as f:
