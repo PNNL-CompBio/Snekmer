@@ -41,7 +41,7 @@ with open(snakemake.log[0], "a") as f:
     f.write(f"start time:\t{{start_time}}\n")
     
 # load input data
-with open(snakemake.input.matrix, "rb") as f:
+with open(skm.io.load_pickle(snakemake.input.matrix), "rb") as f:
     data = pickle.load(f)
     
 kmers = skm.io.load_pickle(snakemake.input.kmerobj)
