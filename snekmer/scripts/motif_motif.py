@@ -33,15 +33,15 @@ config = snakemake.config
 # ---------------------------------------------------------
 
 # log script start time
-start_time = datetime.now()
-label = (
-    config["score"]["lname"] if str(config["score"]["lname"]) != "None" else "label"
-    )
-with open(snakemake.log[0], "a") as f:
-    f.write(f"start time:\t{{start_time}}\n")
+# start_time = datetime.now()
+# label = (
+#     config["score"]["lname"] if str(config["score"]["lname"]) != "None" else "label"
+#     )
+# with open(snakemake.log[0], "a") as f:
+#     f.write(f"start time:\t{{start_time}}\n")
     
 # load input data
-with open(skm.io.load_pickle(snakemake.input.matrix), "rb") as f:
+with open(skm.io.load_pickle(snakemake.input.matrix, "rb")) as f:
     data = pickle.load(f)
     
 kmers = skm.io.load_pickle(snakemake.input.kmerobj)
@@ -92,4 +92,4 @@ kmers.to_csv(snakemake.output.data, index=False, compression="gzip")
 score_matrix.to_csv(snakemake.output.p_values, index=False, compression="gzip")
 
 # record script endtime
-skm.utils.log_runtime(snakemake.log[0], start_time)
+#skm.utils.log_runtime(snakemake.log[0], start_time)
