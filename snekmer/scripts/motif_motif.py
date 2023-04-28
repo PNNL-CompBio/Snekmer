@@ -89,7 +89,7 @@ for i in range(n_iter):
     
 # save output
 kmers.to_csv(snakemake.output.data, index=False, compression="gzip")
-score_matrix.to_csv(snakemake.output.p_values, index=Fals, compression="gzip")
+score_matrix.to_csv(snakemake.output.p_values, index=False, compression="gzip")
 
 # record script endtime
 skm.utils.log_runtime(snakemake.log[0], start_time)
