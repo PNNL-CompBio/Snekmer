@@ -45,7 +45,7 @@ with open(snakemake.input.matrix, "rb") as f:
     data = pickle.load(f)
     
 kmers = skm.io.load_pickle(snakemake.input.kmerobj)
-weights = pd.read_csv(snakemake.input.weights)
+weights = skm.io.load_pickle(snakemake.input.weights)
 scores = weights[0, :] #TODO check whether this is the correct column
 family = skm.utils.get_family(
     skm.utils.split_file_ext(snakemake.input.weights)[0],
