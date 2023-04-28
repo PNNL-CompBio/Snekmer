@@ -13,6 +13,7 @@ from datetime import datetime
 import snekmer as skm
 import pandas as pd
 import numpy as np
+import gzip
 from typing import Any, Dict, List, Optional
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.tree import DecisionTreeClassifier
@@ -41,7 +42,7 @@ config = snakemake.config
 #     f.write(f"start time:\t{{start_time}}\n")
     
 # load input data
-with open(snakemake.input.matrix, "rb") as f:
+with gzip.open(snakemake.input.matrix, "rb") as f:
     data = pickle.load(f)
     
 kmers = skm.io.load_pickle(snakemake.input.kmerobj)
