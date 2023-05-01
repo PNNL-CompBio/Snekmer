@@ -89,9 +89,10 @@ else:
 # run permutations and score each
 del_columns = np.empty(1)
 for i in range(1, n_families):
-    np.append(del_columns, -1*i)
+    np.append(del_columns, i)
 else:
     del_columns = np.delete(del_columns, 0, 0)
+    del_columns = del_columns*(-1)
 input_matrix = np.delete(data[np.s_[4::1]], del_columns, 0)
 score_matrix = np.reshape(np.array(kmers), (len(kmers),1))
 labels = input_matrix[:, 1] # Input file names MUST be the family name
