@@ -82,9 +82,8 @@ else:
 
   
 # run permutations and score each
-nbg = snakemake.input.nbg
 del_columns = np.empty(1)
-for i in range(1, nbg):
+for i in range(1, len(family)):
     np.append(del_columns, -i)
 else:
     del_columns = np.delete(del_columns, 0)

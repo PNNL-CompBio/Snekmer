@@ -189,7 +189,6 @@ rule motif:
         kmers=rules.common_basis.output.kmerbasis,
         kmerobj=rules.score.input.kmerobj,
         matrix=rules.score.output.matrix,
-        nbg=len(NON_BGS),
     output:
         data=join(out_dir, "motif", "sequences", "{nb}.csv.gz"),
         p_values=join(out_dir, "motif", "p_values", "{nb}.csv.gz"),
