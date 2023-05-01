@@ -55,7 +55,12 @@ family = skm.utils.get_family(
 )
 scorer = skm.score.KmerScorer()
 
-#set number of permutations to test
+# set number of families
+n_families = (
+    config["motif"]["families"]
+    )
+
+# set number of permutations to test
 n_iter = (
     config["motif"]["n"]  
     )
@@ -83,7 +88,7 @@ else:
   
 # run permutations and score each
 del_columns = np.empty(1)
-for i in range(1, len(family)):
+for i in range(1, n_families):
     np.append(del_columns, -i)
 else:
     del_columns = np.delete(del_columns, 0, 0)
