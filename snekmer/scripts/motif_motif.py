@@ -89,7 +89,7 @@ else:
 # run permutations and score each
 del_columns = np.empty(1)
 for i in range(1, n_families):
-    np.append(del_columns, -i)
+    np.append(del_columns, -1*i)
 else:
     del_columns = np.delete(del_columns, 0, 0)
 input_matrix = np.delete(data[np.s_[4::1]], del_columns, 0)
