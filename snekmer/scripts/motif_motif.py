@@ -45,7 +45,7 @@ config = snakemake.config
 with open(snakemake.input.matrix, "rb") as f:
     data = pickle.load(f)
     
-kmers = snakemake.input.kmers
+#kmers = snakemake.input.kmers
 with gzip.open(snakemake.input.weights, "rb") as f:
     weights = pd.DataFrame.to_numpy(pd.read_csv(f))
 scores = weights[1, :] #TODO check whether this is the correct column
@@ -68,14 +68,14 @@ n_iter = (
 
 # get kmers for this particular set of sequences
 with open(snakemake.input.kmerobj, "rb") as f:
-    kmer = pickle.load(f) 
+    kmers = pickle.load(f) 
     
 # set category label name (e.g. "family")
 label = config["score"]["lname"] if str(config["score"]["lname"]) != "None" else "label"
 
 # prevent kmer NA being read as np.nan
-if config["k"] == 2:
-    scores["kmer"] = scores["kmer"].fillna("NA")
+#if config["k"] == 2:
+#    scores["kmer"] = scores["kmer"].fillna("NA")
 if config["k"] == 2:
     scores["kmers"] = scores["kmers"].fillna("NA")
 
@@ -87,7 +87,7 @@ else:
 
   
 # run permutations and score each
-del_columns = np.empty((1, 1))
+del_columns = np.empty(1)
 for i in range(1, n_families):
     np.append(del_columns, i)
 else:
@@ -95,7 +95,7 @@ else:
     del_columns = del_columns*(-1)
     del_columns = del_columns.astype(int)
 input_matrix = np.delete(data[np.s_[4::1]], del_columns, 0)
-score_matrix = np.reshape(np.array(kmers), (len(kmers),1))
+score_matrix = np.reshape(np.array(kmers.kmer_set.kmers), (len(kmers.kmer_set.kmers),1))
 labels = input_matrix[:, 1] # Input file names MUST be the family name
 for i in range(n_iter):
     perm_data = skm.motif.SnekmerMotif.permute(input_matrix, labels)
