@@ -100,8 +100,9 @@ else:
 input_matrix = np.delete(data[np.s_[4::1]], del_columns, 0)
 score_matrix = np.reshape(np.array(kmers), (len(kmers), 1))
 labels = input_matrix[1:1:1] # Input file names MUST be the family name
+motif = skm.motif.SnekmerMotif()
 for i in range(n_iter):
-    perm_data = skm.motif.SnekmerMotif.permute(self, input_matrix, labels)
+    perm_data = motif.permute(input_matrix, labels)
     scorer.fit(kmers, perm_data, labels)
     perm_scores = scorer.scores
     score_matrix = np.append(score_matrix, perm_scores, 1)
