@@ -70,15 +70,15 @@ n_iter = (
 
 
 # get kmers for this particular set of sequences
-with open(snakemake.input.kmerobj, "rb") as f:
-    kmerobj = pickle.load(f) 
+# with open(snakemake.input.kmerobj, "rb") as f:
+#     kmerobj = pickle.load(f) 
     
 # set category label name (e.g. "family")
 label = config["score"]["lname"] if str(config["score"]["lname"]) != "None" else "label"
 
 # prevent kmer NA being read as np.nan
-if config["k"] == 2:
-    scores["kmerobj"] = scores["kmerobj"].fillna("NA")
+# if config["k"] == 2:
+#     scores["kmerobj"] = scores["kmerobj"].fillna("NA")
 if config["k"] == 2:
     scores["kmers"] = scores["kmers"].fillna("NA")
 
@@ -102,8 +102,8 @@ score_matrix = np.reshape(np.array(kmers), (len(kmers), 1))
 labels = input_matrix[1:2:1] # Input file names MUST be the family name
 motif = skm.motif.SnekmerMotif()
 for i in range(n_iter):
-    perm_data = motif.permute(input_matrix, labels)
-    scorer.fit(list(kmerobj.kmer_set.kmers), perm_data, labels)
+    perm_data = motif.permute(data, labels)
+    scorer.fit(kmers, perm_data, labels)
     perm_scores = scorer.scores
     score_matrix = np.append(score_matrix, perm_scores, 1)
     
