@@ -45,7 +45,7 @@ config = snakemake.config
 with open(snakemake.input.matrix, "rb") as f:
     data = pickle.load(f)
     
-kmers = skm.io.load_pickle(snakemake.input.kmers)
+kmers = snakemake.input.kmers
 with gzip.open(snakemake.input.weights, "rb") as f:
     weights = pd.DataFrame.to_numpy(pd.read_csv(f))
 scores = weights[1, :] #TODO check whether this is the correct column
@@ -82,9 +82,9 @@ else:
 
   
 # run permutations and score each
-input_matrix = snakemake.input.matrix
+input_matrix = data[:, 4]
 score_matrix = np.reshape(np.array(kmers), (len(kmers),1))
-labels = input_matrix[:, 0] # TODO check whether this is the correct column
+labels = input_matrix[:, 1] # Input file names MUST be the family name
 for i in range(n_iter):
     perm_data = skm.motif.SnekmerMotif.permute(input_matrix, labels)
     scorer.fit(kmers, perm_data, labels)
