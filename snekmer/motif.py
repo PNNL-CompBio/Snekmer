@@ -60,8 +60,8 @@ class SnekmerMotif:
         """
         
         self.permuted_labels = self.generator.permutation(y)
-        self.mask = np.zeros_like(X)
-        self.mask[:, 1] = 1
+        self.mask = np.zeros_like(X, dtype=bool)
+        self.mask[:, 1] = True
         self.permuted_data = np.place(X, self.mask, self.permuted_labels)
         
         return self.permuted_data
