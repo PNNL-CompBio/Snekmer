@@ -63,8 +63,9 @@ class SnekmerMotif:
         """
         
         self.permuted_labels = self.generator.permutation(y)
-        self.unlabeled = np.delete(X, 0, 1)
-        self.permuted_data = np.hstack(self.permuted_labels, self.unlabeled)
+        self.mask = np.zeros_like(self.real_data)
+        self.mask[:, 1] = 1
+        self.permuted_data = np.place(self.real_data, self.mask, self.permuted_labels)
         
         return self.permuted_data
         

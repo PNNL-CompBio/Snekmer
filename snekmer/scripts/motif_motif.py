@@ -97,8 +97,7 @@ else:
     del_columns = np.delete(del_columns, 0, 0)
     del_columns = del_columns*(-1)
     del_columns = del_columns.astype(int)
-data_matrix = np.delete(data[np.s_[4::1]], del_columns, 0)
-input_matrix = np.delete(data_matrix, 0, 0)
+input_matrix = np.delete(data[np.s_[4::1]], del_columns, 0)
 print(input_matrix) #TODO remove this
 score_matrix = np.reshape(np.array(kmers), (len(kmers), 1))
 labels = input_matrix[:, 1] # Input file names MUST be the family name
