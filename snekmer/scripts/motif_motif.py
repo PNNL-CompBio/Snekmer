@@ -44,6 +44,7 @@ config = snakemake.config
 # load input data
 with open(snakemake.input.matrix, "rb") as f:
     data = pd.DataFrame.to_numpy(pickle.load(f))
+print(data)
     
 with open(snakemake.input.kmers, "rb") as f:
     kmers = f.readlines()
@@ -97,10 +98,9 @@ else:
     del_columns = np.delete(del_columns, 0, 0)
     del_columns = del_columns*(-1)
     del_columns = del_columns.astype(int)
-input_matrix = np.delete(data[np.s_[4::1]], del_columns, 0)
+#input_matrix = np.delete(data[np.s_[4::1]], del_columns, 0)
 score_matrix = np.reshape(np.array(kmers), (len(kmers), 1))
 labels = data[1:2:1] # Input file names MUST be the family name
-print(labels)
 motif = skm.motif.SnekmerMotif()
 for i in range(n_iter):
     perm_data = motif.permute(data, labels)
