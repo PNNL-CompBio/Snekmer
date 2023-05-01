@@ -107,9 +107,11 @@ for i in range(n_iter):
     perm_scores = scorer.scores
     score_matrix = np.append(score_matrix, perm_scores, 1)
     
+output_matrix = motif.p_values(score_matrix, weights, 2000)
+    
 # save output
 kmers.to_csv(snakemake.output.data, index=False, compression="gzip")
-score_matrix.to_csv(snakemake.output.p_values, index=False, compression="gzip")
+output_matrix.to_csv(snakemake.output.p_values, index=False, compression="gzip")
 
 # record script endtime
 #skm.utils.log_runtime(snakemake.log[0], start_time)

@@ -38,10 +38,7 @@ class SnekmerMotif:
     scores : NDArray
     """
     
-    def __init__(self, n=2000):
-        self.scores = skm.io.load_pickle(snakemake.input.weights)
-        self.real_data = skm.io.load_pickle(snakemake.input.matrix)
-        self.labels = skm.io.load_pickle(snakemake.input.data)
+    def __init__(self):
         self.generator = np.random.default_rng()
         self.scorer = skm.score.KmerScorer()
     
@@ -63,9 +60,9 @@ class SnekmerMotif:
         """
         
         self.permuted_labels = self.generator.permutation(y)
-        self.mask = np.zeros_like(self.real_data)
+        self.mask = np.zeros_like(X)
         self.mask[:, 1] = 1
-        self.permuted_data = np.place(self.real_data, self.mask, self.permuted_labels)
+        self.permuted_data = np.place(X, self.mask, self.permuted_labels)
         
         return self.permuted_data
         
@@ -93,7 +90,7 @@ class SnekmerMotif:
         self.output = np.empty((1,5))
         for i in range(len(y)):
             self.seq = self.labels[i]
-            self.real_score = self.scores[i]
+            self.real_score = y[i]
             self.false_score = sum(j > self.real_score for j in X[i, :])
             self.p = self.false_score/n
             self.vec = [self.seq, self.real_score, self.false_score, n, self.p],
