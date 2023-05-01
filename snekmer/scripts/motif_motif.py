@@ -103,7 +103,7 @@ labels = input_matrix[1:2:1] # Input file names MUST be the family name
 motif = skm.motif.SnekmerMotif()
 for i in range(n_iter):
     perm_data = motif.permute(input_matrix, labels)
-    scorer.fit(kmerobj, perm_data, labels)
+    scorer.fit(list(kmers), perm_data, labels)
     perm_scores = scorer.scores
     score_matrix = np.append(score_matrix, perm_scores, 1)
     
