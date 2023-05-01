@@ -43,7 +43,7 @@ config = snakemake.config
     
 # load input data
 with open(snakemake.input.matrix, "rb") as f:
-    data = pickle.load(f)
+    data = pd.DataFrame.to_numpy(pickle.load(f))
     
 with open(snakemake.input.kmers, "rb") as f:
     kmers = f.readlines()
