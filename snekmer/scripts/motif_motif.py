@@ -100,6 +100,7 @@ else:
 input_matrix = np.delete(data[np.s_[4::1]], del_columns, 0)
 score_matrix = np.reshape(np.array(kmers), (len(kmers), 1))
 labels = input_matrix[1:2:1] # Input file names MUST be the family name
+print(labels)
 motif = skm.motif.SnekmerMotif()
 for i in range(n_iter):
     perm_data = motif.permute(data, labels)
