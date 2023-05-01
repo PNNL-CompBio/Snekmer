@@ -104,6 +104,7 @@ labels = data[1:2:1] # Input file names MUST be the family name #TODO find the c
 motif = skm.motif.SnekmerMotif()
 for i in range(n_iter):
     perm_data = motif.permute(input_matrix, labels)
+    print(perm_data)
     scorer.fit(
         kmers,
         perm_data,
