@@ -87,7 +87,7 @@ else:
 
   
 # run permutations and score each
-del_columns = np.empty(1)
+del_columns = np.empty(1,1)
 for i in range(1, n_families):
     np.append(del_columns, i)
 else:
