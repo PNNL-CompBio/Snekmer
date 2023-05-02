@@ -62,7 +62,7 @@ class SnekmerMotif:
         """
         # save primary family label
         self.primary_label = label
-        labels = data[label_col].values
+        labels = X[label_col].values
         
         #self.permuted_data = X
         self.permuted_labels = self.generator.permutation(labels)
