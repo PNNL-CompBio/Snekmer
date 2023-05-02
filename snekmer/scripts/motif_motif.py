@@ -59,9 +59,9 @@ family = skm.utils.get_family(
 scorer = skm.score.KmerScorer()
 
 # set number of families
-n_families = (
-    config["motif"]["families"]
-    )
+# n_families = (
+#     config["motif"]["families"]
+#     )
 
 # set number of permutations to test
 n_iter = (
@@ -107,7 +107,10 @@ score_matrix = np.reshape(np.array(kmers), (len(kmers), 1))
 #labels = data[1:2:1] # Input file names MUST be the family name
 motif = skm.motif.SnekmerMotif()
 for i in range(n_iter):
-    perm_data = motif.permute(data, label, label_col="family")
+    perm_data = motif.permute(
+        data, 
+        skm.utils.get_family(snakemake.wildcards.nb, regex=config["input_file_regex"]),
+        label_col=label)
     scorer.fit(
         kmers,
         perm_data,
