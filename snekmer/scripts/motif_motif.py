@@ -70,8 +70,8 @@ n_iter = (
 
 
 # get kmers for this particular set of sequences
-# with open(snakemake.input.kmerobj, "rb") as f:
-#     kmerobj = pickle.load(f) 
+with open(snakemake.input.kmerobj, "rb") as f:
+    kmerobj = pickle.load(f) 
     
 # set category label name (e.g. "family")
 label = config["score"]["lname"] if str(config["score"]["lname"]) != "None" else "label"
@@ -81,8 +81,8 @@ family = skm.utils.get_family(snakemake.wildcards.nb)
 binary_labels = [True if value == family else False for value in data[label]]
 
 # prevent kmer NA being read as np.nan
-# if config["k"] == 2:
-#     scores["kmerobj"] = scores["kmerobj"].fillna("NA")
+if config["k"] == 2:
+    scores["kmerobj"] = scores["kmerobj"].fillna("NA")
 if config["k"] == 2:
     scores["kmers"] = scores["kmers"].fillna("NA")
 
@@ -112,7 +112,7 @@ for i in range(n_iter):
         skm.utils.get_family(snakemake.wildcards.nb, regex=config["input_file_regex"]),
         label_col=label)
     scorer.fit(
-        list(kmers),
+        list(kmerobj.kmer_set.kmers),
         perm_data,
         skm.utils.get_family(snakemake.wildcards.nb, regex=config["input_file_regex"]),
         label_col=label,
