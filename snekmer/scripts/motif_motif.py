@@ -118,7 +118,7 @@ for i in range(n_iter):
         label_col=label,
         vec_col="sequence_vector",
         **config["score"]["scaler_kwargs"],)
-    perm_scores = scorer.scores
+    perm_scores = scorer.fit.scores
     score_matrix = np.append(score_matrix, perm_scores, 1)
     
 output_matrix = motif.p_values(score_matrix, weights, 2000)
