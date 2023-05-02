@@ -76,6 +76,10 @@ n_iter = (
 # set category label name (e.g. "family")
 label = config["score"]["lname"] if str(config["score"]["lname"]) != "None" else "label"
 
+# binary T/F for classification into family
+family = skm.utils.get_family(snakemake.wildcards.nb)
+binary_labels = [True if value == family else False for value in data[label]]
+
 # prevent kmer NA being read as np.nan
 # if config["k"] == 2:
 #     scores["kmerobj"] = scores["kmerobj"].fillna("NA")
@@ -98,12 +102,12 @@ else:
 #     del_columns = del_columns*(-1)
 #     del_columns = del_columns.astype(int)
 #input_matrix = np.delete(data[np.s_[4::1]], del_columns, 0)
-input_matrix = pd.DataFrame.to_numpy(data)
+
 score_matrix = np.reshape(np.array(kmers), (len(kmers), 1))
 labels = data[1:2:1] # Input file names MUST be the family name #TODO find the correct label column
 motif = skm.motif.SnekmerMotif()
 for i in range(n_iter):
-    perm_data = motif.permute(input_matrix, labels)
+    perm_data = motif.permute(data, labels)
     scorer.fit(
         kmers,
         perm_data,

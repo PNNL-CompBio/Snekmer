@@ -42,28 +42,34 @@ class SnekmerMotif:
         self.generator = np.random.default_rng()
         self.scorer = skm.score.KmerScorer()
     
-    def permute(self, X: np.ndarray, y: np.ndarray):
+    def permute(self, X: pd.DataFrame, label, label_col:
         """
         
         Parameters
         ----------
-        X : array-like of shape (n_samples, n_features)
+        X : Dataframe containing matrix of shape (n_samples, n_features)
             Labeled training data.
-        y : list or array-like of shape (n_samples, 1)
-            Family labels from training data.
+        label : str
+            Primary family label.
+        label_col : str
+            Column with family
 
         Returns
         -------
-        NDArray
+        Dataframe
             Training data with permuted labels, for retraining and rescoring.
 
         """
+        # save primary family label
+        self.primary_label = label
+        labels = data[label_col].values
         
-        self.permuted_data = X
-        self.permuted_labels = self.generator.permutation(y)
-        self.mask = np.zeros_like(X, dtype=bool)
-        self.mask[:, 1] = True
-        np.place(self.permuted_data, self.mask, self.permuted_labels)
+        #self.permuted_data = X
+        self.permuted_labels = self.generator.permutation(labels)
+        #self.mask = np.zeros_like(X, dtype=bool)
+        #self.mask[:, 1] = True
+        #np.place(self.permuted_data, self.mask, self.permuted_labels)
+        self.permuted_data = X.assign(label_col=self.permuted_labels)
         
         return self.permuted_data
         
