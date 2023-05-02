@@ -118,7 +118,7 @@ for i in range(n_iter):
         vec_col="sequence_vector",
         **config["score"]["scaler_kwargs"],)
     perm_scores = pd.DataFrame.from_dict(scorer.scores)
-    score_matrix.assign(perm_scores)
+    score_matrix.merge(perm_scores, left)
     
 output_matrix = motif.p_values(score_matrix, weights, n_iter)
     
