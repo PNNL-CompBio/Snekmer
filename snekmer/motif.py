@@ -42,7 +42,7 @@ class SnekmerMotif:
         self.generator = np.random.default_rng()
         self.scorer = skm.score.KmerScorer()
     
-    def permute(self, X: pd.DataFrame, label, label_col:
+    def permute(self, X: pd.DataFrame, label, label_col)
         """
         
         Parameters
