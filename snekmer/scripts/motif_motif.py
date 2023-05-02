@@ -104,7 +104,6 @@ else:
 #input_matrix = np.delete(data[np.s_[4::1]], del_columns, 0)
 
 score_matrix = np.reshape(np.array(kmers), (len(kmers), 1))
-#labels = data[1:2:1] # Input file names MUST be the family name
 motif = skm.motif.SnekmerMotif()
 for i in range(n_iter):
     perm_data = motif.permute(
@@ -118,10 +117,11 @@ for i in range(n_iter):
         label_col=label,
         vec_col="sequence_vector",
         **config["score"]["scaler_kwargs"],)
-    perm_scores = scorer.fit.scores
+    perm_scores = scorer.scores
+    print(perm_scores) #TODO remove this
     score_matrix = np.append(score_matrix, perm_scores, 1)
     
-output_matrix = motif.p_values(score_matrix, weights, 2000)
+output_matrix = motif.p_values(score_matrix, weights, n_iter)
     
 # save output
 kmers.to_csv(snakemake.output.data, index=False, compression="gzip")
