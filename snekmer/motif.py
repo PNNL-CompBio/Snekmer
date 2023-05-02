@@ -52,7 +52,7 @@ class SnekmerMotif:
         label : str
             Primary family label.
         label_col : str
-            Column with family
+            Column with family labels.
 
         Returns
         -------
@@ -95,7 +95,7 @@ class SnekmerMotif:
         """
         
         self.output = np.empty((1,5))
-        for i in range(len(y)):
+        for i in range(1, len(y)):
             self.seq = self.labels[i]
             self.real_score = y[i]
             self.false_score = sum(j > self.real_score for j in X[i, :])
