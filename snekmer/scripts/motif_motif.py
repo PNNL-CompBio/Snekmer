@@ -112,7 +112,7 @@ for i in range(n_iter):
         skm.utils.get_family(snakemake.wildcards.nb, regex=config["input_file_regex"]),
         label_col=label)
     scorer.fit(
-        kmers,
+        list(kmers),
         perm_data,
         skm.utils.get_family(snakemake.wildcards.nb, regex=config["input_file_regex"]),
         label_col=label,
