@@ -39,10 +39,11 @@ model:
   random_state: None
 
 # search params
-model_dir: "output/example-model/"
-basis_dir: "output/example-model/"
-score_dir: "output/example-model/"
+model_dir: "output/model/"
+basis_dir: "output/kmerize/"
+score_dir: "output/score/"
 
 # motif params
 motif:
   n: 2000
+  families: 2

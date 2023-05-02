@@ -62,10 +62,10 @@ class SnekmerMotif:
         """
         # save primary family label
         self.primary_label = label
-        labels = X[label_col].values
+        self.labels = X[label_col].values
         
         #self.permuted_data = X
-        self.permuted_labels = self.generator.permutation(labels)
+        self.permuted_labels = self.generator.permutation(self.labels)
         #self.mask = np.zeros_like(X, dtype=bool)
         #self.mask[:, 1] = True
         #np.place(self.permuted_data, self.mask, self.permuted_labels)
