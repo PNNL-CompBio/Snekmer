@@ -110,7 +110,7 @@ class SnekmerMotif:
                  'n': [n],
                  'p': [self.p]}
             self.vec = np.array([[self.seq, self.real_score, self.false_score, n, self.p]])
-            self.output_matrix = np.append(self.output_matrix, self.vec, axis=0)
+            self.output_matrix = np.append(self.output_matrix, self.vec, axis=1)
 
             
         else:
