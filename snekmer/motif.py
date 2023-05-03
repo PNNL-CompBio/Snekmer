@@ -99,7 +99,7 @@ class SnekmerMotif:
             self.seq = self.labels[i]
             self.real_score = y[i]
             self.score_list = X.iloc[i, :].values.tolist()
-            self.false_score = sum(j > self.real_score for j in X.iloc[i].select_dtypes(include='np.number'))
+            self.false_score = sum(j > self.real_score for j in pd.to_numeric(X.iloc[i]))
             #self.false_score = X.iloc[i].gt(self.real_score).sum(axis=1)
             self.p = self.false_score/n
             self.vec = [self.seq, self.real_score, self.false_score, n, self.p],
