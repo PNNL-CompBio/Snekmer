@@ -97,7 +97,7 @@ class SnekmerMotif:
         self.output = pd.DataFrame(columns=('kmer', 'real score', 'false positives', 'n', 'p'))
         for i in range(1, len(y)):
             self.seq = self.labels[i]
-            self.real_score = y[i]
+            self.real_score = np.float_(y[i])
             self.false_score = sum(j > self.real_score for j in X.iloc[i])
             #self.false_score = X.iloc[i].gt(self.real_score).sum(axis=1)
             self.p = self.false_score/n

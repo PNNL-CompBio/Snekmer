@@ -49,7 +49,7 @@ with open(snakemake.input.kmers, "rb") as f:
     kmers = f.readlines()
     
 #with gzip.open(snakemake.input.weights) as f:
-weights = pd.DataFrame.to_numpy(pd.read_csv(snakemake.input.weights, dtype=np.float64))
+weights = pd.DataFrame.to_numpy(pd.read_csv(snakemake.input.weights))
     
 scores = weights[1, :] #TODO check whether this is the correct column
 family = skm.utils.get_family(
