@@ -123,7 +123,7 @@ for i in range(n_iter):
         pd.DataFrame(scorer.scores["sample"]), left_index=True, right_index=True
     ) # TODO give columns new names to avoid raising warnings and prevent future MergeErrors
     
-output_matrix = motif.p_values(score_matrix, weights, n_iter)
+output_matrix = motif.p_values(score_matrix, scores, n_iter)
     
 # save output
 kmers.to_csv(snakemake.output.data, index=False, compression="gzip")
