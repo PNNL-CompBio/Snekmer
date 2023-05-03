@@ -94,7 +94,7 @@ class SnekmerMotif:
 
         """
         
-        self.output = pd.DataFrame(columns=('kmer', 'real score', 'false positives', 'n', 'p'))
+        # self.output = pd.DataFrame(columns=('kmer', 'real score', 'false positives', 'n', 'p'))
         self.output_matrix = np.empty((1, 5))
         for i in range(1, len(y)):
             self.seq = self.labels[i]
@@ -116,6 +116,6 @@ class SnekmerMotif:
         else:
             self.output_matrix = np.delete(self.output_matrix, 1, 0)
             
-        self.output = pd.concat([self.output, self.output_matrix])
+        self.output = pd.dataframe(self.output_matrix, columns=('kmer', 'real score', 'false positives', 'n', 'p'))
         
         return self.output
