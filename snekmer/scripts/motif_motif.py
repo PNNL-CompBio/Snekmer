@@ -121,7 +121,7 @@ for i in range(n_iter):
 
     score_matrix=score_matrix.merge(
         pd.DataFrame(scorer.scores["sample"]), left_index=True, right_index=True
-    )
+    ) # TODO give columns new names to avoid raising warnings and prevent future MergeErrors
     
 output_matrix = motif.p_values(score_matrix, weights, n_iter)
     
