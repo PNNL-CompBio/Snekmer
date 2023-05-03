@@ -126,7 +126,7 @@ for i in range(n_iter):
 output_matrix = motif.p_values(score_matrix, scores, n_iter)
     
 # save output
-kmers.to_csv(snakemake.output.data, index=False, compression="gzip")
+# kmers.to_csv(snakemake.output.data, index=False, compression="gzip") # this should be redundant
 output_matrix.to_csv(snakemake.output.p_values, index=False, compression="gzip")
 
 # record script endtime
