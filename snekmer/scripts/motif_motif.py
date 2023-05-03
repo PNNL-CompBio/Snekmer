@@ -48,7 +48,7 @@ with open(snakemake.input.matrix, "rb") as f:
 with open(snakemake.input.kmers, "rb") as f:
     kmers = f.readlines()
     
-with gzip.decompress(snakemake.input.weights, "rb") as f:
+with gzip.decompress(snakemake.input.weights) as f:
     weights = pd.DataFrame.to_numpy(pd.read_csv(f))
     
 scores = weights[1, :] #TODO check whether this is the correct column
