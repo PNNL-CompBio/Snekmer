@@ -110,11 +110,11 @@ class SnekmerMotif:
                  'n': [n],
                  'p': [self.p]}
             self.vec = np.array([[self.seq, self.real_score, self.false_score, n, self.p]])
-            self.output_matrix = np.append(self.output_matrix, self.vec, axis=1)
+            self.output_matrix = np.append(self.output_matrix, self.vec, axis=0)
 
             
         else:
-            self.output_matrix = np.delete(self.output_matrix, 1, 0)
+            self.output_matrix = np.delete(self.output_matrix, 0, 0)
             
         self.output = pd.DataFrame(self.output_matrix, columns=('kmer', 'real score', 'false positives', 'n', 'p'))
         
