@@ -102,9 +102,13 @@ class SnekmerMotif:
             # self.false_score = sum(j > self.real_score for j in pd.to_numeric(X.iloc[i]))
             self.false_score = X.iloc[i, 1:len(y)].gt(self.real_score).sum()
             self.p = self.false_score/n
-            self.vec = pd.DataFrame([[self.seq, self.real_score, self.false_score, n, self.p]],
-                columns=('kmer', 'real score', 'false positives', 'n', 'p')),
-            print(type(self.vec))
+            self.dict = {
+                 'kmer': [self.seq],
+                 'real score': [self.real_score],
+                 'false positives': [self.false_score],
+                 'n': [n],
+                 'p': [self.p]}
+            self.vec = pd.DataFrame.from_dict(self.dict)
             self.output.merge(self.vec, on='kmer')
 
             
