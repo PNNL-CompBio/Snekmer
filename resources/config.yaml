@@ -45,5 +45,5 @@ score_dir: "output/score/"
 
 # motif params
 motif:
-  n: 2000
+  n: 5 
   families: 2
