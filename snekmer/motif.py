@@ -105,6 +105,7 @@ class SnekmerMotif:
             self.vec = pd.DataFrame([[self.seq, self.real_score, self.false_score, n, self.p]],
                 columns=('kmer', 'real score', 'false positives', 'n', 'p')),
             self.output.merge(self.vec, on='kmer')
+            print(type.self.output)
             
         # else:
         #     self.output = np.delete(self.output, 1, 0)
