@@ -73,12 +73,12 @@ class SnekmerMotif:
         
         return self.permuted_data
         
-    def p_values(self, X: np.ndarray, y: np.ndarray, n: int):
+    def p_values(self, X, y: np.ndarray, n: int):
         """
         
         Parameters
         ----------
-        X: array-like of shape (n_samples, n_iterations)
+        X: Dataframe containing matrix of shape (n_samples, n_iterations)
             kmer scores from each permutation tested
         y: list or array-like of shape (n_samples, 1)
             kmer scores from real training data
@@ -101,7 +101,7 @@ class SnekmerMotif:
             self.false_score = sum(j > self.real_score for j in X[i, :])
             self.p = self.false_score/n
             self.vec = [self.seq, self.real_score, self.false_score, n, self.p],
-            self.output = np.append(self.output, self.vec, 0)
+            self.output = pd.concat((self.output, self.vec), 0)
             
         else:
             self.output = np.delete(self.output, 1, 0)
