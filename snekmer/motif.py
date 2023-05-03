@@ -116,6 +116,6 @@ class SnekmerMotif:
         else:
             self.output_matrix = np.delete(self.output_matrix, 1, 0)
             
-        self.output = pd.dataframe(self.output_matrix, columns=('kmer', 'real score', 'false positives', 'n', 'p'))
+        self.output = pd.DataFrame(self.output_matrix, columns=('kmer', 'real score', 'false positives', 'n', 'p'))
         
         return self.output
