@@ -51,8 +51,7 @@ with open(snakemake.input.kmers, "rb") as f:
 #with gzip.open(snakemake.input.weights) as f:
 weights = pd.DataFrame.to_numpy(pd.read_csv(snakemake.input.weights))
     
-scores = weights[:, 1] #TODO check whether this is the correct column
-print(scores)
+scores = weights[:, 1]
 family = skm.utils.get_family(
     skm.utils.split_file_ext(snakemake.input.weights)[0],
     regex=config["input_file_regex"],
