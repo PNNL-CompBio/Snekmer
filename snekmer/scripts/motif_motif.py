@@ -117,8 +117,7 @@ for i in range(n_iter):
         label_col=label,
         vec_col="sequence_vector",
         **config["score"]["scaler_kwargs"],)
-    perm_scores = pd.DataFrame.to_numpy(pd.DataFrame.from_dict(scorer.scores))
-    print(perm_scores)
+    perm_scores = pd.DataFrame.to_numpy(pd.DataFrame.from_records(scorer.scores))
     score_matrix=np.append(score_matrix, perm_scores, 1)
     
 output_matrix = motif.p_values(score_matrix, weights, n_iter)
