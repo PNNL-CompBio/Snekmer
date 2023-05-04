@@ -45,12 +45,13 @@ config = snakemake.config
 with open(snakemake.input.matrix, "rb") as f:
     data = pickle.load(f)
     
-with open(snakemake.input.kmers, "rb") as f:
-    kmers = f.readlines()
+# with open(snakemake.input.kmers, "rb") as f:
+#     kmers = f.readlines()
     
 with gzip.open(snakemake.input.weights, "rb") as f:
     weights = pd.read_csv(f)
-    
+
+kmers = weights['kmer'].values    
 scores = weights['sample'].values
 family = skm.utils.get_family(
     skm.utils.split_file_ext(snakemake.input.weights)[0],
