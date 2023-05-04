@@ -48,7 +48,7 @@ with open(snakemake.input.matrix, "rb") as f:
 with open(snakemake.input.kmers, "rb") as f:
     kmers = f.readlines()
     
-with gzip.open(snakemake.input.weights) as f:
+with gzip.open(snakemake.input.weights, "rb") as f:
     weights = pd.read_csv(f)
     
 scores = weights[sample].values
