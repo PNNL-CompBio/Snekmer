@@ -103,7 +103,7 @@ else:
 #     del_columns = del_columns.astype(int)
 #input_matrix = np.delete(data[np.s_[4::1]], del_columns, 0)
 
-score_matrix = pd.DataFrame(np.reshape(np.array(kmers), (len(kmers), 1)), columns='kmer')
+score_matrix = pd.DataFrame(np.reshape(np.array(kmers), (len(kmers), 1)), columns=('kmer'))
 motif = skm.motif.SnekmerMotif()
 for i in range(n_iter):
     perm_data = motif.permute(
