@@ -119,7 +119,6 @@ else:
     score_matrix=score_matrix.merge(
         pd.DataFrame(score_array), left_index=True, right_index=True
     )
-    print(score_matrix)
     
 output_matrix = motif.p_values(score_matrix, scores, n_iter)
     
