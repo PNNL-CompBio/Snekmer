@@ -95,16 +95,9 @@ else:
 
   
 # run permutations and score each
-# del_columns = np.empty(1)
-# for i in range(1, n_families):
-#     np.append(del_columns, i)
-# else:
-#     del_columns = np.delete(del_columns, 0, 0)
-#     del_columns = del_columns*(-1)
-#     del_columns = del_columns.astype(int)
-#input_matrix = np.delete(data[np.s_[4::1]], del_columns, 0)
 
 score_matrix = pd.DataFrame({'kmer': kmers})
+score_array = pd.DataFrame.to_numpy(score_matrix)
 motif = skm.motif.SnekmerMotif()
 for i in range(n_iter):
     perm_data = motif.permute(
@@ -118,10 +111,13 @@ for i in range(n_iter):
         label_col=label,
         vec_col="sequence_vector",
         **config["score"]["scaler_kwargs"],)
-#    perm_scores = pd.DataFrame.to_numpy(pd.DataFrame(scorer.scores))
+    perm_scores = pd.DataFrame.to_numpy(pd.DataFrame(scorer.scores))
 
+    score_array = np.hstack((score_matrix, scorer.scores))
+    
+else:
     score_matrix=score_matrix.merge(
-        pd.DataFrame(scorer.scores["sample"]), left_index=True, right_index=True
+        pd.DataFrame(score_array), left_index=True, right_index=True
     ) # TODO give columns new names to avoid raising warnings and prevent future MergeErrors
     
 output_matrix = motif.p_values(score_matrix, scores, n_iter)
