@@ -51,7 +51,7 @@ with open(snakemake.input.kmers, "rb") as f:
 with gzip.open(snakemake.input.weights, "rb") as f:
     weights = pd.read_csv(f)
     
-scores = weights[sample].values
+scores = weights['sample'].values
 family = skm.utils.get_family(
     skm.utils.split_file_ext(snakemake.input.weights)[0],
     regex=config["input_file_regex"],
