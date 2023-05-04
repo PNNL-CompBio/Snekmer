@@ -111,7 +111,7 @@ for i in range(n_iter):
         label_col=label,
         vec_col="sequence_vector",
         **config["score"]["scaler_kwargs"],)
-    perm_scores = pd.DataFrame.to_numpy(pd.DataFrame(scorer.scores))
+    perm_scores = np.reshape(pd.DataFrame.to_numpy(pd.DataFrame(scorer.scores), (len(kmers), 1)))
 
     score_array = np.hstack((score_matrix, scorer.scores))
     
