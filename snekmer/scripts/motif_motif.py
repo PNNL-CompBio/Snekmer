@@ -52,7 +52,6 @@ with open(snakemake.input.kmers, "rb") as f:
 weights = pd.DataFrame.to_numpy(pd.read_csv(snakemake.input.weights))
     
 scores = weights[:, 1]
-print(len(scores))
 family = skm.utils.get_family(
     skm.utils.split_file_ext(snakemake.input.weights)[0],
     regex=config["input_file_regex"],
@@ -72,7 +71,7 @@ n_iter = (
 
 # get kmers for this particular set of sequences
 with open(snakemake.input.kmerobj, "rb") as f:
-    kmerobj = pickle.load(f) 
+    kmerobj = pickle.load(f)
     
 # set category label name (e.g. "family")
 label = config["score"]["lname"] if str(config["score"]["lname"]) != "None" else "label"
