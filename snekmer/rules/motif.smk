@@ -194,28 +194,3 @@ rule motif:
         p_values=join(out_dir, "motif", "p_values", "{nb}.csv.gz"),
     script:
         resource_filename("snekmer", join("scripts/motif_motif.py"))
-
-# rule model_report:
-#    input:
-#        results=expand(join(out_dir, "model", "results", "{nb}.csv"), nb=NON_BGS),
-#        figs=expand(join(out_dir, "model", "figures", "{nb}"), nb=NON_BGS),
-#    output:
-#        join(out_dir, "Snekmer_Model_Report.html"),
-#    run:
-#        fig_dir = dirname(input.figs[0])
-#        tab_dir = dirname(input.results[0])
-#
-#        model_vars = dict(
-#            page_title="Snekmer Model Report",
-#            title="Snekmer Model Results",
-#            text=(
-#                "Classifier model results "
-#                f"({config['model']['cv']}-Fold Cross-Validation) "
-#                f"are below."
-#            ),
-#            dir=skm.report.correct_rel_path(tab_dir),
-#        )
-#
-#        skm.report.create_report_many_images(
-#            fig_dir, tab_dir, model_vars, "model", output[0]
-#        )
