@@ -81,9 +81,9 @@ binary_labels = [True if value == family else False for value in data[label]]
 
 # prevent kmer NA being read as np.nan
 if config["k"] == 2:
-    scores["kmerobj"] = scores["kmerobj"].fillna("NA")
+    weights["kmerobj"] = weights["kmerobj"].fillna("NA")
 if config["k"] == 2:
-    scores["kmers"] = scores["kmers"].fillna("NA")
+    weights["kmers"] = weights["kmers"].fillna("NA")
 
 # get alphabet name
 if config["alphabet"] in skm.alphabet.ALPHABET_ORDER.keys():
@@ -110,7 +110,6 @@ for i in range(n_iter):
         vec_col="sequence_vector",
         **config["score"]["scaler_kwargs"],)
     perm_scores = np.reshape(pd.DataFrame.to_numpy(pd.DataFrame(scorer.probabilities["sample"])), (len(kmers), 1))
-    print(perm_scores)
 
     score_array = np.hstack((score_array, perm_scores))
     
