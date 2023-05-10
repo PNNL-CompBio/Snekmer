@@ -109,7 +109,7 @@ for i in range(n_iter):
         label_col=label,
         vec_col="sequence_vector",
         **config["score"]["scaler_kwargs"],)
-    perm_scores = np.reshape(scorer.probabilities["sample"]), (len(kmers), 1)
+    perm_scores = np.reshape(scorer.probabilities["sample"], (len(kmers), 1))
 
     score_array = np.hstack((score_array, perm_scores))
     
