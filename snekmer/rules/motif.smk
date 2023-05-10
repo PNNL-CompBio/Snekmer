@@ -113,6 +113,16 @@ use rule unzip from process with:
         unzipped=join("input", "{uz}"),
         zipped=join("input", "zipped", "{uz}.gz"),
         
+# build kmer count vectors for each basis set
+use rule vectorize from kmerize with:
+    input:
+        fasta=lambda wildcards: join("input", f"{wildcards.nb}.{FA_MAP[wildcards.nb]}"),
+    output:
+        data=join(out_dir, "vector", "{nb}.npz"),
+        kmerobj=join(out_dir, "kmerize", "{nb}.kmers"),
+    log:
+        join(out_dir, "kmerize", "log", "{nb}.log"),
+
 rule common_basis:  # build kmer count vectors for each basis set
     input:
         kmerobjs=expand(join(config["basis_dir"], "{nb}.kmers"), nb=NON_BGS),
@@ -138,16 +148,6 @@ rule common_basis:  # build kmer count vectors for each basis set
         with open(output.kmerbasis, "w") as f:
             for kmer in common_basis:
                 f.write(f"{kmer}\n")
-
-# build kmer count vectors for each basis set
-use rule vectorize from kmerize with:
-    input:
-        fasta=lambda wildcards: join("input", f"{wildcards.nb}.{FA_MAP[wildcards.nb]}"),
-    output:
-        data=join(out_dir, "vector", "{nb}.npz"),
-        kmerobj=join(out_dir, "kmerize", "{nb}.kmers"),
-    log:
-        join(out_dir, "kmerize", "log", "{nb}.log"),
 
 
 # build family score basis
