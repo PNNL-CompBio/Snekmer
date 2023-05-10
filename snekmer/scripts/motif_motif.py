@@ -110,6 +110,7 @@ for i in range(n_iter):
         vec_col="sequence_vector",
         **config["score"]["scaler_kwargs"],)
     perm_scores = np.reshape(pd.DataFrame.to_numpy(pd.DataFrame(scorer.probabilities["sample"])), (len(kmers), 1))
+    print(perm_scores)
 
     score_array = np.hstack((score_array, perm_scores))
     
