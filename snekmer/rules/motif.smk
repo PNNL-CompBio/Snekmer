@@ -190,7 +190,7 @@ rule motif:
         kmerobj=rules.score.input.kmerobj,
         matrix=rules.score.output.matrix,
     output:
-        data=join(out_dir, "motif", "scores", "{nb}.csv.gz"),
+        # data=join(out_dir, "motif", "scores", "{nb}.csv.gz"),
         p_values=join(out_dir, "motif", "p_values", "{nb}.csv.gz"),
     script:
         resource_filename("snekmer", join("scripts/motif_motif.py"))
