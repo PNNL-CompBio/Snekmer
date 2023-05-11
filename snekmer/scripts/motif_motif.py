@@ -121,7 +121,7 @@ else:
 output_matrix = motif.p_values(score_matrix, scores, n_iter)
     
 # save output
-# score_matrix.to_csv(snakemake.output.data, index=False, compression="gzip")
+score_matrix.to_csv(snakemake.output.data, index=False, compression="gzip")
 output_matrix.to_csv(snakemake.output.p_values, index=False, compression="gzip")
 
 # record script endtime
