@@ -69,7 +69,8 @@ class SnekmerMotif:
         #self.mask = np.zeros_like(X, dtype=bool)
         #self.mask[:, 1] = True
         #np.place(self.permuted_data, self.mask, self.permuted_labels)
-        self.permuted_data = X.assign(label_col=self.permuted_labels)
+        self.permuted_data = X
+        self.permuted_data[label_col] = self.permuted_labels
         
         return self.permuted_data
         
