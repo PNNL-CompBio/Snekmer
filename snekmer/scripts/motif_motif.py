@@ -76,9 +76,7 @@ binary_labels = [True if value == family else False for value in data[label]]
 
 # prevent kmer NA being read as np.nan
 if config["k"] == 2:
-    weights["kmerobj"] = weights["kmerobj"].fillna("NA")
-if config["k"] == 2:
-    weights["kmers"] = weights["kmers"].fillna("NA")
+    weights["kmer"] = weights["kmer"].fillna("NA")
 
 # get alphabet name
 if config["alphabet"] in skm.alphabet.ALPHABET_ORDER.keys():
