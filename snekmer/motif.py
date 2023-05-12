@@ -64,11 +64,7 @@ class SnekmerMotif:
         self.primary_label = label
         self.labels = X[label_col].values
         
-        #self.permuted_data = X
         self.permuted_labels = self.generator.permutation(self.labels)
-        #self.mask = np.zeros_like(X, dtype=bool)
-        #self.mask[:, 1] = True
-        #np.place(self.permuted_data, self.mask, self.permuted_labels)
         self.permuted_data = X
         self.permuted_data[label_col] = self.permuted_labels
         
@@ -88,7 +84,7 @@ class SnekmerMotif:
 
         Returns
         -------
-        NDArray
+        Dataframe
             matrix containing kmer sequences, scores on real data, number of scores
             on permuted data that exceed that on real data, n_iterations, and
             proportion of scores on permuted data that exceed that on real data.
@@ -100,16 +96,8 @@ class SnekmerMotif:
         for i in range(0, len(y)-1):
             self.seq = X['kmer'].iloc[i]
             self.real_score = y[i]
-            # self.score_list = X.iloc[i, :].values.tolist()
-            # self.false_score = sum(j > self.real_score for j in pd.to_numeric(X.iloc[i]))
             self.false_score = X.iloc[i, 2:(n+2)].gt(self.real_score).sum()
             self.p = self.false_score/n
-            # self.dict = {
-            #      'kmer': [self.seq],
-            #      'real score': [self.real_score],
-            #      'false positives': [self.false_score],
-            #      'n': [n],
-            #      'p': [self.p]}
             self.vec = np.array([[self.seq, self.real_score, self.false_score, n, self.p]])
             self.output_matrix = np.append(self.output_matrix, self.vec, axis=0)
 

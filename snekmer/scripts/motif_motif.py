@@ -57,11 +57,6 @@ family = skm.utils.get_family(
 )
 scorer = skm.score.KmerScorer()
 
-# set number of families
-# n_families = (
-#     config["motif"]["families"]
-#     )
-
 # set number of permutations to test
 n_iter = (
     config["motif"]["n"]  
