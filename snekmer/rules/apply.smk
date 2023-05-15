@@ -54,7 +54,8 @@ unzipped = [
     if fa.rstrip(".gz").endswith(f".{ext}")
 ]
 annot_files = glob(join("annotations", "*.ann"))
-compare_file = glob(join(input_dir, "compare", "*.csv"))
+compare_file = glob(join("counts", "*.csv"))
+confidence_file = glob(join("confidence", "*.csv"))
 # map extensions to basename (basename.ext.gz -> {basename: ext})
 UZ_MAP = {
     skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in zipped
@@ -101,17 +102,14 @@ if config["learnapp"]['save_summary'] == True:
     if config["learnapp"]['summary_topN'] < 0:
         sys.exit("Incorrect Value Selected for summary_topN. Value must be an integer greater or equal to zero.")
     
-# define output files to be created by snekmer
-# rule all:
-#     input:
-#         # expand(join(input_dir, "{uz}"), uz=UZS),  # require unzipping
-#         "output/apply/Seq-Annotation-Scores-{FAS}.csv".format(FAS=FAS),
-#         # ["output/apply/Seq-Annotation-Scores-{dataset}.csv".format(dataset=dataset) for dataset in FAS],
+
 rule all:
     input:
         expand(join(input_dir, "{uz}"), uz=UZS),
         # ["output/apply/Seq-Annotation-Scores-{fa}.csv".format(fa=FAS) for dataset in FAS],
         expand(join("output","apply","Seq-Annotation-Scores-{nb}.csv"),nb=FAS),
+        expand(join("output","apply","kmer-summary-{nb}.csv"),nb=FAS),
+
 use rule vectorize from kmerize with:
     input:
         fasta=lambda wildcards: join("input", f"{wildcards.nb}.{FA_MAP[wildcards.nb]}"),
@@ -120,24 +118,21 @@ use rule vectorize from kmerize with:
         kmerobj=join("output", "kmerize", "{nb}.kmers"),
     log:
         join("output", "kmerize", "log", "{nb}.log"),
-    # params:
-    #     FAS=lambda wildcards: wildcards.FAS,
-        # FAV=lambda wildcards: wildcards.FAV,
 
 rule apply:
     input:
         data="output/vector/{nb}.npz",
         annotation=expand("{an}", an=annot_files),
-        compare_associations=expand("{bf}", bf=compare_file),
+        compare_associations=expand("{comp}", comp=compare_file),
+        confidence_associations=expand("{conf}", conf=confidence_file),
+
     output:
-        "output/apply/Seq-Annotation-Scores-{nb}.csv"
-        # 'output/apply/Complete.txt'
+        "output/apply/Seq-Annotation-Scores-{nb}.csv",
+        "output/apply/kmer-summary-{nb}.csv"
     log:
         join(out_dir, "apply", "log", "{nb}.log"),
-    # params:
-    #     FAS=lambda wildcards: FAS
-    run:
 
+    run:
         #Note - if the same protein (determined by seqID) is read multiple times in the same FASTA, only the last version is kept. (earlier ones are overwritten)
         #read in compare association.
         #generate new association
@@ -149,24 +144,21 @@ rule apply:
         start_time = datetime.now()
         with open(log[0], "a") as f:
             f.write(f"start time:\t{start_time}\n")
-        startTime = time.time()
-        # print("DATA:",input.data)
         ####        For Validation      ########
-        annots = list()
-        for f in input.annotation:
-            annots.append(pd.read_table(f))
-        annotations = pd.concat(annots)
-        master_seq_annot_dict = {}
-        master_seq_set= annots[0]['id'].tolist()
-        master_annot_set = annots[0]['TIGRFAMs'].tolist()
-        for i,seqid in enumerate(master_seq_set):
-            master_seq_annot_dict[seqid] = master_annot_set[i]
-        master_seq_set = set(master_seq_set)
-        master_annot_set = set(master_annot_set)
-        #moved up here now
+        # annots = list()
+        # for f in input.annotation:
+        #     annots.append(pd.read_table(f))
+        # annotations = pd.concat(annots)
+        # master_seq_annot_dict = {}
+        # master_seq_set= annots[0]['id'].tolist()
+        # master_annot_set = annots[0]['TIGRFAMs'].tolist()
+        # for i,seqid in enumerate(master_seq_set):
+        #     master_seq_annot_dict[seqid] = master_annot_set[i]
+        # master_seq_set = set(master_seq_set)
+        # master_annot_set = set(master_annot_set)
         compare_loaded = pd.read_csv(str(input.compare_associations), index_col="__index_level_0__", header=0, engine="c")
         ########################################
-        # for f in input.data:
+
         f = input.data
         print("Started:",f)
         df, kmerlist = skm.io.load_npz(f)
@@ -205,19 +197,7 @@ rule apply:
                     store.append(0)
             #store values in kmer_seq_dict
             seq_kmer_dict[seq]= store
-        #######     For Validation      ######
-        #this adds _known and _unknown depending on if its a known annotation. This allows us to do validations and RUO.
-        annotation_count_dict = {}
-        total_seqs = len(seq_kmer_dict)
-        count = 0
-        for seqid in list(seq_kmer_dict):
-            x =re.findall(r'\|(.*?)\|', seqid)[0]
-            if x not in master_seq_set:
-                seq_kmer_dict[(x+"_unknown_"+str(count))] = seq_kmer_dict.pop(seqid)
-            else: 
-                seq_kmer_dict[(master_seq_annot_dict[x] + "_known_" + str(count))] = seq_kmer_dict.pop(seqid)
-            count +=1
-        #######
+            
         annotation_count_dict = {}
         total_seqs = len(seq_kmer_dict)
         #construct final output
@@ -229,7 +209,6 @@ rule apply:
         counts_and_sums_df.columns = colnames
         new_index = ["Totals"] + list(seq_kmer_dict.keys())
         counts_and_sums_df.index = new_index
-        executionTime = (time.time() - startTime)
         
         #Also this particular line is slow. Can this division be done faster with linear alg...?
         new_associations = counts_and_sums_df.iloc[1:, 1:].div(counts_and_sums_df["Sequence count"].tolist()[1:], axis = "rows")
@@ -239,38 +218,25 @@ rule apply:
             out_name = "output/apply/kmer-associations-" + str(f)[14:-4] + ".csv"
             new_associations_write = pa.Table.from_pandas(new_associations)
             csv.write_csv(new_associations_write, out_name)
-        startTime = time.time()
         compare_df = compare_loaded.copy(deep=True)
-        executionTime = (time.time() - startTime)
-        startTime = time.time()
+
         if method in ["score_enhanced", "score"]:
             if len(str(new_associations.columns.values[10])) == len(str(compare_df.columns.values[10])):
                 compare_check = True
                 # print("Same kmer lengths detected. Proceeding")
             else: 
                 compare_check = False
-                # print("Different kmer lengths detected. Compare File and ", str(f)[14:-4], " don't match.")
                 sys.exit("Please confirm kmer lengths match in config files of snekmer 'learn' and 'apply'.")
-                # Here is an assumption which is likely true but in cases with extremely high kmer values / large alphabets, the odds decrease.
-                # I assume that all kmer alphabet values will be found within the first 4000 items in kmerlist.
-                # This is to check that these two data structures use the same two alphabets. 
-                # it could just be set to length but would take a bit longer...
             if compare_check == True:
-                check_1 = 4000
-                check_2 = 4000
-                if len(new_associations.columns.values) < check_1:
-                    check_1 = len(new_associations.columns.values)
-                if len(new_associations.columns.values) < check_2:
-                    check_1 = len(new_associations.columns.values)
+                check_1 = len(new_associations.columns.values)
+                check_2 = len(compare_df.columns.values)
                 alphabet_initial = set(itertools.chain(*[list(x) for x in new_associations.columns.values[10:check_1]]))
                 alphabet_compare = set(itertools.chain(*[list(x) for x in compare_df.columns.values[10:check_1]]))
                 if alphabet_compare == alphabet_initial:
                     compare_check = True
                 else: 
                     compare_check = False
-                    # print("Different Alphabets Detected. Compare File not merged.")
-            executionTime = (time.time() - startTime)
-            # print(' make sure files match - Execution time in seconds: ' + str(executionTime))
+
             new_cols = set(new_associations.columns)
             compare_cols = set(compare_df.columns)
             add_to_compare = []
@@ -294,28 +260,17 @@ rule apply:
                 compare_check = True
             else: 
                 compare_check = False
-                # print("Different kmer lengths detected. Compare File and ", str(f)[14:-4], " don't match.")
-                # Here is an assumption which is likely true but in cases with extremely high kmer values / large alphabets, the odds decrease.
-                # I assume that all kmer alphabet values will be found within the first 4000 items in kmerlist.
-                # This is to check that these two data structures use the same two alphabets. 
-                # it could just be set to length but would take a bit longer...
             if compare_check == True:
-                check_1 = 4000
-                check_2 = 4000
-                if len(counts_and_sums_df.columns.values) <= check_1:
-                    check_1 = (len(counts_and_sums_df.columns.values) -5)
-                if len(counts_and_sums_df.columns.values) <= check_2:
-                    check_1 = (len(counts_and_sums_df.columns.values) -5)
+                check_1 = len(new_associations.columns.values)
+                check_2 = len(compare_df.columns.values)
                 alphabet_initial = set(itertools.chain(*[list(x) for x in counts_and_sums_df.columns.values[10:check_1]]))
                 alphabet_compare = set(itertools.chain(*[list(x) for x in compare_df.columns.values[10:check_1]]))
                 if alphabet_compare == alphabet_initial:
                     compare_check = True
-                    # print("Same alphabets detected. Proceeding")
+                    print("Same alphabets detected. Proceeding")
                 else: 
                     compare_check = False
                     # print("Different Alphabets Detected. Compare File not merged.")
-            executionTime = (time.time() - startTime)
-            # print(' make sure files match - Execution time in seconds: ' + str(executionTime))
             new_cols = set(counts_and_sums_df.columns)
             compare_cols = set(compare_df.columns)
             add_to_compare = []
@@ -333,8 +288,6 @@ rule apply:
             temp_df = pd.DataFrame(d, index=counts_and_sums_df.index)
             counts_and_sums_df = pd.concat([counts_and_sums_df, temp_df], axis=1)
 
-        executionTime = (time.time() - startTime)
-        startTime = time.time()
         
         #Cosine similarity Score
         #A note to user. 
@@ -347,15 +300,7 @@ rule apply:
             compare_df.drop(columns=compare_df.columns[:2], axis=1,  inplace=True)
             counts_and_sums_df.drop(index="Totals", axis=0, inplace=True)
             compare_df.drop(index="Totals", axis=0, inplace=True)
-
-            print("long calc started for: ", f)
-            #linalg
-            # d=(counts_and_sums_df.values@compare_df.values.T) / np.linalg.norm(counts_and_sums_df.values,axis=1).reshape(-1,1) / np.linalg.norm(compare_df.values, axis=1)
-            #einsum
-            # d=np.einsum('ij,kj', counts_and_sums_df.values, compare_df.values) / np.linalg.norm(counts_and_sums_df.values,axis=1).reshape(-1,1) / np.linalg.norm(compare_df.values, axis=1)
-            #sklearn - fastest for large datasets
             d = sklearn.metrics.pairwise.cosine_similarity(compare_df,counts_and_sums_df).T
-            print("long calc finished for: ", f)
             final_matrix_with_scores = pd.DataFrame(d, columns=compare_df.index, index=counts_and_sums_df.index)
             counts_and_sums_df = []
             compare_df =[]
@@ -373,39 +318,55 @@ rule apply:
             # d = sklearn.metrics.pairwise.manhattan_distances(compare_df,counts_and_sums_df).T
             #note, you will need to choose  Presence/Absence or Counts above (and in Learn).
             pass
-        executionTime = (time.time() - startTime)    
-        # print('rest of slow time: ' + str(executionTime))
-        startTime = time.time()
+
         #write output
         if config["learnapp"]['save_results'] == True: 
             out_name = "output/apply/Seq-Annotation-Scores-" + str(f)[14:-4] + ".csv"
             final_matrix_with_scores_write = pa.Table.from_pandas(final_matrix_with_scores)
             csv.write_csv(final_matrix_with_scores_write, out_name)
 
-        #Create summary with top N Values
-        #####
-        if config["learnapp"]["save_summary"] == True:
-            summary_topN = config["learnapp"]['summary_topN']
-            nlargest = summary_topN
-            if len(final_matrix_with_scores.axes[1]) < summary_topN:
-                nlargest = len(final_matrix_with_scores.axes[1])
-            order = np.argsort(-final_matrix_with_scores.values, axis=1)[:, :nlargest]
-            w =[]
-            for i,item in enumerate(order):
-                w.append((final_matrix_with_scores[final_matrix_with_scores.columns[[item]]][i:i+1]).values.tolist()[0])
-            vals = pd.DataFrame(w)
-            names = pd.DataFrame(final_matrix_with_scores.columns[order])
-            vals = vals.astype(str)
-            names = names.astype(str)
-            summary = pd.concat([names[col] + "," + vals[col] for col in names],axis="columns")
-            summary.columns = ['top{}'.format(i) for i in range(1, nlargest+1)]
-            summary.index=final_matrix_with_scores.index
+        ########
+        #create output
+        # Protein ID, Prediction, Score, delta, Confidence
+        global_conf_scoring = pd.read_csv(str(input.confidence_associations))
+        global_conf_scoring.index= global_conf_scoring[global_conf_scoring.columns[0]]
+        global_conf_scoring = global_conf_scoring.iloc[: , 1:]
+        global_conf_scoring = global_conf_scoring[global_conf_scoring.columns[0]].squeeze()
+
+        print("global_conf_scoring: \n",global_conf_scoring)
+
+        w =[]
+        order = np.argsort(-final_matrix_with_scores.values, axis=1)[:, :2]
+        print("order: ", order)
+        for i,item in enumerate(order):
+            w.append((final_matrix_with_scores[final_matrix_with_scores.columns[[item]]][i:i+1]).values.tolist()[0])
             
-            # print(summary)
-            out_name_2 = "output/apply/kmer-summary-" + str(f)[14:-4] + ".csv"
-            summary_write = pa.Table.from_pandas(summary)
-            csv.write_csv(summary_write, out_name_2)
-            final_matrix_with_scores =[]
-            print("Completed: ",f)
-            # ######
+        diffs = []
+        top1 = []
+        for item in w:
+            diffs.append(item[0] - item[1])
+            top1.append(item[0])
+    
+        vals = pd.DataFrame({'delta':diffs})
+
+        names = pd.DataFrame(final_matrix_with_scores.columns[order][:, :1])
+        score = pd.DataFrame(top1)
+        score.columns = ["Score"]
+        names.columns = ["Prediction"]
+        names = names.astype(str)
+
+        vals = vals.round(decimals=2)
+        #map value in vals to score
+        vals['Confidence'] = vals["delta"].map(global_conf_scoring)
+
+        
+        summary = pd.concat([names,score,vals],axis=1)
+        summary.index=final_matrix_with_scores.index
+
+        out_name_2 = "output/apply/kmer-summary-" + str(f)[14:-4] + ".csv"
+
+        summary.reset_index(inplace=True)
+        summary_write = pa.Table.from_pandas(summary)
+        csv.write_csv(summary_write, out_name_2)
+
         skm.utils.log_runtime(log[0], start_time)
