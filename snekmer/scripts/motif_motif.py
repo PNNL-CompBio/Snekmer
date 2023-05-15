@@ -112,7 +112,7 @@ else:
     )
     
 output_matrix = motif.p_values(score_matrix, scores, n_iter)
-output_matrix = output_matrix.sort_values(by=['p'])
+output_matrix = output_matrix.sort_values(by=['p', 'real score'])
     
 # save output
 score_matrix.to_csv(snakemake.output.data, index=False, compression="gzip")
