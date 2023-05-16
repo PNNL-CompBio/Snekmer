@@ -125,7 +125,6 @@ rule apply:
         annotation=expand("{an}", an=annot_files),
         compare_associations=expand("{comp}", comp=compare_file),
         confidence_associations=expand("{conf}", conf=confidence_file),
-
     output:
         "output/apply/Seq-Annotation-Scores-{nb}.csv",
         "output/apply/kmer-summary-{nb}.csv"
@@ -133,240 +132,129 @@ rule apply:
         join(out_dir, "apply", "log", "{nb}.log"),
 
     run:
-        #Note - if the same protein (determined by seqID) is read multiple times in the same FASTA, only the last version is kept. (earlier ones are overwritten)
-        #read in compare association.
-        #generate new association
-        #check they match
-        #compare them
-        #check that kmer lengths and alphabets match compare file
-        
-            #read_csv is very slow, likely replaceable
         start_time = datetime.now()
         with open(log[0], "a") as f:
             f.write(f"start time:\t{start_time}\n")
-        ####        For Validation      ########
-        # annots = list()
-        # for f in input.annotation:
-        #     annots.append(pd.read_table(f))
-        # annotations = pd.concat(annots)
-        # master_seq_annot_dict = {}
-        # master_seq_set= annots[0]['id'].tolist()
-        # master_annot_set = annots[0]['TIGRFAMs'].tolist()
-        # for i,seqid in enumerate(master_seq_set):
-        #     master_seq_annot_dict[seqid] = master_annot_set[i]
-        # master_seq_set = set(master_seq_set)
-        # master_annot_set = set(master_annot_set)
-        compare_loaded = pd.read_csv(str(input.compare_associations), index_col="__index_level_0__", header=0, engine="c")
-        ########################################
 
-        f = input.data
-        print("Started:",f)
-        df, kmerlist = skm.io.load_npz(f)
+        ##### Generate Inputs
+        Kmer_Count_Totals = pd.read_csv(str(input.compare_associations), index_col="__index_level_0__", header=0, engine="c")
+        df, kmerlist = skm.io.load_npz(input.data)
         seqids = df["sequence_id"]
         kmer_totals = []
         for item in kmerlist:
             kmer_totals.append(0)
         k_len = len(kmerlist[0])
-        #Generate kmer counts
+
+        ##### Generate Kmer Counts
         seq_kmer_dict = {}
         counter = 0
         for i,seq in enumerate(seqids):
             v = df["sequence"][i]
             kmer_counts = dict()
             items = []
-            #kmerize seq
             for item in range(0,(len((v)) - k_len +1)):
                 items.append(v[item:(item+k_len)])
-            #create kmer:count dict
-            #define in config - Set Presence/Absence vs Counts
-            if method in ["score","score_enhanced"]:
-                #presence/absence
-                items = set(items)
-            elif method in ["cosine"]:
-                #counts
-                pass
             for j in items:
                 kmer_counts[j] = kmer_counts.get(j, 0) + 1  
             store = []
-            #convert kmer:count dict to same order as kmerlist, fill in 0s
             for i,item in enumerate(kmerlist):
                 if item in kmer_counts:
                     store.append(kmer_counts[item])
                     kmer_totals[i] += kmer_counts[item]
                 else:
                     store.append(0)
-            #store values in kmer_seq_dict
             seq_kmer_dict[seq]= store
             
-        annotation_count_dict = {}
+        
+        ######  Construct Kmer Counts Dataframe
         total_seqs = len(seq_kmer_dict)
-        #construct final output
-        counts_and_sums_df = pd.DataFrame(seq_kmer_dict.values())        
-        counts_and_sums_df.insert(0,"Annotations",1,True)
+        Kmer_Counts = pd.DataFrame(seq_kmer_dict.values())        
+        Kmer_Counts.insert(0,"Annotations",1,True)
         kmer_totals.insert(0,total_seqs)
-        colnames = ["Sequence count"] + list(kmerlist)
-        counts_and_sums_df = pd.DataFrame(np.insert(counts_and_sums_df.values, 0, values=kmer_totals, axis=0))
-        counts_and_sums_df.columns = colnames
-        new_index = ["Totals"] + list(seq_kmer_dict.keys())
-        counts_and_sums_df.index = new_index
+        Kmer_Counts = pd.DataFrame(np.insert(Kmer_Counts.values, 0, values=kmer_totals, axis=0))
+        Kmer_Counts.columns = ["Sequence count"] + list(kmerlist)
+        Kmer_Counts.index = ["Totals"] + list(seq_kmer_dict.keys())
         
-        #Also this particular line is slow. Can this division be done faster with linear alg...?
-        new_associations = counts_and_sums_df.iloc[1:, 1:].div(counts_and_sums_df["Sequence count"].tolist()[1:], axis = "rows")
+        new_associations = Kmer_Counts.iloc[1:, 1:].div(Kmer_Counts["Sequence count"].tolist()[1:], axis = "rows")
         
-        #optionally write new assocations to file
-        if config["learnapp"]['save_apply_associations'] == True:
-            out_name = "output/apply/kmer-associations-" + str(f)[14:-4] + ".csv"
-            new_associations_write = pa.Table.from_pandas(new_associations)
-            csv.write_csv(new_associations_write, out_name)
-        compare_df = compare_loaded.copy(deep=True)
-
-        if method in ["score_enhanced", "score"]:
-            if len(str(new_associations.columns.values[10])) == len(str(compare_df.columns.values[10])):
+        ##### Make Kmer Counts Dataframe match Kmer Counts Totals Format
+        if len(str(Kmer_Counts.columns.values[10])) == len(str(Kmer_Count_Totals.columns.values[10])):
+            compare_check = True
+        else: 
+            compare_check = False
+        if compare_check == True:
+            check_1 = len(new_associations.columns.values)
+            check_2 = len(Kmer_Count_Totals.columns.values)
+            alphabet_initial = set(itertools.chain(*[list(x) for x in Kmer_Counts.columns.values[10:check_1]]))
+            alphabet_compare = set(itertools.chain(*[list(x) for x in Kmer_Count_Totals.columns.values[10:check_1]]))
+            if alphabet_compare == alphabet_initial:
                 compare_check = True
-                # print("Same kmer lengths detected. Proceeding")
-            else: 
-                compare_check = False
-                sys.exit("Please confirm kmer lengths match in config files of snekmer 'learn' and 'apply'.")
-            if compare_check == True:
-                check_1 = len(new_associations.columns.values)
-                check_2 = len(compare_df.columns.values)
-                alphabet_initial = set(itertools.chain(*[list(x) for x in new_associations.columns.values[10:check_1]]))
-                alphabet_compare = set(itertools.chain(*[list(x) for x in compare_df.columns.values[10:check_1]]))
-                if alphabet_compare == alphabet_initial:
-                    compare_check = True
-                else: 
-                    compare_check = False
+        if compare_check == False:
+            print("Compare Check Failed. ")
+            sys.exit()
 
-            new_cols = set(new_associations.columns)
-            compare_cols = set(compare_df.columns)
-            add_to_compare = []
-            add_to_new = []
-            for val in new_cols:
-                if val not in compare_cols:
-                    add_to_compare.append(val)
-            for val in compare_cols:
-                if val not in new_cols:
-                    add_to_new.append(val)
-            d = dict.fromkeys(add_to_compare, 0)
-            temp_df = pd.DataFrame(d, index=compare_df.index)
-            compare_df = pd.concat([compare_df, temp_df], axis=1)
-            d = dict.fromkeys(add_to_new, 0)
-            temp_df = pd.DataFrame(d, index=new_associations.index)
-            new_associations = pd.concat([new_associations, temp_df], axis=1)
+        new_cols = set(Kmer_Counts.columns)
+        compare_cols = set(Kmer_Count_Totals.columns)
+        add_to_compare = []
+        add_to_new = []
+        for val in new_cols:
+            if val not in compare_cols:
+                add_to_compare.append(val)
+        for val in compare_cols:
+            if val not in new_cols:
+                add_to_new.append(val)
 
-        #Cosine
-        if method =="cosine":
-            if len(str(counts_and_sums_df.columns.values[10])) == len(str(compare_df.columns.values[10])):
-                compare_check = True
-            else: 
-                compare_check = False
-            if compare_check == True:
-                check_1 = len(new_associations.columns.values)
-                check_2 = len(compare_df.columns.values)
-                alphabet_initial = set(itertools.chain(*[list(x) for x in counts_and_sums_df.columns.values[10:check_1]]))
-                alphabet_compare = set(itertools.chain(*[list(x) for x in compare_df.columns.values[10:check_1]]))
-                if alphabet_compare == alphabet_initial:
-                    compare_check = True
-                    print("Same alphabets detected. Proceeding")
-                else: 
-                    compare_check = False
-                    # print("Different Alphabets Detected. Compare File not merged.")
-            new_cols = set(counts_and_sums_df.columns)
-            compare_cols = set(compare_df.columns)
-            add_to_compare = []
-            add_to_new = []
-            for val in new_cols:
-                if val not in compare_cols:
-                    add_to_compare.append(val)
-            for val in compare_cols:
-                if val not in new_cols:
-                    add_to_new.append(val)
-            d = dict.fromkeys(add_to_compare, 0)
-            temp_df = pd.DataFrame(d, index=compare_df.index)
-            compare_df = pd.concat([compare_df, temp_df], axis=1)
-            d = dict.fromkeys(add_to_new, 0)
-            temp_df = pd.DataFrame(d, index=counts_and_sums_df.index)
-            counts_and_sums_df = pd.concat([counts_and_sums_df, temp_df], axis=1)
+        Kmer_Count_Totals = pd.concat([Kmer_Count_Totals, pd.DataFrame(dict.fromkeys(add_to_compare, 0), index=Kmer_Count_Totals.index)], axis=1)
+        Kmer_Count_Totals.drop(columns=Kmer_Count_Totals.columns[:2], index="Totals", axis=0, inplace=True)
+        Kmer_Counts = pd.concat([Kmer_Counts, pd.DataFrame(dict.fromkeys(add_to_new, 0), index=Kmer_Counts.index)], axis=1)
+        Kmer_Counts.drop(columns=Kmer_Counts.columns[-1:].union(Kmer_Counts.columns[:1]), index="Totals", axis=0, inplace=True)
 
-        
-        #Cosine similarity Score
-        #A note to user. 
-        #Cosine Similarity score requires COUNTS data
-        #Score methods require ASSOCIATION data
-        if method == "cosine":
-            #remove undesired rows and columns
-            counts_and_sums_df.drop(columns=counts_and_sums_df.columns[-1:], axis=1,  inplace=True)
-            counts_and_sums_df.drop(columns=counts_and_sums_df.columns[:1], axis=1,  inplace=True)
-            compare_df.drop(columns=compare_df.columns[:2], axis=1,  inplace=True)
-            counts_and_sums_df.drop(index="Totals", axis=0, inplace=True)
-            compare_df.drop(index="Totals", axis=0, inplace=True)
-            d = sklearn.metrics.pairwise.cosine_similarity(compare_df,counts_and_sums_df).T
-            final_matrix_with_scores = pd.DataFrame(d, columns=compare_df.index, index=counts_and_sums_df.index)
-            counts_and_sums_df = []
-            compare_df =[]
-        if method == "score_enhanced":
-            compare_df = compare_df.replace(0,np.nan)
-            compare_df = compare_df.where(compare_df.notna(), -compare_df.mean(axis=1), axis=0)
-        if method == "score" or method == "score_enhanced":
-            d=(new_associations.values@compare_df.values.T)
-            final_matrix_with_scores = pd.DataFrame(d, columns=compare_df.index, index=new_associations.index)
-        if method == "experimental":
-            #create your own here!
-            #manhattan distance - least accurate 
-            # counts_and_sums_df = counts_and_sums_df.drop('Sequence count', axis=1)
-            # counts_and_sums_df = counts_and_sums_df.drop('Totals', axis=0)
-            # d = sklearn.metrics.pairwise.manhattan_distances(compare_df,counts_and_sums_df).T
-            #note, you will need to choose  Presence/Absence or Counts above (and in Learn).
-            pass
 
-        #write output
+        #### Perform Cosine Similarity between Kmer Counts Totals and Counts and Sums DF
+        cosine_df = sklearn.metrics.pairwise.cosine_similarity(Kmer_Count_Totals,Kmer_Counts).T
+        Kmer_Count_Totals = pd.DataFrame(cosine_df, columns=Kmer_Count_Totals.index, index=Kmer_Counts.index)
+
+        ##### Write Optional Output
         if config["learnapp"]['save_results'] == True: 
-            out_name = "output/apply/Seq-Annotation-Scores-" + str(f)[14:-4] + ".csv"
-            final_matrix_with_scores_write = pa.Table.from_pandas(final_matrix_with_scores)
-            csv.write_csv(final_matrix_with_scores_write, out_name)
-
-        ########
-        #create output
-        # Protein ID, Prediction, Score, delta, Confidence
-        global_conf_scoring = pd.read_csv(str(input.confidence_associations))
-        global_conf_scoring.index= global_conf_scoring[global_conf_scoring.columns[0]]
-        global_conf_scoring = global_conf_scoring.iloc[: , 1:]
-        global_conf_scoring = global_conf_scoring[global_conf_scoring.columns[0]].squeeze()
-
-        print("global_conf_scoring: \n",global_conf_scoring)
-
-        w =[]
-        order = np.argsort(-final_matrix_with_scores.values, axis=1)[:, :2]
-        print("order: ", order)
-        for i,item in enumerate(order):
-            w.append((final_matrix_with_scores[final_matrix_with_scores.columns[[item]]][i:i+1]).values.tolist()[0])
-            
-        diffs = []
-        top1 = []
-        for item in w:
-            diffs.append(item[0] - item[1])
-            top1.append(item[0])
-    
-        vals = pd.DataFrame({'delta':diffs})
-
-        names = pd.DataFrame(final_matrix_with_scores.columns[order][:, :1])
-        score = pd.DataFrame(top1)
-        score.columns = ["Score"]
-        names.columns = ["Prediction"]
-        names = names.astype(str)
-
-        vals = vals.round(decimals=2)
-        #map value in vals to score
-        vals['Confidence'] = vals["delta"].map(global_conf_scoring)
+            out_name = "output/apply/Seq-Annotation-Scores-" + str(input.data)[14:-4] + ".csv"
+            Kmer_Count_Totals_write = pa.Table.from_pandas(Kmer_Count_Totals)
+            csv.write_csv(Kmer_Count_Totals_write, out_name)
 
         
-        summary = pd.concat([names,score,vals],axis=1)
-        summary.index=final_matrix_with_scores.index
+        ##### Create True Output
+        # Protein ID, Prediction, Score, delta, Confidence
+        Global_Confidence_Scores = pd.read_csv(str(input.confidence_associations))
+        Global_Confidence_Scores.index= Global_Confidence_Scores[Global_Confidence_Scores.columns[0]]
+        Global_Confidence_Scores = Global_Confidence_Scores.iloc[: , 1:]
+        Global_Confidence_Scores = Global_Confidence_Scores[Global_Confidence_Scores.columns[0]].squeeze()
 
-        out_name_2 = "output/apply/kmer-summary-" + str(f)[14:-4] + ".csv"
+        Score_rank =[]
+        Sorted_vals = np.argsort(-Kmer_Count_Totals.values, axis=1)[:, :2]
+        for i,item in enumerate(Sorted_vals):
+            Score_rank.append((Kmer_Count_Totals[Kmer_Count_Totals.columns[[item]]][i:i+1]).values.tolist()[0])
+            
+        delta = []
+        Top_Score = []
+        for score in Score_rank:
+            delta.append(score[0] - score[1])
+            Top_Score.append(score[0])
+    
+        vals = pd.DataFrame({'delta':delta})
+        predictions = pd.DataFrame(Kmer_Count_Totals.columns[Sorted_vals][:, :1])
+        score = pd.DataFrame(Top_Score)
+        score.columns = ["Score"]
+        predictions.columns = ["Prediction"]
+        predictions = predictions.astype(str)
+        vals = vals.round(decimals=2)
+        vals['Confidence'] = vals["delta"].map(Global_Confidence_Scores)
 
-        summary.reset_index(inplace=True)
-        summary_write = pa.Table.from_pandas(summary)
-        csv.write_csv(summary_write, out_name_2)
+        Results = pd.concat([predictions,score,vals],axis=1)
+        Results.index=Kmer_Count_Totals.index
+
+        #### Write Results 
+        out_name_2 = "output/apply/kmer-summary-" + str(input.data)[14:-4] + ".csv"
+        Results.reset_index(inplace=True)
+        Results_write = pa.Table.from_pandas(Results)
+        csv.write_csv(Results_write, out_name_2)
 
         skm.utils.log_runtime(log[0], start_time)
