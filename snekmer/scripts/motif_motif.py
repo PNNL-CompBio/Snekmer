@@ -107,6 +107,7 @@ for i in range(n_iter):
     score_array = np.hstack((score_array, perm_scores))
     
 else:
+    score_array = np.delete(score_array, 0, 1)
     score_matrix=score_matrix.merge(
         pd.DataFrame(score_array), left_index=True, right_index=True
     )
