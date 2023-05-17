@@ -1,5 +1,6 @@
 # Snekmer: A scalable pipeline for protein sequence fingerprinting using amino acid recoding (AAR)
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7662597.svg)](https://doi.org/10.5281/zenodo.7662597)
 [![CI](https://github.com/PNNL-CompBio/Snekmer/actions/workflows/action.yml/badge.svg)](https://github.com/PNNL-CompBio/Snekmer/actions)
 [![Documentation Status](https://readthedocs.org/projects/snekmer/badge/?version=latest)](https://snekmer.readthedocs.io/en/latest/?badge=latest)
 [![Snakemake](https://img.shields.io/badge/snakemake-=7.0.0-brightgreen.svg?style=flat)](https://snakemake.readthedocs.io)
@@ -37,15 +38,13 @@ the [official documentation](https://snekmer.readthedocs.io).
 To run the demonstration example, see 
 [resources/tutorial/demo_example](https://github.com/PNNL-CompBio/Snekmer/tree/main/resources/tutorial/demo_example).
 
-## Acknowledgments
 
-Snekmer is written and maintained by the development team:
+Snekmer was written and is maintained by the following PNNL development team: Christine Chang, Jeremy Jacobson, Abby Jerger, Bill Nelson, and Jason McDermott.
 
-- Christine Chang (PNNL)
-- Jeremy Jacobson (PNNL)
-- Abby Jerger (PNNL)
-- Bill Nelson (PNNL)
-- Jason McDermott (PNNL)
+## Citation Guidance
+
+1. McDermott, Jason E., Chang, Christine H., Jerger, Abby, Nelson, William B., & Jacobson, Jeremy R. (2023). Snekmer: A scalable pipeline for protein sequence fingerprinting using amino acid recoding (AAR) (v1.0.3). Zenodo. [https://doi.org/10.5281/zenodo.7662597](https://doi.org/10.5281/zenodo.7662597)
+2. Christine H Chang, William C Nelson, Abby Jerger, Aaron T Wright, Robert G Egbert, Jason E McDermott, Snekmer: a scalable pipeline for protein sequence fingerprinting based on amino acid recoding, Bioinformatics Advances, Volume 3, Issue 1, 2023, vbad005, [https://doi.org/10.1093/bioadv/vbad005](https://doi.org/10.1093/bioadv/vbad005).
 
 ## License
 

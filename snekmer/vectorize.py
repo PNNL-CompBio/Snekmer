@@ -9,6 +9,7 @@ from typing import Dict, Generator, Set, Union
 
 import numpy as np
 from numpy.typing import NDArray
+from ._version import __version__
 from .alphabet import FULL_ALPHABETS, get_alphabet, get_alphabet_keys
 from .utils import check_list
 
@@ -227,6 +228,7 @@ class KmerVec:
         self.char_set = get_alphabet_keys(alphabet)
         self.vector = None
         self.basis = KmerBasis()
+        self.snekmer_version = __version__
         # self.kmer_set = KmerSet(alphabet, k)
 
     def set_kmer_set(self, kmer_set=list()):
