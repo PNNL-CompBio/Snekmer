@@ -28,6 +28,9 @@ For an overview of Snekmer usage, reference the help command (``snekmer --help``
 
     {cluster,model,search}
 
+Tailored references for the individual operation modes can be accessed
+via ``snekmer {mode} --help``.
+
 .. _getting_started-configuration:
 
 Configuration
@@ -71,3 +74,13 @@ step, run:
 .. code-block:: bash
 
     snekmer {mode} --until vectorize
+
+.. _getting_started-all_options:
+
+All Options
+-----------
+
+.. argparse::
+   :module: snekmer.cli
+   :func: get_main_args
+   :prog: snekmer

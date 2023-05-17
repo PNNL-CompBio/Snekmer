@@ -1,6 +1,13 @@
 biopython
-# numpy >= 1.22.3
-snakemake >= 6.0
+matplotlib
+numpy >= 1.22.3
+numba >= 0.56
+pandas
+seaborn
+scipy
 scikit-learn
+snakemake == 7.0
+scikit-learn
+tabulate == 0.8.10
 umap-learn
 hdbscan

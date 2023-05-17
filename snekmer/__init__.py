@@ -6,7 +6,8 @@ from . import score
 from . import model
 from . import cluster
 from . import vectorize
+from . import report
 
 # from . import walk
 
-__version__ = "1.0.0-beta"
+__version__ = "1.0.3"

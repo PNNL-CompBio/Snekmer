@@ -3,6 +3,10 @@
 .test/results
 .github
 .test
+resources/tutorial/*.py
+
+# tutorial output files
+resources/tutorial/demo_example/output
 
 # documentation
 docs/_build/

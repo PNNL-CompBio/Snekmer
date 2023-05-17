@@ -1,0 +1,82 @@
+name: CI
+
+# specify trigger events for ci workflow
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, edited, reopened, synchronize, review_requested]
+
+jobs:
+  # apply formating and linting
+  Format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Apply snakefmt
+        uses: github/super-linter@v4
+        env:
+          VALIDATE_ALL_CODEBASE: false
+          DEFAULT_BRANCH: main
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+          LINTER_RULES_PATH: snekmer/rules/
+          VALIDATE_SNAKEMAKE_SNAKEFMT: true
+
+  # run all tests
+  Test:
+    runs-on: ubuntu-latest
+    needs:
+      - Format
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build test environment
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          mamba-version: "*"
+          channels: anaconda,conda-forge,bioconda,numba
+          auto-activate-base: false
+          activate-environment: snekmer
+          environment-file: .test/test-env.yml
+      - shell: bash -l {0}
+        run: |
+          conda info
+          conda list
+          conda config --show
+      - shell: bash -l {0}
+        run: mamba install -y -c conda-forge snakemake==7.0 tabulate==0.8.10
+      - shell: bash -l {0}
+        run: pip install -e .
+
+      # test clustering step
+      - name: Snekmer Cluster
+        run: |
+          export PATH="/usr/share/miniconda/bin:$PATH"
+          conda info --envs
+          source activate snekmer
+          conda config --get channel_priority --json
+          snekmer cluster --configfile .test/config.yaml -d .test
+          rm -rf .test/output
+
+      #  --use-conda --conda-cleanup-pkgs cache --show-failed-logs --conda-frontend mamba
+
+      # run modeling step and move output files for search
+      - name: Snekmer Model
+        run: |
+          export PATH="/usr/share/miniconda/bin:$PATH"
+          source activate snekmer
+          snekmer model --configfile .test/config.yaml -d .test --cores 1
+          mkdir .test/output/example-model
+          mv .test/output/model/*.model .test/output/example-model/
+          mv .test/output/kmerize/*.kmers .test/output/example-model/
+          mv .test/output/scoring/*.scorer .test/output/example-model/
+
+      # search against previously generated model files
+      - name: Snekmer Search
+        run: |
+          export PATH="/usr/share/miniconda/bin:$PATH"
+          source activate snekmer
+          snekmer search --configfile .test/config.yaml -d .test --cores 1
+          rm -rf .test/output

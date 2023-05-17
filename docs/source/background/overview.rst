@@ -29,7 +29,7 @@ for sequence-to-sequence comparison. Proteins can thus be represented as simplif
 that encode structural information relevant for functional differentiation. The combined
 AAR-kmer approach was successfully applied to develop machine learning (ML) models capable
 of classifying sets of proteins that are functionally related but with little sequence 
-similarity that would thus not be detected via conventional similarity assessment techniques [1].
+similarity that would thus not be detected via conventional similarity assessment techniques.\ :footcite:p:`McDermott2019`
 
 .. _alphabets:
 
@@ -42,17 +42,17 @@ The available options, including the option to skip recoding, are listed below.
 =============  ===============  ======  ===========================================================================================
  Alphabet No.   Alphabet Name    Size                                         Description  
 =============  ===============  ======  ===========================================================================================
- ``0``         ``hydro``          2      2-value hydrophobicity alphabet :footcite:p:`Arnold2009`
+ ``0``         ``hydro``          2      2-value hydrophobicity alphabet\ :footcite:p:`Arnold2009`
 -------------  ---------------  ------  -------------------------------------------------------------------------------------------
- ``1``         ``standard``       7      "Standard" reduction alphabet :footcite:p:`Arnold2009`
+ ``1``         ``standard``       7      "Standard" reduction alphabet\ :footcite:p:`Arnold2009`
 -------------  ---------------  ------  -------------------------------------------------------------------------------------------
- ``2``         ``solvacc``        3      Solvent accessibility alphabet :footcite:p:`Arnold2009`
+ ``2``         ``solvacc``        3      Solvent accessibility alphabet\ :footcite:p:`Arnold2009`
 -------------  ---------------  ------  -------------------------------------------------------------------------------------------
  ``3``         ``hydrocharge``    3      2-value hydrophobicity with charged residues as a third category; by @biodataganache
 -------------  ---------------  ------  -------------------------------------------------------------------------------------------
  ``4``         ``hydrostruct``    3      2-value hydrophobicity with structural-breakers as a third category; by @biodataganache
 -------------  ---------------  ------  -------------------------------------------------------------------------------------------
- ``5``         ``miqs``           10     MIQS alphabet :footcite:p:`Yamada2014`
+ ``5``         ``miqs``           10     MIQS alphabet\ :footcite:p:`Yamada2014`
 -------------  ---------------  ------  -------------------------------------------------------------------------------------------
  *n/a*         ``None``           20     No reduced alphabet
 =============  ===============  ======  ===========================================================================================

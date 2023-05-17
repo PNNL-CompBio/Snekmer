@@ -8,8 +8,9 @@ import gzip
 import json
 import pickle
 import re
+from ast import literal_eval
 from os.path import basename, join, splitext
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -47,51 +48,55 @@ def load_npz(
     columns: Dict[str, str] = {
         "ids": "sequence_id",
         "seqs": "sequence",
-        "vecs": "sequence_vector"
+        "vecs": "sequence_vector",
     },
-) -> pd.DataFrame:
+    objects: Tuple = ("kmerlist",),
+) -> Tuple[List, pd.DataFrame]:
     """Compile .npz results into dataframe.
 
     Parameters
     ----------
     filename : str
-        Description of parameter `filename`.
+        /path/to/filename for input .npz file.
     columns : Dict[str, str]
-        Description of parameter `columns` (the default is
+        Mapping for output data column names (the default is
             {
                 "ids": "sequence_id",
                 "seqs": "sequence",
                 "vecs": "sequence_vector",
             }
         ).
+    objects : Tuple[str]
+        Column names for additional objects to return
 
     Returns
     -------
-    pd.DataFrame
-        Description of returned object.
-
-    Raises
-    ------
-    ExceptionName
-        Why the exception is raised.
+    Tuple[List, pd.DataFrame]
+        Tuple with list of data objects and tabulated .npz data.
 
     """
     data = np.load(filename)
 
     # fill in df based on desired output col names
     df = {"filename": splitext(basename(filename))[0]}
+
     for in_col, out_col in columns.items():
         df.update({out_col: list(data[in_col])})
 
         # get seq column for sequence lengths
         if "seq" in in_col:
             df.update({f"{out_col}_length": [len(s) for s in data[in_col]]})
-    # df.update()
 
-    return pd.DataFrame(df), data["kmerlist"]
+    # load things that don't fit in the data matrix format
+    #    such as kmerbasis
+    extras = list()
+    for obj in objects:
+        extras.append(data[obj])
+
+    return extras, pd.DataFrame(df)
 
 
-def read_output_kmers(filename: str) -> List[str]:
+def read_kmers(filename: str) -> List[str]:
     """Extract kmer identifiers from Snekmer output file.
 
     Parameters
@@ -108,12 +113,13 @@ def read_output_kmers(filename: str) -> List[str]:
     kmers = list()
     with open(filename) as f:
         for line in f:
-            line_data = line.split("\t")
+            kmers.append(line.strip())  # .split("\t")
             # parse kmer outputs if detected
-            if re.findall(r"^KMER", line_data[0]):
-                kmers += line_data
-    prefix = re.search(r"^KMER-[\d]+-[A-Za-z]+-", kmers[0]).group()
-    return [s.strip().replace(prefix, "") for s in kmers]
+            # if re.findall(r"^KMER", line_data[0]):
+            # kmers += line_data
+    # prefix = re.search(r"^KMER-[\d]+-[A-Za-z]+-", kmers[0]).group()
+    # return [s.strip().replace(prefix, "") for s in kmers]
+    return kmers
 
 
 def vecfiles_to_df(
@@ -178,6 +184,8 @@ def define_output_dir(alphabet: Union[str, int], k: int, nested: bool = False) -
         Name of output directory, given nested directory parameters.
 
     """
+    if isinstance(nested, str):
+        nested = literal_eval(nested)
     if not nested:
         return "output"
     if not isinstance(alphabet, str):

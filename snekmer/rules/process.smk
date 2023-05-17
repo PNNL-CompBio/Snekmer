@@ -23,6 +23,8 @@ rule unzip:
         zipped=join("input", "zipped", "{uz}.gz"),
     run:
         # preserve zipped file
+        if not exists(dirname(output.zipped)):
+            makedirs(dirname(output.zipped))
         copy(input[0], output.zipped)
 
         # unzip and save file contents

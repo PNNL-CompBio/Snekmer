@@ -7,6 +7,7 @@ author: @christinehc
 import collections.abc
 import datetime
 import re
+
 from os.path import basename, splitext
 from typing import Any, List, Optional, Tuple, Union
 
@@ -200,3 +201,53 @@ def to_feature_matrix(
         length_array = np.ones(len(array))
     array = [np.array(a) / length for a, length in zip(array, length_array)]
     return np.asarray(array)
+
+
+def count_n_seqs(filename: str) -> int:
+    """Count number of sequences in a file.
+
+    Parameters
+    ----------
+    filename : str
+        /path/to/sequence/file.fasta
+        Other text formatted sequence files (.faa, etc.) also work.
+
+    Returns
+    -------
+    int
+        Number of sequences contained within the input file.
+
+    """
+    return len([1 for line in open(filename) if line.startswith(">")])
+
+
+def check_n_seqs(filename: str, k: int, show_warning: bool = True) -> bool:
+    """Check that a file contains at least k sequences.
+
+    Parameters
+    ----------
+    filename : str
+        /path/to/sequence/file.fasta
+        Other text formatted sequence files (.faa, etc.) also work.
+    k : int
+        Minimum threshold.
+    show_warning : bool, optional
+        When True, if len(file) < k, a warning is displayed;
+        by default True.
+
+    Returns
+    -------
+    bool
+        True if len(file) < k; False otherwise.
+
+    """
+    n_seqs = len([1 for line in open(filename) if line.startswith(">")])
+    if (n_seqs < k) and (show_warning):
+        print(
+            f"\nWARNING: {filename} contains an insufficient"
+            " number of sequences for model cross-validation"
+            " and will thus be excluded from Snekmer modeling."
+            f" ({k} folds specified in config; {n_seqs}"
+            " sequence(s) detected.)\n"
+        )
+    return n_seqs >= k

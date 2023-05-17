@@ -1,0 +1,26 @@
+<html>
+    <head>
+        <title>{{page_title}}</title>
+    </head>
+    <body>
+            <h1>{{title}}</h1>
+            <p>{{text}}</p>
+            <a href={{dir}}>
+                See Snekmer model CV results in file explorer: (<b>output/model/results/</b>)
+            </a>
+            <p>
+                Direct link to model results tables:
+                <br>
+                {% for tab in tables %}
+                    <a href={{tab}}>
+                        <b>{{tab}}</b>
+                    </a>
+                    <br>
+                {% endfor %}
+            </p>
+            <h2>Figures</h2>
+            {% for image in images %}
+                <img src="{{image}}" width="auto" height="350"/>
+            {% endfor %}
+    </body>
+</html>
