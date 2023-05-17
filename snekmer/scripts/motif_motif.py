@@ -48,6 +48,10 @@ with open(snakemake.input.matrix, "rb") as f:
     
 with gzip.open(snakemake.input.weights, "rb") as f:
     weights = pd.read_csv(f)
+    
+# prevent kmer NA being read as np.nan
+if config["k"] == 2:
+    weights["kmer"] = weights["kmer"].fillna("NA")
 
 kmers = weights['kmer'].values    
 scores = weights['sample'].values
@@ -73,10 +77,6 @@ label = config["score"]["lname"] if str(config["score"]["lname"]) != "None" else
 # binary T/F for classification into family
 family = skm.utils.get_family(snakemake.wildcards.nb)
 binary_labels = [True if value == family else False for value in data[label]]
-
-# prevent kmer NA being read as np.nan
-if config["k"] == 2:
-    weights["kmer"] = weights["kmer"].fillna("NA")
 
 # get alphabet name
 if config["alphabet"] in skm.alphabet.ALPHABET_ORDER.keys():
