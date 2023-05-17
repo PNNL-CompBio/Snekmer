@@ -262,6 +262,16 @@ def get_argument_parser():
         description="Learn kmer-annotation associations via Snekmer",
         parents=[parser["smk"]],
     )
+    return parser
+
+
+def get_main_args():
+    parser = get_argument_parser()
+    return parser["main"]
+
+
+def main():
+    parser = get_argument_parser()
 
     # parse args
     args = parser["main"].parse_args()
@@ -374,7 +384,7 @@ def get_argument_parser():
 
     elif args.mode == "learn":
         snakemake(
-            resource_filename("snekmer", join("rules", "learn.smk")),
+            resource_filename("snekmer", os.path.join("rules", "learn.smk")),
             configfiles=[args.configfile],
             config=config,
             cluster_config=args.clust,
