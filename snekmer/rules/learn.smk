@@ -124,12 +124,12 @@ if config["learnapp"]["save_summary"] == True:
 # define output files to be created by snekmer
 rule all:
     input:
-        # expand(join(input_dir, "{uz}"), uz=UZS),  # require unzipping
         expand(join("output", "learn", "kmer-counts-{nb}.csv"), nb=FAS),
         join("output", "learn", "kmer-counts-total.csv"),
         expand(join("output", "eval_apply", "Seq-Annotation-Scores-{nb}.csv"), nb=FAS),
         "output/eval_conf/confidence_matrix.csv",
         "output/eval_conf/Global_Confidence_Scores.csv",
+        # expand(join(input_dir, "{uz}"), uz=UZS),  # require unzipping
 
 
 # if any files are gzip zipped, unzip them
@@ -163,7 +163,6 @@ rule learn:
     log:
         join(out_dir, "learn", "log", "learn-{nb}.log"),
     run:
-        # log script start time
         start_time = datetime.now()
         with open(log[0], "a") as f:
             f.write(f"start time:\t{start_time}\n")

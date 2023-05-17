@@ -21,6 +21,7 @@ module kmerize:
 
 import copy
 import csv
+
 # built-in imports
 import gzip
 import itertools

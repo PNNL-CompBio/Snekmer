@@ -179,7 +179,6 @@ rule eval_apply:
     log:
         join(out_dir, "eval_apply", "log", "{nb}.log"),
     run:
-        # read_csv is very slow, likely replaceable
         start_time = datetime.now()
 
         with open(log[0], "a") as f:
@@ -864,7 +863,6 @@ rule evaluate:
 # Determine if each protein annotation was predicted correctly - generate T/F matrix.
 
 # Generate 1st - 2nd cosine score matrix
-
 # Take scores for each protein and sum into families.
 # Calculate T/F rates across the distribution for each family.
 # Generate a confidence matrix. y-axis = families. x-axis = confidence scores at each point 0-1 in .01 increments.
