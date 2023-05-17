@@ -861,7 +861,6 @@ rule evaluate:
 
 
 # Determine if each protein annotation was predicted correctly - generate T/F matrix.
-
 # Generate 1st - 2nd cosine score matrix
 # Take scores for each protein and sum into families.
 # Calculate T/F rates across the distribution for each family.
