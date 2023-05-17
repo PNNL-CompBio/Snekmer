@@ -96,7 +96,7 @@ class SnekmerMotif:
         for i in range(0, len(y)-1):
             self.seq = X['kmer'].iloc[i]
             self.real_score = y[i]
-            self.false_score = X.iloc[i, 2:(n+2)].gt(self.real_score).sum()
+            self.false_score = X.iloc[i, 2:(n+2)].ge(self.real_score).sum()
             self.p = self.false_score/n
             self.vec = np.array([[self.seq, self.real_score, self.false_score, n, self.p]])
             self.output_matrix = np.append(self.output_matrix, self.vec, axis=0)
