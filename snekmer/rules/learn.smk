@@ -226,26 +226,25 @@ rule learn:
                 else:
                     Annotation_Counts[Seq_Anot[x]] += 1
 
-                # Construct Kmer Counts Output
+                    # Construct Kmer Counts Output
         Kmer_Counts = pd.DataFrame(seq_kmer_dict.values())
         Kmer_Counts.insert(0, "Annotations", Annotation_Counts.values(), True)
-        Kmer_Counts.insert(
-            1,
-            "Kmer Count",
-                (Kmer_Counts[list(Kmer_Counts.columns[1:])].sum(axis=1).to_list()),
-                True,
-            )
-            kmer_totals[0:0] = [0, total_seqs]
-            colnames = ["Sequence count"] + ["Kmer Count"] + list(kmerlist)
-            Kmer_Counts = pd.DataFrame(
-                np.insert(Kmer_Counts.values, 0, values=(kmer_totals), axis=0)
-            )
-            Kmer_Counts.columns = colnames
-            new_index = ["Totals"] + list(Annotation_Counts.keys())
-            Kmer_Counts.index = new_index
 
-            #### Write Output
-            out_name = "output/learn/kmer-counts-" + str(input.data)[14:-4] + ".csv"
+        Kmer_Counts_values = (
+            Kmer_Counts[list(Kmer_Counts.columns[1:])].sum(axis=1).to_list()
+        )
+        Kmer_Counts.insert(1, "Kmer Count", Kmer_Counts_values, True)
+        kmer_totals[0:0] = [0, total_seqs]
+        colnames = ["Sequence count"] + ["Kmer Count"] + list(kmerlist)
+        Kmer_Counts = pd.DataFrame(
+            np.insert(Kmer_Counts.values, 0, values=(kmer_totals), axis=0)
+        )
+        Kmer_Counts.columns = colnames
+        new_index = ["Totals"] + list(Annotation_Counts.keys())
+        Kmer_Counts.index = new_index
+
+        #### Write Output
+        out_name = "output/learn/kmer-counts-" + str(input.data)[14:-4] + ".csv"
         Kmer_Counts_out = pa.Table.from_pandas(Kmer_Counts, preserve_index=True)
         csv.write_csv(Kmer_Counts_out, out_name)
         skm.utils.log_runtime(log[0], start_time)
