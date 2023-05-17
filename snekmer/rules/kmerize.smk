@@ -40,9 +40,14 @@ unzipped = [
     fa.rstrip(".gz")
     for fa, ext in itertools.product(input_files, input_file_exts)
     if fa.rstrip(".gz").endswith(f".{ext}")
+    and skm.utils.check_n_seqs(fa, config["model"]["cv"], show_warning=False)
 ]
 zipped = [fa for fa in input_files if fa.endswith(".gz")]
-UZS = [skm.utils.split_file_ext(f)[0] for f in zipped]
+UZS = [
+    skm.utils.split_file_ext(f)[0]
+    for f in zipped
+    if skm.utils.check_n_seqs(fa, config["model"]["cv"], show_warning=False)
+]
 FAS = [skm.utils.split_file_ext(f)[0] for f in unzipped]
 
 # map extensions to basename (basename.ext.gz -> {basename: ext})
@@ -53,91 +58,107 @@ FA_MAP = {
     skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in unzipped
 }
 
+# define unique reference ids by kmer file
+seq_counts = {
+    skm.utils.split_file_ext(f)[0]: skm.utils.count_n_seqs(f) for f in unzipped
+}
+ref_ids = [nseqs for fam, nseqs in seq_counts.items()]
+FA_REFIDS = skm.utils.get_ref_ids(unzipped)
+
 
 rule vectorize:
     input:
         fasta=lambda wildcards: join("input", f"{wildcards.nb}.{FA_MAP[wildcards.nb]}"),
         kmerbasis=join(input_dir, "basis.txt"),  # this is optional
     output:
-        data=join("output", "vector", "{nb}.npz"),
-        kmerobj=join("output", "kmerize", "{nb}.kmers"),
+        # data=join("output", "vector", "{nb}.npz"),
+        kmertable=join("output", "kmerize", "{nb}.ktable"),
     log:
         join("output", "kmerize", "log", "{nb}.log"),
     run:
         # initialize kmerization object
-        kmer = skm.vectorize.KmerVec(alphabet=config["alphabet"], k=config["k"])
+        kmerizer = skm.vectorize.KmerVecs(
+            k=config["k"], alphabet=config["alphabet"], ref_id=FA_REFIDS[wildcards.nb]
+        )
 
-        # read kmerbasis if present
+        # TODO: read kmerbasis if present
 
         min_filter = 0
-        if hasattr(input, "kmerbasis") and exists(input.kmerbasis):
-            kmerbasis = skm.io.read_kmers(input.kmerbasis)
+        # if hasattr(input, "kmerbasis") and exists(input.kmerbasis):
+        #     kmerbasis = skm.io.read_kmers(input.kmerbasis)
 
-            # quick way to get the number of proteins in
-            #     the fasta file so we can set up an array
-            #     ahead of time
-            nprot = len([1 for line in open(input.fasta) if line.startswith(">")])
+        #     # quick way to get the number of proteins in
+        #     #     the fasta file so we can set up an array
+        #     #     ahead of time
+        #     nprot = len([1 for line in open(input.fasta) if line.startswith(">")])
 
-        else:
-            # we make our own kmerbasis and filter for minimum
-            #    number of occurrences, etc.
-            # we will only allow filtering by number of kmers
-            # if we're not using a basis set as input -
-            if "min_filter" in config:
-                min_filter = config["min_filter"]
+        # else:
+        #     # we make our own kmerbasis and filter for minimum
+        #     #    number of occurrences, etc.
+        #     # we will only allow filtering by number of kmers
+        #     # if we're not using a basis set as input -
+        #     if "min_filter" in config:
+        #         min_filter = config["min_filter"]
 
-            # make basis
-            kmerbasis = {}
-            fasta = SeqIO.parse(input.fasta, "fasta")
+        #         # make basis
+        #     kmerbasis = {}
+        #     fasta = SeqIO.parse(input.fasta, "fasta")
 
-            nprot = 0
-            for f in fasta:
-                nprot += 1
-                these = kmer.reduce_vectorize(f.seq)
-                for key in these:
-                    if key in kmerbasis:
-                        kmerbasis[key] += 1
-                    else:
-                        kmerbasis[key] = 1
+        #     nprot = 0
+        #     for f in fasta:
+        #         nprot += 1
+        #         these = kmer.reduce_vectorize(f.seq)
+        #         for key in these:
+        #             if key in kmerbasis:
+        #                 kmerbasis[key] += 1
+        #             else:
+        #                 kmerbasis[key] = 1
 
-            kmerbasis = np.array(list(kmerbasis.keys()))[
-                np.array(list(kmerbasis.values())) > min_filter
-            ]
+        #     kmerbasis = np.array(list(kmerbasis.keys()))[
+        #         np.array(list(kmerbasis.values())) > min_filter
+        #     ]
 
-        kmer.set_kmer_set(kmerbasis)
+        # kmer.set_kmer_set(kmerbasis)
 
         # (re)read fasta using bioconda obj
         fasta = SeqIO.parse(input.fasta, "fasta")
+        seqs = [str(f.seq) for f in fasta]
+        kmerizer.kmerize(seqs)
+
+        # unpack table
+        # codes = kmerizer.kmer_codes
+        # table = kmerizer.table
+        # matrix = skm.vectorize.unpack_table(table, len(seqs), kmers=codes)
 
         # pre-allocate an array to keep results
-        vecs = np.zeros((nprot, len(kmerbasis)))
+        # vecs = np.zeros((nprot, len(kmerbasis)))
 
         # I question whether we need to keep the reduced seqs here
-        seqs, ids, lengths = list(), list(), list()
-        n = 0
-        for f in fasta:
-            addvec = kmer.reduce_vectorize(f.seq)
-            vecs[n][np.isin(kmerbasis, addvec)] = 1
-            n += 1
-            seqs.append(
-                skm.vectorize.reduce(
-                    f.seq,
-                    alphabet=config["alphabet"],
-                    mapping=skm.alphabet.FULL_ALPHABETS,
-                )
-            )
-            ids.append(f.id)
-            lengths.append(len(f.seq))
+        # seqs, ids, lengths = list(), list(), list()
+        # n = 0
+        # for f in fasta:
+        #     addvec = kmer.reduce_vectorize(f.seq)
+        #     vecs[n][np.isin(kmerbasis, addvec)] = 1
+        #     n += 1
+        #     seqs.append(
+        #         skm.vectorize.reduce(
+        #             f.seq,
+        #             alphabet=config["alphabet"],
+        #             mapping=skm.alphabet.FULL_ALPHABETS,
+        #         )
+        #     )
+        #     ids.append(f.id)
+        #     lengths.append(len(f.seq))
 
         # save seqIO output and transformed vecs
-        np.savez_compressed(
-            output.data,
-            kmerlist=kmerbasis,
-            ids=ids,
-            seqs=seqs,
-            vecs=vecs,
-            lengths=lengths,
-        )
+        # np.savez_compressed(
+        #     output.data,
+        #     kmerlist=kmerbasis,
+        #     ids=ids,
+        #     seqs=seqs,
+        #     vecs=vecs,
+        #     lengths=lengths,
+        # )
 
-        with open(output.kmerobj, "wb") as f:
-            pickle.dump(kmer, f)
+        with open(output.kmertable, "wb") as f:
+            pickle.dump(kmerizer, f)

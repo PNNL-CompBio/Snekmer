@@ -241,7 +241,7 @@ def check_n_seqs(filename: str, k: int, show_warning: bool = True) -> bool:
         True if len(file) < k; False otherwise.
 
     """
-    n_seqs = len([1 for line in open(filename) if line.startswith(">")])
+    n_seqs = count_n_seqs(filename)
     if (n_seqs < k) and (show_warning):
         print(
             f"\nWARNING: {filename} contains an insufficient"
@@ -251,3 +251,14 @@ def check_n_seqs(filename: str, k: int, show_warning: bool = True) -> bool:
             " sequence(s) detected.)\n"
         )
     return n_seqs >= k
+
+
+def get_ref_ids(files: list[str]) -> dict[str, tuple[int, int]]:
+    counts = {}
+    counter = 0
+    for f in files:
+        fam = split_file_ext(f)[0]
+        n_seqs = count_n_seqs(f)
+        counts[fam] = [counter, counter + n_seqs]  # get max index
+        counter += n_seqs
+    return counts

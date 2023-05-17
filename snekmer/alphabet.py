@@ -10,7 +10,7 @@ author(s): @biodataganache, @wichne
 from typing import Dict, Mapping, Set, Union
 
 # define standard amino acid alphabet
-StandardAlphabet = "AILMVFYWSTQNCHDEKRGP"
+StandardAlphabet = "AILMVFYWSTQNCHDEKRGPX*"
 AA_SELF_MAPPING = {a: a for a in StandardAlphabet}
 
 # post-translational modification
@@ -42,22 +42,40 @@ ALPHABETS = {
         "DE": "D",  # acidic
         "KR": "K",  # alkaline
         "C": "C",  # ionizable
-        "_keys": "APFNDKC",
+        "X": "X",
+        "*": "*",
+        "_keys": "APFNDKCX*",
     },
     # Solvent accessibility alphabet
     # from Bacardit, et al. 2009. BMC Bioinformatics 10:6
-    "solvacc": {"CILMVFWY": "C", "AGHST": "A", "PDEKNQR": "P", "_keys": "CAP"},
+    "solvacc": {
+        "CILMVFWY": "C",
+        "AGHST": "A",
+        "PDEKNQR": "P",
+        "X": "X",
+        "*": "*",
+        "_keys": "CAPX*",
+    },
     # 2-value hydrophobicity with charged residues as a third
     # category. Made by @biodataganache.
     "hydrocharge": {
         "SFTNYQCWPH": "L",  # hydrophilic (L-ove)
         "VMLAIG": "H",  # hydrophobic (H-ate)
         "KNDR": "C",  # charged (C-harged)
-        "_keys": "LHC",
+        "X": "X",
+        "*": "*",
+        "_keys": "LHCX*",
     },
     # 2-value hydrophobicity with structural-breakers as a third category
     # Made by @biodataganache
-    "hydrostruct": {"SFTNKYEQCWHDR": "L", "VMLAI": "H", "PG": "B", "_keys": "LHB"},
+    "hydrostruct": {
+        "SFTNKYEQCWHDR": "L",
+        "VMLAI": "H",
+        "PG": "B",
+        "X": "X",
+        "*": "*",
+        "_keys": "LHBX*",
+    },
     # MIQS alphabet
     # Made by @wichne
     "miqs": {
@@ -71,7 +89,9 @@ ALPHABETS = {
         "KR": "K",  # alkaline
         "P": "P",  # proline
         "ST": "S",  # hydroxyl
-        "_keys": "ACDFGHIKPS",
+        "X": "X",
+        "*": "*",
+        "_keys": "ACDFGHIKPSX*",
     },
     # # identity
     # "None": {**AA_SELF_MAPPING, "_keys": ALL_AMINO_ACIDS}  # OU

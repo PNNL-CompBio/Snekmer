@@ -122,7 +122,7 @@ rule cluster:
     log:
         join(out_dir, "cluster", "log", "cluster.log"),
     script:
-        resource_filename("snekmer", join("scripts/cluster_cluster.py"))
+        resource_filename("snekmer", join("scripts", "cluster.py"))
 
 
 rule cluster_report:
@@ -136,34 +136,34 @@ rule cluster_report:
         if str(config["cluster"]["cluster_plots"]) == "True":
             fig_params = {
                 "image1_name": "PCA Explained Variance",
-                "image1_path": skm.report.correct_rel_path(
-                    join(input.figs, "pca_explained_variance_curve.png")
-                ),
-                "image2_name": "Clusters (UMAP)",
-                "image2_path": skm.report.correct_rel_path(
-                    join(input.figs, "umap.png")
-                ),
-                "image3_name": "Clusters (t-SNE)",
-                "image3_path": skm.report.correct_rel_path(
-                    join(input.figs, "tsne.png")
-                ),
-            }
-        else:
-            fig_params = {
-                "image1_name": "",
-                "image1_path": None,
-                "image2_name": "",
-                "image2_path": None,
-                "image3_name": "",
-                "image3_path": None,
-            }
+                        "image1_path": skm.report.correct_rel_path(
+                            join(input.figs, "pca_explained_variance_curve.png")
+                        ),
+                        "image2_name": "Clusters (UMAP)",
+                        "image2_path": skm.report.correct_rel_path(
+                            join(input.figs, "umap.png")
+                        ),
+                        "image3_name": "Clusters (t-SNE)",
+                        "image3_path": skm.report.correct_rel_path(
+                            join(input.figs, "tsne.png")
+                        ),
+                    }
+                else:
+                    fig_params = {
+                        "image1_name": "",
+                        "image1_path": None,
+                        "image2_name": "",
+                        "image2_path": None,
+                        "image3_name": "",
+                        "image3_path": None,
+                    }
 
-        # cluster
-        cluster_vars = {
-            "page_title": "Snekmer Cluster Report",
-            "title": "Snekmer Cluster Results",
-            "text": (
-        "Snekmer clustering results are linked below. "
+                    # cluster
+                cluster_vars = {
+                    "page_title": "Snekmer Cluster Report",
+                    "title": "Snekmer Cluster Results",
+                    "text": (
+                "Snekmer clustering results are linked below. "
                 "If `cluster_plots` are enabled in the config, "
                 "they will be shown below."
             ),

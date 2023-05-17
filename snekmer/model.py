@@ -7,7 +7,6 @@ author: @christinehc
 import pandas as pd
 from typing import Any, Dict, List, Optional
 from ._version import __version__
-from .vectorize import KmerBasis
 from numpy.typing import NDArray
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.tree import DecisionTreeClassifier
