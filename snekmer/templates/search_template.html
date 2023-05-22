@@ -1,0 +1,20 @@
+<html>
+    <head>
+        <title>{{page_title}}</title>
+    </head>
+    <body>
+            <h1>{{title}}</h1>
+            <p>{{text}}</p>
+            {% for name in ordered %}
+                {% if name in dirs_list %}
+                    <p>Model: {{name}}</p>
+                {% else %}
+                    <p>
+                    <a href={{name}}>
+                       {{name}}
+                    </a>
+                    </p>
+                {% endif %}
+            {% endfor %}
+    </body>
+</html>

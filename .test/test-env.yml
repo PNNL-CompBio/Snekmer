@@ -7,8 +7,8 @@ channels:
 dependencies:
   - python >= 3.9
   - biopython
-  - pyarrow
   - jinja2
+  - mamba
   - matplotlib
   - numpy >= 1.22.3
   - numba >= 0.56
@@ -16,11 +16,9 @@ dependencies:
   - pandas
   - seaborn
   - scikit-learn
-  - snakemake == 7.0
-  - tabulate == 0.8.10
+  # - snakemake == 7.0
   - umap-learn
   - hdbscan
-  - pip
-  - pip:
-      - -e git+https://github.com/PNNL-CompBio/Snekmer#egg=snekmer
-      - -e git+https://github.com/PNNL-Compbio/bsf-jaccard-py#egg=bsf
+  # - pip
+  # - pip:
+  #     - -e git+https://github.com/PNNL-CompBio/Snekmer#egg=snekmer

@@ -9,8 +9,10 @@ from typing import Dict, Generator, Set, Union
 
 import numpy as np
 from numpy.typing import NDArray
+from ._version import __version__
 from .alphabet import FULL_ALPHABETS, get_alphabet, get_alphabet_keys
 from .utils import check_list
+
 
 # store kmer basis set and transform new vectors into fitted basis
 class KmerBasis:
@@ -102,7 +104,7 @@ class KmerBasis:
         # convert vector basis into set basis
         # we'll add a dummy column for all those that
         # aren't present in the input basis
-        unseen = ([0] * vector.shape[0])
+        unseen = [0] * vector.shape[0]
         vector = np.insert(vector, vector.shape[1], unseen, axis=1)
 
         i_convert = list()
@@ -111,7 +113,7 @@ class KmerBasis:
             if kmer in vector_basis_order:
                 idx = vector_basis_order[kmer]  # locate kmer in the new vector
             else:
-                idx = vector.shape[1]-1
+                idx = vector.shape[1] - 1
             i_convert.append(idx)
 
         return vector[:, i_convert]
@@ -131,10 +133,21 @@ def _generate(alphabet: Set[str], k: int):
 
 # iterator object for kmer basis set given alphabet and k
 class KmerSet:
-    """Given alphabet and k, creates iterator for kmer basis set.
-    """
+    """Given alphabet and k, creates iterator for kmer basis set."""
 
-    def __init__(self, alphabet: Union[str, int], k: int, kmerlist: list=list()):
+    def __init__(self, alphabet: Union[str, int], k: int, kmers: list = None):
+        """Initialize KmerSet object
+
+        Parameters
+        ----------
+        alphabet : Union[str, int]
+            Alphabet name or identifier
+        k : int
+            Kmer length
+        kmers : list, optional
+            List of kmers to manually specify basis set, by default None
+
+        """
         self.alphabet = alphabet
         self.k = k
 
@@ -145,10 +158,11 @@ class KmerSet:
         #              into this problem. Only populate those
         #              kmers that exist. I think this was crashing
         #              my computer with a k=8 alphabet=5
-        if len(kmerlist) == 0:
+
+        if kmers is None:
             self._kmerlist = list(_generate(get_alphabet_keys(alphabet), k))
         else:
-            self._kmerlist = kmerlist
+            self._kmerlist = kmers
 
     @property
     def kmers(self):
@@ -180,6 +194,7 @@ def reduce(
     alphabet_map: Dict[str, str] = get_alphabet(alphabet, mapping=mapping)
     return sequence.translate(sequence.maketrans(alphabet_map))
 
+
 # memfix: this is to reformat a list of kmers coming from multiple sequences
 #         into a regular array and return that array and a list of the kmer
 #         order -
@@ -192,18 +207,19 @@ def make_feature_matrix(vecs, min_filter=1, max_filter=1):
     kmerlist, kmercounts = np.unique(kmerlist, return_counts=True)
 
     # filter based on counts
-    kmerlist = kmerlist[kmercounts>min_filter]
+    kmerlist = kmerlist[kmercounts > min_filter]
 
     nk = len(kmerlist)
-    #result = np.zeros(len(kmerlist)*len(vecs)).reshape(len(vecs),len(kmerlist))
+    # result = np.zeros(len(kmerlist)*len(vecs)).reshape(len(vecs),len(kmerlist))
 
     result = list()
     for i in range(len(vecs)):
         this = np.zeros(nk)
-        this[np.isin(kmerlist,vecs[i])] = 1
+        this[np.isin(kmerlist, vecs[i])] = 1
         result.append(this)
 
     return result, kmerlist
+
 
 class KmerVec:
     def __init__(self, alphabet: Union[str, int], k: int):
@@ -212,7 +228,8 @@ class KmerVec:
         self.char_set = get_alphabet_keys(alphabet)
         self.vector = None
         self.basis = KmerBasis()
-        #self.kmer_set = KmerSet(alphabet, k)
+        self.snekmer_version = __version__
+        # self.kmer_set = KmerSet(alphabet, k)
 
     def set_kmer_set(self, kmer_set=list()):
         self.kmer_set = KmerSet(self.alphabet, self.k, kmer_set)
@@ -286,23 +303,23 @@ class KmerVec:
             Vector representation of sequence as reduced kmer vector.
 
         """
-        #N = len(self.char_set) ** self.k
+        # N = len(self.char_set) ** self.k
 
         reduced = reduce(sequence, alphabet=self.alphabet, mapping=FULL_ALPHABETS)
         kmers = list(self._kmer_gen(reduced))
-        #kmer2count = Counter(kmers)
+        # kmer2count = Counter(kmers)
 
         vector = np.array(kmers, dtype=str)
 
         # memfix change
         # this changes the output from a list to a dict
-        #vector = {}
-        #for kmer in kmers:
+        # vector = {}
+        # for kmer in kmers:
         #    vector[kmer] = 1
 
         # Convert to vector of counts
-        #vector = np.zeros(N)
-        #for i, word in enumerate(self.kmer_set.kmers):
+        # vector = np.zeros(N)
+        # for i, word in enumerate(self.kmer_set.kmers):
         #    vector[i] += kmer2count[word]
 
         # Convert to frequencies
@@ -310,5 +327,19 @@ class KmerVec:
 
         return vector
 
-    def harmonize_data(self, record, kmerlist):
-        return(self.basis.transform(record, kmerlist))
+    def harmonize(self, record, kmerlist):
+        """_summary_
+
+        Parameters
+        ----------
+        record : _type_
+            _description_
+        kmerlist : _type_
+            _description_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
+        return self.basis.transform(record, kmerlist)

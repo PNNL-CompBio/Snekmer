@@ -118,13 +118,13 @@ def get_alphabets():
     return ALPHABETS
 
 
-def check_valid(alphabet):
+def check_valid(alphabet: Union[str, int]) -> None:
     """Check validity of input alphabet vs. defined list.
 
     Parameters
     ----------
-    alphabet : str
-        Alphabet name.
+    alphabet : Union[str, int]
+        Alphabet name or identifier.
 
     Raises
     ------

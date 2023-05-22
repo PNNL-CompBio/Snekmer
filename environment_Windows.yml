@@ -8,6 +8,7 @@ dependencies:
   - python >= 3.9
   - biopython
   - pyarrow
+  - jinja2
   - matplotlib
   - numpy >= 1.22.3
   - numba >= 0.56
@@ -16,9 +17,9 @@ dependencies:
   - seaborn
   - scikit-learn
   - snakemake-minimal == 7.0
+  - tabulate == 0.8.10
   - umap-learn
   - hdbscan
   - pip
   - pip:
       - -e git+https://github.com/PNNL-CompBio/Snekmer#egg=snekmer
-
