@@ -91,59 +91,23 @@ skm.alphabet.check_valid(config["alphabet"])
 out_dir = skm.io.define_output_dir(
     config["alphabet"], config["k"], nested=config["nested_output"]
 )
-<<<<<<< HEAD
 
-options =[(config["learnapp"]['save_apply_associations'])]
-if all((option == True or option == False) for option in options) == False:
-    sys.exit("Incorrect Value Selected. Please check if 'save_apply_associations' in in the config file under 'learnapp'. Options are 'True' or 'False'.")
-=======
-# check method
-methods = ["score", "score_enhanced", "cosine"]
-if config["learnapp"]["type"] not in methods:
-    sys.exit(
-        "Please select a scoring 'type' in the config file under 'learnapp'. Options are 'score', 'score_enhanced', and 'cosine'."
-    )
-else:
-    method = config["learnapp"]["type"]
-# check other learnapp config values that are T/F
 options = [
-    (config["learnapp"]["save_summary"]),
     (config["learnapp"]["save_apply_associations"]),
-    (config["learnapp"]["save_results"]),
 ]
+
 if all((option == True or option == False) for option in options) == False:
     sys.exit(
         "Incorrect Value Selected. Please check a 'save_summary','save_apply_associations', or 'save_results' in the config file under 'learnapp'. Options are 'True' or 'False'."
     )
-# check summary_topN
-if config["learnapp"]["save_summary"] == True:
-    if type(config["learnapp"]["summary_topN"]) != int:
-        sys.exit(
-            "Incorrect Value Selected for summary_topN. Value must be an integer greater or equal to zero."
-        )
-    if config["learnapp"]["summary_topN"] < 0:
-        sys.exit(
-            "Incorrect Value Selected for summary_topN. Value must be an integer greater or equal to zero."
-        )
-
->>>>>>> refs/remotes/origin/kmer-association
-
 # define output files to be created by snekmer
 rule all:
     input:
         expand(join("output", "learn", "kmer-counts-{nb}.csv"), nb=FAS),
         join("output", "learn", "kmer-counts-total.csv"),
-<<<<<<< HEAD
         expand(join("output","eval_apply","seq-annotation-scores-{nb}.csv"),nb=FAS),
         "output/eval_conf/confidence-matrix.csv",
         "output/eval_conf/global-confidence-scores.csv",
-=======
-        expand(join("output", "eval_apply", "Seq-Annotation-Scores-{nb}.csv"), nb=FAS),
-        "output/eval_conf/confidence_matrix.csv",
-        "output/eval_conf/Global_Confidence_Scores.csv",
-        # expand(join(input_dir, "{uz}"), uz=UZS),  # require unzipping
-
->>>>>>> refs/remotes/origin/kmer-association
 
 # if any files are gzip zipped, unzip them
 use rule unzip from process with:
