@@ -42,3 +42,10 @@ model:
 model_dir: "output/example-model/"
 basis_dir: "output/example-model/"
 score_dir: "output/example-model/"
+
+
+# learnapp params 
+learnapp:
+  save_apply_associations: False
+
+
