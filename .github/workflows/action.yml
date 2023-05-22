@@ -80,3 +80,24 @@ jobs:
           source activate snekmer
           snekmer search --configfile .test/config.yaml -d .test --cores 1
           rm -rf .test/output
+          
+      # run Snekmer Learn kmer counts and confidence creation
+      - name: Snekmer Learn
+        run: |
+          export PATH="/usr/share/miniconda/bin:$PATH"
+          source activate snekmer
+          snekmer learn --configfile .test/config.yaml -d .test --cores 1
+          mkdir .test/counts
+          mkdir .test/confidence
+          mv .test/output/learn/kmer-counts-total.csv .test/counts/kmer-counts-total.csv
+          mv .test/output/learn/global-confidence-scores.csv .test/counts/global-confidence-scores.csv
+          rm -rf .test/output
+        
+      # run Snekmer Learn against previously generated counts files
+      - name: Snekmer Apply
+        run: |
+          export PATH="/usr/share/miniconda/bin:$PATH"
+          source activate snekmer
+          snekmer apply --configfile .test/config.yaml -d .test --cores 1
+          
+          rm -rf .test/output
