@@ -44,8 +44,5 @@ score_dir: "/path/to/output/scoring/"
 
 # learnapp params 
 learnapp:
-  type: cosine
-  save_summary: True
-  summary_topN: 1000
   save_apply_associations: False
-  save_results: True
+
