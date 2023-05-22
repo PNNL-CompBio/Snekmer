@@ -100,14 +100,17 @@ if all((option == True or option == False) for option in options) == False:
     sys.exit(
         "Incorrect Value Selected. Please check a 'save_summary','save_apply_associations', or 'save_results' in the config file under 'learnapp'. Options are 'True' or 'False'."
     )
+
+
 # define output files to be created by snekmer
 rule all:
     input:
         expand(join("output", "learn", "kmer-counts-{nb}.csv"), nb=FAS),
         join("output", "learn", "kmer-counts-total.csv"),
-        expand(join("output","eval_apply","seq-annotation-scores-{nb}.csv"),nb=FAS),
+        expand(join("output", "eval_apply", "seq-annotation-scores-{nb}.csv"), nb=FAS),
         "output/eval_conf/confidence-matrix.csv",
         "output/eval_conf/global-confidence-scores.csv",
+
 
 # if any files are gzip zipped, unzip them
 use rule unzip from process with:
@@ -143,16 +146,16 @@ rule learn:
         start_time = datetime.now()
         with open(log[0], "a") as f:
             f.write(f"start time:\t{start_time}\n")
-            
+
             ##### Generate Inputs
         annotation = list()
         for f in input.annotation:
             annotation.append(pd.read_table(f))
         annotations = pd.concat(annotation)
         seq_annot = {}
-        seqs= annotation[0]['id'].tolist()
-        anns = annotation[0]['TIGRFAMs'].tolist()
-        for i,seqid in enumerate(seqs):
+        seqs = annotation[0]["id"].tolist()
+        anns = annotation[0]["TIGRFAMs"].tolist()
+        for i, seqid in enumerate(seqs):
             seq_annot[seqid] = anns[i]
         seqs = set(seqs)
         anns = set(anns)
@@ -165,16 +168,16 @@ rule learn:
             ##### Generate Kmer Counts
         k_len = len(kmerlist[0])
         seq_kmer_dict = {}
-        for i,seq in enumerate(seqids):
+        for i, seq in enumerate(seqids):
             v = df["sequence"][i]
             k_counts = dict()
             items = []
             for item in range(0, (len((v)) - k_len + 1)):
                 items.append(v[item : (item + k_len)])
             for j in items:
-                k_counts[j] = k_counts.get(j, 0) + 1  
+                k_counts[j] = k_counts.get(j, 0) + 1
             store = []
-            for i,item in enumerate(kmerlist):
+            for i, item in enumerate(kmerlist):
                 if item in k_counts:
                     store.append(k_counts[item])
                     kmer_totals[i] += k_counts[item]
@@ -182,12 +185,11 @@ rule learn:
                     store.append(0)
             seq_kmer_dict[seq] = store
 
-
-            # Filter out Non-Training Annotations 
+            # Filter out Non-Training Annotations
         annotation_counts = {}
         total_seqs = len(seq_kmer_dict)
-        for i,seqid in enumerate(list(seq_kmer_dict)):
-            x =re.findall(r'\|(.*?)\|', seqid)[0]
+        for i, seqid in enumerate(list(seq_kmer_dict)):
+            x = re.findall(r"\|(.*?)\|", seqid)[0]
             if x not in seqs:
                 del seq_kmer_dict[seqid]
             else:
@@ -200,18 +202,18 @@ rule learn:
                     seq_kmer_dict[seq_annot[x]] = [x + y for (x, y) in zipped_lists]
                 if seq_annot[x] not in annotation_counts:
                     annotation_counts[seq_annot[x]] = 1
-                else: 
+                else:
                     annotation_counts[seq_annot[x]] += 1
-                    
+
                     # Construct Kmer Counts Output
-        kmer_counts = pd.DataFrame(seq_kmer_dict.values())        
-        kmer_counts.insert(0,"Annotations",annotation_counts.values(),True)
+        kmer_counts = pd.DataFrame(seq_kmer_dict.values())
+        kmer_counts.insert(0, "Annotations", annotation_counts.values(), True)
         # kmer_counts.insert(1,"Kmer Count",(kmer_counts[list(kmer_counts.columns[1:])].sum(axis=1).to_list()),True)
         kmer_counts_values = (
             kmer_counts[list(kmer_counts.columns[1:])].sum(axis=1).to_list()
         )
         kmer_counts.insert(1, "Kmer Count", kmer_counts_values, True)
-        kmer_totals[0:0] = [0,total_seqs]
+        kmer_totals[0:0] = [0, total_seqs]
         colnames = ["Sequence count"] + ["Kmer Count"] + list(kmerlist)
         kmer_counts = pd.DataFrame(
             np.insert(kmer_counts.values, 0, values=(kmer_totals), axis=0)
@@ -219,10 +221,10 @@ rule learn:
         kmer_counts.columns = colnames
         new_index = ["Totals"] + list(annotation_counts.keys())
         kmer_counts.index = new_index
-    
+
         #### Write Output
         out_name = "output/learn/kmer-counts-" + str(input.data)[14:-4] + ".csv"
-        kmer_counts_out = pa.Table.from_pandas(kmer_counts,preserve_index=True)
+        kmer_counts_out = pa.Table.from_pandas(kmer_counts, preserve_index=True)
         csv.write_csv(kmer_counts_out, out_name)
         skm.utils.log_runtime(log[0], start_time)
 
@@ -240,8 +242,8 @@ rule merge:
         with open(log[0], "a") as f:
             f.write(f"start time:\t{start_time}\n")
 
-        for file_num,f in enumerate(input.counts):
-            print("database #: ",file_num,"\n")
+        for file_num, f in enumerate(input.counts):
+            print("database #: ", file_num, "\n")
             kmer_counts = pd.read_csv(
                 str(f), index_col="__index_level_0__", header=0, engine="pyarrow"
             )
@@ -250,9 +252,9 @@ rule merge:
                 running_merge = kmer_counts
             elif file_num >= 1:
                 running_merge = (
-                    pd.concat([running_merge,kmer_counts])
+                    pd.concat([running_merge, kmer_counts])
                     .reset_index()
-                    .groupby('__index_level_0__', sort=False)
+                    .groupby("__index_level_0__", sort=False)
                     .sum(min_count=1)
                 ).fillna(0)
 
@@ -334,15 +336,15 @@ rule eval_apply:
         annotation=expand("{an}", an=annot_files),
         compare_associations=join("output", "learn", "kmer-counts-total.csv"),
     output:
-        "output/eval_apply/seq-annotation-scores-{nb}.csv"
+        "output/eval_apply/seq-annotation-scores-{nb}.csv",
     log:
         join(out_dir, "eval_apply", "log", "{nb}.log"),
     run:
         start_time = datetime.now()
         with open(log[0], "a") as f:
             f.write(f"start time:\t{start_time}\n")
-            
-        ##### Generate Inputs
+
+            ##### Generate Inputs
         annotation = list()
         kmer_count_totals = pd.read_csv(
             str(input.compare_associations),
@@ -352,10 +354,10 @@ rule eval_apply:
         )
         for f in input.annotation:
             annotation.append(pd.read_table(f))
-        seqs = annotation[0]['id'].tolist()
-        anns = annotation[0]['TIGRFAMs'].tolist()
+        seqs = annotation[0]["id"].tolist()
+        anns = annotation[0]["TIGRFAMs"].tolist()
         seq_annot = {}
-        for i,seqid in enumerate(seqs):
+        for i, seqid in enumerate(seqs):
             seq_annot[seqid] = anns[i]
         seqs = set(seqs)
         anns = set(anns)
@@ -375,9 +377,9 @@ rule eval_apply:
             for item in range(0, (len((v)) - k_len + 1)):
                 items.append(v[item : (item + k_len)])
             for j in items:
-                k_counts[j] = k_counts.get(j, 0) + 1  
+                k_counts[j] = k_counts.get(j, 0) + 1
             store = []
-            for i,item in enumerate(kmerlist):
+            for i, item in enumerate(kmerlist):
                 if item in k_counts:
                     store.append(k_counts[item])
                     kmer_totals[i] += k_counts[item]
@@ -385,25 +387,26 @@ rule eval_apply:
                     store.append(0)
             seq_kmer_dict[seq] = store
 
-
-        ###### ADD Known / Unknown tag to mark for confidence assessment
+            ###### ADD Known / Unknown tag to mark for confidence assessment
         annotation_counts = {}
         total_seqs = len(seq_kmer_dict)
         count = 0
         for seqid in list(seq_kmer_dict):
-            x =re.findall(r'\|(.*?)\|', seqid)[0]
+            x = re.findall(r"\|(.*?)\|", seqid)[0]
             if x not in seqs:
-                seq_kmer_dict[(x+"_unknown_"+str(count))] = seq_kmer_dict.pop(seqid)
-            else: 
-                seq_kmer_dict[(seq_annot[x] + "_known_" + str(count))] = seq_kmer_dict.pop(seqid)
-            count +=1
+                seq_kmer_dict[(x + "_unknown_" + str(count))] = seq_kmer_dict.pop(seqid)
+            else:
+                seq_kmer_dict[
+                    (seq_annot[x] + "_known_" + str(count))
+                ] = seq_kmer_dict.pop(seqid)
+            count += 1
         annotation_counts = {}
         total_seqs = len(seq_kmer_dict)
 
         ######  Construct Kmer Counts Dataframe
-        kmer_counts = pd.DataFrame(seq_kmer_dict.values())        
-        kmer_counts.insert(0,"Annotations",1,True)
-        kmer_totals.insert(0,total_seqs)
+        kmer_counts = pd.DataFrame(seq_kmer_dict.values())
+        kmer_counts.insert(0, "Annotations", 1, True)
+        kmer_totals.insert(0, total_seqs)
         kmer_counts = pd.DataFrame(
             np.insert(kmer_counts.values, 0, values=kmer_totals, axis=0)
         )
@@ -426,7 +429,8 @@ rule eval_apply:
                 )
             )
             alphabet_compare = set(
-                itertools.chain(*[list(x) for x in kmer_count_totals.columns.values[10:check_1]]
+                itertools.chain(
+                    *[list(x) for x in kmer_count_totals.columns.values[10:check_1]]
                 )
             )
             if alphabet_compare == alphabet_initial:
@@ -452,22 +456,19 @@ rule eval_apply:
             [
                 kmer_count_totals,
                 pd.DataFrame(
-                    dict.fromkeys(add_to_compare, 0),index=kmer_count_totals.index
+                    dict.fromkeys(add_to_compare, 0), index=kmer_count_totals.index
                 ),
-            ], 
+            ],
             axis=1,
         )
         kmer_count_totals.drop(
-            columns=kmer_count_totals.columns[:2],
-            index="Totals",
-            axis=0,
-            inplace=True
+            columns=kmer_count_totals.columns[:2], index="Totals", axis=0, inplace=True
         )
         kmer_counts = pd.concat(
             [
-                kmer_counts, pd.DataFrame(dict.fromkeys(add_to_new, 0), index=kmer_counts.index
-                ),
-            ], 
+                kmer_counts,
+                pd.DataFrame(dict.fromkeys(add_to_new, 0), index=kmer_counts.index),
+            ],
             axis=1,
         )
         kmer_counts.drop(
@@ -477,18 +478,16 @@ rule eval_apply:
             inplace=True,
         )
 
-        #Perform Cosine Similarity between Kmer Counts Totals and Counts and Sums DF
+        # Perform Cosine Similarity between Kmer Counts Totals and Counts and Sums DF
         cosine_df = sklearn.metrics.pairwise.cosine_similarity(
-            kmer_count_totals,
-            kmer_counts
-            ).T
+            kmer_count_totals, kmer_counts
+        ).T
 
         final_matrix_with_scores = pd.DataFrame(
-            cosine_df, 
-            columns=kmer_count_totals.index, 
-            index=kmer_counts.index)
+            cosine_df, columns=kmer_count_totals.index, index=kmer_counts.index
+        )
 
-        #Write Output
+        # Write Output
         out_name = (
             "output/eval_apply/seq-annotation-scores-" + str(input.data)[14:-4] + ".csv"
         )
@@ -500,30 +499,32 @@ rule eval_apply:
 
 rule evaluate:
     input:
-        eval_apply_data=expand(join("output", "eval_apply", "seq-annotation-scores-{nb}.csv"),nb = FAS),
+        eval_apply_data=expand(
+            join("output", "eval_apply", "seq-annotation-scores-{nb}.csv"), nb=FAS
+        ),
     output:
         "output/eval_conf/confidence-matrix.csv",
-        "output/eval_conf/global-confidence-scores.csv"
+        "output/eval_conf/global-confidence-scores.csv",
     log:
         join(out_dir, "eval_conf", "log", "conf.log"),
     run:
         start_time = datetime.now()
         with open(log[0], "a") as f:
             f.write(f"start time:\t{start_time}\n")
-    
+
             #### Generate Input Data
-        for j,f in enumerate(input.eval_apply_data):
+        for j, f in enumerate(input.eval_apply_data):
             seq_ann_scores = pd.read_csv(
-                f, 
-                index_col="__index_level_0__", 
-                header=0, 
+                f,
+                index_col="__index_level_0__",
+                header=0,
                 engine="c",
             )
             max_value_index = seq_ann_scores.idxmax(axis="columns")
             result = max_value_index.keys()
             tf = list()
             known = list()
-            for i,item in enumerate(list(max_value_index)):
+            for i, item in enumerate(list(max_value_index)):
                 if item in result[i]:
                     tf.append("T")
                 else:
@@ -535,17 +536,17 @@ rule evaluate:
 
             seq_ann_vals = seq_ann_scores.values
             seq_ann_vals = seq_ann_scores.values[
-                np.arange(len(seq_ann_scores))[:,None],
-                np.argpartition(-seq_ann_vals,np.arange(2),axis=1)[:,:2],
+                np.arange(len(seq_ann_scores))[:, None],
+                np.argpartition(-seq_ann_vals, np.arange(2), axis=1)[:, :2],
             ]
 
             diff_df = pd.DataFrame(
                 seq_ann_vals,
-                columns = ['Top','Second'],
+                columns=["Top", "Second"],
             )
-            diff_df['Difference'] = -(np.diff(seq_ann_vals, axis=1).round(decimals=2))
-            diff_df['Prediction'] = list(max_value_index)
-            diff_df['Actual'] = result
+            diff_df["Difference"] = -(np.diff(seq_ann_vals, axis=1).round(decimals=2))
+            diff_df["Prediction"] = list(max_value_index)
+            diff_df["Actual"] = result
             diff_df["T/F"] = tf
             diff_df["Known/Unknown"] = known
 

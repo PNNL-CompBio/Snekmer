@@ -100,9 +100,7 @@ wildcard_constraints:
     FAS=FAS,
 
 
-
-options =[(
-    config["learnapp"]['save_apply_associations'])]
+options = [(config["learnapp"]["save_apply_associations"])]
 if all((option == True or option == False) for option in options) == False:
     sys.exit(
         "Incorrect Value Selected. Please check if 'save_apply_associations' in in the config file under 'learnapp'. Options are 'True' or 'False'."
@@ -113,8 +111,9 @@ rule all:
     input:
         expand(join(input_dir, "{uz}"), uz=UZS),
         # ["output/apply/seq-annotation-scores-{fa}.csv".format(fa=FAS) for dataset in FAS],
-        expand(join("output","apply","seq-annotation-scores-{nb}.csv"),nb=FAS),
-        expand(join("output","apply","kmer-summary-{nb}.csv"),nb=FAS),
+        expand(join("output", "apply", "seq-annotation-scores-{nb}.csv"), nb=FAS),
+        expand(join("output", "apply", "kmer-summary-{nb}.csv"), nb=FAS),
+
 
 use rule vectorize from kmerize with:
     input:
@@ -134,7 +133,7 @@ rule apply:
         confidence_associations=expand("{conf}", conf=confidence_file),
     output:
         "output/apply/seq-annotation-scores-{nb}.csv",
-        "output/apply/kmer-summary-{nb}.csv"
+        "output/apply/kmer-summary-{nb}.csv",
     log:
         join(out_dir, "apply", "log", "{nb}.log"),
     run:
@@ -178,19 +177,19 @@ rule apply:
 
             ######  Construct Kmer Counts Dataframe
         total_seqs = len(seq_kmer_dict)
-        kmer_counts = pd.DataFrame(seq_kmer_dict.values())        
-        kmer_counts.insert(0,"Annotations",1,True)
-        kmer_totals.insert(0,total_seqs)
+        kmer_counts = pd.DataFrame(seq_kmer_dict.values())
+        kmer_counts.insert(0, "Annotations", 1, True)
+        kmer_totals.insert(0, total_seqs)
         kmer_counts = pd.DataFrame(
             np.insert(kmer_counts.values, 0, values=kmer_totals, axis=0)
         )
         kmer_counts.columns = ["Sequence count"] + list(kmerlist)
         kmer_counts.index = ["Totals"] + list(seq_kmer_dict.keys())
-        
+
         new_associations = kmer_counts.iloc[1:, 1:].div(
-            kmer_counts["Sequence count"].tolist()[1:], axis = "rows"
+            kmer_counts["Sequence count"].tolist()[1:], axis="rows"
         )
-        
+
         ##### Make Kmer Counts Dataframe match Kmer Counts Totals Format
         if len(str(kmer_counts.columns.values[10])) == len(
             str(kmer_count_totals.columns.values[10])
@@ -231,28 +230,23 @@ rule apply:
         kmer_count_totals = pd.concat(
             [
                 kmer_count_totals,
-                pd.DataFrame(dict.fromkeys(add_to_compare, 0),
-                index=kmer_count_totals.index
+                pd.DataFrame(
+                    dict.fromkeys(add_to_compare, 0), index=kmer_count_totals.index
                 ),
             ],
-            axis=1
+            axis=1,
         )
 
         kmer_count_totals.drop(
-            columns=kmer_count_totals.columns[:2],
-            index="Totals",
-            axis=0,
-            inplace=True,
+            columns=kmer_count_totals.columns[:2], index="Totals", axis=0, inplace=True
         )
 
         kmer_counts = pd.concat(
             [
                 kmer_counts,
-                pd.DataFrame(dict.fromkeys(add_to_new, 0),
-                index=kmer_counts.index
-                ),
-            ], 
-            axis=1
+                pd.DataFrame(dict.fromkeys(add_to_new, 0), index=kmer_counts.index),
+            ],
+            axis=1,
         )
         kmer_counts.drop(
             columns=kmer_counts.columns[-1:].union(kmer_counts.columns[:1]),
@@ -264,8 +258,7 @@ rule apply:
 
         #### Perform Cosine Similarity between Kmer Counts Totals and Counts and Sums DF
         cosine_df = sklearn.metrics.pairwise.cosine_similarity(
-            kmer_count_totals,
-            kmer_counts
+            kmer_count_totals, kmer_counts
         ).T
 
         kmer_count_totals = pd.DataFrame(
@@ -275,59 +268,54 @@ rule apply:
         )
 
         ##### Write Optional Output
-        if config["learnapp"]['save_results'] == True: 
+        if config["learnapp"]["save_results"] == True:
             out_name = (
                 "output/apply/seq-annotation-scores-" + str(input.data)[14:-4] + ".csv"
             )
             kmer_count_totals_write = pa.Table.from_pandas(kmer_count_totals)
             csv.write_csv(kmer_count_totals_write, out_name)
 
-        
-        ##### Create True Output
-        # Protein ID, Prediction, Score, delta, Confidence
-        global_confidence_scores = pd.read_csv(
-            str(input.confidence_associations)
-        )
-        global_confidence_scores.index= global_confidence_scores[
+            ##### Create True Output
+            # Protein ID, Prediction, Score, delta, Confidence
+        global_confidence_scores = pd.read_csv(str(input.confidence_associations))
+        global_confidence_scores.index = global_confidence_scores[
             global_confidence_scores.columns[0]
         ]
-        global_confidence_scores = global_confidence_scores.iloc[: , 1:]
+        global_confidence_scores = global_confidence_scores.iloc[:, 1:]
 
         global_confidence_scores = global_confidence_scores[
             global_confidence_scores.columns[0]
         ].squeeze()
 
-        score_rank =[]
+        score_rank = []
         sorted_vals = np.argsort(-kmer_count_totals.values, axis=1)[:, :2]
-        for i,item in enumerate(sorted_vals):
+        for i, item in enumerate(sorted_vals):
             score_rank.append(
                 (
-                    kmer_count_totals[kmer_count_totals.columns[[item]]][i:i+1]
+                    kmer_count_totals[kmer_count_totals.columns[[item]]][i : i + 1]
                 ).values.tolist()[0]
             )
-            
+
         delta = []
         top_score = []
         for score in score_rank:
             delta.append(score[0] - score[1])
             top_score.append(score[0])
-    
-        vals = pd.DataFrame({'delta':delta})
+
+        vals = pd.DataFrame({"delta": delta})
         predictions = pd.DataFrame(kmer_count_totals.columns[sorted_vals][:, :1])
         score = pd.DataFrame(top_score)
         score.columns = ["Score"]
         predictions.columns = ["Prediction"]
         predictions = predictions.astype(str)
         vals = vals.round(decimals=2)
-        vals['Confidence'] = vals["delta"].map(global_confidence_scores)
+        vals["Confidence"] = vals["delta"].map(global_confidence_scores)
 
-        results = pd.concat([predictions,score,vals],axis=1)
-        results.index=kmer_count_totals.index
+        results = pd.concat([predictions, score, vals], axis=1)
+        results.index = kmer_count_totals.index
 
         #### Write Results
-        out_name_2 = (
-            "output/apply/kmer-summary-" + str(input.data)[14:-4] + ".csv"
-        )
+        out_name_2 = "output/apply/kmer-summary-" + str(input.data)[14:-4] + ".csv"
         results.reset_index(inplace=True)
         results_write = pa.Table.from_pandas(results)
         csv.write_csv(results_write, out_name_2)
