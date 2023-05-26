@@ -128,7 +128,7 @@ rule vectorize:
             ids.append(f.id)
             lengths.append(len(f.seq))
 
-        # save seqIO output and transformed vecs
+            # save seqIO output and transformed vecs
         np.savez_compressed(
             output.data,
             kmerlist=kmerbasis,
