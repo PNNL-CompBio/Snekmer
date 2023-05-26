@@ -88,11 +88,11 @@ jobs:
         run: |
           export PATH="/usr/share/miniconda/bin:$PATH"
           source activate snekmer
+          ls
+          pwd
           snekmer learn --configfile .test/config.yaml -d .test --cores 1
           mkdir .test/counts
           mkdir .test/confidence
-          ls
-          pwd
           mv .test/output/learn/kmer-counts-total.csv .test/counts/kmer-counts-total.csv
           mv .test/output/learn/global-confidence-scores.csv .test/counts/global-confidence-scores.csv
           rm -rf .test/output
