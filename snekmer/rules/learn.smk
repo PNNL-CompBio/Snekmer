@@ -197,7 +197,7 @@ rule learn:
                     seq_kmer_dict[seq_annot[x]] = seq_kmer_dict.pop(seqid)
                 else:
                     zipped_lists = zip(
-                        seq_kmer_dict.pop(seqid), seq_kmer_dict[Seq_Anot[x]]
+                        seq_kmer_dict.pop(seqid), seq_kmer_dict[seq_annot[x]]
                     )
                     seq_kmer_dict[seq_annot[x]] = [x + y for (x, y) in zipped_lists]
                 if seq_annot[x] not in annotation_counts:
