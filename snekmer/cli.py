@@ -299,8 +299,7 @@ def main():
 
     # cluster config
     if args.clust is not None:
-        cluster = "sbatch -A {cluster.account} -N {cluster.nodes} -t {cluster.time} -J {cluster.name} --ntasks-per-node 
-{cluster.ntasks} -p {cluster.partition}"
+        cluster = "sbatch -A {cluster.account} -N {cluster.nodes} -t {cluster.time} -J {cluster.name} --ntasks-per-node {cluster.ntasks} -p {cluster.partition}"
     else:
         cluster = None
 
