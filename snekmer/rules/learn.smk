@@ -160,7 +160,6 @@ rule learn:
         seqs = set(seqs)
         anns = set(anns)
         df, kmerlist = skm.io.load_npz(input.data)
-        df = pd.DataFrame(df)
         print("df: \n")
         print(type(df))
         print(df)
