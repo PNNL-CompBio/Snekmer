@@ -50,7 +50,7 @@ jobs:
       - shell: bash -l {0}
         run: pip install -e git+https://github.com/PNNL-CompBio/Snekmer#egg=snekmer
 
-      test clustering step
+      #test clustering step
       - name: Snekmer Cluster
         run: |
           export PATH="/usr/share/miniconda/bin:$PATH"
