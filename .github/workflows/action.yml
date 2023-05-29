@@ -88,7 +88,7 @@ jobs:
         run: |
           export PATH="/usr/share/miniconda/bin:$PATH"
           source activate snekmer
-          pip freeze
+          pip list --format=freeze
           snekmer learn --configfile .test/config.yaml -d .test --cores 1
           mkdir .test/counts .test/confidence
           mv .test/output/learn/kmer-counts-total.csv .test/counts/kmer-counts-total.csv
