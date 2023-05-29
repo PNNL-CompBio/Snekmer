@@ -159,14 +159,12 @@ rule learn:
             seq_annot[seqid] = anns[i]
         seqs = set(seqs)
         anns = set(anns)
-        df, kmerlist = skm.io.load_npz(input.data)
-        print("df: \n")
-        print(type(df))
-        print(df)
+
+        kmerlist, df = skm.io.load_npz(input.data)
+        kmerlist = kmerlist[0]
         seqids = df["sequence_id"]
-        print("seqids: \n")
-        print(type(seqids))
-        print(seqids)
+
+
         kmer_totals = []
         for item in kmerlist:
             kmer_totals.append(0)

@@ -148,8 +148,12 @@ rule apply:
             header=0,
             engine="c",
         )
-        df, kmerlist = skm.io.load_npz(input.data)
+
+        kmerlist, df = skm.io.load_npz(input.data)
+        kmerlist = kmerlist[0]
         seqids = df["sequence_id"]
+
+
         kmer_totals = []
         for item in kmerlist:
             kmer_totals.append(0)

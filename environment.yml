@@ -22,4 +22,4 @@ dependencies:
   - hdbscan
   - pip
   - pip:
-      - -e git+https://github.com/PNNL-CompBio/Snekmer@v1.0.0-beta#egg=snekmer
+      - -e git+https://github.com/PNNL-CompBio/Snekmer#egg=snekmer
