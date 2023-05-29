@@ -26,8 +26,8 @@ jobs:
   # run all tests
   Test:
     runs-on: ubuntu-latest
-    needs:
-      - Format
+#     needs:
+#       - Format
 
     steps:
       - uses: actions/checkout@v3
