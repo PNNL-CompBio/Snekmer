@@ -52,7 +52,7 @@ unzipped = [
     fa.rstrip(".gz")
     for fa, ext in product(input_files, config["input_file_exts"])
     if fa.rstrip(".gz").endswith(f".{ext}")
-    and skm.utils.check_n_seqs(fa, config["model"]["cv"], show_warning=False)
+#    and skm.utils.check_n_seqs(fa, config["model"]["cv"], show_warning=False)
 ]
 
 
