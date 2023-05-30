@@ -117,7 +117,9 @@ rule all:
 
 use rule vectorize from kmerize with:
     input:
-        fasta=lambda wildcards: join("input", f"{wildcards.nb}.{FA_MAP[wildcards.nb]}"),
+        fasta=lambda wildcards: join(
+            input_dir, f"{wildcards.nb}.{FA_MAP[wildcards.nb]}"
+        ),
     output:
         data=join("output", "vector", "{nb}.npz"),
         kmerobj=join("output", "kmerize", "{nb}.kmers"),
