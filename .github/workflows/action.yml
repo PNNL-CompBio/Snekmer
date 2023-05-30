@@ -91,7 +91,7 @@ jobs:
           snekmer learn --configfile .test/config_learnapp.yaml -d .test --cores 1
           mkdir .test/counts .test/confidence
           mv .test/output/learn/kmer-counts-total.csv .test/counts/kmer-counts-total.csv
-          mv .test/output/eval_conf/global-confidence-scores.csv .test/counts/global-confidence-scores.csv
+          mv .test/output/eval_conf/global-confidence-scores.csv .test/conf/global-confidence-scores.csv
           rm -rf .test/output
         
       # run Snekmer Learn against previously generated counts files
