@@ -365,7 +365,8 @@ rule eval_apply:
             seq_annot[seqid] = anns[i]
         seqs = set(seqs)
         anns = set(anns)
-        df, kmerlist = skm.io.load_npz(input.data)
+        kmerlist, df = skm.io.load_npz(input.data)
+        kmerlist = kmerlist[0]
         seqids = df["sequence_id"]
         kmer_totals = []
         for item in kmerlist:
