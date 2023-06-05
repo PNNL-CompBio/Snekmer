@@ -520,6 +520,7 @@ rule evaluate:
             f.write(f"start time:\t{start_time}\n")
 
             #### generate input data
+        print("Number of Dataframe to parse and merge: ", len(input.eval_apply_data))
         for j, f in enumerate(input.eval_apply_data):
             seq_ann_scores = pd.read_csv(
                 f,
@@ -658,34 +659,35 @@ rule evaluate:
                 sorted(false_running_crosstab.columns)
             ]
 
+            print("dataframes joined: ", j)
             #### generate each global cross_tab
 
-            ratio_running_crosstab = true_running_crosstab / (
-                true_running_crosstab + false_running_crosstab
-            )
-            true_total_dist = true_running_crosstab.sum(numeric_only=true, axis=0)
-            false_total_dist = false_running_crosstab.sum(numeric_only=true, axis=0)
+        ratio_running_crosstab = true_running_crosstab / (
+            true_running_crosstab + false_running_crosstab
+        )
 
-            print("\n_checking for base file to merge with.\n")
-            print("input.base_confidence: ", input.base_confidence)
-            if (
-                len(input.base_confidence) == 2
-                and "global-true.csv" in input.base_confidence
-                and "global-false.csv" in input.base_confidence
-            ):
-                print("two base confidence files found. will attempt to merge.")
-                base_true = pd.read_csv(
-                    "base/confidence/global-true.csv", index_col=false, header=0
-                    ).set_index("difference")["0"]
-                    base_false = pd.read_csv(
-                        "base/confidence/global-false.csv", index_col=false, header=0
-                    ).set_index("difference")["0"]
-                    true_total_dist = true_total_dist + base_true
-                    false_total_dist = false_total_dist + base_false
-                else:
-                    print(
-                    "base confidence files not found. if attempting to merge, these must be titled 'global-true.csv' and 'global-false.csv' in the ./base/confidence directory."
-                )
+        true_total_dist = true_running_crosstab.sum(numeric_only=true, axis=0)
+        false_total_dist = false_running_crosstab.sum(numeric_only=true, axis=0)
+
+        print("\n_checking for base file to merge with.\n")
+        print("input.base_confidence: ", input.base_confidence)
+        base_conf_len = len(input.base_confidence)
+        if (
+            base_conf_len == 2
+            and "global-true.csv" in input.base_confidence
+            and "global-false.csv" in input.base_confidence
+        ):
+            print("two base confidence files found. will attempt to merge.")
+            base_true = pd.read_csv(
+                "base/confidence/global-true.csv", index_col=false, header=0
+            ).set_index("difference")["0"]
+            base_false = pd.read_csv(
+                "base/confidence/global-false.csv", index_col=false, header=0
+            ).set_index("difference")["0"]
+            true_total_dist = true_total_dist + base_true
+            false_total_dist = false_total_dist + base_false
+        else:
+            print("Base confidence files not found for merge.")
 
         ratio_total_dist = true_running_crosstab.sum(numeric_only=true, axis=0) / (
             true_running_crosstab.sum(numeric_only=true, axis=0)
