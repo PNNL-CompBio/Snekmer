@@ -33,10 +33,10 @@ import time
 from datetime import datetime
 from glob import glob
 from itertools import product, repeat
-from multiprocessing import Pool
+from multiprocessing import pool
 from os import makedirs
 from os.path import basename, dirname, exists, join, split, splitext
-from pathlib import Path
+from pathlib import path
 
 import numpy as np
 import pandas as pd
@@ -44,18 +44,18 @@ import pyarrow as pa
 import pyarrow.csv as csv
 import seaborn as sns
 import sklearn
-from Bio import SeqIO
+from bio import seq_io
 from scipy.interpolate import interp1d
 from scipy.stats import rankdata
 
 import snekmer as skm
 
-# Note:
-# Pyarrow installed via "conda install -c conda-forge pyarrow"
+# note:
+# pyarrow installed via "conda install -c conda-forge pyarrow"
 # collect all fasta-like files, unzipped filenames, and basenames
 input_dir = (
     "input"
-    if (("input_dir" not in config) or (str(config["input_dir"]) == "None"))
+    if (("input_dir" not in config) or (str(config["input_dir"]) == "none"))
     else config["input_dir"]
 )
 input_files = glob(join(input_dir, "*"))
@@ -67,24 +67,25 @@ unzipped = [
     if fa.rstrip(".gz").endswith(f".{ext}")
 ]
 annot_files = glob(join("annotations", "*.ann"))
-base_file = glob(join(input_dir, "base", "*.csv"))
+base_counts = glob(join("base", "counts", "*.csv"))
+base_confidence = glob(join("base", "confidence", "*.csv"))
 # map extensions to basename (basename.ext.gz -> {basename: ext})
-UZ_MAP = {
+uz_map = {
     skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in zipped
 }
-FA_MAP = {
+fa_map = {
     skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in unzipped
 }
 
 # get unzipped filenames
-UZS = [f"{f}.{ext}" for f, ext in UZ_MAP.items()]
+uzs = [f"{f}.{ext}" for f, ext in uz_map.items()]
 # isolate basenames for all files
-FAS = list(FA_MAP.keys())
+fas = list(fa_map.keys())
 # parse any background files
 bg_files = glob(join(input_dir, "background", "*"))
 if len(bg_files) > 0:
     bg_files = [skm.utils.split_file_ext(basename(f))[0] for f in bg_files]
-NON_BGS, BGS = [f for f in FAS if f not in bg_files], bg_files
+non_bgs, bgs = [f for f in fas if f not in bg_files], bg_files
 # terminate with error if invalid alphabet specified
 skm.alphabet.check_valid(config["alphabet"])
 # define output directory (helpful for multiple runs)
@@ -96,18 +97,18 @@ options = [
     (config["learnapp"]["save_apply_associations"]),
 ]
 
-if all((option == True or option == False) for option in options) == False:
+if all((option == true or option == false) for option in options) == false:
     sys.exit(
-        "Incorrect Value Selected. Please check a 'save_summary','save_apply_associations', or 'save_results' in the config file under 'learnapp'. Options are 'True' or 'False'."
+        "incorrect value selected. please check a 'save_summary','save_apply_associations', or 'save_results' in the config file under 'learnapp'. options are 'true' or 'false'."
     )
 
 
 # define output files to be created by snekmer
 rule all:
     input:
-        expand(join("output", "learn", "kmer-counts-{nb}.csv"), nb=FAS),
+        expand(join("output", "learn", "kmer-counts-{nb}.csv"), nb=fas),
         join("output", "learn", "kmer-counts-total.csv"),
-        expand(join("output", "eval_apply", "seq-annotation-scores-{nb}.csv"), nb=FAS),
+        expand(join("output", "eval_apply", "seq-annotation-scores-{nb}.csv"), nb=fas),
         "output/eval_conf/confidence-matrix.csv",
         "output/eval_conf/global-confidence-scores.csv",
 
@@ -123,7 +124,7 @@ use rule unzip from process with:
 use rule vectorize from kmerize with:
     input:
         fasta=lambda wildcards: join(
-            input_dir, f"{wildcards.nb}.{FA_MAP[wildcards.nb]}"
+            input_dir, f"{wildcards.nb}.{fa_map[wildcards.nb]}"
         ),
     output:
         data=join("output", "vector", "{nb}.npz"),
@@ -132,7 +133,7 @@ use rule vectorize from kmerize with:
         join("output", "kmerize", "log", "{nb}.log"),
 
 
-# WORKFLOW to learn kmer associations
+# workflow to learn kmer associations
 # collect all seq files and generate mega-cluster
 rule learn:
     input:
@@ -147,14 +148,14 @@ rule learn:
         with open(log[0], "a") as f:
             f.write(f"start time:\t{start_time}\n")
 
-            ##### Generate Inputs
+            ##### generate inputs
         annotation = list()
         for f in input.annotation:
             annotation.append(pd.read_table(f))
         annotations = pd.concat(annotation)
         seq_annot = {}
         seqs = annotation[0]["id"].tolist()
-        anns = annotation[0]["TIGRFAMs"].tolist()
+        anns = annotation[0]["tigrfa_ms"].tolist()
         for i, seqid in enumerate(seqs):
             seq_annot[seqid] = anns[i]
         seqs = set(seqs)
@@ -169,7 +170,7 @@ rule learn:
         for item in kmerlist:
             kmer_totals.append(0)
 
-            ##### Generate Kmer Counts
+            ##### generate kmer counts
         k_len = len(kmerlist[0])
         seq_kmer_dict = {}
         for i, seq in enumerate(seqids):
@@ -189,7 +190,7 @@ rule learn:
                     store.append(0)
             seq_kmer_dict[seq] = store
 
-            # Filter out Non-Training Annotations
+            # filter out non-training annotations
         annotation_counts = {}
         total_seqs = len(seq_kmer_dict)
         for i, seqid in enumerate(list(seq_kmer_dict)):
@@ -209,34 +210,34 @@ rule learn:
                 else:
                     annotation_counts[seq_annot[x]] += 1
 
-                    # Construct Kmer Counts Output
-        kmer_counts = pd.DataFrame(seq_kmer_dict.values())
-        kmer_counts.insert(0, "Annotations", annotation_counts.values(), True)
-        # kmer_counts.insert(1,"Kmer Count",(kmer_counts[list(kmer_counts.columns[1:])].sum(axis=1).to_list()),True)
+                    # construct kmer counts output
+        kmer_counts = pd.data_frame(seq_kmer_dict.values())
+        kmer_counts.insert(0, "annotations", annotation_counts.values(), true)
+        # kmer_counts.insert(1,"kmer count",(kmer_counts[list(kmer_counts.columns[1:])].sum(axis=1).to_list()),true)
         kmer_counts_values = (
             kmer_counts[list(kmer_counts.columns[1:])].sum(axis=1).to_list()
         )
-        kmer_counts.insert(1, "Kmer Count", kmer_counts_values, True)
+        kmer_counts.insert(1, "kmer count", kmer_counts_values, true)
         kmer_totals[0:0] = [0, total_seqs]
-        colnames = ["Sequence count"] + ["Kmer Count"] + list(kmerlist)
-        kmer_counts = pd.DataFrame(
+        colnames = ["sequence count"] + ["kmer count"] + list(kmerlist)
+        kmer_counts = pd.data_frame(
             np.insert(kmer_counts.values, 0, values=(kmer_totals), axis=0)
         )
         kmer_counts.columns = colnames
-        new_index = ["Totals"] + list(annotation_counts.keys())
+        new_index = ["totals"] + list(annotation_counts.keys())
         kmer_counts.index = new_index
 
-        #### Write Output
+        #### write output
         out_name = "output/learn/kmer-counts-" + str(input.data)[14:-4] + ".csv"
-        kmer_counts_out = pa.Table.from_pandas(kmer_counts, preserve_index=True)
+        kmer_counts_out = pa.table.from_pandas(kmer_counts, preserve_index=true)
         csv.write_csv(kmer_counts_out, out_name)
         skm.utils.log_runtime(log[0], start_time)
 
 
 rule merge:
     input:
-        counts=expand(join("output", "learn", "kmer-counts-{nb}.csv"), nb=FAS),
-        base_counts=expand("{bf}", bf=base_file),
+        counts=expand(join("output", "learn", "kmer-counts-{nb}.csv"), nb=fas),
+        base_counts=expand("{bf}", bf=base_counts),
     output:
         totals=join("output", "learn", "kmer-counts-total.csv"),
     log:
@@ -258,36 +259,36 @@ rule merge:
                 running_merge = (
                     pd.concat([running_merge, kmer_counts])
                     .reset_index()
-                    .groupby("__index_level_0__", sort=False)
+                    .groupby("__index_level_0__", sort=false)
                     .sum(min_count=1)
                 ).fillna(0)
 
-                ##### Check for "Base" File to merge with.
-        base_check = False
-        print("\nChecking for base file to merge with.\n")
+                ##### check for "base" file to merge with.
+        base_check = false
+        print("\n_checking for base file to merge with.\n")
         if "csv" in str(input.base_counts):
             print(
-                "CSV detected. Matching annotations, kmers, and totals will be summed. New annotations and kmers will be added.\n"
+                "csv detected. matching annotations, kmers, and totals will be summed. new annotations and kmers will be added.\n"
             )
-            base_check = True
+            base_check = true
         elif input.base_counts == "":
-            print("No base directory detected\n")
-        elif str(input.base_counts) == "input/base":
-            print("Empty base directory detected\n")
+            print("no base directory detected\n")
+        elif str(input.base_counts) == "base":
+            print("empty base directory detected\n")
         else:
             print(
-                "No file type detected. Please use a .csv file in input/base directory.\n"
+                "no file type detected. please use a .csv file in input/base directory.\n"
             )
 
-            ##### Confirm Kmer Counts and Alphabet Match Base
-        if base_check == True:
+            ##### confirm kmer counts and alphabet match base
+        if base_check == true:
             base_df = pd.read_csv(
                 str(input.base_counts),
                 index_col="__index_level_0__",
                 header=0,
                 engine="pyarrow",
             )
-            print("\nBase Database: \n")
+            print("\n_base database: \n")
             print(base_df)
             check_1 = len(running_merge.columns.values)
             alphabet_initial = set(
@@ -299,35 +300,35 @@ rule merge:
                 itertools.chain(*[list(x) for x in base_df.columns.values[3:check_1]])
             )
             if alphabet_base == alphabet_initial:
-                base_check = True
+                base_check = true
             else:
-                base_check = False
-                print("Different Alphabets Detected. Base File not merged.")
-        if base_check == True:
+                base_check = false
+                print("different alphabets detected. base file not merged.")
+        if base_check == true:
             print(len(str(running_merge.columns.values[1])))
             if len(str(running_merge.columns.values[1])) == len(
                 str(base_df.columns.values[1])
             ):
-                base_check = True
+                base_check = true
             else:
-                base_check = False
-                print("Different kmer lengths detected. Base File not merged.")
+                base_check = false
+                print("different kmer lengths detected. base file not merged.")
 
-                ##### Merge Base File.
-        if base_check == True:
-            print("\nMerged Database \n")
+                ##### merge base file.
+        if base_check == true:
+            print("\n current data merged with base file.\n")
             xy = (
                 pd.concat([base_df, running_merge])
                 .reset_index()
-                .groupby("__index_level_0__", sort=False)
+                .groupby("__index_level_0__", sort=false)
                 .sum(min_count=1)
             ).fillna(0)
-            xy_out = pa.Table.from_pandas(xy, preserve_index=True)
+            xy_out = pa.table.from_pandas(xy, preserve_index=true)
             csv.write_csv(xy_out, "output/learn/kmer-counts-total.csv")
             print(xy)
         else:
-            print("\Database Merged. Not merged with base file. \n")
-            running_merge_out = pa.Table.from_pandas(running_merge, preserve_index=True)
+            print("current data merged. no detected base file to merge with. \n")
+            running_merge_out = pa.table.from_pandas(running_merge, preserve_index=true)
             csv.write_csv(running_merge_out, "output/learn/kmer-counts-total.csv")
 
         skm.utils.log_runtime(log[0], start_time)
@@ -348,7 +349,7 @@ rule eval_apply:
         with open(log[0], "a") as f:
             f.write(f"start time:\t{start_time}\n")
 
-            ##### Generate Inputs
+            ##### generate inputs
         annotation = list()
         kmer_count_totals = pd.read_csv(
             str(input.compare_associations),
@@ -359,7 +360,7 @@ rule eval_apply:
         for f in input.annotation:
             annotation.append(pd.read_table(f))
         seqs = annotation[0]["id"].tolist()
-        anns = annotation[0]["TIGRFAMs"].tolist()
+        anns = annotation[0]["tigrfa_ms"].tolist()
         seq_annot = {}
         for i, seqid in enumerate(seqs):
             seq_annot[seqid] = anns[i]
@@ -372,7 +373,7 @@ rule eval_apply:
         for item in kmerlist:
             kmer_totals.append(0)
 
-            ##### Generate Kmer Counts
+            ##### generate kmer counts
         seq_kmer_dict = {}
         k_len = len(kmerlist[0])
         for i, seq in enumerate(seqids):
@@ -392,7 +393,7 @@ rule eval_apply:
                     store.append(0)
             seq_kmer_dict[seq] = store
 
-            ###### ADD Known / Unknown tag to mark for confidence assessment
+            ###### add known / unknown tag to mark for confidence assessment
         annotation_counts = {}
         total_seqs = len(seq_kmer_dict)
         count = 0
@@ -408,25 +409,25 @@ rule eval_apply:
         annotation_counts = {}
         total_seqs = len(seq_kmer_dict)
 
-        ######  Construct Kmer Counts Dataframe
-        kmer_counts = pd.DataFrame(seq_kmer_dict.values())
-        kmer_counts.insert(0, "Annotations", 1, True)
+        ######  construct kmer counts dataframe
+        kmer_counts = pd.data_frame(seq_kmer_dict.values())
+        kmer_counts.insert(0, "annotations", 1, true)
         kmer_totals.insert(0, total_seqs)
-        kmer_counts = pd.DataFrame(
+        kmer_counts = pd.data_frame(
             np.insert(kmer_counts.values, 0, values=kmer_totals, axis=0)
         )
-        kmer_counts.columns = ["Sequence count"] + list(kmerlist)
-        kmer_counts.index = ["Totals"] + list(seq_kmer_dict.keys())
+        kmer_counts.columns = ["sequence count"] + list(kmerlist)
+        kmer_counts.index = ["totals"] + list(seq_kmer_dict.keys())
 
 
-        ##### Make New Counts Data match Kmer Counts Totals Format
+        ##### make new counts data match kmer counts totals format
         if len(str(kmer_counts.columns.values[10])) == len(
             str(kmer_count_totals.columns.values[10])
         ):
-            compare_check = True
+            compare_check = true
         else:
-            compare_check = False
-        if compare_check == True:
+            compare_check = false
+        if compare_check == true:
             check_1 = len(kmer_counts.columns.values)
             alphabet_initial = set(
                 itertools.chain(
@@ -439,11 +440,11 @@ rule eval_apply:
                 )
             )
             if alphabet_compare == alphabet_initial:
-                compare_check = True
+                compare_check = true
             else:
-                compare_check = False
-        if compare_check == False:
-            print("Compare Check Failed. ")
+                compare_check = false
+        if compare_check == false:
+            print("compare check failed. ")
             sys.exit()
 
         new_cols = set(kmer_counts.columns)
@@ -460,43 +461,43 @@ rule eval_apply:
         kmer_count_totals = pd.concat(
             [
                 kmer_count_totals,
-                pd.DataFrame(
+                pd.data_frame(
                     dict.fromkeys(add_to_compare, 0), index=kmer_count_totals.index
                 ),
             ],
             axis=1,
         )
         kmer_count_totals.drop(
-            columns=kmer_count_totals.columns[:2], index="Totals", axis=0, inplace=True
+            columns=kmer_count_totals.columns[:2], index="totals", axis=0, inplace=true
         )
         kmer_counts = pd.concat(
             [
                 kmer_counts,
-                pd.DataFrame(dict.fromkeys(add_to_new, 0), index=kmer_counts.index),
+                pd.data_frame(dict.fromkeys(add_to_new, 0), index=kmer_counts.index),
             ],
             axis=1,
         )
         kmer_counts.drop(
             columns=kmer_counts.columns[-1:].union(kmer_counts.columns[:1]),
-            index="Totals",
+            index="totals",
             axis=0,
-            inplace=True,
+            inplace=true,
         )
 
-        # Perform Cosine Similarity between Kmer Counts Totals and Counts and Sums DF
+        # perform cosine similarity between kmer counts totals and counts and sums df
         cosine_df = sklearn.metrics.pairwise.cosine_similarity(
             kmer_count_totals, kmer_counts
-        ).T
+        ).t
 
-        final_matrix_with_scores = pd.DataFrame(
+        final_matrix_with_scores = pd.data_frame(
             cosine_df, columns=kmer_count_totals.index, index=kmer_counts.index
         )
 
-        # Write Output
+        # write output
         out_name = (
             "output/eval_apply/seq-annotation-scores-" + str(input.data)[14:-4] + ".csv"
         )
-        final_matrix_with_scores_write = pa.Table.from_pandas(final_matrix_with_scores)
+        final_matrix_with_scores_write = pa.table.from_pandas(final_matrix_with_scores)
         csv.write_csv(final_matrix_with_scores_write, out_name)
 
         skm.utils.log_runtime(log[0], start_time)
@@ -505,8 +506,9 @@ rule eval_apply:
 rule evaluate:
     input:
         eval_apply_data=expand(
-            join("output", "eval_apply", "seq-annotation-scores-{nb}.csv"), nb=FAS
+            join("output", "eval_apply", "seq-annotation-scores-{nb}.csv"), nb=fas
         ),
+        base_confidence=expand("{bc}", bc=base_confidence),
     output:
         "output/eval_conf/confidence-matrix.csv",
         "output/eval_conf/global-confidence-scores.csv",
@@ -517,7 +519,7 @@ rule evaluate:
         with open(log[0], "a") as f:
             f.write(f"start time:\t{start_time}\n")
 
-            #### Generate Input Data
+            #### generate input data
         for j, f in enumerate(input.eval_apply_data):
             seq_ann_scores = pd.read_csv(
                 f,
@@ -531,43 +533,43 @@ rule evaluate:
             known = list()
             for i, item in enumerate(list(max_value_index)):
                 if item in result[i]:
-                    tf.append("T")
+                    tf.append("t")
                 else:
-                    tf.append("F")
+                    tf.append("f")
                 if "unknown" in result[i]:
-                    known.append("Unknown")
+                    known.append("unknown")
                 else:
-                    known.append("Known")
+                    known.append("known")
 
             seq_ann_vals = seq_ann_scores.values
             seq_ann_vals = seq_ann_scores.values[
-                np.arange(len(seq_ann_scores))[:, None],
+                np.arange(len(seq_ann_scores))[:, none],
                 np.argpartition(-seq_ann_vals, np.arange(2), axis=1)[:, :2],
             ]
 
-            diff_df = pd.DataFrame(
+            diff_df = pd.data_frame(
                 seq_ann_vals,
-                columns=["Top", "Second"],
+                columns=["top", "second"],
             )
-            diff_df["Difference"] = -(np.diff(seq_ann_vals, axis=1).round(decimals=2))
-            diff_df["Prediction"] = list(max_value_index)
-            diff_df["Actual"] = result
-            diff_df["T/F"] = tf
-            diff_df["Known/Unknown"] = known
+            diff_df["difference"] = -(np.diff(seq_ann_vals, axis=1).round(decimals=2))
+            diff_df["prediction"] = list(max_value_index)
+            diff_df["actual"] = result
+            diff_df["t/f"] = tf
+            diff_df["known/unknown"] = known
 
-            #### Create CrossTabs - ie True/False Count Sums and sum within .01 intervals
+            #### create cross_tabs - ie true/false count sums and sum within .01 intervals
             known_true_diff_df = diff_df[
-                (diff_df["Known/Unknown"] == "Known") & (diff_df["T/F"] == "T")
+                (diff_df["known/unknown"] == "known") & (diff_df["t/f"] == "t")
             ]
             known_false_diff_df = diff_df[
-                (diff_df["Known/Unknown"] == "Known") & (diff_df["T/F"] == "F")
+                (diff_df["known/unknown"] == "known") & (diff_df["t/f"] == "f")
             ]
             possible_vals = [round(x * 0.01, 2) for x in range(0, 101)]
             true_crosstab = pd.crosstab(
-                known_true_diff_df.Prediction, known_true_diff_df.Difference
+                known_true_diff_df.prediction, known_true_diff_df.difference
             )
             false_crosstab = pd.crosstab(
-                known_false_diff_df.Prediction, known_false_diff_df.Difference
+                known_false_diff_df.prediction, known_false_diff_df.difference
             )
 
             if j == 0:
@@ -577,24 +579,24 @@ rule evaluate:
                 true_running_crosstab = (
                     pd.concat([true_running_crosstab, true_crosstab])
                     .reset_index()
-                    .groupby("Prediction", sort=False)
+                    .groupby("prediction", sort=false)
                     .sum(min_count=1)
                 ).fillna(0)
                 false_running_crosstab = (
                     pd.concat([false_running_crosstab, false_crosstab])
                     .reset_index()
-                    .groupby("Prediction", sort=False)
+                    .groupby("prediction", sort=false)
                     .sum(min_count=1)
                 ).fillna(0)
 
-            add_to_true_df = pd.DataFrame(
+            add_to_true_df = pd.data_frame(
                 0,
                 index=sorted(
                     set(false_running_crosstab.index) - set(true_running_crosstab.index)
                 ),
                 columns=true_running_crosstab.columns,
             )
-            add_to_false_df = pd.DataFrame(
+            add_to_false_df = pd.data_frame(
                 0,
                 index=sorted(
                     set(true_running_crosstab.index) - set(false_running_crosstab.index)
@@ -641,10 +643,10 @@ rule evaluate:
                 )
             )
 
-            true_running_crosstab.index.names = ["Prediction"]
-            false_running_crosstab.index.names = ["Prediction"]
-            true_running_crosstab.sort_index(inplace=True)
-            false_running_crosstab.sort_index(inplace=True)
+            true_running_crosstab.index.names = ["prediction"]
+            false_running_crosstab.index.names = ["prediction"]
+            true_running_crosstab.sort_index(inplace=true)
+            false_running_crosstab.sort_index(inplace=true)
             true_running_crosstab.columns = true_running_crosstab.columns.astype(float)
             false_running_crosstab.columns = false_running_crosstab.columns.astype(
                 float
@@ -656,34 +658,52 @@ rule evaluate:
                 sorted(false_running_crosstab.columns)
             ]
 
-            print("Dataframes joined: ", j, " out of ", len(input.eval_apply_data), ".")
+            #### generate each global cross_tab
 
-            #### Generate Each Global CrossTab
-        ratio_running_crosstab = true_running_crosstab / (
-            true_running_crosstab + false_running_crosstab
-        )
-        true_total_dist = true_running_crosstab.sum(numeric_only=True, axis=0)
-        false_total_dist = false_running_crosstab.sum(numeric_only=True, axis=0)
-        ratio_total_dist = true_running_crosstab.sum(numeric_only=True, axis=0) / (
-            true_running_crosstab.sum(numeric_only=True, axis=0)
-            + false_running_crosstab.sum(numeric_only=True, axis=0)
+            ratio_running_crosstab = true_running_crosstab / (
+                true_running_crosstab + false_running_crosstab
+            )
+            true_total_dist = true_running_crosstab.sum(numeric_only=true, axis=0)
+            false_total_dist = false_running_crosstab.sum(numeric_only=true, axis=0)
+
+            print("\n_checking for base file to merge with.\n")
+            print("input.base_confidence: ", input.base_confidence)
+            if (
+                len(input.base_confidence) == 2
+                and "global-true.csv" in input.base_confidence
+                and "global-false.csv" in input.base_confidence
+            ):
+                print("two base confidence files found. will attempt to merge.")
+                base_true = pd.read_csv(
+                    "base/confidence/global-true.csv", index_col=false, header=0
+                    ).set_index("difference")["0"]
+                    base_false = pd.read_csv(
+                        "base/confidence/global-false.csv", index_col=false, header=0
+                    ).set_index("difference")["0"]
+                    true_total_dist = true_total_dist + base_true
+                    false_total_dist = false_total_dist + base_false
+                else:
+                    print(
+                    "base confidence files not found. if attempting to merge, these must be titled 'global-true.csv' and 'global-false.csv' in the ./base/confidence directory."
+                )
+
+        ratio_total_dist = true_running_crosstab.sum(numeric_only=true, axis=0) / (
+            true_running_crosstab.sum(numeric_only=true, axis=0)
+            + false_running_crosstab.sum(numeric_only=true, axis=0)
         )
 
-        ####Interpolate For final Ratio, this only will affect upper limit values if there is a decent amount of data
+        ####interpolate for final ratio, this only will affect upper limit values if there is a decent amount of data
         ratio_total_dist = ratio_total_dist.interpolate(method="linear")
 
-        ##### Write Final Confidence Results
+        ##### write final confidence results
         ratio_total_dist.to_csv("output/eval_conf/global-confidence-scores.csv")
+
+        true_total_dist.to_csv("output/eval_conf/global-true.csv")
+
+        false_total_dist.to_csv("output/eval_conf/global-false.csv")
+
         csv.write_csv(
-            pa.Table.from_pandas(true_running_crosstab),
-            "output/eval_conf/true-total.csv",
-        )
-        csv.write_csv(
-            pa.Table.from_pandas(false_running_crosstab),
-            "output/eval_conf/false-total.csv",
-        )
-        csv.write_csv(
-            pa.Table.from_pandas(ratio_running_crosstab),
+            pa.table.from_pandas(ratio_running_crosstab),
             "output/eval_conf/confidence-matrix.csv",
         )
 
