@@ -112,7 +112,7 @@ else:
         pd.DataFrame(score_array), left_index=True, right_index=True
     )
     
-output_matrix = motif.p_values(score_matrix, scores, n_iter)
+output_matrix = pd.DataFrame.convert_dtypes(motif.p_values(score_matrix, scores, n_iter))
 output_matrix.sort_values(by=['p', 'real score'], ascending=[True, False], inplace=True)
     
 # save output
