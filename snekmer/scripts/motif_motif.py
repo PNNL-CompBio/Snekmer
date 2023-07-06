@@ -22,6 +22,7 @@ from sklearn.linear_model import LogisticRegression  # LogisticRegressionCV
 from sklearn.model_selection import GridSearchCV, cross_validate
 from sklearn.pipeline import make_pipeline, Pipeline
 from sklearn.svm import SVC
+from multiprocessing import pool
 
 # ---------------------------------------------------------
 # Files and parameters
@@ -112,7 +113,8 @@ else:
         pd.DataFrame(score_array), left_index=True, right_index=True
     )
     
-output_matrix = pd.DataFrame.convert_dtypes(motif.p_values(score_matrix, scores, n_iter))
+output_matrix = motif.p_values(score_matrix, scores, n_iter)
+output_matrix = output_matrix.astype({'kmer': 'str', 'real score': 'float64', 'false positives': 'int64', 'n': 'int64', 'p': 'float64'})
 output_matrix.sort_values(by=['p', 'real score'], ascending=[True, False], inplace=True)
     
 # save output
