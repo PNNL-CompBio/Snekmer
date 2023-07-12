@@ -97,6 +97,9 @@ out_dir = skm.io.define_output_dir(
 #        for fa in input_files
 #    ]
 
+# set number of permutations to test
+n_iter = (config["motif"]["n"])
+
 
 # define output files to be created by snekmer
 rule all:
@@ -105,7 +108,7 @@ rule all:
     	join(config["basis_dir"], "search_kmers.txt"), # require common basis
 #        expand(join(out_dir, "model", "{nb}.model"), nb=NON_BGS),  # require model-building
     	expand(join(out_dir, "scoring", "weights", "{nb}.csv.gz"), nb=NON_BGS), # require scoring
-    	expand(join(out_dir, "motif", "p_values", "{nb}.csv.gz"), nb=NON_BGS), # require motif identification 
+    	expand(join(out_dir, "motif", "p_values", "{nb}.csv.gz"), nb=NON_BGS), # require motif identification
 
 # if any files are gzip zipped, unzip them
 use rule unzip from process with: 
@@ -165,8 +168,21 @@ rule score:
         join(out_dir, "scoring", "log", "{nb}.log"),
     script:
         resource_filename("snekmer", join("scripts/model_score.py"))
-
-rule motif:
+        
+# rule permute:
+#    input:
+#        raw=rules.score.input.data,
+#        data=rules.score.output.data,
+#        weights=rules.score.output.weights,
+#        kmers=rules.common_basis.output.kmerbasis,
+#        kmerobj=rules.score.input.kmerobj,
+#        matrix=rules.score.output.matrix,
+#    output:
+#        data=temp(join(out_dir, "motif", "perm_data", "{nb}_{n}.csv.gz")),
+#    script:
+#        resource_filename("snekmer", join("scripts/motif_permute.py"))
+        
+rule rescore:
     input:
         raw=rules.score.input.data,
         data=rules.score.output.data,
@@ -175,7 +191,22 @@ rule motif:
         kmerobj=rules.score.input.kmerobj,
         matrix=rules.score.output.matrix,
     output:
+        data=temp(join(out_dir, "motif", "scores", "{nb}_{n}.csv.gz")),
+    script:
+        resource_filename("snekmer", join("scripts/motif_rescore.py"))
+        
+rule motif:
+    input:
+        raw=rules.score.input.data,
+        data=rules.score.output.data,
+        weights=rules.score.output.weights,
+        perm_scores=expand(join(out_dir, "motif", "scores", "{{nb}}_{n}.csv.gz"), n=range(n_iter)),
+        kmers=rules.common_basis.output.kmerbasis,
+        kmerobj=rules.score.input.kmerobj,
+        matrix=rules.score.output.matrix,
+    output:
         data=join(out_dir, "motif", "scores", "{nb}.csv.gz"),
         p_values=join(out_dir, "motif", "p_values", "{nb}.csv.gz"),
     script:
         resource_filename("snekmer", join("scripts/motif_motif.py"))
+    
