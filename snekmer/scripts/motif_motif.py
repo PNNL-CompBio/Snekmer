@@ -103,6 +103,7 @@ else:
     )
     
 output_matrix = motif.p_values(score_matrix, scores, n_iter)
+output_matrix = output_matrix.astype({'kmer': 'str', 'real score': 'float32', 'false positives': 'int32', 'n': 'int32', 'p': 'float32'})
 output_matrix.sort_values(by=['p', 'real score'], ascending=[True, False], inplace=True)
     
 # save output
