@@ -105,7 +105,7 @@ n_iter = (config["motif"]["n"])
 rule all:
     input:
         expand(join("input", "{uz}"), uz=UZS),  # require unzipping
-    	join(config["basis_dir"], "search_kmers.txt"), # require common basis
+#    	join(config["basis_dir"], "search_kmers.txt"), # require common basis
 #        expand(join(out_dir, "model", "{nb}.model"), nb=NON_BGS),  # require model-building
     	expand(join(out_dir, "scoring", "weights", "{nb}.csv.gz"), nb=NON_BGS), # require scoring
     	expand(join(out_dir, "motif", "p_values", "{nb}.csv.gz"), nb=NON_BGS), # require motif identification
@@ -126,31 +126,31 @@ use rule vectorize from kmerize with:
     log:
         join(out_dir, "kmerize", "log", "{nb}.log"),
 
-rule common_basis:  # build kmer count vectors for each basis set
-    input:
-        kmerobjs=expand(join(config["basis_dir"], "{nb}.kmers"), nb=NON_BGS),
-    output:
-        kmerbasis=join(config["basis_dir"], "search_kmers.txt"),
-    log:
-        join(config["basis_dir"], "log", "common_basis.log"),
-    run:
-        common_basis = list()
-        for kobj in input.kmerobjs:
-            kmers = skm.io.load_pickle(kobj)
+#rule common_basis:  # build kmer count vectors for each basis set
+#    input:
+#        kmerobjs=expand(join(config["basis_dir"], "{nb}.kmers"), nb=NON_BGS),
+#    output:
+#        kmerbasis=join(config["basis_dir"], "search_kmers.txt"),
+#    log:
+#        join(config["basis_dir"], "log", "common_basis.log"),
+#    run:
+#        common_basis = list()
+#        for kobj in input.kmerobjs:
+#            kmers = skm.io.load_pickle(kobj)
 
             # consolidate overly long lists of duplicate kmers
-            if len(common_basis) > 1e10:
-                common_basis = list(set(common_basis))
-            common_basis.extend(list(kmers.kmer_set.kmers))
+#            if len(common_basis) > 1e10:
+#                common_basis = list(set(common_basis))
+#            common_basis.extend(list(kmers.kmer_set.kmers))
 
         # capture common basis set -- is faster than np.unique
-        common_basis = set(common_basis)
-        common_basis = sorted(list(common_basis))
+#        common_basis = set(common_basis)
+#        common_basis = sorted(list(common_basis))
 
         # output type: plaintext (no pandas) would likely be more compact
-        with open(output.kmerbasis, "w") as f:
-            for kmer in common_basis:
-                f.write(f"{kmer}\n")
+#        with open(output.kmerbasis, "w") as f:
+#            for kmer in common_basis:
+#                f.write(f"{kmer}\n")
 
 
 # build family score basis
@@ -187,7 +187,7 @@ rule rescore:
         raw=rules.score.input.data,
         data=rules.score.output.data,
         weights=rules.score.output.weights,
-        kmers=rules.common_basis.output.kmerbasis,
+#        kmers=rules.common_basis.output.kmerbasis,
         kmerobj=rules.score.input.kmerobj,
         matrix=rules.score.output.matrix,
     output:
@@ -201,7 +201,7 @@ rule motif:
         data=rules.score.output.data,
         weights=rules.score.output.weights,
         perm_scores=expand(join(out_dir, "motif", "scores", "{{nb}}_{n}.csv.gz"), n=range(n_iter)),
-        kmers=rules.common_basis.output.kmerbasis,
+#        kmers=rules.common_basis.output.kmerbasis,
         kmerobj=rules.score.input.kmerobj,
         matrix=rules.score.output.matrix,
     output:

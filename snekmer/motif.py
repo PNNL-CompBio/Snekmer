@@ -6,26 +6,26 @@ author: @tnitka
 # ---------------------------------------------------------
 # Imports
 # ---------------------------------------------------------
-import pickle
-from datetime import datetime
+# import pickle
+# from datetime import datetime
 
 import snekmer as skm
 import pandas as pd
 import numpy as np
 import snekmer.motif
-from typing import Any, Dict, List, Optional
-from ._version import __version__
-from .vectorize import KmerBasis
-from .score import KmerScorer
-from .model import SnekmerModel, SnekmerModelCV
+# from typing import Any, Dict, List, Optional
+# from ._version import __version__
+# from .vectorize import KmerBasis
+# from .score import KmerScorer
+# from .model import SnekmerModel, SnekmerModelCV
 #from numpy.typing import NDArray
-from sklearn.base import BaseEstimator, ClassifierMixin
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
-from sklearn.linear_model import LogisticRegression  # LogisticRegressionCV
-from sklearn.model_selection import GridSearchCV, cross_validate
-from sklearn.pipeline import make_pipeline, Pipeline
-from sklearn.svm import SVC
+# from sklearn.base import BaseEstimator, ClassifierMixin
+# from sklearn.tree import DecisionTreeClassifier
+# from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
+# from sklearn.linear_model import LogisticRegression  # LogisticRegressionCV
+# from sklearn.model_selection import GridSearchCV, cross_validate
+# from sklearn.pipeline import make_pipeline, Pipeline
+# from sklearn.svm import SVC
 
 # object to permute training data and retrain
 class SnekmerMotif:

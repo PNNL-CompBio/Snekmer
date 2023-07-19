@@ -8,20 +8,20 @@ author: @tnitka
 # Imports
 # ---------------------------------------------------------
 import pickle
-from datetime import datetime
+# from datetime import datetime
 
 import snekmer as skm
 import pandas as pd
 import numpy as np
 import gzip
-from typing import Any, Dict, List, Optional
-from sklearn.base import BaseEstimator, ClassifierMixin
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
-from sklearn.linear_model import LogisticRegression  # LogisticRegressionCV
-from sklearn.model_selection import GridSearchCV, cross_validate
-from sklearn.pipeline import make_pipeline, Pipeline
-from sklearn.svm import SVC
+# from typing import Any, Dict, List, Optional
+# from sklearn.base import BaseEstimator, ClassifierMixin
+# from sklearn.tree import DecisionTreeClassifier
+# from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
+# from sklearn.linear_model import LogisticRegression  # LogisticRegressionCV
+# from sklearn.model_selection import GridSearchCV, cross_validate
+# from sklearn.pipeline import make_pipeline, Pipeline
+# from sklearn.svm import SVC
 
 # ---------------------------------------------------------
 # Files and parameters
@@ -92,7 +92,8 @@ perm_data = motif.permute(
     skm.utils.get_family(snakemake.wildcards.nb, regex=config["input_file_regex"]),
     label_col=label)
 scorer.fit(
-    list(kmerobj.kmer_set.kmers),
+    kmers,
+    # list(kmerobj.kmer_set.kmers),
     perm_data,
     skm.utils.get_family(snakemake.wildcards.nb, regex=config["input_file_regex"]),
     label_col=label,

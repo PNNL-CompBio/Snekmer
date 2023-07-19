@@ -8,21 +8,21 @@ author: @tnitka
 # Imports
 # ---------------------------------------------------------
 import pickle
-from datetime import datetime
+# from datetime import datetime
 
 import snekmer as skm
 import pandas as pd
 import numpy as np
 import gzip
-import glob
-from typing import Any, Dict, List, Optional
-from sklearn.base import BaseEstimator, ClassifierMixin
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
-from sklearn.linear_model import LogisticRegression  # LogisticRegressionCV
-from sklearn.model_selection import GridSearchCV, cross_validate
-from sklearn.pipeline import make_pipeline, Pipeline
-from sklearn.svm import SVC
+# import glob
+# from typing import Any, Dict, List, Optional
+# from sklearn.base import BaseEstimator, ClassifierMixin
+# from sklearn.tree import DecisionTreeClassifier
+# from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
+# from sklearn.linear_model import LogisticRegression  # LogisticRegressionCV
+# from sklearn.model_selection import GridSearchCV, cross_validate
+# from sklearn.pipeline import make_pipeline, Pipeline
+# from sklearn.svm import SVC
 
 # ---------------------------------------------------------
 # Files and parameters
@@ -69,8 +69,8 @@ n_iter = (
 
 
 # get kmers for this particular set of sequences
-with open(snakemake.input.kmerobj, "rb") as f:
-    kmerobj = pickle.load(f)
+# with open(snakemake.input.kmerobj, "rb") as f:
+#     kmerobj = pickle.load(f)
     
 # set category label name (e.g. "family")
 label = config["score"]["lname"] if str(config["score"]["lname"]) != "None" else "label"
