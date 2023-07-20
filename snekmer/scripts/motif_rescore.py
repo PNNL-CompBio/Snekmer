@@ -14,6 +14,7 @@ import snekmer as skm
 import pandas as pd
 import numpy as np
 import gzip
+import gc
 # from typing import Any, Dict, List, Optional
 # from sklearn.base import BaseEstimator, ClassifierMixin
 # from sklearn.tree import DecisionTreeClassifier
@@ -54,12 +55,15 @@ if config["k"] == 2:
     weights["kmer"] = weights["kmer"].fillna("NA")
 
 kmers = weights['kmer'].values    
-scores = weights['sample'].values
+# scores = weights['sample'].values
 family = skm.utils.get_family(
     skm.utils.split_file_ext(snakemake.input.weights)[0],
     regex=config["input_file_regex"],
 )
 scorer = skm.score.KmerScorer()
+
+del weights
+gc.collect()
 
 # set number of permutations to test
 n_iter = (
@@ -68,14 +72,14 @@ n_iter = (
 
 
 # get kmers for this particular set of sequences
-with open(snakemake.input.kmerobj, "rb") as f:
-    kmerobj = pickle.load(f)
+# with open(snakemake.input.kmerobj, "rb") as f:
+#     kmerobj = pickle.load(f)
     
 # set category label name (e.g. "family")
 label = config["score"]["lname"] if str(config["score"]["lname"]) != "None" else "label"
 
 # binary T/F for classification into family
-family = skm.utils.get_family(snakemake.wildcards.nb)
+family = skm.utils.get_family(snakemake.wildcards.nb, regex=config["input_file_regex"])
 binary_labels = [True if value == family else False for value in data[label]]
 
 # get alphabet name
@@ -83,24 +87,32 @@ if config["alphabet"] in skm.alphabet.ALPHABET_ORDER.keys():
     alphabet_name = skm.alphabet.ALPHABET_ORDER[config["alphabet"]].capitalize()
 else:
     alphabet_name = str(config["alphabet"]).capitalize()
-
   
 # run permutations and score each
 motif = skm.motif.SnekmerMotif()
 perm_data = motif.permute(
     data, 
-    skm.utils.get_family(snakemake.wildcards.nb, regex=config["input_file_regex"]),
+    family,
+    # skm.utils.get_family(snakemake.wildcards.nb, regex=config["input_file_regex"]),
     label_col=label)
+del data
+gc.collect()
 scorer.fit(
     kmers,
     # list(kmerobj.kmer_set.kmers),
     perm_data,
-    skm.utils.get_family(snakemake.wildcards.nb, regex=config["input_file_regex"]),
+    family,
+    # skm.utils.get_family(snakemake.wildcards.nb, regex=config["input_file_regex"]),
     label_col=label,
     vec_col="sequence_vector",
     **config["score"]["scaler_kwargs"],)
+del perm_data
+gc.collect()
 perm_scores = np.reshape(scorer.probabilities["sample"], (len(kmers), 1))
 score_out = pd.DataFrame(perm_scores)
+
+del perm_scores, scorer
+gc.collect()
     
 # save output
 score_out.to_csv(snakemake.output.data, index=False, compression="gzip")
