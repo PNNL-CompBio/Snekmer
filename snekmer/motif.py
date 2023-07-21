@@ -9,10 +9,10 @@ author: @tnitka
 # import pickle
 # from datetime import datetime
 
-import snekmer as skm
+# import snekmer as skm
 import pandas as pd
 import numpy as np
-import snekmer.motif
+# import snekmer.motif
 # from typing import Any, Dict, List, Optional
 # from ._version import __version__
 # from .vectorize import KmerBasis
@@ -40,7 +40,7 @@ class SnekmerMotif:
     
     def __init__(self):
         self.generator = np.random.default_rng()
-        self.scorer = skm.score.KmerScorer()
+        # self.scorer = skm.score.KmerScorer()
     
     def permute(self, X: pd.DataFrame, label, label_col="family"):
         """

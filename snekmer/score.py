@@ -647,6 +647,9 @@ class KmerScorer:
             self.probabilities["background"] = bg_probas[
                 bg_probas["label"] == self.primary_label
             ]["score"].values
+            
+            del background_matrix
+            gc.collect()
 
             # step 3.1: background family probability scores
             for bl in np.unique(bg_labels):
@@ -665,8 +668,6 @@ class KmerScorer:
 
                 self.scores["background"][bl] = bg_only_scores / bg_norm
                 
-        del background_matrix
-        gc.collect()
 
         # step 3.2: assign family probability scores
         for sl in np.unique(s_labels):

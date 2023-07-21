@@ -12,7 +12,7 @@ import pickle
 
 import snekmer as skm
 import pandas as pd
-import numpy as np
+# import numpy as np
 import gzip
 import gc
 # from typing import Any, Dict, List, Optional
@@ -44,6 +44,11 @@ config = snakemake.config
 with open(snakemake.input.matrix, "rb") as f:
     data = pickle.load(f)
     
+# set category label name (e.g. "family")
+label = config["score"]["lname"] if str(config["score"]["lname"]) != "None" else "label"
+
+data.astype({'label': 'category'})
+    
 # with open(snakemake.input.kmers, "rb") as f:
 #     kmers = f.readlines()
     
@@ -74,9 +79,6 @@ n_iter = (
 # get kmers for this particular set of sequences
 # with open(snakemake.input.kmerobj, "rb") as f:
 #     kmerobj = pickle.load(f)
-    
-# set category label name (e.g. "family")
-label = config["score"]["lname"] if str(config["score"]["lname"]) != "None" else "label"
 
 # binary T/F for classification into family
 family = skm.utils.get_family(snakemake.wildcards.nb, regex=config["input_file_regex"])
@@ -108,14 +110,14 @@ scorer.fit(
     **config["score"]["scaler_kwargs"],)
 del perm_data
 gc.collect()
-perm_scores = np.reshape(scorer.probabilities["sample"], (len(kmers), 1))
-score_out = pd.DataFrame(perm_scores)
+perm_scores = pd.DataFrame((scorer.probabilities["sample"]))
+# score_out = pd.DataFrame(perm_scores)
 
-del perm_scores, scorer
+del scorer
 gc.collect()
     
 # save output
-score_out.to_csv(snakemake.output.data, index=False, compression="gzip")
+perm_scores.to_csv(snakemake.output.data, index=False, compression="gzip")
 
 # record script endtime
 #skm.utils.log_runtime(snakemake.log[0], start_time)
