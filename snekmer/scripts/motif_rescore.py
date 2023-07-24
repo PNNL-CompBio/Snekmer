@@ -12,7 +12,7 @@ import pickle
 
 import snekmer as skm
 import pandas as pd
-# import numpy as np
+import numpy as np
 import gzip
 import gc
 # from typing import Any, Dict, List, Optional
@@ -22,7 +22,7 @@ import gc
 # from sklearn.linear_model import LogisticRegression  # LogisticRegressionCV
 # from sklearn.model_selection import GridSearchCV, cross_validate
 # from sklearn.pipeline import make_pipeline, Pipeline
-# from sklearn.svm import SVC
+from sklearn.svm import LinearSVC
 
 # ---------------------------------------------------------
 # Files and parameters
@@ -72,7 +72,7 @@ gc.collect()
 
 # set number of permutations to test
 n_iter = (
-    config["motif"]["n"]  
+    config["motif"]["n"]
     )
 
 
@@ -92,13 +92,27 @@ else:
   
 # run permutations and score each
 motif = skm.motif.SnekmerMotif()
+svm = LinearSVC(class_weight="balanced", random_state=None, max_iter=1000000)
+# svm= skm.model.SnekmerModel(
+#     model="svc",
+#     model_params={
+#         "kernel": "linear",
+#         "class_weight": "balanced",
+#         "decision_function_shape": "ovr",
+#         "random_state": None,
+#                   },
+#     params={
+#         "scaler": scorer.scaler,
+#         "random_state": config["model"]["random_state"],
+#         "solver": "liblinear",
+#         "class_weight": "balanced",
+#     },
+# )
 perm_data = motif.permute(
     data, 
     family,
     # skm.utils.get_family(snakemake.wildcards.nb, regex=config["input_file_regex"]),
     label_col=label)
-del data
-gc.collect()
 scorer.fit(
     kmers,
     # list(kmerobj.kmer_set.kmers),
@@ -108,16 +122,24 @@ scorer.fit(
     label_col=label,
     vec_col="sequence_vector",
     **config["score"]["scaler_kwargs"],)
-del perm_data
+vecs=np.array(perm_data["sequence_vector"].astype(str).str.strip('[]').str.split(",").tolist(), dtype='float')
+# features_in=np.vstack((kmers, vecs))
+svm.fit(vecs, perm_data[label])
+del perm_data, motif
 gc.collect()
-perm_scores = pd.DataFrame((scorer.probabilities["sample"]))
+unique_labels = np.unique(data['label'])
+unique_labels.sort()
+score_index = np.searchsorted(unique_labels, label)
+del data
+gc.collect()
+perm_scores = pd.DataFrame(svm.coef_)
 # score_out = pd.DataFrame(perm_scores)
 
 del scorer
 gc.collect()
     
 # save output
-perm_scores.to_csv(snakemake.output.data, index=False, compression="gzip")
+perm_scores.iloc[score_index].to_csv(snakemake.output.data, index=False, compression="gzip")
 
 # record script endtime
 #skm.utils.log_runtime(snakemake.log[0], start_time)

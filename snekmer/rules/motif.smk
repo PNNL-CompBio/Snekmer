@@ -169,6 +169,20 @@ rule score:
     script:
         resource_filename("snekmer", join("scripts/model_score.py"))
         
+rule model:
+    input:
+        raw=rules.score.input.data,
+        data=rules.score.output.data,
+        weights=rules.score.output.weights,
+        kmerobj=rules.score.input.kmerobj,
+        matrix=rules.score.output.matrix,
+    output:
+        model=join(out_dir, "model", "{nb}.model"),
+        results=join(out_dir, "model", "results", "{nb}.csv"),
+        figs=directory(join(out_dir, "model", "figures", "{nb}")),
+    script:
+        resource_filename("snekmer", join("scripts/model_model.py"))
+        
 # rule permute:
 #    input:
 #        raw=rules.score.input.data,
