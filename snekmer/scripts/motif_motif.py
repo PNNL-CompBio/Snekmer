@@ -14,6 +14,7 @@ import snekmer as skm
 import pandas as pd
 import numpy as np
 import gzip
+import gc
 # import glob
 # from typing import Any, Dict, List, Optional
 # from sklearn.base import BaseEstimator, ClassifierMixin
@@ -50,17 +51,28 @@ with open(snakemake.input.matrix, "rb") as f:
 with gzip.open(snakemake.input.weights, "rb") as f:
     weights = pd.read_csv(f)
     
+with open(snakemake.input.model, "rb") as f:
+    model = pickle.load(f)
+    
 # prevent kmer NA being read as np.nan
 if config["k"] == 2:
     weights["kmer"] = weights["kmer"].fillna("NA")
 
 kmers = weights['kmer'].values    
-scores = weights['sample'].values
+coeffs = pd.DataFrame(model.coef_)
+# scores = weights['sample'].values
 family = skm.utils.get_family(
     skm.utils.split_file_ext(snakemake.input.weights)[0],
     regex=config["input_file_regex"],
 )
+unique_labels = np.unique(data['label'])
+unique_labels.sort()
+score_index = np.searchsorted(unique_labels, family)
+scores = coeffs.iloc[score_index]
 scorer = skm.score.KmerScorer()
+
+del model
+gc.collect()
 
 # set number of permutations to test
 n_iter = (

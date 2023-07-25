@@ -129,7 +129,7 @@ del perm_data, motif
 gc.collect()
 unique_labels = np.unique(data['label'])
 unique_labels.sort()
-score_index = np.searchsorted(unique_labels, label)
+score_index = np.searchsorted(unique_labels, family)
 del data
 gc.collect()
 perm_scores = pd.DataFrame(svm.coef_)

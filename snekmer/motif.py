@@ -60,6 +60,7 @@ class SnekmerMotif:
             Training data with permuted labels, for retraining and rescoring.
 
         """
+        __slots__ = ("X", "label", "label_col")
         # save primary family label
         self.primary_label = label
         self.labels = X[label_col].values
@@ -90,7 +91,7 @@ class SnekmerMotif:
             proportion of scores on permuted data that exceed that on real data.
 
         """
-        
+        __slots__ = ("X", "y", "n")
         # self.output = pd.DataFrame(columns=('kmer', 'real score', 'false positives', 'n', 'p'))
         self.output_matrix = np.empty((1, 5))
         for i in range(0, len(y)-1):

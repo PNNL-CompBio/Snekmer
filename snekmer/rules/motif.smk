@@ -106,7 +106,7 @@ rule all:
     input:
         expand(join("input", "{uz}"), uz=UZS),  # require unzipping
 #    	join(config["basis_dir"], "search_kmers.txt"), # require common basis
-#        expand(join(out_dir, "model", "{nb}.model"), nb=NON_BGS),  # require model-building
+        expand(join(out_dir, "model", "{nb}.model"), nb=NON_BGS),  # require model-building
     	expand(join(out_dir, "scoring", "weights", "{nb}.csv.gz"), nb=NON_BGS), # require scoring
     	expand(join(out_dir, "motif", "p_values", "{nb}.csv.gz"), nb=NON_BGS), # require motif identification
 
@@ -214,6 +214,7 @@ rule motif:
         raw=rules.score.input.data,
         data=rules.score.output.data,
         weights=rules.score.output.weights,
+        model=rules.model.output.model,
         perm_scores=expand(join(out_dir, "motif", "scores", "{{nb}}_{n}.csv.gz"), n=range(n_iter)),
 #        kmers=rules.common_basis.output.kmerbasis,
         kmerobj=rules.score.input.kmerobj,
