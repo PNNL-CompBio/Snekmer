@@ -67,10 +67,10 @@ class SnekmerMotif:
         
         self.generator.shuffle(self.labels)
         # self.permuted_labels = self.generator.permutation(self.labels)
-        self.permuted_data = X
-        self.permuted_data[label_col] = self.labels
+        # self.permuted_data = X
+        X[label_col] = self.labels
         
-        return self.permuted_data
+        return X
         
     def p_values(self, X, y: np.ndarray, n: int):
         """

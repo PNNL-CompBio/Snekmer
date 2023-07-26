@@ -15,7 +15,6 @@ import pandas as pd
 import numpy as np
 import gzip
 import gc
-import mmap
 # from typing import Any, Dict, List, Optional
 # from sklearn.base import BaseEstimator, ClassifierMixin
 # from sklearn.tree import DecisionTreeClassifier
@@ -47,6 +46,8 @@ with open(snakemake.input.matrix, "rb") as f:
     
 # set category label name (e.g. "family")
 label = config["score"]["lname"] if str(config["score"]["lname"]) != "None" else "label"
+
+# data=data[[label, 'sequence_vector', 'background']]
 
 data.astype({'label': 'category'})
     
@@ -115,30 +116,34 @@ svm = LinearSVC(class_weight="balanced", random_state=None, max_iter=1000000)
 #         "class_weight": "balanced",
 #     },
 # )
-perm_data = motif.permute(
+# perm_data = motif.permute(
+motif.permute(    
     data, 
     family,
     # skm.utils.get_family(snakemake.wildcards.nb, regex=config["input_file_regex"]),
     label_col=label)
-del data
-gc.collect()
-scorer.fit(
-    kmers,
-    # list(kmerobj.kmer_set.kmers),
-    perm_data,
-    family,
-    # skm.utils.get_family(snakemake.wildcards.nb, regex=config["input_file_regex"]),
-    label_col=label,
-    vec_col="sequence_vector",
-    **config["score"]["scaler_kwargs"],)
-vecs=np.array(perm_data["sequence_vector"].astype(str).str.strip('[]').str.split(",").tolist(), dtype='float')
-# features_in=np.vstack((kmers, vecs))
-svm.fit(vecs, perm_data[label])
     
-del perm_data, motif, vecs
+# del data
+gc.collect()
+# scorer.fit(
+#     kmers,
+#     # list(kmerobj.kmer_set.kmers),
+#     # perm_data,
+#     data,
+#     family,
+#     # skm.utils.get_family(snakemake.wildcards.nb, regex=config["input_file_regex"]),
+#     label_col=label,
+#     vec_col="sequence_vector",
+#     **config["score"]["scaler_kwargs"],)
+# vecs=np.array(perm_data["sequence_vector"].astype(str).str.strip('[]').str.split(",").tolist(), dtype='float')
+vecs=np.array(data["sequence_vector"].astype(str).str.strip('[]').str.split(",").tolist(), dtype='float')
+# features_in=np.vstack((kmers, vecs))
+# svm.fit(vecs, perm_data[label])
+svm.fit(vecs, data[label])
+    
+del data, motif, vecs
 gc.collect()
 perm_scores = pd.DataFrame(svm.coef_)
-
 
 del svm
 gc.collect()
