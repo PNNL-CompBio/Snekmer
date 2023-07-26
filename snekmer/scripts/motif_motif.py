@@ -15,6 +15,7 @@ import pandas as pd
 import numpy as np
 import gzip
 import gc
+from sklearn.svm import LinearSVC
 # import glob
 # from typing import Any, Dict, List, Optional
 # from sklearn.base import BaseEstimator, ClassifierMixin
@@ -51,15 +52,22 @@ with open(snakemake.input.matrix, "rb") as f:
 with gzip.open(snakemake.input.weights, "rb") as f:
     weights = pd.read_csv(f)
     
-with open(snakemake.input.model, "rb") as f:
-    model = pickle.load(f)
+# set category label name (e.g. "family")
+label = config["score"]["lname"] if str(config["score"]["lname"]) != "None" else "label"
+    
+# with open(snakemake.input.model, "rb") as f:
+#     model = pickle.load(f)
+
+svm = LinearSVC(class_weight="balanced", random_state=None, max_iter=1000000)
+vecs=np.array(data["sequence_vector"].astype(str).str.strip('[]').str.split(",").tolist(), dtype='float')
+svm.fit(vecs, data[label])
     
 # prevent kmer NA being read as np.nan
 if config["k"] == 2:
     weights["kmer"] = weights["kmer"].fillna("NA")
 
 kmers = weights['kmer'].values    
-coeffs = pd.DataFrame(model.coef_)
+coeffs = pd.DataFrame(svm.coef_)
 # scores = weights['sample'].values
 family = skm.utils.get_family(
     skm.utils.split_file_ext(snakemake.input.weights)[0],
@@ -71,7 +79,7 @@ score_index = np.searchsorted(unique_labels, family)
 scores = coeffs.iloc[score_index]
 scorer = skm.score.KmerScorer()
 
-del model
+del svm
 gc.collect()
 
 # set number of permutations to test
@@ -83,9 +91,7 @@ n_iter = (
 # get kmers for this particular set of sequences
 # with open(snakemake.input.kmerobj, "rb") as f:
 #     kmerobj = pickle.load(f)
-    
-# set category label name (e.g. "family")
-label = config["score"]["lname"] if str(config["score"]["lname"]) != "None" else "label"
+
 
 # binary T/F for classification into family
 family = skm.utils.get_family(snakemake.wildcards.nb)

@@ -15,6 +15,7 @@ import pandas as pd
 import numpy as np
 import gzip
 import gc
+import mmap
 # from typing import Any, Dict, List, Optional
 # from sklearn.base import BaseEstimator, ClassifierMixin
 # from sklearn.tree import DecisionTreeClassifier
@@ -49,8 +50,8 @@ label = config["score"]["lname"] if str(config["score"]["lname"]) != "None" else
 
 data.astype({'label': 'category'})
     
-# with open(snakemake.input.kmers, "rb") as f:
-#     kmers = f.readlines()
+# with open(snakemake.input.kmerobj, "rb") as f:
+#     kmers = pickle.load(f)
     
 with gzip.open(snakemake.input.weights, "rb") as f:
     weights = pd.read_csv(f)
@@ -59,8 +60,9 @@ with gzip.open(snakemake.input.weights, "rb") as f:
 if config["k"] == 2:
     weights["kmer"] = weights["kmer"].fillna("NA")
 
+
 kmers = weights['kmer'].values    
-# scores = weights['sample'].values
+scores = weights['sample'].values
 family = skm.utils.get_family(
     skm.utils.split_file_ext(snakemake.input.weights)[0],
     regex=config["input_file_regex"],
@@ -83,6 +85,11 @@ n_iter = (
 # binary T/F for classification into family
 family = skm.utils.get_family(snakemake.wildcards.nb, regex=config["input_file_regex"])
 binary_labels = [True if value == family else False for value in data[label]]
+
+# get and sort only unique labels
+unique_labels = np.unique(data['label'])
+unique_labels.sort()
+score_index = np.searchsorted(unique_labels, family)
 
 # get alphabet name
 if config["alphabet"] in skm.alphabet.ALPHABET_ORDER.keys():
@@ -113,6 +120,8 @@ perm_data = motif.permute(
     family,
     # skm.utils.get_family(snakemake.wildcards.nb, regex=config["input_file_regex"]),
     label_col=label)
+del data
+gc.collect()
 scorer.fit(
     kmers,
     # list(kmerobj.kmer_set.kmers),
@@ -125,17 +134,13 @@ scorer.fit(
 vecs=np.array(perm_data["sequence_vector"].astype(str).str.strip('[]').str.split(",").tolist(), dtype='float')
 # features_in=np.vstack((kmers, vecs))
 svm.fit(vecs, perm_data[label])
-del perm_data, motif
-gc.collect()
-unique_labels = np.unique(data['label'])
-unique_labels.sort()
-score_index = np.searchsorted(unique_labels, family)
-del data
+    
+del perm_data, motif, vecs
 gc.collect()
 perm_scores = pd.DataFrame(svm.coef_)
-# score_out = pd.DataFrame(perm_scores)
 
-del scorer
+
+del svm
 gc.collect()
     
 # save output

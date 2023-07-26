@@ -65,9 +65,10 @@ class SnekmerMotif:
         self.primary_label = label
         self.labels = X[label_col].values
         
-        self.permuted_labels = self.generator.permutation(self.labels)
+        self.generator.shuffle(self.labels)
+        # self.permuted_labels = self.generator.permutation(self.labels)
         self.permuted_data = X
-        self.permuted_data[label_col] = self.permuted_labels
+        self.permuted_data[label_col] = self.labels
         
         return self.permuted_data
         
