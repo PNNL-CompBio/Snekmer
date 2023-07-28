@@ -17,10 +17,10 @@ from pandas import DataFrame
 # define rules
 rule unzip:
     input:
-        join("input", "{uz}.gz"),
+        join("input", "{filename}.{ext}.gz"),
     output:
-        unzipped=join("input", "{uz}.{ext}"),
-        zipped=join("input", "zipped", "{uz}.{ext}.gz"),
+        unzipped=join("input", "{filename}.{ext}"),
+        zipped=join("input", "zipped", "{filename}.{ext}.gz"),
     run:
         # preserve zipped file
         if not exists(dirname(output.zipped)):

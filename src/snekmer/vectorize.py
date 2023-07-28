@@ -3,17 +3,15 @@
 author: @christinehc
 
 """
-import itertools
 import random
 import string
 from collections import Counter
-from typing import Dict, Generator, Optional, Set, Union
+from typing import Dict, Optional, Union
 
 import numpy as np
 from biotite.sequence import GeneralSequence, LetterAlphabet, ProteinSequence
 from biotite.sequence.align import KmerAlphabet, KmerTable
 from numpy.typing import NDArray
-from ._version import __version__
 from .alphabet import (
     ALPHABETS,
     FULL_ALPHABETS,

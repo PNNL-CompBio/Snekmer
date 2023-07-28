@@ -4,9 +4,10 @@ author: @christinehc
 
 """
 # imports
+import importlib.metadata
 import pandas as pd
+
 from typing import Any, Dict, List, Optional
-from ._version import __version__
 from numpy.typing import NDArray
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.tree import DecisionTreeClassifier
@@ -91,7 +92,7 @@ class SnekmerModel(ClassifierMixin, BaseEstimator):
         self.params = params
         self.model = NAME2MODEL[model](**model_params)
         self.step_name = step_name
-        self.snekmer_version = __version__
+        self.snekmer_version = importlib.metadata.version("snekmer")
 
     def fit(
         self, X: NDArray, y: NDArray, gridsearch: bool = False, verbose: bool = True

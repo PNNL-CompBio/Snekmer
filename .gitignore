@@ -12,7 +12,7 @@ resources/tutorial/demo_example/output
 docs/_build/
 
 # pip install temp files
-src/
+# src/
 
 # History files
 .Rhistory

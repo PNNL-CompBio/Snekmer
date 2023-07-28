@@ -3,6 +3,8 @@
 author: @christinehc
 
 """
+from collections import namedtuple
+
 # snakemake config
 from snakemake.utils import min_version
 
@@ -41,52 +43,50 @@ from sklearn.linear_model import LogisticRegression
 # plt.switch_backend("Agg")
 
 # collect all fasta-like files, unzipped filenames, and basenames
-input_dir = (
-    "input"
-    if (("input_dir" not in config) or (str(config["input_dir"]) == "None"))
-    else config["input_dir"]
+gz_input = glob_wildcards(join("input", "{filename}.{ext}.gz"))
+all_input = glob_wildcards(
+    join("input", f"{{filename}}.{{ext,({'|'.join(config['input_file_exts'])})}}")
 )
-input_files = glob(join(input_dir, "*.*"))
-zipped = [fa for fa in input_files if fa.endswith(".gz")]
-unzipped = [
-    fa.rstrip(".gz")
-    for fa, ext in product(input_files, config["input_file_exts"])
-    if fa.rstrip(".gz").endswith(f".{ext}")
-    and skm.utils.check_n_seqs(fa, config["model"]["cv"], show_warning=False)
-]
 
+# check input file size
+for f, e in zip(all_input.filename, all_input.ext):
+    skm.utils.check_n_seqs(
+        join("input", f"{f}.{e}"), config["model"]["cv"], show_warning=False
+    )
 
-# map extensions to basename (basename.ext.gz -> {basename: ext})
-UZ_MAP = {
-    skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in zipped
-}
-FA_MAP = {
-    skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in unzipped
-}
+# add unzipped gz files to total input list
+for f, e in zip(gz_input.filename, gz_input.ext):
+    getattr(all_input, "filename").append(f)
+    getattr(all_input, "ext").append(e)
+
+# if any files are gzip zipped, unzip them
+print(len(gz_input.filename))
+print(all_input)
+
 
 # get seq counts for each file
-NSEQS = {skm.utils.split_file_ext(f)[0]: skm.utils.count_n_seqs(f) for f in unzipped}
+# NSEQS = {skm.utils.split_file_ext(f)[0]: skm.utils.count_n_seqs(f) for f in unzipped}
 
-# final file map: checks that files are large enough for model building
-# FA_MAP = {
-#     k: v for k, v in f_map.items() if skm.utils.check_n_seqs(k, config["model"]["cv"])
-# }
+# # final file map: checks that files are large enough for model building
+# # FA_MAP = {
+# #     k: v for k, v in f_map.items() if skm.utils.check_n_seqs(k, config["model"]["cv"])
+# # }
 
-# get unzipped filenames
-UZS = [
-    f"{f}.{ext}"
-    for f, ext in UZ_MAP.items()
-    if skm.utils.check_n_seqs(fa, config["model"]["cv"], show_warning=False)
-]
+# # get unzipped filenames
+# UZS = [
+#     f"{f}.{ext}"
+#     for f, ext in UZ_MAP.items()
+#     if skm.utils.check_n_seqs(fa, config["model"]["cv"], show_warning=False)
+# ]
 
-# isolate basenames for all files
-FAS = list(FA_MAP.keys())
+# # isolate basenames for all files
+# FAS = list(FA_MAP.keys())
 
-# parse any background files
-bg_files = glob(join(input_dir, "background", "*"))
-if len(bg_files) > 0:
-    bg_files = [skm.utils.split_file_ext(basename(f))[0] for f in bg_files]
-NON_BGS, BGS = [f for f in FAS if f not in bg_files], bg_files
+# # parse any background files
+# bg_files = glob(join(input_dir, "background", "*"))
+# if len(bg_files) > 0:
+#     bg_files = [skm.utils.split_file_ext(basename(f))[0] for f in bg_files]
+# NON_BGS, BGS = [f for f in FAS if f not in bg_files], bg_files
 
 # terminate with error if invalid alphabet specified
 skm.alphabet.check_valid(config["alphabet"])
@@ -100,25 +100,31 @@ out_dir = skm.io.define_output_dir(
 # show warnings if files excluded
 onstart:
     [
-        skm.utils.check_n_seqs(fa, config["model"]["cv"], show_warning=True)
-        for fa in input_files
+        skm.utils.check_n_seqs(
+            join("input", "{filename}.{ext}"), config["model"]["cv"], show_warning=True
+        )
+        for filename, ext in zip(all_input.filename, all_input.ext)
     ]
 
 
 # define output files to be created by snekmer
 rule all:
     input:
-        expand(join("input", "{uz}"), uz=UZS),  # require unzipping
-        expand(join(out_dir, "scoring", "sequences", "{nb}.csv.gz"), nb=NON_BGS),
+        expand(
+            join("input", "{filename}.{ext}"),
+            filename=gz_input.filename,
+            ext=gz_input.ext,
+        ),
+        # expand(join("input", "{uz}"), uz=UZS),  # require unzipping
+        # expand(join(out_dir, "scoring", "sequences", "{nb}.csv.gz"), nb=NON_BGS),
         # expand(join(out_dir, "model", "{nb}.model"), nb=NON_BGS),  # require model-building
         # join(out_dir, "Snekmer_Model_Report.html"),
 
 
-# if any files are gzip zipped, unzip them
 use rule unzip from process with:
     output:
-        unzipped=join("input", "{uz}"),
-        zipped=join("input", "zipped", "{uz}.gz"),
+        unzipped=join("input", "{filename}.{ext}"),
+        zipped=join("input", "zipped", "{filename}.{ext}.gz"),
 
 
 # build kmer count vectors for each basis set

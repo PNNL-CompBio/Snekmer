@@ -5,12 +5,12 @@ author: @christinehc, @biodataganache, @snakemake
 """
 # imports
 import argparse
+import importlib.metadata
 import os
 
 from multiprocessing import cpu_count
 from pkg_resources import resource_filename
 from snakemake import snakemake, parse_config, get_profile_file
-from snekmer import __version__
 
 # define options
 MAP_FN_DESC = [
@@ -37,7 +37,7 @@ def get_argument_parser():
         "-v",
         "--version",
         action="version",
-        version=__version__,
+        version=importlib.metadata.version("snekmer"),
         help="Print version and exit.",
     )
 

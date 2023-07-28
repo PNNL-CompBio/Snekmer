@@ -6,10 +6,11 @@ author: @christinehc
 # imports
 import collections.abc
 import datetime
+import gzip
 import re
 
 from os.path import basename, splitext
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, List, Optional, TextIO, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -203,6 +204,13 @@ def to_feature_matrix(
     return np.asarray(array)
 
 
+def open_file(filename: str, mode="rb") -> TextIO:
+    try:
+        return open(filename, mode=mode)
+    except NameError:
+        return gzip.open(f"{filename}.gz", mode=mode)
+
+
 def count_n_seqs(filename: str) -> int:
     """Count number of sequences in a file.
 
@@ -218,7 +226,7 @@ def count_n_seqs(filename: str) -> int:
         Number of sequences contained within the input file.
 
     """
-    return len([1 for line in open(filename) if line.startswith(">")])
+    return len([1 for line in open_file(filename) if line.startswith(">")])
 
 
 def check_n_seqs(filename: str, k: int, show_warning: bool = True) -> bool:

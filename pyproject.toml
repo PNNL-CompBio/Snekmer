@@ -17,6 +17,8 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: BSD License",
     "Operating System :: OS Independent",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
     "Topic :: Scientific/Engineering :: Bio-Informatics"
 ]
 dynamic = ["dependencies"]
@@ -26,16 +28,16 @@ dynamic = ["dependencies"]
 "Documentation" = "https://snekmer.readthedocs.io/en/latest/"
 "Bug Tracker" = "https://github.com/PNNL-CompBio/Snekmer/issues"
 
-[tool.setuptools.dynamic]
-dependencies = { file = ["requirements.txt"] }
-
 [project.scripts]
 snekmer = "snekmer.cli:main"
 
-[tool.setuptools.packages.find]
-where = ["snekmer"]
+[tool.setuptools.dynamic]
+dependencies = { file = ["requirements.txt"] }
+
+[tool.setuptools.packages]
+find = { where = ["src"] }
 
 [tool.setuptools.package-data]
-rules = ["*.smk"]
-scripts = ["*.py"]
-templates = ["*.html"]
+"snekmer.scripts" = ["*.py"]
+"snekmer.rules" = ["*.smk"]
+"snekmer.templates" = ["*.html"]

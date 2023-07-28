@@ -4,10 +4,10 @@ author: @christinehc, @biodataganache
 
 """
 # imports
+import importlib.metadata
+
 import numpy as np
 import pandas as pd
-
-from ._version import __version__
 
 # from .vectorize import KmerBasis
 from .utils import to_feature_matrix
@@ -308,7 +308,7 @@ class KmerScorer:
         self.label = None
         self.score_norm = None
         self.probabilities = {"sample": {}, "background": {}}
-        self.snekmer_version = __version__
+        self.snekmer_version = importlib.metadata.version("snekmer")
 
     # fit scorer to matrix
     def fit(self, X, y, label, codes=None):
@@ -324,7 +324,7 @@ class KmerScorer:
             _description_
         codes : _type_, optional
             _description_, by default None
-        """        
+        """
         # encode labels
         # le = LabelEncoder()
         # le.fit(y)
