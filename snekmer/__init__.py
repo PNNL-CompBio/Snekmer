@@ -1,3 +1,5 @@
+import importlib.metadata
+
 from . import alphabet
 from . import utils
 from . import io
@@ -7,8 +9,5 @@ from . import model
 from . import cluster
 from . import vectorize
 from . import report
-from . import _version
 
-# from . import walk
-
-__version__ = _version.__version__
+__version__ = importlib.metadata.version("snekmer")

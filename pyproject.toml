@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "snekmer"
+version = "2.0.0"
+authors = [
+    { name="christinehc", email="christine.chang@pnnl.gov" },
+    { name="biodataganache", email="jason.mcdermott@pnnl.gov" }
+]
+description = "Snekmer: Reduced k-mer Encoding for Protein Sequences"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Bio-Informatics"
+]
+dynamic = ["dependencies"]
+
+[project.urls]
+"Homepage" = "https://github.com/PNNL-CompBio/Snekmer"
+"Documentation" = "https://snekmer.readthedocs.io/en/latest/"
+"Bug Tracker" = "https://github.com/PNNL-CompBio/Snekmer/issues"
+
+[tool.setuptools.dynamic]
+dependencies = { file = ["requirements.txt"] }
+
+[project.scripts]
+snekmer = "snekmer.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["snekmer"]
+
+[tool.setuptools.package-data]
+rules = ["*.smk"]
+scripts = ["*.py"]
+templates = ["*.html"]
