@@ -110,7 +110,6 @@ if all((option == True or option == False) for option in options) == False:
 rule all:
     input:
         expand(join(input_dir, "{uz}"), uz=UZS),
-        # ["output/apply/seq-annotation-scores-{fa}.csv".format(fa=FAS) for dataset in FAS],
         expand(join("output", "apply", "seq-annotation-scores-{nb}.csv"), nb=FAS),
         expand(join("output", "apply", "kmer-summary-{nb}.csv"), nb=FAS),
 
@@ -152,11 +151,7 @@ rule apply:
         )
 
         kmerlist, df = skm.io.load_npz(input.data)
-        # print(kmerlist)
         kmerlist = kmerlist[0]
-        # print(kmerlist)
-        # print(len(kmerlist))
-        # print(len(kmerlist[0]))
         seqids = df["sequence_id"]
 
 
@@ -274,10 +269,7 @@ rule apply:
 
         score_rank = []
         sorted_vals = np.argsort(-kmer_count_totals.values, axis=1)[:, :2]
-        # print("sorted_vals:", sorted_vals)
         for i, item in enumerate(sorted_vals):
-            # print(kmer_count_totals.columns)
-
             score_rank.append(
                 (
                     kmer_count_totals[kmer_count_totals.columns[[item]]][i : i + 1]
