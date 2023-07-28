@@ -152,7 +152,11 @@ rule apply:
         )
 
         kmerlist, df = skm.io.load_npz(input.data)
+        # print(kmerlist)
         kmerlist = kmerlist[0]
+        # print(kmerlist)
+        # print(len(kmerlist))
+        # print(len(kmerlist[0]))
         seqids = df["sequence_id"]
 
 
@@ -222,43 +226,18 @@ rule apply:
             print("Compare Check Failed. ")
             sys.exit()
 
-        new_cols = set(kmer_counts.columns)
-        compare_cols = set(kmer_count_totals.columns)
-        add_to_compare = []
-        add_to_new = []
-        for val in new_cols:
-            if val not in compare_cols:
-                add_to_compare.append(val)
-        for val in compare_cols:
-            if val not in new_cols:
-                add_to_new.append(val)
+        kmer_counts.drop("Totals", axis=0, inplace=True)
+        kmer_counts.drop("Sequence count", axis=1, inplace=True)
 
-        kmer_count_totals = pd.concat(
-            [
-                kmer_count_totals,
-                pd.DataFrame(
-                    dict.fromkeys(add_to_compare, 0), index=kmer_count_totals.index
-                ),
-            ],
-            axis=1,
-        )
+        kmer_count_totals.drop("Totals", axis=0, inplace=True)
+        kmer_count_totals.drop("Kmer Count", axis=1, inplace=True)
+        kmer_count_totals.drop("Sequence count", axis=1, inplace=True)
 
-        kmer_count_totals.drop(
-            columns=kmer_count_totals.columns[:2], index="Totals", axis=0, inplace=True
-        )
+        column_order = list(set(kmer_counts.columns) | set(kmer_count_totals.columns))
 
-        kmer_counts = pd.concat(
-            [
-                kmer_counts,
-                pd.DataFrame(dict.fromkeys(add_to_new, 0), index=kmer_counts.index),
-            ],
-            axis=1,
-        )
-        kmer_counts.drop(
-            columns=kmer_counts.columns[-1:].union(kmer_counts.columns[:1]),
-            index="Totals",
-            axis=0,
-            inplace=True,
+        kmer_counts = kmer_counts.reindex(columns=column_order, fill_value=0)
+        kmer_count_totals = kmer_count_totals.reindex(
+            columns=column_order, fill_value=0
         )
 
 
@@ -295,7 +274,10 @@ rule apply:
 
         score_rank = []
         sorted_vals = np.argsort(-kmer_count_totals.values, axis=1)[:, :2]
+        # print("sorted_vals:", sorted_vals)
         for i, item in enumerate(sorted_vals):
+            # print(kmer_count_totals.columns)
+
             score_rank.append(
                 (
                     kmer_count_totals[kmer_count_totals.columns[[item]]][i : i + 1]
