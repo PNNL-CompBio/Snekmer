@@ -45,3 +45,4 @@ score_dir: "/path/to/output/scoring/"
 # learnapp params 
 learnapp:
   save_apply_associations: False
+  save_results: True
