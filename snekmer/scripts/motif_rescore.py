@@ -150,7 +150,7 @@ perm_scores = pd.DataFrame(svm.coef_)
 del svm
 gc.collect()
 
-for i in len(perm_scores.iloc[score_index].values):
+for i in range(len(perm_scores.iloc[score_index].values)):
     perm_scores.iloc[score_index, i] = perm_scores.iloc[score_index, i]/max(perm_scores.iloc[score_index].values)
     
 # save output
