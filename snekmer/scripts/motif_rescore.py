@@ -150,8 +150,8 @@ perm_scores = pd.DataFrame(svm.coef_)
 del svm
 gc.collect()
 
-for score in perm_scores.iloc[score_index].values:
-    score = score/max(perm_scores.iloc[score_index].values)
+for i in len(perm_scores.iloc[score_index]):
+    perm_scores.iloc[score_index, i] = perm_scores.iloc[score_index, i]/max(perm_scores.iloc[score_index])
     
 # save output
 perm_scores.iloc[score_index].to_csv(snakemake.output.data, index=False, compression="gzip")
