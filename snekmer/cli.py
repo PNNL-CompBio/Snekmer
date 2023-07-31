@@ -234,10 +234,10 @@ def get_argument_parser():
     )
 
     # create subparsers for each operation mode
-    # parser.add_argument("mode", choices=["cluster", "model", "search"])
+    # parser.add_argument("mode", choices=["cluster", "model", "search", "learn", "apply"])
     parser["subparsers"] = parser["main"].add_subparsers(
         title="mode",
-        description="Snekmer mode (cluster, model, or search).",
+        description="Snekmer mode (cluster, model, search, learn, or apply).",
         dest="mode",
     )
 
@@ -255,6 +255,16 @@ def get_argument_parser():
     parser["search"] = parser["subparsers"].add_parser(
         "search",
         description="Search sequences against pre-existing models via Snekmer.",
+        parents=[parser["smk"]],
+    )
+    parser["learn"] = parser["subparsers"].add_parser(
+        "learn",
+        description="Learn kmer-annotation associations via Snekmer",
+        parents=[parser["smk"]],
+    )
+    parser["apply"] = parser["subparsers"].add_parser(
+        "apply",
+        description="Apply kmer-annotation associations via Snekmer",
         parents=[parser["smk"]],
     )
     return parser
@@ -377,9 +387,58 @@ def main():
             quiet=args.quiet,
         )
 
+    elif args.mode == "learn":
+        snakemake(
+            resource_filename("snekmer", os.path.join("rules", "learn.smk")),
+            configfiles=configfile,
+            config=config,
+            cluster_config=args.clust,
+            cluster=cluster,
+            keepgoing=True,
+            force_incomplete=True,
+            forcerun=args.forcerun,
+            cores=args.cores,
+            nodes=args.jobs,
+            workdir=args.directory,
+            dryrun=args.dryrun,
+            unlock=args.unlock,
+            list_code_changes=args.list_code_changes,
+            list_params_changes=args.list_params_changes,
+            until=args.until,
+            touch=args.touch,
+            latency_wait=args.latency,
+            verbose=args.verbose,
+            quiet=args.quiet,
+        )
+        
+    elif args.mode == "apply":
+        snakemake(
+            resource_filename("snekmer", os.path.join("rules", "apply.smk")),
+            configfiles=configfile,
+            config=config,
+            cluster_config=args.clust,
+            cluster=cluster,
+            keepgoing=True,
+            force_incomplete=True,
+            forcerun=args.forcerun,
+            cores=args.cores,
+            nodes=args.jobs,
+            workdir=args.directory,
+            dryrun=args.dryrun,
+            unlock=args.unlock,
+            list_code_changes=args.list_code_changes,
+            list_params_changes=args.list_params_changes,
+            until=args.until,
+            touch=args.touch,
+            latency_wait=args.latency,
+            verbose=args.verbose,
+            quiet=args.quiet,
+        )
+
     else:
         parser["main"].print_help()
 
 
 if __name__ == "__main__":
     main()
+

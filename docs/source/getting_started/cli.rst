@@ -1,7 +1,7 @@
 Command Line Interface
 ======================
 
-To run any of the three Snekmer operation modes, simply call:
+To run any of the five Snekmer operation modes, simply call:
 
 .. code-block:: bash
 
@@ -15,7 +15,7 @@ For an overview of Snekmer usage, reference the help command (``snekmer --help``
 .. code-block:: console
 
     $ snekmer --help
-    usage: snekmer [-h] [-v] {cluster,model,search} ...
+    usage: snekmer [-h] [-v] {cluster,model,search,learn,apply} ...
 
     Snekmer: A tool for kmer-based sequence analysis using amino acid reduction (AAR)
 
@@ -26,7 +26,7 @@ For an overview of Snekmer usage, reference the help command (``snekmer --help``
     mode:
     Snekmer mode
 
-    {cluster,model,search}
+    {cluster,model,search,learn,apply}
 
 Tailored references for the individual operation modes can be accessed
 via ``snekmer {mode} --help``.
@@ -48,6 +48,9 @@ files. Snekmer also assumes background files, if any, are stored in
 ``input/background``. An example of the assumed directory structure
 is shown below:
 
+
+Snekmer ``cluster``, ``model``, and ``search`` input
+
 .. code-block:: console
 
     .
@@ -63,6 +66,45 @@ is shown below:
     ├── output/
     │   ├── ...
     │   └── ...
+  
+  
+Snekmer ``learn`` input
+
+.. code-block:: console
+
+    .
+    ├── config.yaml
+    ├── input/
+    │   ├── A.fasta # known sequences to "learn" kmer counts matrix from
+    │   ├── B.fasta # known sequences to "learn" kmer counts matrix from
+    │   └── etc.
+    │   └── base/  # optional
+    │      └── base-kmer-counts.csv # optional file to additively merge kmer counts with
+    ├── annotations/
+    │   └── annotations.ann # annotation files used for predicting future sequences
+    ├── output/
+    │   ├── ...
+    │   └── ...
+  
+  
+Snekmer ``apply`` input
+
+.. code-block:: console
+
+    .
+    ├── config.yaml
+    ├── input/
+    │   ├── A.fasta # unknown sequences to "apply" kmer counts matrix on
+    │   ├── B.fasta # unknown sequences to "apply" kmer counts matrix on
+    │   └── etc.
+    ├── counts/
+    │   └── kmer-counts-total.csv #kmer counts matrix generated in ``learn``
+    ├── confidence/
+    │   └── global-confidence-scores.csv #global confidence distribution generated in ``learn``
+    ├── output/
+    │   ├── ...
+    │   └── ...
+
 
 Partial Workflow
 ----------------

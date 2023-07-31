@@ -10,14 +10,16 @@ Snekmer is a software package designed to reduce the representation of protein s
 by combining amino acid reduction (AAR) with the kmer approach. Based on the AAR-kmer representations,
 Snekmer subsequently (1) clusters sequences using various unsupervised clustering algorithms,
 (2) generates supervised machine learning models, or (3) searches sequences against pre-trained models
-to determine probabilistic annotations.
+to determine probabilistic annotations. A lightweight non-machine-learning approach is also available, this 
+method (1) records kmer counts from training sequences and (2) applies cosine distance calculations to new
+sequences to predict the nearest annotation and generate a confidence score.  
 
 .. image:: ../../resources/snekmer_workflow.svg
         :align: center
         :width: 700
         :alt: Snekmer workflow overview
 
-There are 3 operation modes for Snekmer: ``cluster``, ``model``,  and ``search``.
+There are 5 operation modes for Snekmer: ``cluster``, ``model``, ``search``, ``learn``, and ``apply``.
 
 **Cluster mode:** The user supplies files containing sequences in an appropriate format (e.g. FASTA).
 Snekmer applies the relevant workflow steps and outputs the resulting clustering results in tabular form (.CSV),
@@ -31,6 +33,16 @@ displays K-fold cross validation results in the form of figures (AUC ROC and PR 
 **Search mode:** The user supplies files containing sequences in an appropriate format (e.g. FASTA)
 and the models they wish to search their sequences against. Snekmer applies the relevant workflow steps
 and outputs a table for each file containing model annotation probabilities for the given sequences.
+
+
+**Learn mode:** The user supplies files containing sequences in an appropriate format (e.g. FASTA) as well as an annotation file. Snekmer generates a kmer counts matrix with the summed kmer distribution of each annotation recognized from the sequence ID. Snekmer then performs a self-evaluation to assess confidence levels. There are two outputs, a counts matrix, and a global confidence distribution. 
+
+
+**Apply mode:** The user supplies files containing sequences in an appropriate format (e.g. FASTA) and
+and the outputs received from Learn. Snekmer uses cosine distance to predict the annotation of each sequence from the kmer counts matrix. 
+The output is a table for each file containing sequence annotation predictions with confidence levels.
+
+
 
 .. toctree::
    :caption: Getting Started

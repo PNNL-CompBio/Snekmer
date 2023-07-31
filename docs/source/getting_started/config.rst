@@ -112,3 +112,14 @@ The following parameters are required in your config file for `snekmer search`.
  ``nested_output``         ``bool``               See `Input/Output Parameters`_
 ========================  =====================  ========================================================================================
 
+
+Learn/Apply Parameters
+````````````````
+
+General parameters related to Snekmer's learn and apply mode (``snekmer learn``), wherein supervised models are trained via the workflow.
+
+=============================  =====================  =========================================================================
+     Parameter                    Type                 Description
+=============================  =====================  =========================================================================
+ ``save_apply_associations``     ``int``               Save optional output files containing all generated cosine similarity scores.
+=============================  =====================  =========================================================================

@@ -5,15 +5,16 @@ channels:
   - numba
   - conda-forge
 dependencies:
-  - python >= 3.9
+  - python == 3.10
   - biopython
   - jinja2
   - mamba
+  - pyarrow
   - matplotlib
-  - numpy >= 1.22.3
+  - numpy == 1.22.3
   - numba >= 0.56
   - scipy
-  - pandas
+  - pandas == 1.4.2
   - seaborn
   - scikit-learn
   # - snakemake == 7.0

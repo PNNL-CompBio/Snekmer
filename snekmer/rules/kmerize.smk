@@ -64,7 +64,6 @@ rule vectorize:
     log:
         join("output", "kmerize", "log", "{nb}.log"),
     run:
-        # initialize kmerization object
         kmer = skm.vectorize.KmerVec(alphabet=config["alphabet"], k=config["k"])
 
         # read kmerbasis if present
@@ -86,7 +85,7 @@ rule vectorize:
             if "min_filter" in config:
                 min_filter = config["min_filter"]
 
-            # make basis
+                # make basis
             kmerbasis = {}
             fasta = SeqIO.parse(input.fasta, "fasta")
 
@@ -129,7 +128,7 @@ rule vectorize:
             ids.append(f.id)
             lengths.append(len(f.seq))
 
-        # save seqIO output and transformed vecs
+            # save seqIO output and transformed vecs
         np.savez_compressed(
             output.data,
             kmerlist=kmerbasis,

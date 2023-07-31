@@ -13,6 +13,7 @@ from ._version import __version__
 from .alphabet import FULL_ALPHABETS, get_alphabet, get_alphabet_keys
 from .utils import check_list
 
+
 # store kmer basis set and transform new vectors into fitted basis
 class KmerBasis:
     """Store kmer basis set and perform basis set transforms.
@@ -132,8 +133,7 @@ def _generate(alphabet: Set[str], k: int):
 
 # iterator object for kmer basis set given alphabet and k
 class KmerSet:
-    """Given alphabet and k, creates iterator for kmer basis set.
-    """
+    """Given alphabet and k, creates iterator for kmer basis set."""
 
     def __init__(self, alphabet: Union[str, int], k: int, kmers: list = None):
         """Initialize KmerSet object
@@ -343,4 +343,3 @@ class KmerVec:
             _description_
         """
         return self.basis.transform(record, kmerlist)
-

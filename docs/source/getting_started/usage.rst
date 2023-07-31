@@ -1,12 +1,17 @@
 Using Snekmer
 =============
 
-Snekmer has three operation modes: ``cluster`` (unsupervised clustering),
+Snekmer has three modeling operations: ``cluster`` (unsupervised clustering),
 ``model`` (supervised modeling), and ``search`` (application
 of model to new sequences). We will call the first two modes
 **learning modes** due to their utility in learning relationships
 between protein family input files. Users may choose a mode to best
 suit their specific use case.
+
+Snekmer also has two non-modeling operations: ``learn`` (kmer counts matrix generation), 
+and ``apply`` (perform cosine similarity between sequences and kmer counts matrix). The Learn/Apply
+pipeline can (and should) be used with with large training datasets to quickly find predict 
+annotations for new sequences.  
 
 The mode must be specified in the command line, e.g. to specify the
 ``model`` mode, the following should be called:
@@ -44,11 +49,11 @@ Accessing Results
 Summary Reports
 :::::::::::::::
 
-Each step in the Snekmer pipeline will generate a report in HTML format.
+Each step in the Snekmer modeling pipeline will generate a report in HTML format.
 Users can find these reports, entitled **Snekmer_\<MODE\>_Report.html**,
 in the output directory.
 
-Snekmer Output Files
+Snekmer Model Output Files
 ::::::::::::::::::::
 
 All operation modes will preprocess input files and kmerize sequences.
@@ -175,3 +180,47 @@ described previously.
                 ├── unknown_1.csv
                 ├── unknown_2.csv
                 └── ...  
+
+
+
+Snekmer Learn Output Files
+::::::::::::::::::::::::::
+
+Snekmer's learn mode produces the following output files
+and directories in addition to the files described previously.
+
+.. code-block:: console
+
+    .
+    ├── output/
+    │   ├── ...
+    │   ├── learn/
+    │   │   ├── kmer-counts-A.csv    # Kmer Counts matrix for A seqs
+    │   │   ├── kmer-counts-B.csv     # Kmer Counts matrix for B seqs
+    │   │   └── kmer-counts-total.csv    # Kmer Counts matrix for merged (total) database.
+    │   ├── eval_apply/
+    │   │   ├── Seq-Annotation-Scores-A.model     # Self-assessed sequence-annotation cosine similarity scores for A seqs
+    │   │   ├── Seq-Annotation-Scores-B.model     # Self-assessed sequence-annotation cosine similarity scores for B seqs
+    │   ├── eval_conf/
+    │   │   ├── global-confidence-scores.csv     # Global confidence score distribution
+    │   │   ├── true_total.csv    # Global confidence score True Pos distribution
+    │   │   ├── false_total.csv    # Global confidence score False Pos distribution
+    │   │   └── confidence_matrix.csv   # Confidence distribution Matrix for each annotation
+
+
+Snekmer Apply Output Files
+::::::::::::::::::::::::::
+
+Snekmer's apply mode produces the following output files
+and directories in addition to the files described previously.
+
+.. code-block:: console
+
+    .
+    ├── output/
+    │   ├── ...
+    │   ├── apply/
+    │   │   ├── Seq-Annotation-Scores-C.csv  # (optional) Sequence-annotation cosine similarity scores for C seqs
+    │   │   ├── Seq-Annotation-Scores-D.csv  # (optional) Sequence-annotation cosine similarity scores for D seqs
+    │   │   ├── kmer-summary-C.csv  # Results with annotation predictions and confidence for C seqs 
+    │   │   └── kmer-summary-D.csv  # Results with annotation predictions and confidence for D seqs 
