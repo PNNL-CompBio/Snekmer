@@ -226,7 +226,7 @@ def count_n_seqs(filename: str) -> int:
         Number of sequences contained within the input file.
 
     """
-    return len([1 for line in open_file(filename) if line.startswith(">")])
+    return len([1 for line in open_file(filename) if line.startswith(b"\x3e")])
 
 
 def check_n_seqs(filename: str, k: int, show_warning: bool = True) -> bool:

@@ -101,9 +101,9 @@ out_dir = skm.io.define_output_dir(
 onstart:
     [
         skm.utils.check_n_seqs(
-            join("input", "{filename}.{ext}"), config["model"]["cv"], show_warning=True
+            join("input", "{f}.{e}"), config["model"]["cv"], show_warning=True
         )
-        for filename, ext in zip(all_input.filename, all_input.ext)
+        for f, e in zip(all_input.filename, all_input.ext)
     ]
 
 
@@ -111,38 +111,42 @@ onstart:
 rule all:
     input:
         expand(
-            join("input", "{filename}.{ext}"),
-            filename=gz_input.filename,
-            ext=gz_input.ext,
+            join("input", "{gzf}.{gze}"),
+            gzf=gz_input.filename,
+            gze=gz_input.ext,
         ),
         # expand(join("input", "{uz}"), uz=UZS),  # require unzipping
-        # expand(join(out_dir, "scoring", "sequences", "{nb}.csv.gz"), nb=NON_BGS),
+        expand(
+            join(out_dir, "scoring", "sequences", "{f}.csv.gz"), f=all_input.filename
+        ),
         # expand(join(out_dir, "model", "{nb}.model"), nb=NON_BGS),  # require model-building
         # join(out_dir, "Snekmer_Model_Report.html"),
 
 
 use rule unzip from process with:
     output:
-        unzipped=join("input", "{filename}.{ext}"),
-        zipped=join("input", "zipped", "{filename}.{ext}.gz"),
+        unzipped=join("input", "{gzf}.{gze}"),
+        zipped=join("input", "zipped", "{gzf}.{gze}.gz"),
 
 
 # build kmer count vectors for each basis set
 use rule vectorize from kmerize with:
     input:
-        fasta=lambda wildcards: join("input", f"{wildcards.nb}.{FA_MAP[wildcards.nb]}"),
+        fasta=join("input", "{f}.{e}"),
     output:
         # data=join(out_dir, "vector", "{nb}.npz"),
-        kmertable=join(out_dir, "kmerize", "{nb}.ktable"),
+        kmertable=join(out_dir, "kmerize", "{f}.ktable"),
     log:
-        join(out_dir, "kmerize", "log", "{nb}.log"),
+        join(out_dir, "kmerize", "log", "{f}.log"),
 
 
 # build family score basis
 rule merge_vectors:
     input:
-        all_seqs=expand(join("input", "{uz}"), uz=UZS),
-        all_tables=expand(join(out_dir, "kmerize", "{fa}.ktable"), fa=NON_BGS),
+        all_seqs=expand(
+            join("input", "{af}.{ae}"), af=all_input.filename, ae=all_input.ext
+        ),
+        all_tables=expand(join(out_dir, "kmerize", "{af}.ktable"), af=NON_BGS),
     output:
         labels=join(out_dir, "kmerize", "labels.npz"),
         table=join(out_dir, "kmerize", "merged.ktable"),
@@ -154,18 +158,20 @@ rule merge_vectors:
 
 rule score:
     input:
-        family_table=join(out_dir, "kmerize", "{nb}.ktable"),
-        all_seqs=expand(join("input", "{uz}"), uz=UZS),
+        family_table=join(out_dir, "kmerize", "{f}.ktable"),
+        all_seqs=expand(
+            join("input", "{af}.{ae}"), af=all_input.filename, ae=all_input.ext
+        ),
         labels=join(out_dir, "kmerize", "labels.npz"),
         merged_table=join(out_dir, "kmerize", "merged.ktable"),
         bg=BGS,
     output:
-        scores=join(out_dir, "scoring", "sequences", "{nb}.csv.gz"),
-        weights=join(out_dir, "scoring", "weights", "{nb}.csv.gz"),
-        scorer=join(out_dir, "scoring", "{nb}.scorer"),
+        scores=join(out_dir, "scoring", "sequences", "{f}.csv.gz"),
+        weights=join(out_dir, "scoring", "weights", "{f}.csv.gz"),
+        scorer=join(out_dir, "scoring", "{f}.scorer"),
         # matrix=join(out_dir, "scoring", "{nb}.matrix"),
     log:
-        join(out_dir, "score", "log", "{nb}.log"),
+        join(out_dir, "score", "log", "{f}.log"),
     params:
         nseqs=NSEQS,
     script:
@@ -180,17 +186,17 @@ rule model:
         kmertable=rules.score.input.family_table,
         scores=rules.score.output.scores,
     output:
-        model=join(out_dir, "model", "{nb}.model"),
-        results=join(out_dir, "model", "results", "{nb}.csv"),
-        figs=directory(join(out_dir, "model", "figures", "{nb}")),
+        model=join(out_dir, "model", "{f}.model"),
+        results=join(out_dir, "model", "results", "{f}.csv"),
+        figs=directory(join(out_dir, "model", "figures", "{f}")),
     script:
         resource_filename("snekmer", join("scripts", "model.py"))
 
 
 rule model_report:
     input:
-        results=expand(join(out_dir, "model", "results", "{nb}.csv"), nb=NON_BGS),
-        figs=expand(join(out_dir, "model", "figures", "{nb}"), nb=NON_BGS),
+        results=expand(join(out_dir, "model", "results", "{f}.csv"), nb=NON_BGS),
+        figs=expand(join(out_dir, "model", "figures", "{f}"), nb=NON_BGS),
     output:
         join(out_dir, "Snekmer_Model_Report.html"),
     run:
