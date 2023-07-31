@@ -36,7 +36,7 @@ NAME2MODEL = {
 
 
 # classification models for protein families
-class SnekmerModel(ClassifierMixin, BaseEstimator):
+class SnekmerModel(BaseEstimator):
     """Classify a protein family using kmer vectors as input.
 
     Attributes
