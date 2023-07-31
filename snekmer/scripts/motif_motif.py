@@ -82,6 +82,9 @@ scorer = skm.score.KmerScorer()
 del svm
 gc.collect()
 
+for score in scores:
+    score = score/max(scores)
+
 # set number of permutations to test
 n_iter = (
     config["motif"]["n"]  

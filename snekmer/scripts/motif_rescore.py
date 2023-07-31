@@ -50,6 +50,8 @@ label = config["score"]["lname"] if str(config["score"]["lname"]) != "None" else
 # data=data[[label, 'sequence_vector', 'background']]
 
 data.astype({'label': 'category'})
+data.astype({'background': 'boolean'})
+
     
 # with open(snakemake.input.kmerobj, "rb") as f:
 #     kmers = pickle.load(f)
@@ -100,7 +102,7 @@ else:
   
 # run permutations and score each
 motif = skm.motif.SnekmerMotif()
-svm = LinearSVC(class_weight="balanced", random_state=None, max_iter=1000000)
+svm = LinearSVC(class_weight="balanced", random_state=None, max_iter=1000000000)
 # svm= skm.model.SnekmerModel(
 #     model="svc",
 #     model_params={
@@ -147,6 +149,9 @@ perm_scores = pd.DataFrame(svm.coef_)
 
 del svm
 gc.collect()
+
+for score in perm_scores.iloc[score_index].values:
+    score = score/max(perm_scores.iloc[score_index].values)
     
 # save output
 perm_scores.iloc[score_index].to_csv(snakemake.output.data, index=False, compression="gzip")
