@@ -90,9 +90,9 @@ scorer = skm.score.KmerScorer()
 del svm
 gc.collect()
 
-# unit_score = max(scores)
-# for i in range(len(scores)):
-#     scores.iloc[i] = scores.iloc[i]/unit_score
+unit_score = max(scores)
+for i in range(len(scores)):
+    scores.iloc[i] = scores.iloc[i]/unit_score
 
 # set number of permutations to test
 n_iter = (
