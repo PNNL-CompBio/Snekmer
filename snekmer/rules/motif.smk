@@ -183,20 +183,7 @@ rule model:
     script:
         resource_filename("snekmer", join("scripts/model_model.py"))
         
-# rule permute:
-#    input:
-#        raw=rules.score.input.data,
-#        data=rules.score.output.data,
-#        weights=rules.score.output.weights,
-#        kmers=rules.common_basis.output.kmerbasis,
-#        kmerobj=rules.score.input.kmerobj,
-#        matrix=rules.score.output.matrix,
-#    output:
-#        data=temp(join(out_dir, "motif", "perm_data", "{nb}_{n}.csv.gz")),
-#    script:
-#        resource_filename("snekmer", join("scripts/motif_permute.py"))
-        
-rule rescore:
+rule preselect:
     input:
         raw=rules.score.input.data,
         data=rules.score.output.data,
@@ -204,6 +191,23 @@ rule rescore:
 #        kmers=rules.common_basis.output.kmerbasis,
         kmerobj=rules.score.input.kmerobj,
         matrix=rules.score.output.matrix,
+        model=rules.model.output.model,
+    output:
+        data=temp(join(out_dir, "motif", "preselection", "{nb}.csv.gz")),
+        kmers=join(out_dir, "motif", "kmers", "{nb}.csv.gz"),
+        vecs=join(out_dir, "motif", "sequences", "{nb}.csv.gz"),
+    script:
+        resource_filename("snekmer", join("scripts/motif_preselect.py"))
+        
+rule rescore:
+    input:
+        raw=rules.score.input.data,
+        data=rules.score.output.data,
+        weights=rules.score.output.weights,
+        kmers=rules.preselect.output.kmers,
+        kmerobj=rules.score.input.kmerobj,
+        matrix=rules.score.output.matrix,
+        vecs=rules.preselect.output.vecs,
     output:
         data=temp(join(out_dir, "motif", "scores", "{nb}_{n}.csv.gz")),
     script:
@@ -216,9 +220,11 @@ rule motif:
         weights=rules.score.output.weights,
         model=rules.model.output.model,
         perm_scores=expand(join(out_dir, "motif", "scores", "{{nb}}_{n}.csv.gz"), n=range(n_iter)),
-#        kmers=rules.common_basis.output.kmerbasis,
+        kmers=rules.preselect.output.kmers,
         kmerobj=rules.score.input.kmerobj,
         matrix=rules.score.output.matrix,
+        vecs=rules.preselect.output.vecs,
+        scores=rules.preselect.output.data,
     output:
         data=join(out_dir, "motif", "scores", "{nb}.csv.gz"),
         p_values=join(out_dir, "motif", "p_values", "{nb}.csv.gz"),

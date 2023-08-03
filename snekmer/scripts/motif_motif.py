@@ -52,19 +52,27 @@ with open(snakemake.input.matrix, "rb") as f:
 with gzip.open(snakemake.input.weights, "rb") as f:
     weights = pd.read_csv(f)
     
+with gzip.open(snakemake.input.scores, "rb") as f:
+    scores = pd.read_csv(f)
+    
 # set category label name (e.g. "family")
 label = config["score"]["lname"] if str(config["score"]["lname"]) != "None" else "label"
     
 # with open(snakemake.input.model, "rb") as f:
 #     model = pickle.load(f)
 
+with gzip.open(snakemake.input.vecs, "rb") as f:
+    vecs=pd.read_csv(f)
+    vecs.to_numpy
+
 svm = LinearSVC(class_weight="balanced", random_state=None, max_iter=1000000)
-vecs=np.array(data["sequence_vector"].astype(str).str.strip('[]').str.split(",").tolist(), dtype='float')
+# vecs=np.array(data["sequence_vector"].astype(str).str.strip('[]').str.split(",").tolist(), dtype='float')
 svm.fit(vecs, data[label])
     
 # prevent kmer NA being read as np.nan
 if config["k"] == 2:
     weights["kmer"] = weights["kmer"].fillna("NA")
+    scores=scores.fillna("NA")
 
 kmers = weights['kmer'].values    
 coeffs = pd.DataFrame(svm.coef_)
@@ -82,9 +90,9 @@ scorer = skm.score.KmerScorer()
 del svm
 gc.collect()
 
-unit_score = max(scores)
-for i in range(len(scores)):
-    scores.iloc[i] = scores.iloc[i]/unit_score
+# unit_score = max(scores)
+# for i in range(len(scores)):
+#     scores.iloc[i] = scores.iloc[i]/unit_score
 
 # set number of permutations to test
 n_iter = (

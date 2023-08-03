@@ -59,12 +59,18 @@ data.astype({'background': 'boolean'})
 with gzip.open(snakemake.input.weights, "rb") as f:
     weights = pd.read_csv(f)
     
+with gzip.open(snakemake.input.vecs, "rb") as f:
+    vecs=pd.read_csv(f)
+    vecs.to_numpy
+    
 # prevent kmer NA being read as np.nan
 if config["k"] == 2:
     weights["kmer"] = weights["kmer"].fillna("NA")
 
 
-kmers = weights['kmer'].values    
+with gzip.open(snakemake.input.kmers, "rb") as f:
+    kmers = pd.read_csv(f)
+    
 scores = weights['sample'].values
 family = skm.utils.get_family(
     skm.utils.split_file_ext(snakemake.input.weights)[0],
@@ -138,7 +144,7 @@ gc.collect()
 #     vec_col="sequence_vector",
 #     **config["score"]["scaler_kwargs"],)
 # vecs=np.array(perm_data["sequence_vector"].astype(str).str.strip('[]').str.split(",").tolist(), dtype='float')
-vecs=np.array(data["sequence_vector"].astype(str).str.strip('[]').str.split(",").tolist(), dtype='float')
+# vecs=np.array(data["sequence_vector"].astype(str).str.strip('[]').str.split(",").tolist(), dtype='float')
 # features_in=np.vstack((kmers, vecs))
 # svm.fit(vecs, perm_data[label])
 svm.fit(vecs, data[label])
