@@ -78,7 +78,6 @@ for i in range(len(scores.iloc[score_index].values)):
     scores.iloc[score_index, i] = scores.iloc[score_index, i]/unit_score
 
 # temp_scores = scores
-print(scores.columns)
 features = list()
 for i in range(len(scores.iloc[score_index].values)):
     if scores.iloc[score_index, i]<0:
@@ -90,10 +89,13 @@ sequences.drop(sequences.columns[features], axis=1, inplace=True)
 del features
 gc.collect()
         
-print(len(scores.iloc[score_index]))
 vecs = sequences.to_numpy()
 svm.fit(vecs, data[label])
 scores = pd.DataFrame(svm.coef_)
+
+unit_score = max(scores.iloc[score_index].values)
+for i in range(len(scores.iloc[score_index].values)):
+    scores.iloc[score_index, i] = scores.iloc[score_index, i]/unit_score
 
 del svm, data, vecs
 gc.collect()

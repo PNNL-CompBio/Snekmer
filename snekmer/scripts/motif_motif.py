@@ -15,7 +15,6 @@ import pandas as pd
 import numpy as np
 import gzip
 import gc
-from sklearn.svm import LinearSVC
 # import glob
 # from typing import Any, Dict, List, Optional
 # from sklearn.base import BaseEstimator, ClassifierMixin
@@ -54,6 +53,12 @@ with gzip.open(snakemake.input.weights, "rb") as f:
     
 with gzip.open(snakemake.input.scores, "rb") as f:
     scores = pd.read_csv(f)
+    scores = scores.astype('float64')
+    scores = scores.to_numpy()
+    
+
+with gzip.open(snakemake.input.kmers, "rb") as f:
+    kmers = pd.read_csv(f)
     
 # set category label name (e.g. "family")
 label = config["score"]["lname"] if str(config["score"]["lname"]) != "None" else "label"
@@ -61,38 +66,35 @@ label = config["score"]["lname"] if str(config["score"]["lname"]) != "None" else
 # with open(snakemake.input.model, "rb") as f:
 #     model = pickle.load(f)
 
-with gzip.open(snakemake.input.vecs, "rb") as f:
-    vecs=pd.read_csv(f)
-    vecs.to_numpy
+# with gzip.open(snakemake.input.vecs, "rb") as f:
+#     vecs=pd.read_csv(f)
+#     vecs.to_numpy
 
-svm = LinearSVC(class_weight="balanced", random_state=None, max_iter=1000000)
+# svm = LinearSVC(class_weight="balanced", random_state=None, max_iter=1000000)
 # vecs=np.array(data["sequence_vector"].astype(str).str.strip('[]').str.split(",").tolist(), dtype='float')
-svm.fit(vecs, data[label])
+# svm.fit(vecs, data[label])
     
 # prevent kmer NA being read as np.nan
 if config["k"] == 2:
-    weights["kmer"] = weights["kmer"].fillna("NA")
+    kmers = kmers.fillna("NA")
     scores=scores.fillna("NA")
 
-kmers = weights['kmer'].values    
-coeffs = pd.DataFrame(svm.coef_)
+# kmers = weights['kmer'].values    
 # scores = weights['sample'].values
 family = skm.utils.get_family(
     skm.utils.split_file_ext(snakemake.input.weights)[0],
     regex=config["input_file_regex"],
 )
-unique_labels = np.unique(data['label'])
-unique_labels.sort()
-score_index = np.searchsorted(unique_labels, family)
-scores = coeffs.iloc[score_index]
+# scores = coeffs.iloc[score_index]
 scorer = skm.score.KmerScorer()
 
-del svm
 gc.collect()
 
-unit_score = max(scores)
-for i in range(len(scores)):
-    scores.iloc[i] = scores.iloc[i]/unit_score
+# unit_score = max(scores)
+# print(unit_score)
+# for i in range(len(scores)):
+#     print(scores.iloc[i])
+#     scores.iloc[i] = scores.iloc[i]/unit_score
 
 # set number of permutations to test
 n_iter = (
@@ -118,7 +120,8 @@ else:
   
 # run permutations and score each
 
-score_matrix = pd.DataFrame({'kmer': kmers})
+score_matrix = kmers.rename(columns={"0": "kmer"})
+# score_matrix.rename(columns={"0": "kmer"}, inplace=True)
 score_array = pd.DataFrame.to_numpy(score_matrix)
 motif = skm.motif.SnekmerMotif()
 for file in snakemake.input.perm_scores:
@@ -132,6 +135,8 @@ else:
         pd.DataFrame(score_array), left_index=True, right_index=True
     )
     
+    
+scores = np.ravel(scores)
 output_matrix = motif.p_values(score_matrix, scores, n_iter)
 output_matrix = output_matrix.astype({'kmer': 'str', 'real score': 'float32', 'false positives': 'int32', 'n': 'int32', 'p': 'float32'})
 output_matrix.sort_values(by=['p', 'real score'], ascending=[True, False], inplace=True)

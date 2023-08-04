@@ -47,7 +47,7 @@ class SnekmerMotif:
         
         Parameters
         ----------
-        X : Dataframe containing matrix of shape (n_samples, n_features)
+        X : Dataframe containing matrix of shape (n_kmers, n_features)
             Labeled training data.
         label : str
             Primary family label.
@@ -77,9 +77,9 @@ class SnekmerMotif:
         
         Parameters
         ----------
-        X: Dataframe containing matrix of shape (n_samples, n_iterations)
+        X: Dataframe containing matrix of shape (n_kmers, n_iterations)
             kmer scores from each permutation tested
-        y: list or array-like of shape (n_samples, 1)
+        y: list or array-like of shape (n_kmers, 1)
             kmer scores from real training data
         n: int
             number of permutations tested
