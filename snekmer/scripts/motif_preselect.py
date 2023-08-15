@@ -72,26 +72,28 @@ gc.collect()
 scores = pd.DataFrame(svm.coef_)
 
 kmers = pd.Series(kmers)
-# while scores.iloc[score_index].lt(0).sum()>0:
-unit_score = max(scores.iloc[score_index].values)
-for i in range(len(scores.iloc[score_index].values)):
-    scores.iloc[score_index, i] = scores.iloc[score_index, i]/unit_score
-
-# temp_scores = scores
-features = list()
-for i in range(len(scores.iloc[score_index].values)):
-    if scores.iloc[score_index, i]<0:
-        features.append(scores.columns[i])
-        
-scores.drop(scores.columns[features], axis=1, inplace=True)
-kmers.drop(features, inplace=True)
-sequences.drop(sequences.columns[features], axis=1, inplace=True)
-del features
-gc.collect()
-        
-vecs = sequences.to_numpy()
-svm.fit(vecs, data[label])
-scores = pd.DataFrame(svm.coef_)
+while scores.iloc[score_index].lt(-0.1).sum()>0:
+    unit_score = max(scores.iloc[score_index].values)
+    for i in range(len(scores.iloc[score_index].values)):
+        scores.iloc[score_index, i] = scores.iloc[score_index, i]/unit_score
+    
+    # temp_scores = scores
+    features = list()
+    for i in range(len(scores.iloc[score_index].values)):
+        if scores.iloc[score_index, i]<0:
+            features.append(i)
+            
+    scores.drop(scores.columns[features], axis=1, inplace=True)
+    kmers.drop(features, inplace=True)
+    kmers.index = np.arange(len(kmers.index))
+    sequences.drop(sequences.columns[features], axis=1, inplace=True)
+    sequences.columns = np.arange(len(sequences.columns))
+    del features
+    gc.collect()
+            
+    vecs = sequences.to_numpy()
+    svm.fit(vecs, data[label])
+    scores = pd.DataFrame(svm.coef_)
 
 unit_score = max(scores.iloc[score_index].values)
 for i in range(len(scores.iloc[score_index].values)):

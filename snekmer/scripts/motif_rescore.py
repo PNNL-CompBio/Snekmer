@@ -109,22 +109,6 @@ else:
 # run permutations and score each
 motif = skm.motif.SnekmerMotif()
 svm = LinearSVC(class_weight="balanced", random_state=None, max_iter=1000000000)
-# svm= skm.model.SnekmerModel(
-#     model="svc",
-#     model_params={
-#         "kernel": "linear",
-#         "class_weight": "balanced",
-#         "decision_function_shape": "ovr",
-#         "random_state": None,
-#                   },
-#     params={
-#         "scaler": scorer.scaler,
-#         "random_state": config["model"]["random_state"],
-#         "solver": "liblinear",
-#         "class_weight": "balanced",
-#     },
-# )
-# perm_data = motif.permute(
 motif.permute(    
     data, 
     family,
@@ -133,20 +117,6 @@ motif.permute(
     
 # del data
 gc.collect()
-# scorer.fit(
-#     kmers,
-#     # list(kmerobj.kmer_set.kmers),
-#     # perm_data,
-#     data,
-#     family,
-#     # skm.utils.get_family(snakemake.wildcards.nb, regex=config["input_file_regex"]),
-#     label_col=label,
-#     vec_col="sequence_vector",
-#     **config["score"]["scaler_kwargs"],)
-# vecs=np.array(perm_data["sequence_vector"].astype(str).str.strip('[]').str.split(",").tolist(), dtype='float')
-# vecs=np.array(data["sequence_vector"].astype(str).str.strip('[]').str.split(",").tolist(), dtype='float')
-# features_in=np.vstack((kmers, vecs))
-# svm.fit(vecs, perm_data[label])
 svm.fit(vecs, data[label])
     
 del data, motif, vecs
