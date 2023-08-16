@@ -70,13 +70,12 @@ sequences = pd.DataFrame(vecs)
 # del data, vecs
 gc.collect()
 scores = pd.DataFrame(svm.coef_)
+unit_score = max(scores.iloc[score_index].values)
+for i in range(len(scores.iloc[score_index].values)):
+    scores.iloc[score_index, i] = scores.iloc[score_index, i]/unit_score
 
 kmers = pd.Series(kmers)
-while scores.iloc[score_index].lt(-0.1).sum()>0:
-    unit_score = max(scores.iloc[score_index].values)
-    for i in range(len(scores.iloc[score_index].values)):
-        scores.iloc[score_index, i] = scores.iloc[score_index, i]/unit_score
-    
+while scores.iloc[score_index].lt(-0.2).sum()>0:
     # temp_scores = scores
     features = list()
     for i in range(len(scores.iloc[score_index].values)):
@@ -94,10 +93,11 @@ while scores.iloc[score_index].lt(-0.1).sum()>0:
     vecs = sequences.to_numpy()
     svm.fit(vecs, data[label])
     scores = pd.DataFrame(svm.coef_)
+    unit_score = max(scores.iloc[score_index].values)
+    for i in range(len(scores.iloc[score_index].values)):
+        scores.iloc[score_index, i] = scores.iloc[score_index, i]/unit_score
 
-unit_score = max(scores.iloc[score_index].values)
-for i in range(len(scores.iloc[score_index].values)):
-    scores.iloc[score_index, i] = scores.iloc[score_index, i]/unit_score
+
 
 del svm, data, vecs
 gc.collect()
