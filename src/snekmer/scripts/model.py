@@ -55,8 +55,7 @@ family = skm.utils.get_family(
     regex=config["input_file_regex"],
 )
 # get kmers for this particular set of sequences
-with open(snakemake.input.kmerobj, "rb") as f:
-    kmer = pickle.load(f)
+kmer = skm.io.load_pickle(snakemake.input.kmerobj)
 
 cv = config["model"]["cv"]
 
@@ -213,8 +212,7 @@ plt.close("all")
 
 # save model
 clf.fit(X_all, y_all)
-with open(snakemake.output.model, "wb") as save_model:
-    pickle.dump(clf, save_model)
+skm.io.save_pickle(clf, snakemake.output.model)
 
 # save full results
 pd.DataFrame(results).to_csv(snakemake.output.results, index=False)

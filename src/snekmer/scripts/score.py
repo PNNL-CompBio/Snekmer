@@ -32,7 +32,7 @@ with open(snakemake.log[0], "a") as f:
 
 # get kmers for this particular set of sequences
 kmers = skm.io.load_pickle(snakemake.input.family_table)
-family = snakemake.wildcards.nb
+family = snakemake.wildcards.f
 # matA = skm.vectorize.unpack_table(tabA, kmerA.n_seqs, kmers=codes)
 
 # collect all other family tables as negative examples
@@ -55,7 +55,7 @@ merged = skm.io.load_pickle(snakemake.input.merged_table)
 X = skm.vectorize.unpack_table(
     merged, sum(snakemake.params.nseqs.values()), kmers=merged.get_kmers()
 )
-print(X.shape, labels.shape)
+# print(X.shape, labels.shape)
 
 # generate labels
 le = LabelEncoder().fit(labels)
@@ -69,7 +69,7 @@ y = le.transform(labels)
 skm.utils.log_runtime(snakemake.log[0], start_time, step="combined_matrix")
 
 # binary T/F for classification into family
-family = skm.utils.get_family(snakemake.wildcards.nb)
+family = skm.utils.get_family(snakemake.wildcards.f)
 # binary_labels = [True if value == family else False for value in data[label]]
 
 # define k-fold split indices
@@ -102,8 +102,7 @@ data.to_csv(snakemake.output.scores, index=False)
 
 # save scorer and kmer probabilityweights
 scorer.score.to_csv(snakemake.output.weights, index=False, compression="gzip")
-with open(snakemake.output.scorer, "wb") as f:
-    pickle.dump(scorer, f)
+skm.io.save_pickle(scorer, snakemake.output.scorer, "wb")
 
 # record script endtime
 skm.utils.log_runtime(snakemake.log[0], start_time)

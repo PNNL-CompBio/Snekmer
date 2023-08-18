@@ -207,7 +207,7 @@ def to_feature_matrix(
 def open_file(filename: str, mode="rb") -> TextIO:
     try:
         return open(filename, mode=mode)
-    except NameError:
+    except (NameError, FileNotFoundError):
         return gzip.open(f"{filename}.gz", mode=mode)
 
 
