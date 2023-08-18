@@ -2,7 +2,7 @@
 # Imports
 # ---------------------------------------------------------
 import pickle
-from os.path import join
+from os.path import join, splitext
 
 import numpy as np
 import pandas as pd
@@ -30,7 +30,7 @@ label = (
 labels = np.concatenate(
     [
         [skm.utils.split_file_ext(f)[0]]
-        * snakemake.params.nseqs[skm.utils.split_file_ext(f)[0]]
+        * snakemake.params.nseqs[splitext(skm.utils.split_file_ext(f)[0])[0]]
         for f in snakemake.input.all_tables
     ],
 )
