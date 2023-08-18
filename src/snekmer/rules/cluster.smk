@@ -4,21 +4,6 @@ from snakemake.utils import min_version
 min_version("6.0")
 
 
-# load snakemake modules
-module process:
-    snakefile:
-        "process.smk"
-    config:
-        config
-
-
-module kmerize:
-    snakefile:
-        "kmerize.smk"
-    config:
-        config
-
-
 # built-in imports
 from glob import glob
 from itertools import product
@@ -33,74 +18,85 @@ import snekmer as skm
 # change matplotlib backend to non-interactive
 plt.switch_backend("Agg")
 
-# collect all fasta-like files, unzipped filenames, and basenames
-input_dir = (
-    "input"
-    if (("input_dir" not in config) or (str(config["input_dir"]) == "None"))
-    else config["input_dir"]
-)
-input_files = glob(join(input_dir, "*"))
-zipped = [fa for fa in input_files if fa.endswith(".gz")]
-unzipped = [
-    fa.rstrip(".gz")
-    for fa, ext in product(input_files, config["input_file_exts"])
-    if fa.rstrip(".gz").endswith(f".{ext}")
-]
-
-# map extensions to basename (basename.ext.gz -> {basename: ext})
-UZ_MAP = {
-    skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in zipped
-}
-FA_MAP = {
-    skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in unzipped
-}
-
-# get unzipped filenames
-UZS = [f"{f}.{ext}" for f, ext in UZ_MAP.items()]
-
-# isolate basenames for all files
-FAS = list(FA_MAP.keys())
-
-# parse any background files
-bg_files = glob(join(input_dir, "background", "*"))
-if len(bg_files) > 0:
-    bg_files = [skm.utils.split_file_ext(basename(f))[0] for f in bg_files]
-NON_BGS, BGS = [f for f in FAS if f not in bg_files], bg_files
-
 # terminate with error if invalid alphabet specified
 skm.alphabet.check_valid(config["alphabet"])
+
+# collect all fasta-like files, unzipped filenames, and basenames
+gz_input = glob_wildcards(join("input", "[!zipped/_]{filename}.{ext}.gz"))
+all_input = glob_wildcards(
+    join("input", f"{{filename}}.{{ext,({'|'.join(config['input_file_exts'])})}}")
+)
+
+# check input file size
+for f, e in zip(all_input.filename, all_input.ext):
+    skm.utils.check_n_seqs(
+        join("input", f"{f}.{e}"), config["model"]["cv"], show_warning=False
+    )
+
+# add unzipped gz files to total input list
+for f, e in zip(gz_input.filename, gz_input.ext):
+    getattr(all_input, "filename").append(f)
+    getattr(all_input, "ext").append(e)
+
+# define unique reference ids by kmer file and get seq counts for each file
+NSEQS = {
+    f: skm.utils.count_n_seqs(join("input", f"{f}.{e}"))
+    for f, e in zip(all_input.filename, all_input.ext)
+}
+FA_REFIDS = skm.utils.get_ref_ids(
+    [join("input", f"{f}.{e}") for f, e in zip(all_input.filename, all_input.ext)]
+)
 
 # define output directory (helpful for multiple runs)
 out_dir = skm.io.define_output_dir(
     config["alphabet"], config["k"], nested=config["nested_output"]
 )
 
+# show warnings if files excluded
+onstart:
+    [
+        skm.utils.check_n_seqs(
+            join("input", f"{f}.{e}"), config["model"]["cv"], show_warning=True
+        )
+        for f, e in zip(all_input.filename, all_input.ext)
+    ]
+
 
 # define output files to be created by snekmer
 rule all:
     input:
-        expand(join("input", "{uz}"), uz=UZS),  # require unzipping
+        expand(
+            join("input", "zipped", "{gzf}.{gze}.gz"),
+            zip,
+            gzf=gz_input.filename,
+            gze=gz_input.ext,
+        ),
         join(out_dir, "Snekmer_Cluster_Report.html"),
 
 
-# if any files are gzip zipped, unzip them
-use rule unzip from process with:
+rule unzip:
+    input:
+        join("input", "{gzf}.{gze}.gz"),
     output:
-        unzipped=join("input", "{uz}"),
-        zipped=join("input", "zipped", "{uz}.gz"),
+        unzipped=join("input", "{gzf}.{gze}"),
+        zipped=join("input", "zipped", "{gzf}.{gze}.gz"),
+    script:
+        resource_filename("snekmer", join("scripts", "unzip.py"))
 
 
 # build kmer count vectors for each basis set
-use rule vectorize from kmerize with:
+rule kmerize:
     input:
-        fasta=lambda wildcards: join(
-            input_dir, f"{wildcards.nb}.{FA_MAP[wildcards.nb]}"
-        ),
+        fasta=join("input", "{f}.{e}"),
     output:
-        data=join(out_dir, "vector", "{nb}.npz"),
-        kmerobj=join(out_dir, "kmerize", "{nb}.kmers"),
+        # data=join(out_dir, "vector", "{nb}.npz"),
+        kmertable=join(out_dir, "kmerize", "{f}.{e}.ktable"),
+    params:
+        ref_ids=FA_REFIDS,
     log:
-        join(out_dir, "kmerize", "log", "{nb}.log"),
+        join(out_dir, "kmerize", "log", "{f}.{e}.log"),
+    script:
+        resource_filename("snekmer", join("scripts", "kmerize.py"))
 
 
 # [in-progress] kmer walk
