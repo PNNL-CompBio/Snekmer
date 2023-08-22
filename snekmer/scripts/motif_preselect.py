@@ -79,7 +79,7 @@ while scores.iloc[score_index].lt(-0.2).sum()>0:
     # temp_scores = scores
     features = list()
     for i in range(len(scores.iloc[score_index].values)):
-        if scores.iloc[score_index, i]<0:
+        if scores.iloc[score_index, i]<-0.1:
             features.append(i)
             
     scores.drop(scores.columns[features], axis=1, inplace=True)
