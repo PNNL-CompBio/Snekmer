@@ -110,7 +110,11 @@ wildcard_constraints:
 rule all:
     input:
         expand(join(input_dir, "{uz}"), uz=UZS),
-        *[expand(join("output", "apply", "seq-annotation-scores-{nb}.csv"), nb=FAS) if config["learnapp"]["save_apply_associations"] else []],
+        *[
+            expand(join("output", "apply", "seq-annotation-scores-{nb}.csv"), nb=FAS)
+            if config["learnapp"]["save_apply_associations"]
+            else []
+        ],
         expand(join("output", "apply", "kmer-summary-{nb}.csv"), nb=FAS),
 
 
@@ -133,7 +137,11 @@ rule apply:
         compare_associations=expand("{comp}", comp=compare_file),
         confidence_associations=expand("{conf}", conf=confidence_file),
     output:
-        seq_ann = expand(join("output", "apply", "seq-annotation-scores-{nb}.csv"), nb=FAS) if config["learnapp"]["save_apply_associations"] else [],
+        seq_ann=expand(
+            join("output", "apply", "seq-annotation-scores-{nb}.csv"), nb=FAS
+        )
+        if config["learnapp"]["save_apply_associations"]
+        else [],
         kmer_summary="output/apply/kmer-summary-{nb}.csv",
     log:
         join(out_dir, "apply", "log", "{nb}.log"),

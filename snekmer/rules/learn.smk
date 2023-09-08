@@ -94,7 +94,10 @@ out_dir = skm.io.define_output_dir(
 )
 
 
-output_prefixes = ["vector"] if not config["learnapp"]["fragmentation"] else ["vector", "vector_frag"]
+output_prefixes = (
+    ["vector"] if not config["learnapp"]["fragmentation"] else ["vector", "vector_frag"]
+)
+
 
 # define output files to be created by snekmer
 rule all:
@@ -102,12 +105,21 @@ rule all:
         expand(join("output", "vector", "{nb}.npz"), nb=FAS),
         expand(join("output", "learn", "kmer-counts-{nb}.csv"), nb=FAS),
         join("output", "learn", "kmer-counts-total.csv"),
-        expand(join("output", "fragmented", "{nb}.fasta"), nb=FAS) if config["learnapp"]["fragmentation"] else [],
-        expand(join("output", "vector_frag", "{nb}.npz"), nb=FAS) if config["learnapp"]["fragmentation"] else [],
+        expand(join("output", "fragmented", "{nb}.fasta"), nb=FAS)
+        if config["learnapp"]["fragmentation"]
+        else [],
+        expand(join("output", "vector_frag", "{nb}.npz"), nb=FAS)
+        if config["learnapp"]["fragmentation"]
+        else [],
         expand(
-            join("output", "eval_apply" if not config["learnapp"]["fragmentation"] else "eval_apply_frag", 
-            "seq-annotation-scores-{nb}.csv"), 
-            nb=FAS
+            join(
+                "output",
+                "eval_apply"
+                if not config["learnapp"]["fragmentation"]
+                else "eval_apply_frag",
+                "seq-annotation-scores-{nb}.csv",
+            ),
+            nb=FAS,
         ),
         "output/eval_conf/confidence-matrix.csv",
         "output/eval_conf/global-confidence-scores.csv",
@@ -121,22 +133,23 @@ use rule unzip from process with:
 
 
 if config["learnapp"]["fragmentation"]:
+
     rule fragmentation:
         input:
             fasta=lambda wildcards: join(
                 input_dir, f"{wildcards.nb}.{FA_MAP[wildcards.nb]}"
-            )
+            ),
         output:
-            fasta_out=join("output", "fragmented", "{nb}.fasta")
+            fasta_out=join("output", "fragmented", "{nb}.fasta"),
         params:
             version=config["learnapp"]["version"],
             frag_length=config["learnapp"]["frag_length"],
             location=config["learnapp"]["location"],
             min_length=config["learnapp"]["min_length"],
-            seed=config["learnapp"]["seed"]
+            seed=config["learnapp"]["seed"],
         run:
             random.seed(params.seed)  # setting the seed for randomness
-            
+
             def fragment(sequence, version, length, location, min_length):
                 """
                 Fragment a given sequence.
@@ -154,14 +167,14 @@ if config["learnapp"]["fragmentation"]:
                 frags = []
                 if version == "absolute":
                     for i in range(0, len(sequence) - length + 1):
-                        frags.append(sequence[i:i + length])
+                        frags.append(sequence[i : i + length])
 
                 elif version == "percent":
                     actual_length = int(len(sequence) * (length / 100))
                     for i in range(0, len(sequence) - actual_length + 1):
-                        frags.append(sequence[i:i + actual_length])
+                        frags.append(sequence[i : i + actual_length])
 
-                # Filter fragments based on min_length
+                        # Filter fragments based on min_length
                 frags = [frag for frag in frags if len(frag) >= min_length]
 
                 # Retention logic based on the location parameter
@@ -178,17 +191,25 @@ if config["learnapp"]["fragmentation"]:
 
                 return frags
 
-            with open(input.fasta, 'r') as f:
-                fasta_sequences = SeqIO.parse(f, 'fasta')
-                
-                with open(output.fasta_out, 'w') as the_file:
+            with open(input.fasta, "r") as f:
+                fasta_sequences = SeqIO.parse(f, "fasta")
+
+                with open(output.fasta_out, "w") as the_file:
                     for fasta in fasta_sequences:
                         title_line, sequence = fasta.description, str(fasta.seq)
-                        
-                        fragments = fragment(sequence, params.version, params.frag_length, params.location, params.min_length)
-                        
+
+                        fragments = fragment(
+                            sequence,
+                            params.version,
+                            params.frag_length,
+                            params.location,
+                            params.min_length,
+                        )
+
                         for i, frag in enumerate(fragments):
-                            the_file.write(">" + title_line + " Fragment=" + str(i) + "\n")
+                            the_file.write(
+                                ">" + title_line + " Fragment=" + str(i) + "\n"
+                            )
                             the_file.write(frag + "\n")
 
 
@@ -198,13 +219,13 @@ use rule vectorize from kmerize with:
         fasta=lambda wildcards: join(
             "output" if wildcards.prefix == "vector_frag" else input_dir,
             "fragmented" if wildcards.prefix == "vector_frag" else "",
-            f"{wildcards.nb}.{FA_MAP[wildcards.nb]}"
+            f"{wildcards.nb}.{FA_MAP[wildcards.nb]}",
         ),
     output:
         data=join("output", "{prefix}", "{nb}.npz"),
         kmerobj=join("output", "kmerize_{prefix}", "{nb}.kmers"),
     log:
-        join("output", "{prefix}_kmerize", "log", "{nb}.log")
+        join("output", "{prefix}_kmerize", "log", "{nb}.log"),
 
 
 # WORKFLOW to learn kmer associations
@@ -336,9 +357,9 @@ rule merge:
                     .groupby("__index_level_0__", sort=False)
                     .sum(min_count=1)
                 ).fillna(0)
-            print("Dataframes merged: ", file_num, " out of ",len(input.counts))
+            print("Dataframes merged: ", file_num, " out of ", len(input.counts))
 
-                ##### Check for "Base" File to merge with.
+            ##### Check for "Base" File to merge with.
         base_check = False
         print("\nChecking for base file to merge with.\n")
         if "csv" in str(input.base_counts):
@@ -409,13 +430,26 @@ rule merge:
 
         skm.utils.log_runtime(log[0], start_time)
 
+
 rule eval_apply:
     input:
-        data=join("output", "vector" if config["learnapp"]["fragmentation"] == False else "vector_frag", "{nb}.npz"),
+        data=join(
+            "output",
+            "vector"
+            if config["learnapp"]["fragmentation"] == False
+            else "vector_frag",
+            "{nb}.npz",
+        ),
         annotation=expand("{an}", an=annot_files),
         compare_associations=join("output", "learn", "kmer-counts-total.csv"),
     output:
-        apply=join("output", "eval_apply" if config["learnapp"]["fragmentation"] == False else "eval_apply_frag", "seq-annotation-scores-{nb}.csv")
+        apply=join(
+            "output",
+            "eval_apply"
+            if config["learnapp"]["fragmentation"] == False
+            else "eval_apply_frag",
+            "seq-annotation-scores-{nb}.csv",
+        ),
     log:
         join(out_dir, "eval_apply", "log", "{nb}.log"),
     run:
@@ -545,9 +579,7 @@ rule eval_apply:
         )
 
         # Write Output
-        out_name = (
-            output.apply
-        )
+        out_name = output.apply
         final_matrix_with_scores_write = pa.Table.from_pandas(final_matrix_with_scores)
         csv.write_csv(final_matrix_with_scores_write, out_name)
 
@@ -556,7 +588,16 @@ rule eval_apply:
 
 rule evaluate:
     input:
-        eval_apply_data=expand(join("output", "eval_apply" if config["learnapp"]["fragmentation"] == False else "eval_apply_frag", "seq-annotation-scores-{nb}.csv"), nb=FAS),
+        eval_apply_data=expand(
+            join(
+                "output",
+                "eval_apply"
+                if config["learnapp"]["fragmentation"] == False
+                else "eval_apply_frag",
+                "seq-annotation-scores-{nb}.csv",
+            ),
+            nb=FAS,
+        ),
         base_confidence=expand("{bc}", bc=base_confidence),
     output:
         eval_conf="output/eval_conf/confidence-matrix.csv",
@@ -708,7 +749,7 @@ rule evaluate:
                 sorted(false_running_crosstab.columns)
             ]
 
-            print("Dataframes joined: ", j, " out of ",len(input.eval_apply_data))
+            print("Dataframes joined: ", j, " out of ", len(input.eval_apply_data))
 
             #### generate each global cross_tab
         ratio_running_crosstab = true_running_crosstab / (
