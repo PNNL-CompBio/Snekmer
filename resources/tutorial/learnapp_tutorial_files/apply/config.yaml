@@ -45,5 +45,9 @@ score_dir: "/path/to/output/scoring/"
 # learnapp params 
 learnapp:
   save_apply_associations: False
-  save_results: True
-
+  fragmentation: True
+  version: absolute
+  frag_length: 50
+  min_length: 50
+  location: random
+  seed: 999

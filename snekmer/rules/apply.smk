@@ -100,17 +100,17 @@ wildcard_constraints:
     FAS=FAS,
 
 
-options = [(config["learnapp"]["save_apply_associations"])]
-if all((option == True or option == False) for option in options) == False:
-    sys.exit(
-        "Incorrect Value Selected. Please check if 'save_apply_associations' in in the config file under 'learnapp'. Options are 'True' or 'False'."
-    )
+# options = [(config["learnapp"]["save_apply_associations"])]
+# if all((option == True or option == False) for option in options) == False:
+#     sys.exit(
+#         "Incorrect Value Selected. Please check if 'save_apply_associations' in in the config file under 'learnapp'. Options are 'True' or 'False'."
+#     )
 
 
 rule all:
     input:
         expand(join(input_dir, "{uz}"), uz=UZS),
-        expand(join("output", "apply", "seq-annotation-scores-{nb}.csv"), nb=FAS),
+        *[expand(join("output", "apply", "seq-annotation-scores-{nb}.csv"), nb=FAS) if config["learnapp"]["save_apply_associations"] else []],
         expand(join("output", "apply", "kmer-summary-{nb}.csv"), nb=FAS),
 
 
@@ -133,8 +133,8 @@ rule apply:
         compare_associations=expand("{comp}", comp=compare_file),
         confidence_associations=expand("{conf}", conf=confidence_file),
     output:
-        "output/apply/seq-annotation-scores-{nb}.csv",
-        "output/apply/kmer-summary-{nb}.csv",
+        seq_ann = expand(join("output", "apply", "seq-annotation-scores-{nb}.csv"), nb=FAS) if config["learnapp"]["save_apply_associations"] else [],
+        kmer_summary="output/apply/kmer-summary-{nb}.csv",
     log:
         join(out_dir, "apply", "log", "{nb}.log"),
     run:
@@ -248,9 +248,10 @@ rule apply:
         )
 
         ##### Write Optional Output
-        if config["learnapp"]["save_results"] == True:
+        if config["learnapp"]["save_apply_associations"] == True:
             out_name = (
-                "output/apply/seq-annotation-scores-" + str(input.data)[14:-4] + ".csv"
+                # "output/apply/seq-annotation-scores-" + str(input.data)[14:-4] + ".csv"
+                output.seq_ann
             )
             kmer_count_totals_write = pa.Table.from_pandas(kmer_count_totals)
             csv.write_csv(kmer_count_totals_write, out_name)
@@ -295,7 +296,7 @@ rule apply:
         results.index = kmer_count_totals.index
 
         #### Write Results
-        out_name_2 = "output/apply/kmer-summary-" + str(input.data)[14:-4] + ".csv"
+        out_name_2 = output.kmer_summary
         results.reset_index(inplace=True)
         results_write = pa.Table.from_pandas(results)
         csv.write_csv(results_write, out_name_2)
