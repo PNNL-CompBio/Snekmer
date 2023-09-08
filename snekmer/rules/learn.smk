@@ -573,12 +573,26 @@ rule eval_apply:
             kmer_count_totals, kmer_counts
         ).T
 
-
         final_matrix_with_scores = pd.DataFrame(
             cosine_df, columns=kmer_count_totals.index, index=kmer_counts.index
         )
 
-        # Write Output
+        if not config["learnapp"]["save_apply_associations"]:
+            # Get indices of top 2 values in each row
+            top_2_indices = np.argsort(-final_matrix_with_scores.values, axis=1)[:, :2]
+
+            # Create an empty mask of the same shape as the dataframe with all False values
+            mask = np.zeros_like(final_matrix_with_scores.values, dtype=bool)
+
+            # Set the top 2 positions in each row to True
+            for i, (index_1, index_2) in enumerate(top_2_indices):
+                mask[i, index_1] = True
+                mask[i, index_2] = True
+
+                # Replace all but the top 2 values in each row with NaN
+            final_matrix_with_scores.values[~mask] = np.nan
+
+            # Write Output
         out_name = output.apply
         final_matrix_with_scores_write = pa.Table.from_pandas(final_matrix_with_scores)
         csv.write_csv(final_matrix_with_scores_write, out_name)
