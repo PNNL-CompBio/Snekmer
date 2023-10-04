@@ -159,9 +159,10 @@ clf = skm.model.SnekmerModel(
         "class_weight": "balanced",
     },
 )
-# clf = LogisticRegression(
-#     random_state=random_state, solver="liblinear", class_weight="balanced"
-# )
+clf.k = kmer.k
+clf.alphabet = kmer.alphabet
+clf.alphabet_name = alphabet_name
+
 fig, ax, auc_rocs = skm.plot.cv_roc_curve(
     clf, X, y, title=f"{family} ROC Curve ({alphabet_name}, k={config['k']})"
 )

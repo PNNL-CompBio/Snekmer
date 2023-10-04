@@ -68,7 +68,6 @@ class SnekmerModel(BaseEstimator):
         model: str = "logistic",
         model_params: Optional[Dict[Any, Any]] = {},
         params: Dict[str, List] = MODEL_PARAMS,
-        step_name="clf",
     ):
         """Initialize KmerModel object.
 
@@ -91,8 +90,44 @@ class SnekmerModel(BaseEstimator):
         self.scaler = scaler
         self.params = params
         self.model = NAME2MODEL[model](**model_params)
-        self.step_name = step_name
-        self.snekmer_version = __version__
+        self.model_params = model_params
+        self._step_name = list(params.keys())[0].split("__")[0]
+        self._snekmer_version = __version__
+        self._k = None
+        self._alphabet = None
+        self._alphabet_name = None
+
+    @property
+    def step_name(self):
+        return self._step_name
+
+    @property
+    def snekmer_version(self):
+        return self._snekmer_version
+
+    @property
+    def k(self):
+        return self._k
+
+    @k.setter
+    def k(self, value):
+        self._k = value
+
+    @property
+    def alphabet(self):
+        return self._alphabet
+
+    @alphabet.setter
+    def alphabet(self, value):
+        self._alphabet = value
+
+    @property
+    def alphabet_name(self):
+        return self._alphabet_name
+
+    @alphabet_name.setter
+    def alphabet_name(self, value):
+        self._alphabet_name = value
 
     def fit(
         self, X: NDArray, y: NDArray, gridsearch: bool = False, verbose: bool = True
