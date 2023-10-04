@@ -40,6 +40,8 @@ def load_pickle(filename: str, mode: str = "rb") -> Any:
 
     """
     with open(filename, mode) as f:
+        if splitext(filename)[1] == "model":
+            return ModelLoader(f).load()
         return pickle.load(f)
 
 
@@ -191,3 +193,24 @@ def define_output_dir(alphabet: Union[str, int], k: int, nested: bool = False) -
     if not isinstance(alphabet, str):
         alphabet = ALPHABET_ORDER[alphabet]
     return join("output", alphabet, f"k-{k:02}")
+
+
+# Custom Unpickler
+class ModelLoader(pickle.Unpickler):
+    def __init__(self, *args, **kwargs):
+        super(ModelLoader, self).__init__(*args, **kwargs)
+
+    def load(self):
+        obj = super(ModelLoader, self).load()
+        # if type(obj) is FooOld:
+        #     # Object conversion logic
+        #     newObj = Foo()
+        #     newObj.val = obj.val
+        #     obj = newObj
+        return obj
+
+    def find_class(self, module, name):
+        # Use old class instead of new for loaded objects
+        # if module == __name__ and name == 'Foo':
+        #     return FooOld
+        return super(ModelLoader, self).find_class(module, name)
