@@ -45,7 +45,7 @@ for i in range(len(data)):
     df["sequence_vector"] = kmers.harmonize(vecs, kmerlist).tolist()
 
 data = pd.concat(data, ignore_index=True)
-data["background"] = [f in snakemake.input.bg for f in data["filename"]]
+data["background"] = [f in snakemake.params.bg for f in data["filename"]]
 
 # log conversion step runtime
 skm.utils.log_runtime(snakemake.log[0], start_time, step="files_to_df")
@@ -61,7 +61,7 @@ if any(families):
     data[label] = families
 
 # binary T/F for classification into family
-family = skm.utils.get_family(snakemake.wildcards.nb)
+family = skm.utils.get_family(snakemake.wildcards.f)
 binary_labels = [True if value == family else False for value in data[label]]
 
 # define k-fold split indices
@@ -81,7 +81,7 @@ scorer = skm.score.KmerScorer()
 scorer.fit(
     list(kmers.kmer_set.kmers),
     data,
-    skm.utils.get_family(snakemake.wildcards.nb, regex=config["input_file_regex"]),
+    skm.utils.get_family(snakemake.wildcards.f, regex=config["input_file_regex"]),
     label_col=label,
     vec_col="sequence_vector",
     **config["score"]["scaler_kwargs"],

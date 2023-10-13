@@ -27,7 +27,7 @@ module kmerize:
 # imports
 from glob import glob
 from itertools import product
-from os.path import basename, dirname, join, splitext
+from os.path import basename, dirname, isdir, join, splitext
 from pkg_resources import resource_filename
 
 import matplotlib.pyplot as plt
@@ -46,7 +46,7 @@ input_dir = (
     if (("input_dir" not in config) or (str(config["input_dir"]) == "None"))
     else config["input_dir"]
 )
-input_files = glob(join(input_dir, "*"))
+input_files = [f for f in glob(join(input_dir, "*")) if not isdir(f)]
 zipped = [fa for fa in input_files if fa.endswith(".gz")]
 unzipped = [
     fa.rstrip(".gz")
@@ -102,7 +102,7 @@ onstart:
 rule all:
     input:
         expand(join("input", "{uz}"), uz=UZS),  # require unzipping
-        expand(join(out_dir, "model", "{nb}.model"), nb=NON_BGS),  # require model-building
+        expand(join(out_dir, "model", "{f}.model"), f=FAS),  # require model-building
         join(out_dir, "Snekmer_Model_Report.html"),
 
 
@@ -116,27 +116,28 @@ use rule unzip from process with:
 # build kmer count vectors for each basis set
 use rule vectorize from kmerize with:
     input:
-        fasta=lambda wildcards: join("input", f"{wildcards.nb}.{FA_MAP[wildcards.nb]}"),
+        fasta=lambda wildcards: join("input", f"{wildcards.f}.{FA_MAP[wildcards.f]}"),
     output:
-        data=join(out_dir, "vector", "{nb}.npz"),
-        kmerobj=join(out_dir, "kmerize", "{nb}.kmers"),
+        data=join(out_dir, "vector", "{f}.npz"),
+        kmerobj=join(out_dir, "kmerize", "{f}.kmers"),
     log:
-        join(out_dir, "kmerize", "log", "{nb}.log"),
+        join(out_dir, "kmerize", "log", "{f}.log"),
 
 
 # build family score basis
 rule score:
     input:
-        kmerobj=join(out_dir, "kmerize", "{nb}.kmers"),
-        data=expand(join(out_dir, "vector", "{fa}.npz"), fa=NON_BGS),
-        bg=BGS,
+        kmerobj=join(out_dir, "kmerize", "{f}.kmers"),
+        data=expand(join(out_dir, "vector", "{nb}.npz"), nb=NON_BGS),
     output:
-        data=join(out_dir, "scoring", "sequences", "{nb}.csv.gz"),
-        weights=join(out_dir, "scoring", "weights", "{nb}.csv.gz"),
-        scorer=join(out_dir, "scoring", "{nb}.scorer"),
-        matrix=join(out_dir, "scoring", "{nb}.matrix"),
+        data=join(out_dir, "scoring", "sequences", "{f}.csv.gz"),
+        weights=join(out_dir, "scoring", "weights", "{f}.csv.gz"),
+        scorer=join(out_dir, "scoring", "{f}.scorer"),
+        matrix=join(out_dir, "scoring", "{f}.matrix"),
+    params:
+        bg=BGS,
     log:
-        join(out_dir, "scoring", "log", "{nb}.log"),
+        join(out_dir, "scoring", "log", "{f}.log"),
     script:
         resource_filename("snekmer", join("scripts/model_score.py"))
 
@@ -149,17 +150,17 @@ rule model:
         kmerobj=rules.score.input.kmerobj,
         matrix=rules.score.output.matrix,
     output:
-        model=join(out_dir, "model", "{nb}.model"),
-        results=join(out_dir, "model", "results", "{nb}.csv"),
-        figs=directory(join(out_dir, "model", "figures", "{nb}")),
+        model=join(out_dir, "model", "{f}.model"),
+        results=join(out_dir, "model", "results", "{f}.csv"),
+        figs=directory(join(out_dir, "model", "figures", "{f}")),
     script:
         resource_filename("snekmer", join("scripts/model_model.py"))
 
 
 rule model_report:
     input:
-        results=expand(join(out_dir, "model", "results", "{nb}.csv"), nb=NON_BGS),
-        figs=expand(join(out_dir, "model", "figures", "{nb}"), nb=NON_BGS),
+        results=expand(join(out_dir, "model", "results", "{f}.csv"), f=FAS),
+        figs=expand(join(out_dir, "model", "figures", "{f}"), f=FAS),
     output:
         join(out_dir, "Snekmer_Model_Report.html"),
     run:

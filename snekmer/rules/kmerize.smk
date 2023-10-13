@@ -56,7 +56,7 @@ FA_MAP = {
 
 rule vectorize:
     input:
-        fasta=lambda wildcards: join("input", f"{wildcards.nb}.{FA_MAP[wildcards.nb]}"),
+        fasta=lambda wildcards: join("input", f"{wildcards.f}.{FA_MAP[wildcards.f]}"),
         kmerbasis=join(input_dir, "basis.txt"),  # this is optional
     output:
         data=join("output", "vector", "{nb}.npz"),
