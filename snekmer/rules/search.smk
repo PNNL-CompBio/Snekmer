@@ -117,40 +117,35 @@ if len(UZS) > 0:
         output:
             join("input", "{uz}"),  # or join("input", "{uz}.{uzext}") ?
 
+if exists(join(config["basis_dir"], "search_kmers.txt")):
+    rule common_basis:  # build kmer count vectors for each basis set
+        input:
+            kmerobjs=expand(join(config["basis_dir"], "{fam}.kmers"), fam=FAMILIES),
+        output:
+            kmerbasis=join(config["basis_dir"], "search_kmers.txt"),
+        log:
+            join(config["basis_dir"], "log", "common_basis.log"),
+        run:
+            common_basis = list()
+            for kobj in input.kmerobjs:
+                kmers = skm.io.load_pickle(kobj)
 
-rule common_basis:  # build kmer count vectors for each basis set
-    input:
-        kmerobjs=expand(join(config["basis_dir"], "{fam}.kmers"), fam=FAMILIES),
-    output:
-        kmerbasis=join(config["basis_dir"], "search_kmers.txt"),
-    log:
-        join(config["basis_dir"], "log", "common_basis.log"),
-    run:
-        common_basis = list()
-        for kobj in input.kmerobjs:
-            kmers = skm.io.load_pickle(kobj)
+                # consolidate overly long lists of duplicate kmers
+                if len(common_basis) > 1e10:
+                    common_basis = list(set(common_basis))
+                common_basis.extend(list(kmers.kmer_set.kmers))
 
-            # consolidate overly long lists of duplicate kmers
-            if len(common_basis) > 1e10:
-                common_basis = list(set(common_basis))
-            common_basis.extend(list(kmers.kmer_set.kmers))
+            # capture common basis set -- is faster than np.unique
+            common_basis = set(common_basis)
+            common_basis = sorted(list(common_basis))
 
-        # capture common basis set -- is faster than np.unique
-        common_basis = set(common_basis)
-        common_basis = sorted(list(common_basis))
-
-        # output type: plaintext (no pandas) would likely be more compact
-        with open(output.kmerbasis, "w") as f:
-            for kmer in common_basis:
-                f.write(f"{kmer}\n")
-        # df = pd.DataFrame({'common': common_basis})
-        # df.to_csv(output.kmerbasis, index=False)
-
-
-
-
-
-use rule vectorize from kmerize with:
+            # output type: plaintext (no pandas) would likely be more compact
+            with open(output.kmerbasis, "w") as f:
+                for kmer in common_basis:
+                    f.write(f"{kmer}\n")
+            # df = pd.DataFrame({'common': common_basis})
+            # df.to_csv(output.kmerbasis, index=False)
+    use rule vectorize from kmerize with:
     input:
         fasta=lambda wildcards: join(
             input_dir, f"{wildcards.f}.{FILE_MAP[wildcards.f]}"
@@ -161,6 +156,20 @@ use rule vectorize from kmerize with:
         kmerobj=join(out_dir, "kmerize", "{f}.kmers"),
     log:
         join(out_dir, "kmerize", "log", "{f}.log"),
+
+else:
+    rule kmerize:
+        input:
+            vecs=join(out_dir, "vector", "{f}.npz"),  # change to data=join("output", "vector", "{nb}.npz")
+            models=expand(join(config["model_dir"], "{fam}.model"), fam=FAMILIES)
+        output:
+        run:
+
+
+
+
+
+
 
 
 rule search:
