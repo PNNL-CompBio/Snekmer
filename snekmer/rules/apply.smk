@@ -100,13 +100,6 @@ wildcard_constraints:
     FAS=FAS,
 
 
-# options = [(config["learnapp"]["save_apply_associations"])]
-# if all((option == True or option == False) for option in options) == False:
-#     sys.exit(
-#         "Incorrect Value Selected. Please check if 'save_apply_associations' in in the config file under 'learnapp'. Options are 'True' or 'False'."
-#     )
-
-
 rule all:
     input:
         expand(join(input_dir, "{uz}"), uz=UZS),
@@ -150,18 +143,26 @@ rule apply:
         with open(log[0], "a") as f:
             f.write(f"start time:\t{start_time}\n")
 
-        class KmerCompare:
-            def __init__(self, compare_associations, data, confidence_associations, output_seq_ann, output_kmer_summary):
-                """
-                Initialize KmerCompare with necessary file paths.
 
-                Args:
-                    compare_associations (str): Path to compare associations file.
-                    data (str): Path to data file.
-                    confidence_associations (str): Path to confidence associations file.
-                    output_seq_ann (str): Path to output sequence annotation file.
-                    output_kmer_summary (str): Path to output kmer summary file.
+        class KmerCompare:
+            def __init__(
+                self,
+                compare_associations,
+                data,
+                confidence_associations,
+                output_seq_ann,
+                output_kmer_summary,
+            ):
                 """
+        Initialize KmerCompare with necessary file paths.
+
+        Args:
+            compare_associations (str): Path to compare associations file.
+            data (str): Path to data file.
+            confidence_associations (str): Path to confidence associations file.
+            output_seq_ann (str): Path to output sequence annotation file.
+            output_kmer_summary (str): Path to output kmer summary file.
+        """
                 self.compare_associations = compare_associations
                 self.data = data
                 self.confidence_associations = confidence_associations
@@ -171,8 +172,8 @@ rule apply:
 
             def load_data(self):
                 """
-                Load kmer counts and sequence data from provided files.
-                """
+        Load kmer counts and sequence data from provided files.
+        """
                 self.kmer_count_totals = pd.read_csv(
                     str(self.compare_associations),
                     index_col="__index_level_0__",
@@ -186,15 +187,17 @@ rule apply:
 
             def generate_kmer_counts(self):
                 """
-                Generate k-mer counts for sequences present in the data.
-                """
+        Generate k-mer counts for sequences present in the data.
+        """
                 self.kmer_totals = [0 for _ in self.kmerlist]
                 k_len = len(self.kmerlist[0])
                 self.seq_kmer_dict = {}
                 for i, seq in enumerate(self.seqids):
                     v = self.df["sequence"][i]
                     kmer_counts = dict()
-                    items = [v[item: item + k_len] for item in range(0, len(v) - k_len + 1)]
+                    items = [
+                        v[item : item + k_len] for item in range(0, len(v) - k_len + 1)
+                    ]
                     for j in items:
                         kmer_counts[j] = kmer_counts.get(j, 0) + 1
                     store = [kmer_counts.get(item, 0) for item in self.kmerlist]
@@ -204,29 +207,51 @@ rule apply:
 
             def construct_kmer_counts_dataframe(self):
                 """
-                Construct a DataFrame to represent k-mer counts across sequences.
-                """
+        Construct a DataFrame to represent k-mer counts across sequences.
+        """
                 total_seqs = len(self.seq_kmer_dict)
                 self.kmer_counts = pd.DataFrame(self.seq_kmer_dict.values())
                 self.kmer_counts.insert(0, "Annotations", 1, True)
                 self.kmer_totals.insert(0, total_seqs)
-                self.kmer_counts = pd.DataFrame(np.insert(self.kmer_counts.values, 0, values=self.kmer_totals, axis=0))
+                self.kmer_counts = pd.DataFrame(
+                    np.insert(
+                        self.kmer_counts.values, 0, values=self.kmer_totals, axis=0
+                    )
+                )
                 self.kmer_counts.columns = ["Sequence count"] + list(self.kmerlist)
                 self.kmer_counts.index = ["Totals"] + list(self.seq_kmer_dict.keys())
 
             def match_kmer_counts_format(self):
                 """
-                Ensure that the format of the k-mer counts DataFrame matches the expected format.
-                """
-                if len(str(self.kmer_counts.columns.values[10])) == len(str(self.kmer_count_totals.columns.values[10])):
+        Ensure that the format of the k-mer counts DataFrame matches the expected format.
+        """
+                if len(str(self.kmer_counts.columns.values[10])) == len(
+                    str(self.kmer_count_totals.columns.values[10])
+                ):
                     compare_check = True
                 else:
                     compare_check = False
 
                 if compare_check:
                     check_1 = len(self.kmer_counts.columns.values)
-                    alphabet_initial = set(itertools.chain(*[list(x) for x in self.kmer_counts.columns.values[10:check_1]]))
-                    alphabet_compare = set(itertools.chain(*[list(x) for x in self.kmer_count_totals.columns.values[10:check_1]]))
+                    alphabet_initial = set(
+                        itertools.chain(
+                            *[
+                                list(x)
+                                for x in self.kmer_counts.columns.values[10:check_1]
+                            ]
+                        )
+                    )
+                    alphabet_compare = set(
+                        itertools.chain(
+                            *[
+                                list(x)
+                                for x in self.kmer_count_totals.columns.values[
+                                    10:check_1
+                                ]
+                            ]
+                        )
+                    )
                     if alphabet_compare != alphabet_initial:
                         compare_check = False
 
@@ -240,40 +265,68 @@ rule apply:
                 self.kmer_count_totals.drop("Kmer Count", axis=1, inplace=True)
                 self.kmer_count_totals.drop("Sequence count", axis=1, inplace=True)
 
-                column_order = list(set(self.kmer_counts.columns) | set(self.kmer_count_totals.columns))
-                self.kmer_counts = self.kmer_counts.reindex(columns=column_order, fill_value=0)
-                self.kmer_count_totals = self.kmer_count_totals.reindex(columns=column_order, fill_value=0)
+                column_order = list(
+                    set(self.kmer_counts.columns) | set(self.kmer_count_totals.columns)
+                )
+                self.kmer_counts = self.kmer_counts.reindex(
+                    columns=column_order, fill_value=0
+                )
+                self.kmer_count_totals = self.kmer_count_totals.reindex(
+                    columns=column_order, fill_value=0
+                )
 
             def cosine_similarity(self):
                 """
-                Compute cosine similarity between kmer counts of sequences.
-                """
-                cosine_df = sklearn.metrics.pairwise.cosine_similarity(self.kmer_count_totals, self.kmer_counts).T
-                self.kmer_count_totals = pd.DataFrame(cosine_df, columns=self.kmer_count_totals.index, index=self.kmer_counts.index)
+        Compute cosine similarity between kmer counts of sequences.
+        """
+                cosine_df = sklearn.metrics.pairwise.cosine_similarity(
+                    self.kmer_count_totals, self.kmer_counts
+                ).T
+                self.kmer_count_totals = pd.DataFrame(
+                    cosine_df,
+                    columns=self.kmer_count_totals.index,
+                    index=self.kmer_counts.index,
+                )
 
             def format_and_write_output(self):
                 """
-                Format the results and write to specified output files.
-                """
+        Format the results and write to specified output files.
+        """
                 if config["learnapp"]["save_apply_associations"]:
-                    kmer_count_totals_write = pa.Table.from_pandas(self.kmer_count_totals)
+                    kmer_count_totals_write = pa.Table.from_pandas(
+                        self.kmer_count_totals
+                    )
                     csv.write_csv(kmer_count_totals_write, self.output_seq_ann)
 
-                global_confidence_scores = pd.read_csv(str(self.confidence_associations))
-                global_confidence_scores.index = global_confidence_scores[global_confidence_scores.columns[0]]
+                global_confidence_scores = pd.read_csv(
+                    str(self.confidence_associations)
+                )
+                global_confidence_scores.index = global_confidence_scores[
+                    global_confidence_scores.columns[0]
+                ]
                 global_confidence_scores = global_confidence_scores.iloc[:, 1:]
-                global_confidence_scores = global_confidence_scores[global_confidence_scores.columns[0]].squeeze()
+                global_confidence_scores = global_confidence_scores[
+                    global_confidence_scores.columns[0]
+                ].squeeze()
 
                 score_rank = []
                 sorted_vals = np.argsort(-self.kmer_count_totals.values, axis=1)[:, :2]
                 for i, item in enumerate(sorted_vals):
-                    score_rank.append((self.kmer_count_totals[self.kmer_count_totals.columns[[item]]][i: i+1]).values.tolist()[0])
+                    score_rank.append(
+                        (
+                            self.kmer_count_totals[
+                                self.kmer_count_totals.columns[[item]]
+                            ][i : i + 1]
+                        ).values.tolist()[0]
+                    )
 
                 delta = [score[0] - score[1] for score in score_rank]
                 top_score = [score[0] for score in score_rank]
 
                 vals = pd.DataFrame({"delta": delta})
-                predictions = pd.DataFrame(self.kmer_count_totals.columns[sorted_vals][:, :1])
+                predictions = pd.DataFrame(
+                    self.kmer_count_totals.columns[sorted_vals][:, :1]
+                )
                 score = pd.DataFrame(top_score)
                 score.columns = ["Score"]
                 predictions.columns = ["Prediction"]
@@ -290,8 +343,8 @@ rule apply:
 
             def execute_all(self):
                 """
-                Execute the entire sequence of operations in the KmerCompare process.
-                """
+        Execute the entire sequence of operations in the KmerCompare process.
+        """
                 self.load_data()
                 self.generate_kmer_counts()
                 self.construct_kmer_counts_dataframe()
@@ -299,7 +352,14 @@ rule apply:
                 self.cosine_similarity()
                 self.format_and_write_output()
 
-        apply = KmerCompare(input.compare_associations, input.data, input.confidence_associations, output.seq_ann, output.kmer_summary)
+
+        apply = KmerCompare(
+            input.compare_associations,
+            input.data,
+            input.confidence_associations,
+            output.seq_ann,
+            output.kmer_summary,
+        )
         apply.execute_all()
 
         skm.utils.log_runtime(log[0], start_time)
