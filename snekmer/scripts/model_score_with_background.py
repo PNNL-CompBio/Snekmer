@@ -26,23 +26,28 @@ label = (
 with open(snakemake.log[0], "a") as f:
     f.write(f"start time:\t{start_time}\n")
 
-# get kmers for this particular set of sequences
-kmers = skm.io.load_pickle(snakemake.input.kmerobj)
+# load kmer basis for family of interest
+basis = skm.io.load_pickle(snakemake.input.kmerobj)
 
-# tabulate vectorized seq data
-data = list()
-kmer_sets = list()
+# collect all seq data and raw lists of kmers
+data, kmers = list(), list()
 for f in snakemake.input.data:
     kmerlist, df = skm.io.load_npz(f)
     data.append(df)
-    kmer_sets.append(kmerlist[0])
+    kmers.append(kmerlist[0])
 
-# loading all other models and harmonize basis sets
+# load background and harmonize to family kmer set
+kmers_bg, scores_bg = skm.io.load_npz(snakemake.input.bg)
+# scores_bg = basis.harmonize(scores_bg.reshape(-1, 1).T, kmers_bg)
+
+# loading all other models, harmonize basis sets, & subtract bg
 for i in range(len(data)):
     df = data[i]
     kmerlist = kmer_sets[i]
     vecs = skm.utils.to_feature_matrix(df["sequence_vector"].values)
-    df["sequence_vector"] = kmers.harmonize(vecs, kmerlist).tolist()
+    harmonized = kmers.harmonize(vecs, kmerlist).tolist()
+    df["sequence_vector_raw"] = harmonized
+    df["sequence_vector"] = harmonized - scores_bg
     data[i] = df
 
 data = pd.concat(data, ignore_index=True)
@@ -79,6 +84,7 @@ elif config["model"]["cv"] in [0, 1]:
 
 # generate family scores and object
 scorer = skm.score.KmerScorer()
+scorer.add_background(scores_bg, kmers_bg)
 scorer.fit(
     list(kmers.kmer_set.kmers),
     data,
@@ -89,9 +95,7 @@ scorer.fit(
 )
 
 # append scored sequences to dataframe
-data = data.merge(
-    pd.DataFrame(scorer.scores), left_index=True, right_index=True
-)
+data = data.merge(pd.DataFrame(scorer.scores), left_index=True, right_index=True)
 if data.empty:
     raise ValueError("Blank df")
 
