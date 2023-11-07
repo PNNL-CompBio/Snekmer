@@ -3,7 +3,7 @@
 author: @christinehc
 
 """
-ruleorder: vectorize > score_background
+
 # snakemake config
 from snakemake.utils import min_version
 
@@ -45,6 +45,14 @@ bg_input = glob_wildcards(
 )
 print(seq_input, bg_input, gz_input)
 # gz_exts = [e.split(".")[0] for e in gz_input.raw_ext]
+
+if len(bg_input.filename) > 0:
+
+    ruleorder: unzip > vectorize > vectorize_background > score_background > score_with_background > model > model_report
+
+else:
+
+    ruleorder: unzip > vectorize > score > model > model_report
 
 
 # check input file size
@@ -136,7 +144,7 @@ use rule vectorize from kmerize with:
 
 if len(bg_input.filename) > 0:
 
-    use rule vectorize as vectorize_backgrond from kmerize with:
+    use rule vectorize from kmerize as vectorize_background with:
         input:
             fasta=join("input", "background", "{bf}.{be}"),
         output:
