@@ -68,7 +68,7 @@ jobs:
           export PATH="/usr/share/miniconda/bin:$PATH"
           source activate snekmer
           snekmer model --configfile .test/config.yaml -d .test --cores 1
-          mkdir .test/output/example-model
+          mkdir -p .test/output/example-model
           mv .test/output/model/*.model .test/output/example-model/
           mv .test/output/kmerize/*.kmers .test/output/example-model/
           mv .test/output/scoring/*.scorer .test/output/example-model/
