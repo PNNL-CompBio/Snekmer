@@ -9,9 +9,9 @@ from os import makedirs, system
 from os.path import dirname, exists
 
 
-# if not exists(dirname(snakemake.output.zipped)):
-#     makedirs(dirname(snakemake.output.zipped))
-# system(f"mv {snakemake.input[0]} {snakemake.output.zipped}")
+if not exists(dirname(snakemake.output.zipped)):
+    makedirs(dirname(snakemake.output.zipped))
+system(f"mv {snakemake.input[0]} {snakemake.output.zipped}")
 
 # unzip and save file contents
 with gzip.open(snakemake.output.zipped, "rb") as openf, open(

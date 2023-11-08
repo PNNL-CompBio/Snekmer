@@ -31,15 +31,6 @@ kmers = skm.io.load_pickle(snakemake.input.kmerobj)
 # load vectorized seq data
 kmerlist, df = skm.io.load_npz(snakemake.input.data)
 
-# loading all other models and harmonize basis sets
-# for i in range(len(data)):
-#     df = data[i]
-#     kmerlist = kmer_sets[i]
-#     vecs = skm.utils.to_feature_matrix(df["sequence_vector"].values)
-#     df["sequence_vector"] = kmers.harmonize(vecs, kmerlist).tolist()
-#     data[i] = df
-
-
 # create matrix of kmer counts
 x, y = len(df["sequence_vector"]), len(df["sequence_vector"][0])
 matrix = np.zeros(x * y).reshape((x, y))
@@ -49,16 +40,13 @@ for i in range(x):
         value = value[j]
         matrix[i, j] = value
 
-weight = config["score"]["background_weight"]
 probas = skm.score.feature_class_probabilities(
     matrix.T, df["filename"], kmers=kmers.basis.basis
 )
-scores = weight * probas["score"].values
 
 # save score weights
 np.savez_compressed(
-    output.scores,
+    snakemake.output.scores,
     kmerlist=kmerlist,
-    probas=probas,
-    scores=scores,
+    probas=probas["probability"].values,
 )

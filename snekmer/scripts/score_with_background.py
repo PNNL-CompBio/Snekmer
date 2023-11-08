@@ -4,6 +4,7 @@
 import pickle
 from datetime import datetime
 
+import numpy as np
 import pandas as pd
 import snekmer as skm
 from sklearn.model_selection import train_test_split, StratifiedKFold
@@ -31,21 +32,23 @@ basis = skm.io.load_pickle(snakemake.input.kmerobj)
 
 # collect all seq data and raw lists of kmers
 data, kmers = list(), list()
+# data = list()
 for f in snakemake.input.data:
     kmerlist, df = skm.io.load_npz(f)
     data.append(df)
     kmers.append(kmerlist[0])
 
 # load background and harmonize to family kmer set
-kmers_bg, scores_bg = skm.io.load_npz(snakemake.input.bg)
+bg = np.load(snakemake.input.bg, allow_pickle=True)
+kmers_bg, scores_bg = bg["kmerlist"], bg["scores"][0]
 # scores_bg = basis.harmonize(scores_bg.reshape(-1, 1).T, kmers_bg)
 
 # loading all other models, harmonize basis sets, & subtract bg
 for i in range(len(data)):
     df = data[i]
-    kmerlist = kmer_sets[i]
+    kmerlist = kmers[i]
     vecs = skm.utils.to_feature_matrix(df["sequence_vector"].values)
-    harmonized = kmers.harmonize(vecs, kmerlist).tolist()
+    harmonized = basis.harmonize(vecs, kmerlist)
     df["sequence_vector_raw"] = harmonized
     df["sequence_vector"] = harmonized - scores_bg
     data[i] = df
@@ -86,7 +89,7 @@ elif config["model"]["cv"] in [0, 1]:
 scorer = skm.score.KmerScorer()
 scorer.add_background(scores_bg, kmers_bg)
 scorer.fit(
-    list(kmers.kmer_set.kmers),
+    list(basis.kmer_set.kmers),
     data,
     skm.utils.get_family(snakemake.wildcards.f, regex=config["input_file_regex"]),
     label_col=label,

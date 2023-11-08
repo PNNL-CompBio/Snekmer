@@ -6,9 +6,10 @@ author: @christinehc
 # imports
 import collections.abc
 import datetime
+import gzip
 import re
 
-from os.path import basename, splitext
+from os.path import basename, exists, splitext
 from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
@@ -241,7 +242,11 @@ def check_n_seqs(filename: str, k: int, show_warning: bool = True) -> bool:
         True if len(file) < k; False otherwise.
 
     """
-    n_seqs = len([1 for line in open(filename) if line.startswith(">")])
+    opener, mode = open, "r"
+    if not exists(filename):
+        filename = f"{filename}.gz"
+        opener, mode = gzip.open, "rt"
+    n_seqs = len([1 for line in opener(filename, mode=mode) if line.startswith(">")])
     if (n_seqs < k) and (show_warning):
         print(
             f"\nWARNING: {filename} contains an insufficient"
