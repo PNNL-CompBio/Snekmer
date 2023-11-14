@@ -1,0 +1,65 @@
+<script src="https://3Dmol.org/build/3Dmol-min.js"></script>
+<div id="container-01" class="mol-container"></div>
+<style>
+.mol-container {
+  width: 60%;
+  height: 800px;
+  position: relative;
+}
+</style>
+
+<script>
+  /* Currently this just stores the entire pdb_file
+  and the score_vector as explicit strings in the html.
+  I know there are more elegant ways to do this.
+  */
+  let pdb_file = `
+{{pdb_file}}
+`
+  let score_vector = `
+{{score_vector}}
+`
+</script>
+<script>
+  let element = document.querySelector('#container-01');
+  let config = { backgroundColor: 'white' };
+  let viewer = $3Dmol.createViewer( element, config );
+
+  viewer.addModel(pdb_file, "pdb");
+  viewer.setStyle({}, {cartoon: {color: 'white'}});
+
+  /* this is where we put in magic to color residues by
+    score from the score_vector variable. Currently it's
+    just a manual job, but it should be easy to do with a
+
+  */
+  </body>
+  let colorSection = function(atom) {
+    let value = 'white';
+    if (atom.resi > 1 && atom.resi < 16) { value='white'}
+    if (atom.resi > 104 && atom.resi < 118) { value='lightyellow' }
+    if (atom.resi > 132 && atom.resi < 160) { value='yellow' }
+    if (atom.resi == 34 || atom.resi==36) {value='cyan'}
+    if (atom.resi == 148 || atom.resi==157) {value='red'}
+    return value;
+  };
+  viewer.setStyle({chain: 'A'}, {cartoon: {colorfunc: colorSection}});
+
+viewer.addSurface("VDW", {opacity:0.15, color:'white'},{chain:'A'});
+
+  viewer.setHoverable({},true,function(atom,viewer,event,container) {
+               if(!atom.label) {
+                atom.label = viewer.addLabel(atom.resn+":"+atom.atom,{position: atom, backgroundColor: 'mintcream', fontColor:'black'});
+               }
+           },
+           function(atom) {
+               if(atom.label) {
+                viewer.removeLabel(atom.label);
+                delete atom.label;
+               }
+            }
+           );
+           viewer.zoomTo();
+           viewer.render();
+
+</script>
