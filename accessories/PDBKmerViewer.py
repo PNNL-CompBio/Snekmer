@@ -11,33 +11,6 @@ from Bio import SeqIO
 
 env = Environment(loader=FileSystemLoader("templates"), auto_reload=False)
 
-def correct_rel_path(filepath: str, out_dir: str = "output") -> str:
-    """Correct relative file paths for Jinja.
-
-    Parameters
-    ----------
-    filepath : str
-        /path/to/file
-    out_dir : str, optional
-        /path/to/output, by default "output"
-
-    Returns
-    -------
-    str
-        /path/to/file
-    """
-    # force paths to use OS separator
-    filepath = filepath.replace("/", os.sep)
-
-    filepath = filepath.split(os.sep)
-    out_dir = out_dir.split(os.sep)
-    for d in out_dir:
-        try:
-            filepath.remove(d)
-        except ValueError:  # if output dirs not found, skip
-            pass
-    return os.sep.join(filepath)
-
 def get_score_vector(fastafile, scorefile, alphabet, verbose=False):
     fd = open(scorefile, "r")
     scores = fd.readlines()
@@ -46,12 +19,13 @@ def get_score_vector(fastafile, scorefile, alphabet, verbose=False):
     reg_dict = {}
 
     for line in scores:
-        bits = line.split("\t")
-        kmer = bits[0]
-        score = float(bits[1])
-        #kmer = label.split("-")[-1]
-        #alpha = label.split("-")[-2]
-        score_dict[kmer] = score
+        bits = line.split(",")
+        if not bits[0] == 'kmer':
+            kmer = bits[0]
+            score = float(bits[1])
+            #kmer = label.split("-")[-1]
+            #alpha = label.split("-")[-2]
+            score_dict[kmer] = score
 
     # this may be unwise if we wanted to do something creative
     #  with varibale k lengths
