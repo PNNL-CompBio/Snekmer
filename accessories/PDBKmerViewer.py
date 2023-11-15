@@ -8,10 +8,11 @@ import argparse
 
 import snekmer as skm
 from Bio import SeqIO
+from Bio.PDB import *
 
 env = Environment(loader=FileSystemLoader("templates"), auto_reload=False)
 
-def get_score_vector(fastafile, scorefile, alphabet, verbose=False):
+def get_score_vector(scorefile, alphabet, fastafile=None, sequence=None, verbose=False):
     fd = open(scorefile, "r")
     scores = fd.readlines()
     fd.close()
@@ -31,23 +32,19 @@ def get_score_vector(fastafile, scorefile, alphabet, verbose=False):
     #  with varibale k lengths
     k = len(kmer)
 
-    sequence_list = []
-    ids_list = []
-    sequence_dict = {}
-    handle = open(fastafile, "rU")
+    if fastafile:
+        # we only need to grab the first fasta sequence
+        # - actually, we should just grab it from the pdb
+        #   though that can be dangerous since pdbs are notoriously
+        #   bad with sequence continuity
+        sequence_list = []
+        handle = open(fastafile, "rU")
+        for record in SeqIO.parse(handle, "fasta"):
+            sequence_list.append(str(record.seq))
+        handle.close()
 
-    # we only need to grab the first fasta sequence
-    # - actually, we should just grab it from the pdb
-    #   though that can be dangerous since pdbs are notoriously
-    #   bad with sequence continuity
-    for record in SeqIO.parse(handle, "fasta"):
-        sequence_list.append(str(record.seq))
-        id = record.id
-        ids_list.append(id)
-        sequence_dict[id] = str(record.seq)
-    handle.close()
+        sequence = sequence_list[0]
 
-    sequence = sequence_list[0]
     sequence = skm.vectorize.reduce(sequence, alphabet)
 
     # create an emptyp scoring vector for the sequence
@@ -67,6 +64,28 @@ def get_score_vector(fastafile, scorefile, alphabet, verbose=False):
             print("%d\t%s\t%.3f" % (i, sequence[i], seqscore[i]))
 
     return(seqscore)
+
+def get_sequence_from_pdb(pdbfile):
+    d3to1 = {'CYS': 'C', 'ASP': 'D', 'SER': 'S', 'GLN': 'Q', 'LYS': 'K',
+            'ILE': 'I', 'PRO': 'P', 'THR': 'T', 'PHE': 'F', 'ASN': 'N',
+            'GLY': 'G', 'HIS': 'H', 'LEU': 'L', 'ARG': 'R', 'TRP': 'W',
+            'ALA': 'A', 'VAL':'V', 'GLU': 'E', 'TYR': 'Y', 'MET': 'M'}
+
+    # run parser
+    parser = PDBParser(QUIET=True)
+    structure = parser.get_structure('struct', pdbfile)
+
+    # iterate each model, chain, and residue
+    # printing out the sequence for each chain
+    seqs = {}
+    for model in structure:
+        for chain in model:
+            id = "%s:%s" % (model.id, chain.id)
+            seq = []
+            for residue in chain:
+                seq.append(d3to1[residue.resname])
+            seqs[id] = "".join(seq)
+    return(seqs)
 
 def create_html_from_template(score_vector, pdbfile, outputfile, templatefile, verbose=None):
         """Create an HTML 3Dmol viewer for the pdb and kmer scores.
@@ -107,7 +126,13 @@ def main(fastafile=None, scorefile=None, pdbfile=None, outfile=None, alphabet=No
     templatefile should be a template for the display (see examples for requirements)
     """
 
-    score_vector = get_score_vector(fastafile, scorefile, alphabet, verbose=verbose)
+    sequences = get_sequence_from_pdb(pdbfile)
+
+    # this will only grab the first record from the pdb and
+    #     not sure this id will be applicable to all pdbs
+    sequence = sequences["0:A"]
+
+    score_vector = get_score_vector(scorefile, alphabet, sequence=sequence, verbose=verbose)
     pdb_output = create_html_from_template(score_vector, pdbfile, outfile, templatefile, verbose=verbose)
 
 OPTION_LIST = ["A program to generate features and run SIEVE models on input sequences",
