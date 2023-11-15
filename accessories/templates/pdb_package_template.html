@@ -42,8 +42,6 @@
     if (score > 0.1) {value='orange'}
     if (score > 0.2) {value='red'}
 
-    if (atom.resi == 34 || atom.resi==36) {value='cyan'}
-    if (atom.resi == 148 || atom.resi==157) {value='purple'}
     return value;
   };
   viewer.setStyle({chain: 'A'}, {cartoon: {colorfunc: colorSection}});
@@ -52,7 +50,7 @@ viewer.addSurface("VDW", {opacity:0.15, color:'white'},{chain:'A'});
 
   viewer.setHoverable({},true,function(atom,viewer,event,container) {
                if(!atom.label) {
-                atom.label = viewer.addLabel(atom.resn+":"+atom.atom,{position: atom, backgroundColor: 'mintcream', fontColor:'black'});
+                atom.label = viewer.addLabel(atom.resi+":"+atom.resn+":"+atom.atom,{position: atom, backgroundColor: 'mintcream', fontColor:'black'});
                }
            },
            function(atom) {
