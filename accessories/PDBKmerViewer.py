@@ -83,7 +83,9 @@ def get_sequence_from_pdb(pdbfile):
             id = "%s:%s" % (model.id, chain.id)
             seq = []
             for residue in chain:
-                seq.append(d3to1[residue.resname])
+                # warning: ignores unknown codes
+                if residue.resname in d3to1:
+                    seq.append(d3to1[residue.resname])
             seqs[id] = "".join(seq)
     return(seqs)
 
@@ -116,7 +118,13 @@ def create_html_from_template(score_vector, pdbfile, outputfile, templatefile, v
         with open(outputfile, "w") as f:
             f.write(html)
 
-def main(fastafile=None, scorefile=None, pdbfile=None, outfile=None, alphabet=None, templatefile=None, verbose=None, **kw):
+def get_pdbfile_from_id(pdbid):
+    pdbl = PDBList()
+    pdbfile = pdbl.retrieve_pdb_file(pdbid, file_format='pdb', pdir='pdb', obsolete=False)
+
+    return(pdbfile)
+
+def main(fastafile=None, scorefile=None, pdbfile=None, pdbid=None, outfile=None, alphabet=None, templatefile=None, verbose=None, **kw):
     """
     fastafile should have the first entry match with input pdbfile
     scorefile should be a tab-delimited file as output from snekmer model.
@@ -125,6 +133,11 @@ def main(fastafile=None, scorefile=None, pdbfile=None, outfile=None, alphabet=No
     outfile the filename of the html file to output
     templatefile should be a template for the display (see examples for requirements)
     """
+
+    # get pdbfile from the PDB and save it locally
+    # FIXME: this dumps the file in the current directory
+    if pdbid:
+        pdbfile = get_pdbfile_from_id(pdbid)
 
     sequences = get_sequence_from_pdb(pdbfile)
 
@@ -148,6 +161,9 @@ OPTION_LIST = ["A program to generate features and run SIEVE models on input seq
                 ("p", "pdbfile",
                   str, None,
                   "PDB file matching the input fasta and score"),
+                ("P", "pdbid",
+                  str, None,
+                  "Valid identifier of a PDB record to retrieve"),
                 ("o", "outfile",
                  str, "output.html",
                  "Output HTML file with annotated sequences"),
