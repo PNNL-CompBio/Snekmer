@@ -15,9 +15,13 @@
   */
   let pdb_file = `
 {{pdb_file}}
-`
-  const score_vector = {{score_vector}}
+`;
+  const score_vector = {{score_vector}};
 
+  /* we really should grab this from the viewer
+     but I can't immediately figure out how to do
+     that so we'll include it as part of the template
+     for now */
 </script>
 <script>
   let element = document.querySelector('#container-01');
@@ -28,13 +32,12 @@
   viewer.setStyle({}, {cartoon: {color: 'white'}});
 
   /* this is where we put in magic to color residues by
-    score from the score_vector variable. Currently it's
-    just a manual job, but it should be easy to do with a
-
+    score from the score_vector variable.
   */
-  let colorSection = function(atom) {
-    let score = score_vector[atom.resi-1];
 
+  let colorSection = function(atom) {
+    let score = score_vector[atom.resi - {{pdb_start}}];
+    
     let value = 'grey';
     if (score<0) {value='blue'}
     if (score == -1) {value='white'}
@@ -46,7 +49,7 @@
   };
   viewer.setStyle({chain: 'A'}, {cartoon: {colorfunc: colorSection}});
 
-viewer.addSurface("VDW", {opacity:0.15, color:'white'},{chain:'A'});
+  viewer.addSurface("VDW", {opacity:0.15, color:'white'},{chain:'A'});
 
   viewer.setHoverable({},true,function(atom,viewer,event,container) {
                if(!atom.label) {

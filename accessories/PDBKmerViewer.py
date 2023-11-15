@@ -12,7 +12,7 @@ from Bio.PDB import *
 
 env = Environment(loader=FileSystemLoader("templates"), auto_reload=False)
 
-def get_score_vector(scorefile, alphabet, fastafile=None, sequence=None, verbose=False):
+def get_score_vector(scorefile, alphabet, sequence=None, verbose=False):
     fd = open(scorefile, "r")
     scores = fd.readlines()
     fd.close()
@@ -31,19 +31,6 @@ def get_score_vector(scorefile, alphabet, fastafile=None, sequence=None, verbose
     # this may be unwise if we wanted to do something creative
     #  with varibale k lengths
     k = len(kmer)
-
-    if fastafile:
-        # we only need to grab the first fasta sequence
-        # - actually, we should just grab it from the pdb
-        #   though that can be dangerous since pdbs are notoriously
-        #   bad with sequence continuity
-        sequence_list = []
-        handle = open(fastafile, "rU")
-        for record in SeqIO.parse(handle, "fasta"):
-            sequence_list.append(str(record.seq))
-        handle.close()
-
-        sequence = sequence_list[0]
 
     sequence = skm.vectorize.reduce(sequence, alphabet)
 
@@ -82,14 +69,19 @@ def get_sequence_from_pdb(pdbfile):
         for chain in model:
             id = "%s:%s" % (model.id, chain.id)
             seq = []
+            pdbstart = -1
             for residue in chain:
+                if pdbstart < 0:
+                    pdbstart = residue.get_id()[1]
                 # warning: ignores unknown codes
                 if residue.resname in d3to1:
                     seq.append(d3to1[residue.resname])
-            seqs[id] = "".join(seq)
+            seqs[id] = (pdbstart, "".join(seq))
+
     return(seqs)
 
-def create_html_from_template(score_vector, pdbfile, outputfile, templatefile, verbose=None):
+def create_html_from_template(score_vector, pdbfile, outputfile,
+                                templatefile, pdbstart=1, verbose=None):
         """Create an HTML 3Dmol viewer for the pdb and kmer scores.
 
         Parameters
@@ -114,7 +106,9 @@ def create_html_from_template(score_vector, pdbfile, outputfile, templatefile, v
         scoredump = str(score_vector)
 
         template = env.get_template(templatefile)
-        html = template.render({"pdb_file":pdbdump,"score_vector":scoredump})
+        html = template.render({"pdb_file":pdbdump,
+                                "score_vector":scoredump,
+                                "pdb_start":pdbstart})
         with open(outputfile, "w") as f:
             f.write(html)
 
@@ -124,12 +118,11 @@ def get_pdbfile_from_id(pdbid):
 
     return(pdbfile)
 
-def main(fastafile=None, scorefile=None, pdbfile=None, pdbid=None, outfile=None, alphabet=None, templatefile=None, verbose=None, **kw):
+def main(scorefile=None, pdbfile=None, pdbid=None, outfile=None, alphabet=None, templatefile=None, verbose=None, **kw):
     """
-    fastafile should have the first entry match with input pdbfile
     scorefile should be a tab-delimited file as output from snekmer model.
         e.g.: SSSSSVSSVSVSSV 0.23
-    pdbfile should be a pdb file that matches the fastafile
+    pdbfile should be a pdb file to view
     outfile the filename of the html file to output
     templatefile should be a template for the display (see examples for requirements)
     """
@@ -143,24 +136,23 @@ def main(fastafile=None, scorefile=None, pdbfile=None, pdbid=None, outfile=None,
 
     # this will only grab the first record from the pdb and
     #     not sure this id will be applicable to all pdbs
-    sequence = sequences["0:A"]
+    (pdbstart, sequence) = sequences["0:A"]
 
     score_vector = get_score_vector(scorefile, alphabet, sequence=sequence, verbose=verbose)
-    pdb_output = create_html_from_template(score_vector, pdbfile, outfile, templatefile, verbose=verbose)
+    pdb_output = create_html_from_template(score_vector, pdbfile, outfile,
+                                            templatefile, pdbstart=pdbstart,
+                                            verbose=verbose)
 
 OPTION_LIST = ["A program to generate features and run SIEVE models on input sequences",
                 ("v", "verbose",
                  "on", None,
                  "verbose output"),
-                ("f", "fastafile",
-                 str, None,
-                 "FASTA-format file containing protein sequences"),
                 ("s", "scorefile",
                  str, None,
                  "Tab-delimited score file that contains kmer labels and weights (from RFE, e.g.)"),
                 ("p", "pdbfile",
                   str, None,
-                  "PDB file matching the input fasta and score"),
+                  "PDB file to view"),
                 ("P", "pdbid",
                   str, None,
                   "Valid identifier of a PDB record to retrieve"),
