@@ -2,7 +2,7 @@
 <div id="container-01" class="mol-container"></div>
 <style>
 .mol-container {
-  width: 60%;
+  width: 95%;
   height: 800px;
   position: relative;
 }
@@ -16,9 +16,8 @@
   let pdb_file = `
 {{pdb_file}}
 `
-  let score_vector = `
-{{score_vector}}
-`
+  const score_vector = {{score_vector}}
+
 </script>
 <script>
   let element = document.querySelector('#container-01');
@@ -33,14 +32,18 @@
     just a manual job, but it should be easy to do with a
 
   */
-  </body>
   let colorSection = function(atom) {
-    let value = 'white';
-    if (atom.resi > 1 && atom.resi < 16) { value='white'}
-    if (atom.resi > 104 && atom.resi < 118) { value='lightyellow' }
-    if (atom.resi > 132 && atom.resi < 160) { value='yellow' }
+    let score = score_vector[atom.resi-1];
+
+    let value = 'grey';
+    if (score<0) {value='blue'}
+    if (score == -1) {value='white'}
+    if (score > 0.025) {value='yellow'}
+    if (score > 0.1) {value='orange'}
+    if (score > 0.2) {value='red'}
+
     if (atom.resi == 34 || atom.resi==36) {value='cyan'}
-    if (atom.resi == 148 || atom.resi==157) {value='red'}
+    if (atom.resi == 148 || atom.resi==157) {value='purple'}
     return value;
   };
   viewer.setStyle({chain: 'A'}, {cartoon: {colorfunc: colorSection}});
