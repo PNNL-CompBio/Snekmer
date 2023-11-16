@@ -24,6 +24,7 @@
      for now */
 </script>
 <script>
+  var colgrad = new $3Dmol.CustomLinear(0,200, ['blue','cyan','white','orange','red'])
   let element = document.querySelector('#container-01');
   let config = { backgroundColor: 'white' };
   let viewer = $3Dmol.createViewer( element, config );
@@ -33,19 +34,16 @@
 
   /* this is where we put in magic to color residues by
     score from the score_vector variable.
+
+    It would be great to have this work as a color ramp
+    and not by bits like this.
   */
 
   let colorSection = function(atom) {
     let score = score_vector[atom.resi - {{pdb_start}}];
-    
-    let value = 'grey';
-    if (score<0) {value='blue'}
-    if (score == -1) {value='white'}
-    if (score > 0.025) {value='yellow'}
-    if (score > 0.1) {value='orange'}
-    if (score > 0.2) {value='red'}
 
-    return value;
+    color = colgrad.valueToHex((score*10000))
+    return new $3Dmol.Color(color);
   };
   viewer.setStyle({chain: 'A'}, {cartoon: {colorfunc: colorSection}});
 

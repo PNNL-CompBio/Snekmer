@@ -7,30 +7,22 @@ import os
 import argparse
 
 import snekmer as skm
+import pandas as pd
+
 from Bio import SeqIO
 from Bio.PDB import *
 
 env = Environment(loader=FileSystemLoader("templates"), auto_reload=False)
 
-def get_score_vector(scorefile, alphabet, sequence=None, verbose=False):
-    fd = open(scorefile, "r")
-    scores = fd.readlines()
-    fd.close()
-    score_dict = {}
-    reg_dict = {}
+def get_score_vector(scorefile, alphabet, sequence=None, learnapply=False,
+                    rowid=None, verbose=False):
 
-    for line in scores:
-        bits = line.split(",")
-        if not bits[0] == 'kmer':
-            kmer = bits[0]
-            score = float(bits[1])
-            #kmer = label.split("-")[-1]
-            #alpha = label.split("-")[-2]
-            score_dict[kmer] = score
+    if learnapply:
+        score_dict = get_learnscore_dict(scorefile, rowid)
+    else:
+        score_dict = get_modelscore_dict(scorefile)
 
-    # this may be unwise if we wanted to do something creative
-    #  with varibale k lengths
-    k = len(kmer)
+    k = score_dict["k"]
 
     sequence = skm.vectorize.reduce(sequence, alphabet)
 
@@ -39,6 +31,7 @@ def get_score_vector(scorefile, alphabet, sequence=None, verbose=False):
 
     for i in range(0,len(sequence)):
         seqkey = sequence[i:i+k]
+
         if seqkey in score_dict:
             score = score_dict[seqkey]
             for j in range(0,k):
@@ -51,6 +44,60 @@ def get_score_vector(scorefile, alphabet, sequence=None, verbose=False):
             print("%d\t%s\t%.3f" % (i, sequence[i], seqscore[i]))
 
     return(seqscore)
+
+def get_modelscore_dict(scorefile):
+    # FIXME: make this file read use pandas to be consistent
+    fd = open(scorefile, "r")
+    scores = fd.readlines()
+    fd.close()
+    score_dict = {}
+
+    for line in scores:
+        bits = line.split(",")
+        if not bits[0] == 'kmer':
+            kmer = bits[0]
+            score = float(bits[1])
+            score_dict[kmer] = score
+
+    # this may be unwise if we wanted to do something creative
+    #  with varibale k lengths
+    k = len(kmer)
+    score_dict["k"] = k
+    return(score_dict)
+
+def get_learnscore_dict(compare_associations, rowid=0, verbose=False):
+    kmer_count_totals = pd.read_csv(
+        str(compare_associations),
+        index_col="__index_level_0__",
+        header=0,
+        engine="c",
+    )
+
+    # FIXME: no checking here and we're just relying on the user
+    #        to provide us a reasonable rowid for now.
+    # FIXME: it'd be great to allow passing along multiple vectors
+    #        for each annotation - though I think that's not essential.
+
+    # we are going to calculate a probability of each kmer being
+    #    in a sequence in the family minus the probability of that kmer being
+    #    in a sequence across all families.
+    #    There are many ways to cut this - so should revisit
+    row = kmer_count_totals.loc[rowid]
+
+    counts = row[2:]
+    seq_count = row['Sequence count']
+    seq_counts = kmer_count_totals['Sequence count'][1:]
+    all_seqs = sum(seq_counts)
+
+    kmer_count = row['Kmer Count']
+    all_counts = kmer_count_totals.loc["Totals"][2:]
+
+    pcounts = ((counts/seq_count) - (all_counts/(all_seqs-seq_count)))
+
+    score_dict = dict(zip(kmer_count_totals.columns[2:], pcounts))
+    k = len(kmer_count_totals.columns[3])
+    score_dict["k"] = k
+    return(score_dict)
 
 def get_sequence_from_pdb(pdbfile):
     d3to1 = {'CYS': 'C', 'ASP': 'D', 'SER': 'S', 'GLN': 'Q', 'LYS': 'K',
@@ -102,7 +149,17 @@ def create_html_from_template(score_vector, pdbfile, outputfile,
 
         """
         # just slurp it all in at once
-        pdbdump = open(pdbfile, "r").read()
+        #
+
+        parser = PDBParser(QUIET=True)
+        structure = parser.get_structure('struct', pdbfile)
+
+        io=PDBIO()
+        io.set_structure(structure)
+        # only output chain A for clarity
+        io.save(".temp.pdb", select=SelectChains("A"))
+
+        pdbdump = open(".temp.pdb", "r").read()
         scoredump = str(score_vector)
 
         template = env.get_template(templatefile)
@@ -112,13 +169,24 @@ def create_html_from_template(score_vector, pdbfile, outputfile,
         with open(outputfile, "w") as f:
             f.write(html)
 
+# Select class to enable focus on only a selected chain
+class SelectChains(Select):
+    """ Only accept the specified chains when saving. """
+    def __init__(self, chain_letter):
+        self.chain_letter = chain_letter
+
+    def accept_chain(self, chain):
+        return (chain.get_id() == self.chain_letter)
+
 def get_pdbfile_from_id(pdbid):
     pdbl = PDBList()
     pdbfile = pdbl.retrieve_pdb_file(pdbid, file_format='pdb', pdir='pdb', obsolete=False)
 
     return(pdbfile)
 
-def main(scorefile=None, pdbfile=None, pdbid=None, outfile=None, alphabet=None, templatefile=None, verbose=None, **kw):
+def main(scorefile=None, pdbfile=None, pdbid=None, outfile=None,
+            alphabet=None, templatefile=None, learnapply=None, rowid=None,
+            verbose=None, **kw):
     """
     scorefile should be a tab-delimited file as output from snekmer model.
         e.g.: SSSSSVSSVSVSSV 0.23
@@ -138,7 +206,8 @@ def main(scorefile=None, pdbfile=None, pdbid=None, outfile=None, alphabet=None, 
     #     not sure this id will be applicable to all pdbs
     (pdbstart, sequence) = sequences["0:A"]
 
-    score_vector = get_score_vector(scorefile, alphabet, sequence=sequence, verbose=verbose)
+    score_vector = get_score_vector(scorefile, alphabet, sequence=sequence,
+                                learnapply=learnapply, rowid=rowid, verbose=verbose)
     pdb_output = create_html_from_template(score_vector, pdbfile, outfile,
                                             templatefile, pdbstart=pdbstart,
                                             verbose=verbose)
@@ -147,6 +216,12 @@ OPTION_LIST = ["A program to generate features and run SIEVE models on input seq
                 ("v", "verbose",
                  "on", None,
                  "verbose output"),
+                ("l", "learnapply",
+                "on", None,
+                 "Score derived from learn/apply count matrix"),
+                 ("r", "rowid",
+                 str, None,
+                 "Row identifier to use for kmer counts from learn/apply count matrix"),
                 ("s", "scorefile",
                  str, None,
                  "Tab-delimited score file that contains kmer labels and weights (from RFE, e.g.)"),
