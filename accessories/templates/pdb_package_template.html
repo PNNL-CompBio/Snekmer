@@ -24,7 +24,7 @@
      for now */
 </script>
 <script>
-  var colgrad = new $3Dmol.CustomLinear(0,200, ['blue','cyan','white','orange','red'])
+  var colgrad = new $3Dmol.CustomLinear(-0.5,0.5, ['blue','cyan','white','yellow','red'])
   let element = document.querySelector('#container-01');
   let config = { backgroundColor: 'white' };
   let viewer = $3Dmol.createViewer( element, config );
@@ -42,16 +42,27 @@
   let colorSection = function(atom) {
     let score = score_vector[atom.resi - {{pdb_start}}];
 
-    color = colgrad.valueToHex((score*10000))
-    return new $3Dmol.Color(color);
+    /* 'blank' out a middle range of insiginficant values that shouldn't
+             be on a gradient
+    */
+    if (Math.abs(score)<0.1) color = "grey";
+    else if (score == -1) color = "white";
+    else color = new $3Dmol.Color(colgrad.valueToHex((score*1)))
+
+    return color;
   };
   viewer.setStyle({chain: 'A'}, {cartoon: {colorfunc: colorSection}});
 
   viewer.addSurface("VDW", {opacity:0.15, color:'white'},{chain:'A'});
 
   viewer.setHoverable({},true,function(atom,viewer,event,container) {
+              score = parseFloat(score_vector[atom.resi - {{pdb_start}}]).toPrecision(2);
                if(!atom.label) {
-                atom.label = viewer.addLabel(atom.resi+":"+atom.resn+":"+atom.atom,{position: atom, backgroundColor: 'mintcream', fontColor:'black'});
+                atom.label = viewer.addLabel(atom.resi+":"+atom.resn+":"
+                             +score,
+                             {position: atom,
+                               backgroundColor: 'mintcream',
+                               fontColor:'black'});
                }
            },
            function(atom) {
