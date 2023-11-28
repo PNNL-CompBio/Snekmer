@@ -48,9 +48,9 @@ jobs:
       - shell: bash -l {0}
         run: mamba install -y -c conda-forge snakemake==7.0 tabulate==0.8.10
       - shell: bash -l {0}
-        run: pip install -e .
+        run: pip install -e git+https://github.com/PNNL-CompBio/Snekmer@kmer-association#egg=snekmer
 
-      # test clustering step
+      #test clustering step
       - name: Snekmer Cluster
         run: |
           export PATH="/usr/share/miniconda/bin:$PATH"
@@ -78,5 +78,26 @@ jobs:
         run: |
           export PATH="/usr/share/miniconda/bin:$PATH"
           source activate snekmer
+          ls .test
+          pwd
           snekmer search --configfile .test/config.yaml -d .test --cores 1
+          rm -rf .test/output
+          
+      # run Snekmer Learn kmer counts and confidence creation
+      - name: Snekmer Learn
+        run: |
+          export PATH="/usr/share/miniconda/bin:$PATH"
+          source activate snekmer
+          snekmer learn --configfile .test/config_learnapp.yaml -d .test --cores 1
+          mkdir .test/counts .test/confidence
+          mv .test/output/learn/kmer-counts-total.csv .test/counts/kmer-counts-total.csv
+          mv .test/output/eval_conf/global-confidence-scores.csv .test/confidence/global-confidence-scores.csv
+          rm -rf .test/output
+        
+      # run Snekmer Learn against previously generated counts files
+      - name: Snekmer Apply
+        run: |
+          export PATH="/usr/share/miniconda/bin:$PATH"
+          source activate snekmer
+          snekmer apply --configfile .test/config_learnapp.yaml -d .test --cores 1
           rm -rf .test/output
