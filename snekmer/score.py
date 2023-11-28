@@ -13,6 +13,16 @@ from .utils import to_feature_matrix
 from numpy.typing import ArrayLike
 from sklearn.metrics.pairwise import pairwise_distances
 
+# define variables
+SCORE_METHODS = ["background", "bg", "family", "f", "both"]
+METHOD2NAME = {
+    "background": "bg_subtract",
+    "bg": "bg_subtract",
+    "family": "family_subtract",
+    "f": "family_subtract",
+    "both": "bg_family_subtract",
+}
+
 
 # scaling object for reducing kmers used in scoring
 class KmerScoreScaler:
@@ -122,8 +132,11 @@ class KmerScoreScaler:
             )
         # if not isinstance(array, np.ndarray):
         #     array = np.array(array)
-        if isinstance(array[0], list):
-            array = to_feature_matrix(array)
+        try:
+            if isinstance(array[0], list):
+                array = to_feature_matrix(array)
+        except KeyError:
+            array = np.array(array)
 
         # input vec must match original input shape for indexing
         if len(array.shape) < 2:  # account for 1D arrays
@@ -233,11 +246,12 @@ def _get_kmer_presence(feature_matrix, label_match):
     # convert feature count matrix into binary presence/absence
     feature_matrix = _binarize(feature_matrix)
 
-    # for each row in feature matrix, compute each value's probability
-    # no multiprocessing-- using numpy native parallelization
+    # for each kmer, compute presence in seqs
+    # then account for seqs matching a given label
+    # end result is presence weighted by family membership
     result = list()
     for kmer in feature_matrix:
-        kmer_match = np.equal(kmer, 1)  # array of presence matches
+        kmer_match = np.equal(kmer, 1)  # boolean array (present/not)
         ones = np.ones(len(kmer))
         match = np.multiply(np.multiply(kmer_match, label_match), ones)
         result.append(np.sum(match))
@@ -271,7 +285,7 @@ def _score(p_pos, p_neg, w=1.0):
     return p_pos - (w * p_neg)  # - (w_bg * p_bg)
 
 
-def score(results, in_label, out_labels, w=1.0, col="probability", neg_only=False):
+def score_old(results, in_label, out_labels, w=1.0, col="probability"):
     """Score kmer from kmer family probabilities.
 
     The scoring method used is as follows:
@@ -291,8 +305,6 @@ def score(results, in_label, out_labels, w=1.0, col="probability", neg_only=Fals
         Multiplier for out-of-family probability subtraction.
     col : str (default: 'probability')
         Name of column containing kmer probabilities.
-    neg_only : bool (default: False)
-        If True, only returns the negative probability (-w * P_out).
 
     Returns
     -------
@@ -300,14 +312,40 @@ def score(results, in_label, out_labels, w=1.0, col="probability", neg_only=Fals
         Score for in-family kmer assignment.
 
     """
+    # assume family wt is second list element unless list of len 1
+    if isinstance(w, list) and len(w) == 1:
+        w = w[0]
+    if isinstance(w, list) and len(w) > 1:
+        w = w[1]
     p_in = results[in_label][col]
-    p_out = np.sum([results[fam]["probability"] for fam in out_labels], axis=0)
-
-    # negative probability only
-    if neg_only:
-        return _score(0, p_out, w=w)
+    p_out = np.sum([results[fam][col] for fam in out_labels], axis=0)
 
     return _score(p_in, p_out, w=w)
+
+
+def score(
+    results,
+    in_label,
+    out_labels,
+    background=None,
+    w_bg=1.0,
+    w_out=1.0,
+    col="probability",
+    method="background",
+):
+    p_in = results[in_label][col]
+    p_out = np.sum([results[fam][col] for fam in out_labels], axis=0)
+    bg = _score(0, background, w=w_bg)
+
+    if method == "both":
+        out = _score(0, p_out, w=w_out)
+        return p_in - out - bg
+
+    if background is None:
+        raise ValueError(
+            f"Background matrix `p_bg` must be provided for `method`='{method}'."
+        )
+    return p_in - bg
 
 
 def _parse_score_method(method, bg=None, **kwargs):
@@ -317,9 +355,10 @@ def _parse_score_method(method, bg=None, **kwargs):
     ----------
     method : str
         Method name:
-            'default' - Default score method
-            'bg_only' - Score sequences as though they are all background
-            'both' - Compute both score types
+            'background'/'bg' - Score with background subtracted
+            'family'/'f' - Score with (in, out) family labels
+                           (i.e. out-of-family (OOF) subtracted)
+            'both' - Subtract both background and OOF
     bg : type
         Description of parameter `bg`.
     **kwargs : type
@@ -332,40 +371,23 @@ def _parse_score_method(method, bg=None, **kwargs):
 
     """
     # restrict method options
-    if method not in ["default", "bg_only", "both"]:
+    if method not in SCORE_METHODS:
         raise ValueError(
-            "Parameter `method` must be one of the"
-            " following: 'default', 'bg_only', 'both'."
+            f"Parameter `method` must be one of the following: {SCORE_METHODS}."
         )
 
     # check that background is provided when required
-    if (method in ["bg_only", "both"]) and (bg is None):
+    if (method in ["background", "bg", "both"]) and (bg is None):
         raise ValueError(
-            "Background sequence vectors must be"
-            " provided if `method`='bg_only' or"
-            " 'both'."
+            "Background sequence vectors must be" f" provided for `method`='{method}'."
         )
 
-    # define score methods
-    method2name = {
-        "default": "default_score",
-        "bg_only": "bg_subtracted_score",
-        "both": ["default_score", "bg_subtracted_score", "combined_score"],
-    }
-
     # parse scoring methods
-    if method == "both":
-        return "combined_score", score
-        # compute score based on (label, not label) assignment
-        # weight = 1 / (len(labels) - 1)
-        # for l in labels:
-        #     o = labels[labels != l]  # other labels
-        #     results[l]['score'] = score(results, l, o, w=weight)
-    return method2name[method], score
+    return METHOD2NAME[method], score
 
 
 def feature_class_probabilities(
-    feature_matrix, labels, kmers=None, bg_matrix=None, method="default"
+    feature_matrix, labels, kmers=None, bg=None, method="background"
 ):
     """Calculate probabilities for features being in a defined class.
 
@@ -384,13 +406,13 @@ def feature_class_probabilities(
         Optional kmer identifiers mapping to kmer columns (shape (n,)).
     method : str (default: "default")
         Specify scoring method:
-            "default" : Score in-family vs. out-of-family assignment
-                P(family) - (weight * P(out of family))
-            "bg_only" : Score in-family vs. background
+            "background"/"bg" : Score in-family vs. background
                 P(family) - P(background)
+            "family"/"f": Score in-family vs. out-of-family assignment
+                P(family) - (weight * P(out of family))
             "both" : Score in-family vs. out-of-family and background
                 P(family) - P(background) - (weight * P(out of family))
-    bg_matrix : array or None (default: None)
+    bg : array or None (default: None)
         Feature matrix of shape (n, o), where each row represents
         a kmer and each column represents a background sequence.
 
@@ -408,7 +430,7 @@ def feature_class_probabilities(
         raise TypeError("Labels must be list- or array-like.")
 
     # parse score function
-    method_name, score_function = _parse_score_method(method)
+    # method_name, score_function, bg_matrix = _parse_score_method(method, bg=bg)
 
     # kmer labels
     if kmers is None:
@@ -421,6 +443,11 @@ def feature_class_probabilities(
     if len(feature_matrix.T) != len(labels):
         raise ValueError("Input shapes are mismatched.")
 
+    # if bg matrix exists, verify shape
+    if bg:
+        if len(bg.T) != len(labels):
+            raise ValueError("Background matrix shape is mismatched.")
+
     # get only unique labels
     unique_labels = np.unique(labels)
 
@@ -431,10 +458,15 @@ def feature_class_probabilities(
         label_match = np.equal(labels, l)
 
         # get score arrays based on label match, normalized by #seqs
-        presence = _get_kmer_presence(feature_matrix, label_match)
+        presence = _get_kmer_presence(feature_matrix, label_match)  # if
         norms = (1 / n_seqs[i]) * np.ones(len(presence))
 
         # if no kmers specified, save numerical range
+        if bg:
+            background = _get_kmer_presence(bg, np.ones(len(bg)))
+            bg_norms = (1 / np.sum(background)) * np.ones(len(background))
+            p_background = np.asarray(background * bg_norms, dtype=float)
+
         results[l]["kmer"] = np.array(kmers)
         results[l]["count"] = np.asarray(presence, dtype=int)
         results[l]["probability"] = np.asarray(presence * norms, dtype=float)
@@ -443,10 +475,13 @@ def feature_class_probabilities(
     label_weight = len(unique_labels)  # if 1 label, no weight (w=1)
     if len(unique_labels) > 1:  # if >1 label, weight = 1 / (n - 1)
         label_weight = label_weight - 1
-    weight = 1 / label_weight
+    weight_out = 1 / label_weight
+    weight_bg = 1
     for l in unique_labels:
         o = unique_labels[unique_labels != l]  # other labels
-        results[l]["score"] = score(results, l, o, w=weight)
+        results[l][f"score_{METHOD2NAME[method]}"] = score(
+            results, l, o, background=p_background, w_bg=weight_bg, w_out=weight_out
+        )
 
     # reformat as long-form dataframe
     results = pd.DataFrame(results).T.reset_index().rename(columns={"index": "label"})
@@ -532,6 +567,8 @@ class KmerScorer:
         self.probabilities = None
         self.score_norm = None
         self.scores = None
+        self.scores_bg_weighted = None
+        self.scores_bg_subtracted = None
 
     def add_background(
         self, background_scores: ArrayLike, background_kmers: ArrayLike
@@ -609,6 +646,7 @@ class KmerScorer:
         # s_labels = labels[i_background["sample"]]
 
         probas = feature_class_probabilities(matrix.T, labels, kmers=self.kmers.basis)
+        print(probas)
         self.probabilities = probas[probas["label"] == self.label]["score"]
 
         # step 3: fit scaler to the sample data (ignore the background)
@@ -625,6 +663,7 @@ class KmerScorer:
         scores = apply_feature_probabilities(
             matrix, self.probabilities, scaler=self.scaler
         )
+        # print(scores)
 
         # normalize by sum of all positive scores
         # norm = np.sum([s for s in scores if s > 0])
@@ -633,22 +672,22 @@ class KmerScorer:
         self.score_norm = max(np.max(scores), 1.0)  # prevent score explosion?
 
         # assign percent score based on max positive score
-        self.scores[f"{label}_score"] = scores / norm
+        self.scores = np.array(scores) / self.score_norm
+        print(self.scores.shape)
 
         # weight family score by (1 - normalized bg score)
         if (hasattr(self, "background_scores")) and (hasattr(self, "background_kmers")):
             # harmonize bg vec with kmer vec
-            background = self.kmers.harmonize(
+            background = self.kmers.transform(
                 self.background_scores.reshape(-1, 1).T, self.background_kmers
             )
-            self.scores[f"{label}_score_background_weighted"] = self.scores[
-                f"{label}_score"
-            ] * (1 - background)
+            print(len(kmers))
+            print(background.shape)
+            print(background)
+            self.scores_bg_weighted = self.scores * (1 - background)
 
             # old scoring method
-            self.scores[f"{label}_score_background_subtracted"] = (
-                self.scores[f"{label}_score"] - background
-            )
+            self.scores_bg_subtracted = self.scores - background
 
     # score new input sequences
     def predict(self, array, kmers):
