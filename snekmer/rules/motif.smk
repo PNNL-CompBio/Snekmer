@@ -104,8 +104,8 @@ n_iter = config["motif"]["n"]
 # define output files to be created by snekmer
 rule all:
     input:
-        expand(join("input", "{uz}"), uz=UZS),  # require unzipping
-        expand(join(out_dir, "motif", "p_values", "{nb}.csv.gz"), nb=NON_BGS),  # require motif identification
+        expand(join("input", "{uz}"), uz=UZS),
+        expand(join(out_dir, "motif", "p_values", "{nb}.csv.gz"), nb=NON_BGS),
 
 
 # if any files are gzip zipped, unzip them
