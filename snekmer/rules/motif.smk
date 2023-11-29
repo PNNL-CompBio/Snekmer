@@ -52,7 +52,7 @@ unzipped = [
     fa.rstrip(".gz")
     for fa, ext in product(input_files, config["input_file_exts"])
     if fa.rstrip(".gz").endswith(f".{ext}")
-#    and skm.utils.check_n_seqs(fa, config["model"]["cv"], show_warning=False)
+    #    and skm.utils.check_n_seqs(fa, config["model"]["cv"], show_warning=False)
 ]
 
 
@@ -98,23 +98,29 @@ out_dir = skm.io.define_output_dir(
 #    ]
 
 # set number of permutations to test
-n_iter = (config["motif"]["n"])
+n_iter = config["motif"]["n"]
 
 
 # define output files to be created by snekmer
 rule all:
     input:
         expand(join("input", "{uz}"), uz=UZS),  # require unzipping
+
+
 #        expand(join(out_dir, "model", "{nb}.model"), nb=NON_BGS),  # require model-building
 #    	expand(join(out_dir, "scoring", "weights", "{nb}.csv.gz"), nb=NON_BGS), # require scoring
-    	expand(join(out_dir, "motif", "p_values", "{nb}.csv.gz"), nb=NON_BGS), # require motif identification
+expand(
+    join(out_dir, "motif", "p_values", "{nb}.csv.gz"), nb=NON_BGS
+),  # require motif identification
+
 
 # if any files are gzip zipped, unzip them
-use rule unzip from process with: 
+use rule unzip from process with:
     output:
         unzipped=join("input", "{uz}"),
         zipped=join("input", "zipped", "{uz}.gz"),
-        
+
+
 # build kmer count vectors for each basis set
 use rule vectorize from kmerize with:
     input:
@@ -141,7 +147,8 @@ rule score:
         join(out_dir, "scoring", "log", "{nb}.log"),
     script:
         resource_filename("snekmer", join("scripts/model_score.py"))
-        
+
+
 rule model:
     input:
         raw=rules.score.input.data,
@@ -155,13 +162,13 @@ rule model:
         figs=directory(join(out_dir, "model", "figures", "{nb}")),
     script:
         resource_filename("snekmer", join("scripts/model_model.py"))
-        
+
+
 rule preselect:
     input:
         raw=rules.score.input.data,
         data=rules.score.output.data,
         weights=rules.score.output.weights,
-#        kmerobj=rules.score.input.kmerobj,
         matrix=rules.score.output.matrix,
         model=rules.model.output.model,
     output:
@@ -170,7 +177,8 @@ rule preselect:
         vecs=join(out_dir, "motif", "sequences", "{nb}.csv.gz"),
     script:
         resource_filename("snekmer", join("scripts/motif_preselect.py"))
-        
+
+
 rule rescore:
     input:
         raw=rules.score.input.data,
@@ -184,14 +192,17 @@ rule rescore:
         data=temp(join(out_dir, "motif", "scores", "{nb}_{n}.csv.gz")),
     script:
         resource_filename("snekmer", join("scripts/motif_rescore.py"))
-        
+
+
 rule motif:
     input:
         raw=rules.score.input.data,
         data=rules.score.output.data,
         weights=rules.score.output.weights,
         model=rules.model.output.model,
-        perm_scores=expand(join(out_dir, "motif", "scores", "{{nb}}_{n}.csv.gz"), n=range(n_iter)),
+        perm_scores=expand(
+            join(out_dir, "motif", "scores", "{{nb}}_{n}.csv.gz"), n=range(n_iter)
+        ),
         kmers=rules.preselect.output.kmers,
         kmerobj=rules.score.input.kmerobj,
         matrix=rules.score.output.matrix,
@@ -202,4 +213,3 @@ rule motif:
         p_values=join(out_dir, "motif", "p_values", "{nb}.csv.gz"),
     script:
         resource_filename("snekmer", join("scripts/motif_motif.py"))
-    
