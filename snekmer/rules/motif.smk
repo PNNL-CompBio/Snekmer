@@ -105,13 +105,7 @@ n_iter = config["motif"]["n"]
 rule all:
     input:
         expand(join("input", "{uz}"), uz=UZS),  # require unzipping
-
-
-#        expand(join(out_dir, "model", "{nb}.model"), nb=NON_BGS),  # require model-building
-#    	expand(join(out_dir, "scoring", "weights", "{nb}.csv.gz"), nb=NON_BGS), # require scoring
-expand(
-    join(out_dir, "motif", "p_values", "{nb}.csv.gz"), nb=NON_BGS
-),  # require motif identification
+        expand(join(out_dir, "motif", "p_values", "{nb}.csv.gz"), nb=NON_BGS),  # require motif identification
 
 
 # if any files are gzip zipped, unzip them
