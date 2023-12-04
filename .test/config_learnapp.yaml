@@ -1,6 +1,6 @@
 # required params
-k: 14
-alphabet: 0 # choices 0-5 or names (see alphabet module), or None
+k: 8
+alphabet: 2 # choices 0-5 or names (see alphabet module), or None
 
 # input/output params
 input_dir: input_learnapp # defaults to 'input'
@@ -17,20 +17,19 @@ score:
 
 # cluster params
 cluster:
-  method: "agglomerative-jaccard"
+  method: "agglomerative"
   params:
     {
-      "n_clusters": None,
-      "linkage": "average",
-      "distance_threshold": 0.92,
-      "compute_full_tree": True,
+      n_clusters: None,
+      distance_threshold: 95,
+      linkage: ward,
     }
-  cluster_plots: False
+  cluster_plots: True
 
   # clustering distance matrix params
   min_rep:
   max_rep:
-  save_matrix: True
+  save_matrix: False
   dist_thresh: 100
 
 # model params
@@ -39,13 +38,17 @@ model:
   random_state: None
 
 # search params
-model_dir: "output/example-model/"
-basis_dir: "output/example-model/"
-score_dir: "output/example-model/"
-
+model_dir: "/path/to/output/model/"
+basis_dir: "/path/to/output/kmerize/"
+score_dir: "/path/to/output/scoring/"
 
 # learnapp params 
 learnapp:
   save_apply_associations: False
-
-
+  fragmentation: False
+  version: absolute
+  frag_length: 50
+  min_length: 50
+  location: random
+  seed: 999
+  conf_weight_modifier: 20
