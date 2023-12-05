@@ -260,6 +260,7 @@ def get_argument_parser():
     parser["motif"] = parser["subparsers"].add_parser(
         "motif",
         description="Find structurally and functionally relevant motifs via Snekmer.",
+    )
     parser["learn"] = parser["subparsers"].add_parser(
         "learn",
         description="Learn kmer-annotation associations via Snekmer",
