@@ -47,7 +47,7 @@
     */
     if (Math.abs(score)<0.1) color = "grey";
     else if (score == -1) color = "white";
-    else color = new $3Dmol.Color(colgrad.valueToHex((score*1)))
+    else color = new $3Dmol.Color(colgrad.valueToHex(score));
 
     return color;
   };
