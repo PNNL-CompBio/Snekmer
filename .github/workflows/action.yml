@@ -101,3 +101,11 @@ jobs:
           source activate snekmer
           snekmer apply --configfile .test/config_learnapp.yaml -d .test --cores 1
           rm -rf .test/output
+
+      # run Snekmer Motif using previously generated model files
+      - name: Snekmer Motif
+        run: |
+          export PATH="/usr/share/miniconda/bin:$PATH"
+          source activate snekmer
+          snekmer motif --configfile .test/config.yaml -d .test --cores 1
+          rm -rf .test/output
