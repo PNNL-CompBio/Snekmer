@@ -1,8 +1,8 @@
 biopython
 matplotlib
-numpy >= 1.22.3
+numpy == 1.22.3
 numba >= 0.56
-pandas
+pandas == 1.4.2
 seaborn
 scipy
 scikit-learn
@@ -11,3 +11,4 @@ scikit-learn
 tabulate == 0.8.10
 umap-learn
 hdbscan
+pyarrow
