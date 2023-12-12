@@ -7,6 +7,7 @@ nested_output: False # if True, saves into {save_dir}/{alphabet name}/{k}
 
 # scoring params
 score:
+  method: "background"  # accepts (background, bg, family, f, combined)
   scaler: True
   scaler_kwargs: { "n": 0.25 }
   labels: None
