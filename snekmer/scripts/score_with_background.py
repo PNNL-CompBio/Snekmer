@@ -3,6 +3,7 @@
 # ---------------------------------------------------------
 import pickle
 from datetime import datetime
+from os.path import exists
 
 import numpy as np
 import pandas as pd
@@ -38,10 +39,13 @@ for f in snakemake.input.data:
     data.append(df)
     kmers.append(kmerlist[0])
 
-# load background and harmonize to family kmer set
-bg = np.load(snakemake.input.bg, allow_pickle=True)
-kmers_bg, scores_bg = bg["kmerlist"], bg["scores"][0]
-# scores_bg = basis.harmonize(scores_bg.reshape(-1, 1).T, kmers_bg)
+# optionally load bg depending on score method and harmonize
+if "bg" in vars(snakemake.input).keys():
+    bg = np.load(snakemake.input.bg, allow_pickle=True)
+    kmers_bg, counts_bg = bg["kmer_list"], bg["kmer_counts"]
+    counts_bg = basis.harmonize(counts_bg.reshape(-1, 1).T, kmers_bg)
+else:
+    counts_bg = None
 
 # loading all other models, harmonize basis sets, & subtract bg
 for i in range(len(data)):
@@ -49,12 +53,10 @@ for i in range(len(data)):
     kmerlist = kmers[i]
     vecs = skm.utils.to_feature_matrix(df["sequence_vector"].values)
     harmonized = basis.harmonize(vecs, kmerlist)
-    df["sequence_vector_raw"] = harmonized
-    df["sequence_vector"] = harmonized - scores_bg
+    df["sequence_vector"] = list(harmonized)
     data[i] = df
 
 data = pd.concat(data, ignore_index=True)
-print(data.head())
 
 # log conversion step runtime
 skm.utils.log_runtime(snakemake.log[0], start_time, step="files_to_df")
@@ -86,19 +88,21 @@ elif config["model"]["cv"] in [0, 1]:
     data["train"] = [idx in i_train for idx in data.index]
 
 # generate family scores and object
-scorer = skm.score.KmerScorer()
-scorer.add_background(scores_bg, kmers_bg)
+scorer = skm.score.KmerScorer(method=config["score"]["method"])
 scorer.fit(
     list(basis.kmer_set.kmers),
     data,
     skm.utils.get_family(snakemake.wildcards.f, regex=config["input_file_regex"]),
+    bg=counts_bg,
     label_col=label,
     vec_col="sequence_vector",
     **config["score"]["scaler_kwargs"],
 )
 
 # append scored sequences to dataframe
-data = data.merge(pd.DataFrame(scorer.scores), left_index=True, right_index=True)
+data = data.merge(
+    pd.DataFrame(scorer.scores), left_index=True, right_index=True
+).rename(columns={0: f"{family}_score"})
 if data.empty:
     raise ValueError("Blank df")
 
@@ -106,7 +110,7 @@ if data.empty:
 class_probabilities = (
     pd.DataFrame(scorer.probabilities, index=scorer.kmers.basis)
     .reset_index()
-    .rename(columns={"index": "kmer"})
+    .rename(columns={"index": "kmer", 0: scorer.score_col})
 )
 
 # log time to compute class probabilities

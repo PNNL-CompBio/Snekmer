@@ -44,12 +44,10 @@ bg_input = glob_wildcards(
 bgz_input = glob_wildcards(
     join("input", "background", "{filename,\w+}.{ext,fasta|fna|faa|fa}.gz")
 )
-# print(seq_input, bg_input, gz_input, bgz_input, "\n")
-# gz_exts = [e.split(".")[0] for e in gz_input.raw_ext]
 
 if len(bg_input.filename) > 0:
 
-    ruleorder: unzip > vectorize > vectorize_background > score_background > score_with_background > model > model_report
+    ruleorder: unzip > vectorize > vectorize_background > score > model > model_report
 
 else:
 
@@ -69,7 +67,6 @@ for f, e in zip(gz_input.filename, gz_input.ext):
 for f, e in zip(bgz_input.filename, bgz_input.ext):
     getattr(bg_input, "filename").append(f)
     getattr(bg_input, "ext").append(e)
-# print(seq_input, bg_input)
 
 # define output directory (helpful for multiple runs)
 out_dir = skm.io.define_output_dir(
@@ -112,20 +109,28 @@ output = [
 if len(bg_input.filename) > 0:
     output.append(
         expand(
-            join(out_dir, "background", "{bf}.{be}.npz"),
-            zip,
-            bf=bg_input.filename,
-            be=bg_input.ext,
-        )
-    )
-    output.append(
-        expand(
-            join(out_dir, "background", "{f}.{e}.npz"),
+            join(out_dir, "scoring", "{f}.{e}.matrix"),
             zip,
             f=seq_input.filename,
             e=seq_input.ext,
         )
     )
+    # output.append(
+    #     expand(
+    #         join(out_dir, "background", "{bf}.{be}.npz"),
+    #         zip,
+    #         bf=bg_input.filename,
+    #         be=bg_input.ext,
+    #     )
+    # )
+    # output.append(
+    #     expand(
+    #         join(out_dir, "background", "{f}.{e}.npz"),
+    #         zip,
+    #         f=seq_input.filename,
+    #         e=seq_input.ext,
+    #     )
+    # )
 
 
 rule all:
@@ -187,23 +192,11 @@ if len(bg_input.filename) > 0:
         log:
             join(out_dir, "background", "kmerize", "log", "{bf}.{be}.log"),
 
-    rule score_background:
-        input:
-            data=join(out_dir, "background", "vector", "{bf}.{be}.npz"),
-            kmerobj=join(out_dir, "background", "kmerize", "{bf}.{be}.kmers"),
-        output:
-            scores=join(out_dir, "background", "{bf}.{be}.npz"),
-        wildcard_constraints:
-            bf="\w+",
-            be="fasta|fna|faa|fa",
-        script:
-            resource_filename("snekmer", join("scripts", "score_background.py"))
-
     rule combine_background:
         input:
             kmerobj=join(out_dir, "kmerize", "{f}.{e}.kmers"),
-            scores=expand(
-                join(out_dir, "background", "{bf_a}.{be_a}.npz"),
+            data=expand(
+                join(out_dir, "background", "vector", "{bf_a}.{be_a}.npz"),
                 zip,
                 bf_a=bg_input.filename,
                 be_a=bg_input.ext,
@@ -213,59 +206,61 @@ if len(bg_input.filename) > 0:
         script:
             resource_filename("snekmer", join("scripts", "combine_background.py"))
 
-    rule score_with_background:
-        input:
-            data=expand(
-                join(out_dir, "vector", "{sf}.{se}.npz"),
-                zip,
-                sf=seq_input.filename,
-                se=seq_input.ext,
-            ),
-            kmerobj=join(out_dir, "kmerize", "{f}.{e}.kmers"),
-            bg=join(out_dir, "background", "{f}.{e}.npz"),
-        output:
-            data=join(out_dir, "scoring", "sequences", "{f}.{e}.csv.gz"),
-            weights=join(out_dir, "scoring", "weights", "{f}.{e}.csv.gz"),
-            scorer=join(out_dir, "scoring", "{f}.{e}.scorer"),
-            matrix=join(out_dir, "scoring", "{f}.{e}.matrix"),
-        wildcard_constraints:
-            f="\w+",
-            e="fasta|fna|faa|fa",
-        log:
-            join(out_dir, "scoring", "log", "{f}.{e}.log"),
-        script:
-            resource_filename("snekmer", join("scripts", "score_with_background.py"))
 
-else:
+def score_input(wildcards):
+    input_files = {
+        "kmerobj": join(out_dir, "kmerize", f"{wildcards.f}.{wildcards.e}.kmers"),
+        "data": expand(
+            join(out_dir, "vector", "{sf}.{se}.npz"),
+            zip,
+            sf=seq_input.filename,
+            se=seq_input.ext,
+        ),
+    }
+    if config["score"]["method"] in ["background", "bg", "combined"]:
+        input_files["bg"] = join(
+            out_dir, "background", f"{wildcards.f}.{wildcards.e}.npz"
+        )
+    return input_files
 
-    # build family score basis
-    rule score:
-        input:
-            kmerobj=join(out_dir, "kmerize", "{f}.{e}.kmers"),
-            data=expand(
-                join(out_dir, "vector", "{sf}.{se}.npz"),
-                zip,
-                sf=seq_input.filename,
-                se=seq_input.ext,
-            ),
-        output:
-            data=join(out_dir, "scoring", "sequences", "{f}.{e}.csv.gz"),
-            weights=join(out_dir, "scoring", "weights", "{f}.{e}.csv.gz"),
-            scorer=join(out_dir, "scoring", "{f}.{e}.scorer"),
-            matrix=join(out_dir, "scoring", "{f}.{e}.matrix"),
-        log:
-            join(out_dir, "scoring", "log", "{f}.{e}.log"),
-        script:
-            resource_filename("snekmer", join("scripts", "model_score.py"))
+
+# build family score basis
+rule score:
+    input:
+        unpack(score_input),
+    output:
+        data=join(out_dir, "scoring", "sequences", "{f}.{e}.csv.gz"),
+        weights=join(out_dir, "scoring", "weights", "{f}.{e}.csv.gz"),
+        scorer=join(out_dir, "scoring", "{f}.{e}.scorer"),
+        matrix=join(out_dir, "scoring", "{f}.{e}.matrix"),
+    log:
+        join(out_dir, "scoring", "log", "{f}.{e}.log"),
+    script:
+        resource_filename("snekmer", join("scripts", "score_with_background.py"))
+
+
+def model_input(wildcards):
+    input_files = {
+        "kmerobj": join(out_dir, "kmerize", f"{wildcards.f}.{wildcards.e}.kmers"),
+        "raw": join(out_dir, "vector", f"{wildcards.f}.{wildcards.e}.npz"),
+        "data": join(
+            out_dir, "scoring", "sequences", f"{wildcards.f}.{wildcards.e}.csv.gz"
+        ),
+        "weights": join(
+            out_dir, "scoring", "weights", f"{wildcards.f}.{wildcards.e}.csv.gz"
+        ),
+        "matrix": join(out_dir, "scoring", f"{wildcards.f}.{wildcards.e}.matrix"),
+    }
+    if config["score"]["method"] in ["background", "bg", "combined"]:
+        input_files["bg"] = join(
+            out_dir, "background", f"{wildcards.f}.{wildcards.e}.npz"
+        )
+    return input_files
 
 
 rule model:
     input:
-        kmerobj=join(out_dir, "kmerize", "{f}.{e}.kmers"),
-        raw=join(out_dir, "vector", "{f}.{e}.npz"),
-        data=join(out_dir, "scoring", "sequences", "{f}.{e}.csv.gz"),
-        weights=join(out_dir, "scoring", "weights", "{f}.{e}.csv.gz"),
-        matrix=join(out_dir, "scoring", "{f}.{e}.matrix"),
+        unpack(model_input),
     output:
         model=join(out_dir, "model", "{f}.{e}.model"),
         results=join(out_dir, "model", "results", "{f}.{e}.csv"),

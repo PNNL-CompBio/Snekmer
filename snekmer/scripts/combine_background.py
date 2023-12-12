@@ -1,13 +1,11 @@
 # ---------------------------------------------------------
 # Imports
 # ---------------------------------------------------------
-import pickle
 from datetime import datetime
 
 import numpy as np
 import pandas as pd
 import snekmer as skm
-from sklearn.model_selection import train_test_split, StratifiedKFold
 
 # ---------------------------------------------------------
 # Files and Parameters
@@ -28,20 +26,57 @@ label = (
 # load kmer basis for family of interest
 basis = skm.io.load_pickle(snakemake.input.kmerobj)
 
-# load all background files, rescale, and harmonize vecs
-score_vec = np.zeros(len(np.hstack(basis.basis.basis)))
+
+# # get kmers for this particular set of sequences
+# kmers = skm.io.load_pickle(snakemake.input.kmerobj)
+
+# # load vectorized seq data
+# kmerlist, df = skm.io.load_npz(snakemake.input.data)
+
+# # create matrix of kmer counts
+# x, y = len(df["sequence_vector"]), len(df["sequence_vector"][0])
+# matrix = np.zeros(x * y).reshape((x, y))
+# for i in range(x):
+#     for j in range(y):
+#         value = df["sequence_vector"][i]
+#         value = value[j]
+#         matrix[i, j] = value
+
+# probas = skm.score.feature_class_probabilities(
+#     matrix.T, df["filename"], kmers=kmers.basis.basis
+# )
+
+# # save score weights
+# np.savez_compressed(
+#     snakemake.output.scores,
+#     kmerlist=kmerlist,
+#     probas=probas["probability"].values,
+# )
+
+
+# load all background files and harmonize vecs
+matrix = np.zeros(len(np.hstack(basis.basis.basis)))
 total_norm = 0
-for bgf in snakemake.input.scores:
-    loaded = np.load(bgf, allow_pickle=True)
-    weight = config["score"]["background_weight"]
-    scores = weight * loaded["probas"]
+for bgf in snakemake.input.data:
+    kmerlist, df = skm.io.load_npz(bgf)
 
-    norm = round(1 / loaded["probas"].min())
-    scaled = scores * norm
-    harmonized = basis.harmonize(scaled.reshape(-1, 1).T, loaded["kmerlist"][0])
+    # create matrix of kmer counts
+    x, y = len(df), len(df["sequence_vector"].to_numpy()[0])
+    counts = np.zeros(x * y).reshape((x, y))
+    for i in range(x):
+        for j in range(y):
+            value = df["sequence_vector"].to_numpy()[i]
+            value = value[j]
+            counts[i, j] = value
 
-    total_norm += norm
-    score_vec = np.sum([score_vec, harmonized], axis=0)
+    harmonized = basis.harmonize(counts, np.hstack(kmerlist))
+    summed = np.sum(harmonized, axis=0)
+
+    total_norm += x
+    matrix = np.add(matrix, summed)
+
+# normalize by total # background seqs
+matrix = matrix / total_norm
 
 # rescale probabilities to respective file sizes (nseqs)
 # scaled = list()
@@ -60,11 +95,11 @@ for bgf in snakemake.input.scores:
 
 # renormalize combined scores from all bg files w/ total nseqs
 # total_norm = sum(norms)
-score_vec = score_vec / total_norm
+# score_vec = score_vec / total_norm
 
-# save new background score vector
+# save new background kmer vector
 np.savez_compressed(
     snakemake.output[0],
-    kmerlist=basis.basis.basis,
-    scores=score_vec,
+    kmer_list=basis.basis.basis,
+    kmer_counts=matrix,
 )

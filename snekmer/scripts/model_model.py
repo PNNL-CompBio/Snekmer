@@ -28,26 +28,8 @@ plt.switch_backend("Agg")
 # Run script
 # ---------------------------------------------------------
 
-# create lookup table to match vector to sequence by file+ID
-# lookup = {}
-# for f in input.raw:
-#    loaded = np.load(f)
-#    lookup.update(
-#        {
-#            (splitext(basename(f))[0], seq_id): seq_vec
-#            for seq_id, seq_vec in zip(loaded["ids"], loaded["vecs"])
-#        }
-#    )
-# print(lookup)
 with open(snakemake.input.matrix, "rb") as f:
     data = pickle.load(f)
-
-# load all input data and encode rule-wide variables
-# data = pd.read_csv(input.data)
-# data["sequence_vector"] = [
-#    lookup[(seq_f, seq_id)]
-#    for seq_f, seq_id in zip(data["filename"], data["sequence_id"])
-# ]
 
 scores = pd.read_csv(snakemake.input.weights)
 family = skm.utils.get_family(
@@ -56,7 +38,15 @@ family = skm.utils.get_family(
 )
 # get kmers for this particular set of sequences
 with open(snakemake.input.kmerobj, "rb") as f:
-    kmer = pickle.load(f)
+    basis = pickle.load(f)
+
+# optionally load bg depending on score method and harmonize
+if "bg" in vars(snakemake.input).keys():
+    bg = np.load(snakemake.input.bg, allow_pickle=True)
+    kmers_bg, counts_bg = bg["kmer_list"], bg["kmer_counts"]
+    counts_bg = basis.harmonize(counts_bg.reshape(-1, 1).T, kmers_bg)
+else:
+    counts_bg = None
 
 cv = config["model"]["cv"]
 
@@ -96,7 +86,6 @@ cols = [label, "alphabet_name", "k", "scoring"]
 results = {col: [] for col in cols + ["score", "cv_split"]}
 X, y = {i: {} for i in range(cv)}, {i: {} for i in range(cv)}
 for n in range(cv):
-
     # remove score cols that were generated from full dataset
     unscored_cols = [col for col in list(data.columns) if "_score" not in col]
 
@@ -109,11 +98,13 @@ for n in range(cv):
     df_test_labels = [True if value == family else False for value in df_test[label]]
 
     # score kmers separately per split
-    scorer = skm.score.KmerScorer()
+    scorer = skm.score.KmerScorer(method=config["score"]["method"])
+
     scorer.fit(
-        list(kmer.kmer_set.kmers),
+        list(basis.kmer_set.kmers),
         df_train,
         family,
+        bg=counts_bg,
         label_col=label,
         vec_col="sequence_vector",
         **config["score"]["scaler_kwargs"],
@@ -121,15 +112,15 @@ for n in range(cv):
 
     # append scored sequences to dataframe
     df_train = df_train.merge(
-        pd.DataFrame(scorer.scores["sample"]), left_index=True, right_index=True
-    )
+        pd.DataFrame(scorer.scores), left_index=True, right_index=True
+    ).rename(columns={0: f"{family}_score"})
     if df_train.empty:
         raise ValueError("Blank df")
     df_test = df_test.merge(
         pd.DataFrame(
             scorer.predict(
                 skm.utils.to_feature_matrix(df_test["sequence_vector"]),
-                list(kmer.kmer_set.kmers),
+                list(basis.kmer_set.kmers),
             )
         ),
         left_index=True,
@@ -140,7 +131,7 @@ for n in range(cv):
     scores = (
         pd.DataFrame(scorer.probabilities, index=scorer.kmers.basis)
         .reset_index()
-        .rename(columns={"index": "kmer"})
+        .rename(columns={"index": "kmer", 0: scorer.score_col})
     )
 
     # save X,y array data for plot
