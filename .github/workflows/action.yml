@@ -10,7 +10,7 @@ on:
 jobs:
   # apply formating and linting
   Format:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
       - name: Apply snakefmt
@@ -25,9 +25,13 @@ jobs:
 
   # run all tests
   Test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     needs:
       - Format
+
+    permissions:
+     contents: 'read'
+     id-token: 'write'
 
     steps:
       - uses: actions/checkout@v3
