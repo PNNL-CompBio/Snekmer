@@ -1,9 +1,9 @@
 # required params
-k: 14
-alphabet: 0 # choices 0-5 or names (see alphabet module), or None
+k: 8
+alphabet: 2 # choices 0-5 or names (see alphabet module), or None
 
 # input/output params
-input_dir: None # defaults to 'input'
+input_dir: input # defaults to 'input'
 input_file_exts: ["fasta", "fna", "faa", "fa"] # specify valid input file extensions
 input_file_regex: ".*" # regex to parse family from filename
 nested_output: False # if True, saves into {save_dir}/{alphabet name}/{k}
@@ -41,3 +41,13 @@ model:
 model_dir: "/path/to/output/model/"
 basis_dir: "/path/to/output/kmerize/"
 score_dir: "/path/to/output/scoring/"
+
+# learnapp params 
+learnapp:
+  save_apply_associations: False
+  fragmentation: True
+  version: absolute
+  frag_length: 50
+  min_length: 50
+  location: random
+  seed: 999
