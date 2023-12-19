@@ -15,7 +15,7 @@ to determine probabilistic annotations.
   <img align="center" src="resources/snekmer_workflow.svg">
 </p>
 
-There are three operation modes for Snekmer: `cluster`, `model`, and `search`.
+There are 5 operation modes for Snekmer: `cluster`, `model`, `search`, `learn`, and `apply`.
 
 **Cluster mode:** The user supplies files containing sequences in an appropriate format (e.g. FASTA).
 Snekmer applies the relevant workflow steps and outputs the resulting clustering results in tabular form (.CSV),
@@ -29,6 +29,16 @@ displays K-fold cross validation results in the form of figures (AUC ROC and PR 
 **Search mode:** The user supplies files containing sequences in an appropriate format (e.g. FASTA)
 and the models they wish to search their sequences against. Snekmer applies the relevant workflow steps
 and outputs a table for each file containing model annotation probabilities for the given sequences.
+
+**Learn mode:** The user supplies files containing sequences in an appropriate format (e.g. FASTA)
+as well as an annotation file. Snekmer generates a kmer counts matrix with the summed kmer distribution
+of each annotation recognized from the sequence ID. Snekmer then performs a self-evaluation to assess
+confidence levels. There are two outputs, a counts matrix, and a global confidence distribution.
+
+**Apply mode:** The user supplies files containing sequences in an appropriate format (e.g. FASTA)
+and the outputs received from Learn. Snekmer uses cosine distance to predict the annotation of each
+sequence from the kmer counts matrix. The output is a table for each file containing sequence annotation
+predictions with confidence levels.
 
 ## How to Use Snekmer
 
