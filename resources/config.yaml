@@ -2,6 +2,8 @@
 k: 14
 alphabet: 0 # choices 0-5 or names (see alphabet module), or None
 
+# input/output parameters
+input_file_exts: ["fasta", "fna", "faa", "fa"] # specify valid input file extensions
 input_file_regex: ".*" # regex to parse family from filename
 nested_output: False # if True, saves into {save_dir}/{alphabet name}/{k}
 
