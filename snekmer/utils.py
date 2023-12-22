@@ -95,7 +95,7 @@ def check_list(array: Any) -> bool:
 
 
 def get_family(
-    filename: str, regex: str = r"[a-z]{3}[A-Z]{1}", return_first: bool = True
+    filename: str, regex: Optional[str] = None, return_first: bool = True
 ) -> Union[str, List[str]]:
     """Extract family from filename given regular expression format.
 
@@ -109,11 +109,7 @@ def get_family(
         path/to/filename.ext
     regex : str or r-string or None
         Regular expression for matching a family name
-        (default: "[a-z]{3}[A-Z]{1}").
-        The default expression is 3 lowercase letters followed
-            by one uppercase letter. To write a custom regular
-            expression, see https://docs.python.org/3/library/re.html
-            for more details on using the built-in re library.
+        (by default None).
         If None, returns the full file basename.
     return_first : bool
         If True, returns only the first occurrence (default: True).
@@ -130,7 +126,7 @@ def get_family(
     filename = basename(filename)
 
     # account for directories
-    if "." not in filename:  # and filename[-1] == "/"
+    if "." not in filename and filename[-1] == "/":
         filename = f"{filename}.dir"
     s = "_".join(filename.split(".")[:-1]).replace("-", "_").replace(" ", "_")
 
@@ -151,7 +147,9 @@ def get_family(
     return filename.split(".")[0]
 
 
-def split_file_ext(filename: str) -> Tuple[str, str]:
+def split_file_ext(
+    filename: str, exts: List[str] = ["fna", "faa", "fasta", "fa"]
+) -> Tuple[str, str]:
     """Split file.ext into (file, ext).
 
     Ignores ".gz" for gzipped files; e.g. "file.ext.gz" returns
@@ -161,6 +159,9 @@ def split_file_ext(filename: str) -> Tuple[str, str]:
     ----------
     filename : str
         /path/to/file.ext.
+    exts: List[str]
+        List of possible file extensions, by default
+            ["fna", "faa", "fasta", "fa"]
 
     Returns
     -------
@@ -170,15 +171,11 @@ def split_file_ext(filename: str) -> Tuple[str, str]:
     """
     filename = basename(filename)
 
-    # for compressed files, returns (filename, ext) without .gz
-    if splitext(filename)[1] == ".gz":
-        return (
-            splitext(splitext(filename)[0])[0],
-            splitext(splitext(filename)[0])[1].lstrip("."),
-        )
+    for e in exts:
+        if f".{e}" in filename:
+            f = filename.split(f".{e}")[0]
 
-    # otherwise, returns (filename, ext)
-    return splitext(filename)[0], splitext(filename)[1].lstrip(".")
+    return f, filename.split(f)[1]
 
 
 def to_feature_matrix(
