@@ -33,7 +33,10 @@ with open(snakemake.input.matrix, "rb") as f:
 
 scores = pd.read_csv(snakemake.input.weights)
 family = skm.utils.get_family(
-    skm.utils.split_file_ext(snakemake.input.weights)[0],
+    skm.utils.split_file_ext(
+        snakemake.input.weights,
+        exts=config["input_file_exts"],
+    )[0],
     regex=config["input_file_regex"],
 )
 # get kmers for this particular set of sequences
