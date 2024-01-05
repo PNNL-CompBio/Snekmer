@@ -12,17 +12,8 @@ min_version("6.0")  # force snakemake v6.0+ (required for modules)
 ruleorder: vectorize > search
 
 
-# load modules
-module process:
-    snakefile:
-        "process.smk"
-    config:
-        config
-
-
 module kmerize:
     snakefile:
-        # "snekmer.smk"
         "kmerize.smk"
     config:
         config
@@ -58,41 +49,21 @@ import snekmer as skm
 plt.switch_backend("Agg")
 
 # collect all fasta-like files, unzipped filenames, and basenames
-input_dir = (
-    "input"
-    if (("input_dir" not in config) or (str(config["input_dir"]) == "None"))
-    else config["input_dir"]
-)
-input_files = glob(join(input_dir, "*"))
+gz_input = glob_wildcards(join("input", "{filename,\w+}.{ext,fasta|fna|faa|fa}.gz"))
+seq_input = glob_wildcards(join("input", "{filename,\w+}.{ext,fasta|fna|faa|fa}"))
 
-model_files = glob(join(config["model_dir"], "*.model"))
-zipped = [f for f in input_files if f.endswith(".gz")]
+model_input = glob_wildcards(join(config["model_dir"], "{family,\w+}.model"))
 
-input_file_exts = ["fasta", "fna", "faa", "fa"]
-if "input_file_exts" in config:
-    input_file_exts = config["input_file_exts"]
+# check input file size
+for f, e in zip(seq_input.filename, seq_input.ext):
+    skm.utils.check_n_seqs(
+        join("input", f"{f}.{e}"), config["model"]["cv"], show_warning=False
+    )
 
-unzipped = [
-    f.rstrip(".gz")
-    for f, ext in product(input_files, input_file_exts)
-    if f.rstrip(".gz").endswith(f".{ext}")
-]
-
-# map extensions to basename (basename.ext.gz -> {basename: ext})
-UZ_MAP = {
-    skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in zipped
-}
-FILE_MAP = {
-    skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in unzipped
-}
-UZS = [f"{f}.{ext}" for f, ext in UZ_MAP.items()]
-FILES = list(FILE_MAP.keys())
-
-input_file_regex = ".*"
-
-FAMILIES = [
-    skm.utils.get_family(f, regex=config["input_file_regex"]) for f in model_files
-]
+# add unzipped gz files to total input list
+for f, e in zip(gz_input.filename, gz_input.ext):
+    getattr(seq_input, "filename").append(f)
+    getattr(seq_input, "ext").append(e)
 
 # define output directory (helpful for multiple runs)
 out_dir = skm.io.define_output_dir(
@@ -103,24 +74,39 @@ out_dir = skm.io.define_output_dir(
 # define output files to be created by snekmer
 rule all:
     input:
-        expand(join(input_dir, "{uz}"), uz=UZS),  # require unzipping
         join(config["basis_dir"], "search_kmers.txt"),  # require common basis
-        expand(join(out_dir, "vector", "{f}.npz"), f=FILES),
-        expand(join(out_dir, "search", "{fam}", "{f}.csv"), fam=FAMILIES, f=FILES),  # require search
+        expand(
+            join(out_dir, "vector", "{f}.{e}.npz"),
+            f=seq_input.filename,
+            e=seq_input.ext,
+        ),
+        expand(
+            join(out_dir, "search", "{m}", "{f}.{e}.csv"),
+            m=model_input.family,
+            f=seq_input.filename,
+            e=seq_input.ext,
+        ),
+        # require search
         join(out_dir, "Snekmer_Search_Report.html"),
 
 
 # if any files are gzip zipped, unzip them
-if len(UZS) > 0:
-
-    use rule unzip from process with:
-        output:
-            join("input", "{uz}"),  # or join("input", "{uz}.{uzext}") ?
+rule unzip:
+    input:
+        join("input", "{f}.{e}.gz"),
+    output:
+        unzipped=join("input", "{f}.{e}"),
+        zipped=join("input", "zipped", "{f}.{e}.gz"),
+    wildcard_constraints:
+        f="\w+",
+        e="fasta|fna|faa|fa",
+    script:
+        resource_filename("snekmer", join("scripts", "unzip.py"))
 
 
 rule common_basis:  # build kmer count vectors for each basis set
     input:
-        kmerobjs=expand(join(config["basis_dir"], "{fam}.kmers"), fam=FAMILIES),
+        kmerobjs=expand(join(config["basis_dir"], "{m}.kmers"), m=model_input.family),
     output:
         kmerbasis=join(config["basis_dir"], "search_kmers.txt"),
     log:
@@ -135,7 +121,7 @@ rule common_basis:  # build kmer count vectors for each basis set
                 common_basis = list(set(common_basis))
             common_basis.extend(list(kmers.kmer_set.kmers))
 
-        # capture common basis set -- is faster than np.unique
+            # capture common basis set -- is faster than np.unique
         common_basis = set(common_basis)
         common_basis = sorted(list(common_basis))
 
@@ -143,73 +129,45 @@ rule common_basis:  # build kmer count vectors for each basis set
         with open(output.kmerbasis, "w") as f:
             for kmer in common_basis:
                 f.write(f"{kmer}\n")
-        # df = pd.DataFrame({'common': common_basis})
-        # df.to_csv(output.kmerbasis, index=False)
-
-
+                # df = pd.DataFrame({'common': common_basis})
+                # df.to_csv(output.kmerbasis, index=False)
 
 
 
 use rule vectorize from kmerize with:
     input:
-        fasta=lambda wildcards: join(
-            input_dir, f"{wildcards.f}.{FILE_MAP[wildcards.f]}"
-        ),
+        fasta=join("input", "{f}.{e}"),
         kmerbasis=rules.common_basis.output.kmerbasis,
     output:
-        data=join(out_dir, "vector", "{f}.npz"),
-        kmerobj=join(out_dir, "kmerize", "{f}.kmers"),
+        data=join(out_dir, "vector", "{f}.{e}.npz"),
+        kmerobj=join(out_dir, "kmerize", "{f}.{e}.kmers"),
+    wildcard_constraints:
+        f="\w+",
+        e="fasta|fna|faa|fa",
     log:
-        join(out_dir, "kmerize", "log", "{f}.log"),
+        join(out_dir, "kmerize", "log", "{f}.{e}.log"),
 
 
 rule search:
     input:
-        vecs=join(out_dir, "vector", "{f}.npz"),  # change to data=join("output", "vector", "{nb}.npz")
-        model=join(config["model_dir"], "{fam}.model"),
-        kmerobj=join(config["basis_dir"], "{fam}.kmers"),
-        scorer=join(config["score_dir"], "{fam}.scorer"),
+        vecs=join(out_dir, "vector", "{f}.{e}.npz"),  # change to data=join(out_dir, "vector", "{nb}.npz")
+        model=join(config["model_dir"], "{m}.model"),
+        kmerobj=join(config["basis_dir"], "{m}.kmers"),
+        scorer=join(config["score_dir"], "{m}.scorer"),
     output:
-        results=join(out_dir, "search", "{fam}", "{f}.csv"),
-    run:
-        # simplify variable name
-        family = wildcards.fam
-
-        # get kmers for this particular set of sequences
-        # print(f"starting {family}")
-        kmer = skm.io.load_pickle(input.kmerobj)
-        model = skm.io.load_pickle(input.model)
-        scorer = skm.io.load_pickle(input.scorer)
-        # print(f"loaded model {family}")
-
-        # load vectorized sequences, score, and predict scores
-        kmerlist, df = skm.io.load_npz(input.vecs)
-        filename = skm.utils.split_file_ext(basename(input.vecs))[0]
-
-        # print(f"making feature matrix {family}")
-        vecs = skm.utils.to_feature_matrix(df["sequence_vector"].values)
-
-        # print(f"getting scores {family}")
-        scores = scorer.predict(vecs, kmerlist[0])
-        # print(f"making predictions {family}")
-        predictions = model.predict(scores.reshape(-1, 1))
-        # print(f"getting probabilities {family}")
-        predicted_probas = model.model.predict_proba(scores.reshape(-1, 1))
-
-        # display results (score, family assignment, and probability)
-        df["score"] = scores  # scorer output
-        df["in_family"] = [True if p == 1 else False for p in predictions]
-        df["probability"] = [p[1] for p in predicted_probas]
-        df["filename"] = f"{filename}.{FILE_MAP[filename]}"
-        df["model"] = basename(input.model)
-
-        df = df.drop(columns=["sequence_vector", "sequence"])
-        df.to_csv(output.results, index=False)
+        results=join(out_dir, "search", "{m}", "{f}.{e}.csv"),
+    script:
+        resource_filename("snekmer", join("scripts", "search.py"))
 
 
 rule search_report:
     input:
-        files=expand(join(out_dir, "search", "{fam}", "{f}.csv"), fam=FAMILIES, f=FILES),
+        files=expand(
+            join(out_dir, "search", "{m}", "{f}.{e}.csv"),
+            m=model_input.family,
+            f=seq_input.filename,
+            e=seq_input.ext,
+        ),
     output:
         join(out_dir, "Snekmer_Search_Report.html"),
     run:
