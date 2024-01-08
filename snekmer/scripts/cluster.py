@@ -77,15 +77,15 @@ for i in range(len(data)):
     df["sequence_vector"] = converted.tolist()
 
 data = pd.concat(data, ignore_index=True)
-data["background"] = [f in snakemake.input.bg for f in data["filename"]]
+# data["background"] = [f in snakemake.input.bg for f in data["filename"]]
 
 # log conversion step runtime
 skm.utils.log_runtime(snakemake.log[0], start_time, step="load_npz")
 
 # define feature matrix of kmer vectors not from background set
-bg, non_bg = data[data["background"]], data[~data["background"]]
+# bg, non_bg = data[data["background"]], data[~data["background"]]
 full_feature_matrix = skm.utils.to_feature_matrix(data["sequence_vector"].values)
-feature_matrix = skm.utils.to_feature_matrix(non_bg["sequence_vector"].values)
+# feature_matrix = skm.utils.to_feature_matrix(non_bg["sequence_vector"].values)
 
 # filter by kmer occurrence
 # print("Filtering?")

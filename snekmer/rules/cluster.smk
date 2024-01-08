@@ -87,7 +87,6 @@ use rule vectorize from kmerize with:
     log:
         join(out_dir, "kmerize", "log", "{f}.{e}.log"),
 
-
 # [in-progress] kmer walk
 # if config['walk']:
 # use rule perform_kmer_walk from process with:
@@ -114,7 +113,7 @@ rule cluster:
     log:
         join(out_dir, "cluster", "log", "cluster.log"),
     script:
-        resource_filename("snekmer", join("scripts", "cluster_cluster.py"))
+        resource_filename("snekmer", join("scripts", "cluster.py"))
 
 
 rule cluster_report:
