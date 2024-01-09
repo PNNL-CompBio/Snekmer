@@ -30,6 +30,7 @@ from itertools import product, repeat
 from multiprocessing import Pool
 from os import makedirs
 from os.path import basename, dirname, exists, join, splitext
+from pkg_resources import resource_filename
 
 # import pandas as pd
 import matplotlib.pyplot as plt
@@ -52,7 +53,9 @@ plt.switch_backend("Agg")
 gz_input = glob_wildcards(join("input", "{filename,\w+}.{ext,fasta|fna|faa|fa}.gz"))
 seq_input = glob_wildcards(join("input", "{filename,\w+}.{ext,fasta|fna|faa|fa}"))
 
-model_input = glob_wildcards(join(config["model_dir"], "{family,\w+}.model"))
+model_input = glob_wildcards(
+    join(config["model_dir"], "{family,\w+}.{ext,fasta|fna|faa|fa}.model")
+)
 
 # check input file size
 for f, e in zip(seq_input.filename, seq_input.ext):
@@ -81,8 +84,9 @@ rule all:
             e=seq_input.ext,
         ),
         expand(
-            join(out_dir, "search", "{m}", "{f}.{e}.csv"),
+            join(out_dir, "search", "{m}.{me}", "{f}.{e}.csv"),
             m=model_input.family,
+            me=model_input.ext,
             f=seq_input.filename,
             e=seq_input.ext,
         ),
@@ -106,7 +110,11 @@ rule unzip:
 
 rule common_basis:  # build kmer count vectors for each basis set
     input:
-        kmerobjs=expand(join(config["basis_dir"], "{m}.kmers"), m=model_input.family),
+        kmerobjs=expand(
+            join(config["basis_dir"], "{m}.{me}.kmers"),
+            m=model_input.family,
+            me=model_input.ext,
+        ),
     output:
         kmerbasis=join(config["basis_dir"], "search_kmers.txt"),
     log:
@@ -151,11 +159,11 @@ use rule vectorize from kmerize with:
 rule search:
     input:
         vecs=join(out_dir, "vector", "{f}.{e}.npz"),  # change to data=join(out_dir, "vector", "{nb}.npz")
-        model=join(config["model_dir"], "{m}.model"),
-        kmerobj=join(config["basis_dir"], "{m}.kmers"),
-        scorer=join(config["score_dir"], "{m}.scorer"),
+        model=join(config["model_dir"], "{m}.{me}.model"),
+        kmerobj=join(config["basis_dir"], "{m}.{me}.kmers"),
+        scorer=join(config["score_dir"], "{m}.{me}.scorer"),
     output:
-        results=join(out_dir, "search", "{m}", "{f}.{e}.csv"),
+        results=join(out_dir, "search", "{m}.{me}", "{f}.{e}.csv"),
     script:
         resource_filename("snekmer", join("scripts", "search.py"))
 
@@ -163,8 +171,9 @@ rule search:
 rule search_report:
     input:
         files=expand(
-            join(out_dir, "search", "{m}", "{f}.{e}.csv"),
+            join(out_dir, "search", "{m}.{me}", "{f}.{e}.csv"),
             m=model_input.family,
+            me=model_input.ext,
             f=seq_input.filename,
             e=seq_input.ext,
         ),

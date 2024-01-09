@@ -2,9 +2,6 @@
 from os.path import basename
 import snekmer as skm
 
-# simplify variable name
-family = snakemake.wildcards.m
-
 # get kmers for this particular set of sequences
 # print(f"starting {family}")
 kmer = skm.io.load_pickle(snakemake.input.kmerobj)
@@ -14,7 +11,6 @@ scorer = skm.io.load_pickle(snakemake.input.scorer)
 
 # load vectorized sequences, score, and predict scores
 kmerlist, df = skm.io.load_npz(snakemake.input.vecs)
-filename = snakemake.wildcards.f
 
 # print(f"making feature matrix {family}")
 vecs = skm.utils.to_feature_matrix(df["sequence_vector"].values)
@@ -30,7 +26,7 @@ predicted_probas = model.model.predict_proba(scores.reshape(-1, 1))
 df["score"] = scores  # scorer output
 df["in_family"] = [True if p == 1 else False for p in predictions]
 df["probability"] = [p[1] for p in predicted_probas]
-df["filename"] = f"{filename}.{FILE_MAP[filename]}"
+df["filename"] = f"{snakemake.wildcards.f}.{snakemake.wildcards.e}"
 df["model"] = basename(snakemake.input.model)
 
 df = df.drop(columns=["sequence_vector", "sequence"])

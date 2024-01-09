@@ -87,6 +87,7 @@ use rule vectorize from kmerize with:
     log:
         join(out_dir, "kmerize", "log", "{f}.{e}.log"),
 
+
 # [in-progress] kmer walk
 # if config['walk']:
 # use rule perform_kmer_walk from process with:
