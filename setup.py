@@ -3,7 +3,7 @@ import glob
 import os
 
 version = {}
-with open("snekmer/version.py") as fp:
+with open("snekmer/_version.py") as fp:
     exec(fp.read(), version)
 
 with open("README.md") as f:
