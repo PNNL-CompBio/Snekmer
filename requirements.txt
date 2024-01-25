@@ -6,6 +6,7 @@ pandas == 1.4.2
 seaborn
 scipy
 scikit-learn
+PuLP == 2.7.0
 snakemake == 7.0
 scikit-learn
 tabulate == 0.8.10
