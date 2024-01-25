@@ -22,7 +22,7 @@ pkgs = find_packages(exclude=("test"))  # also Util?
 
 setup(
     name="snekmer",
-    version=__version__,
+    version=version['__version__'],
     # packages=['kmerfeatures'],
     # test_suite='pytest.collector',
     # tests_require=['pytest'],
