@@ -1,7 +1,10 @@
 from setuptools import setup, find_packages
-from snekmer import __version__
 import glob
 import os
+
+version = {}
+with open("snekmer/version.py") as fp:
+    exec(fp.read(), version)
 
 with open("README.md") as f:
     readme = f.read()
