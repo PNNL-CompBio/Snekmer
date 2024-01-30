@@ -1,4 +1,4 @@
-"""model.smk: Module for supervised kmer-based annotation models.
+"""motif.smk: Module for supervised kmer-based annotation models.
 
 author: @tnitka
 
