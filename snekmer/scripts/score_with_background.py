@@ -3,7 +3,6 @@
 # ---------------------------------------------------------
 import pickle
 from datetime import datetime
-from os.path import exists
 
 import numpy as np
 import pandas as pd
@@ -96,6 +95,7 @@ scorer.fit(
     bg=counts_bg,
     label_col=label,
     vec_col="sequence_vector",
+    weight_bg=config["score"]["background_weight"],
     **config["score"]["scaler_kwargs"],
 )
 
