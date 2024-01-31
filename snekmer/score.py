@@ -10,7 +10,6 @@ import pandas as pd
 
 from ._version import __version__
 from .vectorize import KmerBasis
-from .utils import to_feature_matrix
 from numpy.typing import ArrayLike
 from sklearn.metrics.pairwise import pairwise_distances
 
@@ -135,7 +134,7 @@ class KmerScoreScaler:
         #     array = np.array(array)
         try:
             if isinstance(array[0], list):
-                array = to_feature_matrix(array)
+                array = np.vstack(np.array(array))
         except KeyError:
             array = np.array(array)
 
@@ -693,7 +692,9 @@ class KmerScorer:
         array = self.kmers.transform(array, kmers)
         return (
             apply_feature_probabilities(
-                array, self.probabilities, scaler=False  # self.scaler
+                array,
+                self.probabilities,
+                scaler=False,  # self.scaler
             )
             / self.score_norm
         )

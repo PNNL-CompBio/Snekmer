@@ -1,13 +1,10 @@
 # ---------------------------------------------------------
 # Imports
 # ---------------------------------------------------------
-import pickle
 from datetime import datetime
 
 import numpy as np
-import pandas as pd
 import snekmer as skm
-from sklearn.model_selection import train_test_split, StratifiedKFold
 
 # ---------------------------------------------------------
 # Files and Parameters

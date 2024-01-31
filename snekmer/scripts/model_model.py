@@ -3,7 +3,6 @@
 # ---------------------------------------------------------
 
 import pickle
-from datetime import datetime
 from os import makedirs
 from os.path import exists, join
 
@@ -11,8 +10,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import snekmer as skm
-from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import train_test_split, StratifiedKFold
 from sklearn.preprocessing import LabelEncoder
 
 # ---------------------------------------------------------
@@ -122,7 +119,7 @@ for n in range(cv):
     df_test = df_test.merge(
         pd.DataFrame(
             scorer.predict(
-                skm.utils.to_feature_matrix(df_test["sequence_vector"]),
+                np.vstack(df_test["sequence_vector"]),
                 list(basis.kmer_set.kmers),
             )
         ),

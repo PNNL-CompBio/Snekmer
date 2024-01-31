@@ -1,25 +1,28 @@
 # imports
 from os.path import basename
+import numpy as np
 import snekmer as skm
 
 # get kmers for this particular set of sequences
-# print(f"starting {family}")
+family = snakemake.wildcards.m
+print(f"starting {family}")
 kmer = skm.io.load_pickle(snakemake.input.kmerobj)
 model = skm.io.load_pickle(snakemake.input.model)
 scorer = skm.io.load_pickle(snakemake.input.scorer)
-# print(f"loaded model {family}")
+print(f"loaded model {family}")
 
 # load vectorized sequences, score, and predict scores
 kmerlist, df = skm.io.load_npz(snakemake.input.vecs)
 
-# print(f"making feature matrix {family}")
-vecs = skm.utils.to_feature_matrix(df["sequence_vector"].values)
+print(f"making feature matrix {family}")
+vecs = np.vstack(df["sequence_vector"].values)
+# skm.utils.to_feature_matrix(df["sequence_vector"].values)
 
-# print(f"getting scores {family}")
+print(f"getting scores {family}")
 scores = scorer.predict(vecs, kmerlist[0])
-# print(f"making predictions {family}")
+print(f"making predictions {family}")
 predictions = model.predict(scores.reshape(-1, 1))
-# print(f"getting probabilities {family}")
+print(f"getting probabilities {family}")
 predicted_probas = model.model.predict_proba(scores.reshape(-1, 1))
 
 # display results (score, family assignment, and probability)
