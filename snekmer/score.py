@@ -441,7 +441,7 @@ def feature_class_probabilities(
 
     # kmer labels
     if kmers is None:
-        kmers = np.array([n for n in range(len(feature_matrix))])
+        kmers = np.arange(len(feature_matrix))
     if len(kmers) != len(feature_matrix):
         raise ValueError(
             "Input kmer array shape does not match kmer basis"
