@@ -16,7 +16,7 @@ kmerlist, df = skm.io.load_npz(snakemake.input.vecs)
 
 print(f"making feature matrix {family}")
 vecs = np.vstack(df["sequence_vector"].values)
-# skm.utils.to_feature_matrix(df["sequence_vector"].values)
+df = df.drop(columns=["sequence_vector", "sequence"])  # clear memory
 
 print(f"getting scores {family}")
 scores = scorer.predict(vecs, kmerlist[0])
@@ -27,10 +27,10 @@ predicted_probas = model.model.predict_proba(scores.reshape(-1, 1))
 
 # display results (score, family assignment, and probability)
 df["score"] = scores  # scorer output
-df["in_family"] = [True if p == 1 else False for p in predictions]
+df["in_family"] = [p == 1 for p in predictions]
 df["probability"] = [p[1] for p in predicted_probas]
 df["filename"] = f"{snakemake.wildcards.f}.{snakemake.wildcards.e}"
 df["model"] = basename(snakemake.input.model)
 
-df = df.drop(columns=["sequence_vector", "sequence"])
+# df = df.drop(columns=["sequence_vector", "sequence"])
 df.to_csv(snakemake.output.results, index=False)
