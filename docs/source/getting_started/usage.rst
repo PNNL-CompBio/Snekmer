@@ -233,3 +233,30 @@ and directories in addition to the files described previously.
     │   │   ├── Seq-Annotation-Scores-D.csv  # (optional) Sequence-annotation cosine similarity scores for D seqs
     │   │   ├── kmer-summary-C.csv  # Results with annotation predictions and confidence for C seqs 
     │   │   └── kmer-summary-D.csv  # Results with annotation predictions and confidence for D seqs 
+
+Snekmer Motif Output Files
+::::::::::::::::::::::::::
+
+Snekmer's motif mode produces the following output files and directories in addition to the files described previously.
+
+.. code-block:: console
+
+    .
+    ├── output/
+    │   ├── ...
+    │   ├── motif/
+    │   │   ├── kmers/
+    │   │   │   ├── A.csv # kmers retained for A after recursive feature elimination
+    │   │   │   ├── B.csv # kmers retained for B after recursive feature elimination
+    │   │   ├── preselection/
+    │   │   │   ├── A.csv # kmer weights learned for A after recursive feature elimination
+    │   │   │   ├── B.csv # kmer weights learned for B after recursive feature elimination
+    │   │   ├── sequences/
+    │   │   │   ├── A.csv # Sequence vectors for A using the kmer subset retained after recursive feature elimination
+    │   │   │   ├── B.csv # Sequence vectors for B using the kmer subset retained after recursive feature elimination
+    │   │   ├── scores/
+    │   │   │   ├── A.csv # kmer weight learned for A on each permute/rescore iteration
+    │   │   │   ├── B.csv # kmer weight learned for B on each permute/rescore iteration
+    │   │   ├── p_values/
+    │   │   │   ├── A.csv # Tabulated results for A
+    │   │   │   └── B.csv # Tabulated results for B
