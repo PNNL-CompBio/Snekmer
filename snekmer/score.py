@@ -4,13 +4,13 @@ author: @christinehc, @biodataganache
 
 """
 # imports
-from typing import Optional
+from typing import Optional, Union
 import numpy as np
 import pandas as pd
 
 from ._version import __version__
 from .vectorize import KmerBasis
-from numpy.typing import ArrayLike
+from numpy.typing import ArrayLike, NDArray
 from sklearn.metrics.pairwise import pairwise_distances
 
 # define variables
@@ -55,7 +55,7 @@ class KmerScoreScaler:
 
     """
 
-    def __init__(self, n=100):
+    def __init__(self, n: int = 100):
         """Initialize KmerScaler object."""
         self.n = n
         self.input_shape = None
@@ -63,15 +63,13 @@ class KmerScoreScaler:
         self.basis_index = None
         self.basis_score = dict()
 
-    def fit(self, scores):
+    def fit(self, scores: ArrayLike):
         """Fit scaler based on list of scores.
 
         Parameters
         ----------
-        scores : list or numpy.ndarray
+        scores : ArrayLike
             Array of scores for kmer features.
-        threshold : float
-            Numerical cutoff for kmer feature scores.
 
         Returns
         -------
@@ -103,7 +101,7 @@ class KmerScoreScaler:
                     " 0.0 < float < 1.0)."
                 )
         else:
-            raise ValueError("One of either `threshold` or `n` must" " be specified.")
+            raise ValueError("Feature cutoff `n` must" " be specified.")
 
         # store basis set and indices as attributes
         self.basis_index = indices
@@ -112,17 +110,17 @@ class KmerScoreScaler:
         ]
         return
 
-    def transform(self, array):
+    def transform(self, array: ArrayLike) -> ArrayLike:
         """Reduce vector to kmer basis set.
 
         Parameters
         ----------
-        array : list or numpy.ndarray
+        array : ArrayLike
             Unscaled kmer vector or matrix.
 
         Returns
         -------
-        numpy.ndarray
+        ArrayLike
             Scaled kmer vector or matrix.
 
         """
@@ -130,13 +128,10 @@ class KmerScoreScaler:
             raise AttributeError(
                 "Kmer basis set not defined;" " must fit scores to scaler."
             )
-        # if not isinstance(array, np.ndarray):
-        #     array = np.array(array)
-        try:
-            if isinstance(array[0], list):
-                array = np.vstack(np.array(array))
-        except KeyError:
-            array = np.array(array)
+
+        # enforce array shape
+        array = np.asarray(array)
+        array = np.vstack(array)
 
         # input vec must match original input shape for indexing
         if len(array.shape) < 2:  # account for 1D arrays
@@ -157,12 +152,14 @@ class KmerScoreScaler:
 
 
 # functions
-def connection_matrix_from_features(feature_matrix, metric="jaccard"):
+def connection_matrix_from_features(
+    feature_matrix: ArrayLike, metric: str = "jaccard"
+) -> NDArray:
     """Calculate similarities based on features output from main().
 
     Parameters
     ----------
-    feature_matrix : numpy.ndarray
+    feature_matrix : ArrayLike
         Feature matrix in the form of rows (sequences), columns
         (kmers), where values are kmer counts for each protein.
     metric : str
@@ -171,7 +168,7 @@ def connection_matrix_from_features(feature_matrix, metric="jaccard"):
 
     Returns
     -------
-    numpy.ndarray
+    NDArray
         Square matrix with the similarity scores of pairwise
         relationships between proteins.
 
@@ -183,7 +180,7 @@ def connection_matrix_from_features(feature_matrix, metric="jaccard"):
     return sim
 
 
-def _apply_probability(kmer, label, compare_label):
+def _apply_probability(kmer: int, label: str, compare_label: str) -> int:
     """Compute binary probability of a label for a kmer.
 
     Parameters
@@ -206,25 +203,25 @@ def _apply_probability(kmer, label, compare_label):
     return (kmer == 1) * 1 * (label == compare_label)
 
 
-def _binarize(feature_matrix):
+def _binarize(feature_matrix: ArrayLike) -> ArrayLike:
     """Convert feature counts into binary presence/absence.
 
     Parameters
     ----------
-    feature_matrix : array (list, numpy.ndarray, pandas.Series)
+    feature_matrix : ArrayLike
         Feature matrix, where each row represents a kmer and each
         column represents a sequence
 
     Returns
     -------
-    numpy.ndarray
-        Description of returned object.
+    ArrayLike
+        Binarized presence/absence matrix.
 
     """
     return (feature_matrix > 0) * 1.0
 
 
-def _get_kmer_presence(feature_matrix, label_match):
+def _get_kmer_presence(feature_matrix: ArrayLike, label_match: ArrayLike) -> NDArray:
     """Get kmer presence in full feature matrix for one family.
 
     Parameters
@@ -258,7 +255,7 @@ def _get_kmer_presence(feature_matrix, label_match):
     return result
 
 
-def _score(p_pos, p_neg, w=1.0):
+def _score(p_pos: float, p_neg: float, w: float = 1.0) -> float:
     """Score probability vs. weighted negative probability.
 
     e.g. P(pos) - (w * P(neg))
@@ -324,23 +321,59 @@ def score_old(results, in_label, out_labels, w=1.0, col="probability"):
 
 
 def score(
-    results,
-    in_label,
-    out_labels,
-    background=None,
-    w_bg=0.25,
-    w_out=1.0,
-    col="probability",
-    method="background",
-):
+    results: Union[dict, pd.DataFrame],
+    in_label: str,
+    out_labels: ArrayLike,
+    background: Optional[NDArray] = None,
+    w_bg: float = 0.25,
+    w_out: float = 1.0,
+    col: str = "probability",
+    method: str = "background",
+) -> float:
+    """Score kmer using specified scoring method.
+
+    Parameters
+    ----------
+    results : Union[dict, pd.DataFrame]
+        Prior results containing all kmer family probabilities.
+        Requires nested dict or multi-index, e.g.:
+            results[family][`col`] = pos kmer family probability
+    in_label : str
+        Name of "in-family" label.
+    out_labels : ArrayLike
+        Array of "out-of-family" labels.
+    background : Optional[NDArray], optional
+        Background matrix, by default None
+    w_bg : float, optional
+        Weight multiplier for background subtraction,
+            by default 0.25
+    w_out : float, optional
+        Weight multiplier for family subtraction, by default 1.0
+    col : str, optional
+        Name of column containing kmer probabilities,
+            by default "probability"
+    method : str, optional
+        Scoring method, by default "background"
+            Accepts ["combined", "background", "bg", "family", "f"]
+
+    Returns
+    -------
+    float
+        _description_
+
+    Raises
+    ------
+    ValueError
+        _description_
+    """
     p_in = results[in_label][col]
     p_out = np.sum([results[fam][col] for fam in out_labels], axis=0)
 
     if method in ["combined", "bg", "background"]:
-        bg = abs(_score(0, background, w=w_bg))
+        bg = np.abs(_score(0, background, w=w_bg))
         if background is None:
             raise ValueError(
-                f"Background matrix `p_bg` must be provided for `method`='{method}'."
+                f"Background matrix `background` must be provided for `method`='{method}'."
             )
 
     if method in ["combined", "family", "f"]:
@@ -394,7 +427,12 @@ def _parse_score_method(method, bg=None, **kwargs):
 
 
 def feature_class_probabilities(
-    feature_matrix, labels, kmers=None, bg=None, method="background", weight_bg=0.25
+    feature_matrix: ArrayLike,
+    labels: ArrayLike,
+    kmers: Optional[list] = None,
+    bg: Optional[ArrayLike] = None,
+    method: str = "background",
+    weight_bg: float = 0.25,
 ):
     """Calculate probabilities for features being in a defined class.
 
@@ -402,15 +440,19 @@ def feature_class_probabilities(
 
     Parameters
     ----------
-    feature_matrix : array (list, numpy.ndarray, pandas.Series)
+    feature_matrix : ArrayLike
         Feature matrix of shape (n, m), where each row represents
         a kmer and each column represents a sequence.
         In other words, m must equal len(labels).
-    labels : list or numpy.ndarray or pandas.Series
+    labels : ArrayLike
         Class labels of shape (m, ) describing feature matrix.
         Must have as many entries as the number of feature columns.
-    kmers : list or None (default: None)
-        Optional kmer identifiers mapping to kmer columns (shape (n,)).
+    kmers : list, optional
+        Optional kmer identifiers mapping to kmer columns (shape (n,)),
+            by default None
+    bg : ArrayLike, optional (default: None)
+        Feature matrix of shape (n, o), where each row represents
+        a kmer and each column represents a background sequence.
     method : str (default: "default")
         Specify scoring method:
             "background"/"bg" : Score in-family vs. background
@@ -419,9 +461,10 @@ def feature_class_probabilities(
                 P(family) - (weight * P(out of family))
             "combined" : Score in-family vs. out-of-family and background
                 P(family) - P(background) - (weight * P(out of family))
-    bg : array or None (default: None)
-        Feature matrix of shape (n, o), where each row represents
-        a kmer and each column represents a background sequence.
+    weight_bg : float, optional
+        Weight multiplier for background subtraction,
+            by default 0.25
+
 
     Returns
     -------
@@ -440,6 +483,7 @@ def feature_class_probabilities(
     # method_name, score_function, bg_matrix = _parse_score_method(method, bg=bg)
 
     # kmer labels
+    kmers = np.asarray(kmers)
     if kmers is None:
         kmers = np.arange(len(feature_matrix))
     if len(kmers) != len(feature_matrix):
@@ -467,13 +511,13 @@ def feature_class_probabilities(
     unique_labels = np.unique(labels)
 
     # iteratively score all feature in input matrix
-    n_seqs = [len(np.hstack(np.where(labels == lname))) for lname in unique_labels]
+    n_seqs = [np.sum(labels == lname) for lname in unique_labels]  # count seqs /label
     results = {label_name: {} for label_name in labels}
     for i, l in enumerate(unique_labels):
         label_match = np.equal(labels, l)
 
         # get score arrays based on label match, normalized by #seqs
-        presence = _get_kmer_presence(feature_matrix, label_match)  # if
+        presence = _get_kmer_presence(feature_matrix, label_match)
         norms = (1 / n_seqs[i]) * np.ones(len(presence))
 
         # if no kmers specified, save numerical range
@@ -484,7 +528,7 @@ def feature_class_probabilities(
         else:
             p_background = None
 
-        results[l]["kmer"] = np.array(kmers)
+        results[l]["kmer"] = kmers
         results[l]["count"] = np.asarray(presence, dtype=int)
         results[l]["probability"] = np.asarray(presence * norms, dtype=float)
 
@@ -553,7 +597,7 @@ def apply_feature_probabilities(feature_matrix, scores, scaler=False, **kwargs):
     feature_matrix = _binarize(feature_matrix)
 
     score_matrix = scores * feature_matrix
-    score_totals = np.array([np.sum(arr) for arr in score_matrix])
+    score_totals = np.sum(score_matrix, axis=1)
 
     return score_totals
 
