@@ -64,7 +64,7 @@ else:
     alphabet_name = str(config["alphabet"]).capitalize()
 
 # generate [0, 1] labels for binary family assignment
-binary_labels = [True if value == family else False for value in data[label]]
+binary_labels = [value == family for value in data[label]]
 le = LabelEncoder()
 le.fit(binary_labels)
 
@@ -115,7 +115,7 @@ for n in range(cv):
         pd.DataFrame(scorer.scores), left_index=True, right_index=True
     ).rename(columns={0: f"{family}_score"})
     if df_train.empty:
-        raise ValueError("Blank df")
+        raise ValueError("DataFrame is empty.")
     df_test = df_test.merge(
         pd.DataFrame(
             scorer.predict(
