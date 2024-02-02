@@ -26,19 +26,19 @@ config = snakemake.config
 with open(snakemake.input.matrix, "rb") as f:
     data = pickle.load(f)
 
-data.astype({'label': 'category'})
-data.astype({'background': 'boolean'})
+data.astype({"label": "category"})
+data.astype({"background": "boolean"})
 
 with gzip.open(snakemake.input.weights, "rb") as f:
     weights = pd.read_csv(f)
-    
+
 # prevent kmer NA being read as np.nan
 if config["k"] == 2:
     weights["kmer"] = weights["kmer"].fillna("NA")
 
 
-kmers = weights['kmer'].values    
-scores = weights['sample'].values
+kmers = weights["kmer"].values
+scores = weights["sample"].values
 family = skm.utils.get_family(
     skm.utils.split_file_ext(snakemake.input.weights)[0],
     regex=config["input_file_regex"],
@@ -46,7 +46,7 @@ family = skm.utils.get_family(
 
 del weights
 gc.collect()
-    
+
 # set category label name (e.g. "family")
 label = config["score"]["lname"] if str(config["score"]["lname"]) != "None" else "label"
 
@@ -60,7 +60,10 @@ unique_labels.sort()
 score_index = np.searchsorted(unique_labels, family)
 
 svm = LinearSVC(class_weight="balanced", random_state=None, max_iter=1000000)
-vecs=np.array(data["sequence_vector"].astype(str).str.strip('[]').str.split(",").tolist(), dtype='float')
+vecs = np.array(
+    data["sequence_vector"].astype(str).str.strip("[]").str.split(",").tolist(),
+    dtype="float",
+)
 svm.fit(vecs, data[label])
 
 sequences = pd.DataFrame(vecs)
@@ -70,16 +73,16 @@ gc.collect()
 scores = pd.DataFrame(svm.coef_)
 unit_score = max(scores.iloc[score_index].values)
 for i in range(len(scores.iloc[score_index].values)):
-    scores.iloc[score_index, i] = scores.iloc[score_index, i]/unit_score
+    scores.iloc[score_index, i] = scores.iloc[score_index, i] / unit_score
 
 kmers = pd.Series(kmers)
-while scores.iloc[score_index].lt(-0.2).sum()>0:
+while scores.iloc[score_index].lt(-0.2).sum() > 0:
     # temp_scores = scores
     features = list()
     for i in range(len(scores.iloc[score_index].values)):
-        if scores.iloc[score_index, i]<-0.1:
+        if scores.iloc[score_index, i] < -0.1:
             features.append(i)
-            
+
     scores.drop(scores.columns[features], axis=1, inplace=True)
     kmers.drop(features, inplace=True)
     kmers.index = np.arange(len(kmers.index))
@@ -87,19 +90,18 @@ while scores.iloc[score_index].lt(-0.2).sum()>0:
     sequences.columns = np.arange(len(sequences.columns))
     del features
     gc.collect()
-            
+
     vecs = sequences.to_numpy()
     svm.fit(vecs, data[label])
     scores = pd.DataFrame(svm.coef_)
     unit_score = max(scores.iloc[score_index].values)
     for i in range(len(scores.iloc[score_index].values)):
-        scores.iloc[score_index, i] = scores.iloc[score_index, i]/unit_score
-
+        scores.iloc[score_index, i] = scores.iloc[score_index, i] / unit_score
 
 
 del data, vecs
 gc.collect()
-    
+
 # save output
 scores.iloc[score_index].to_csv(snakemake.output.data, index=False, compression="gzip")
 kmers.to_csv(snakemake.output.kmers, index=False, compression="gzip")

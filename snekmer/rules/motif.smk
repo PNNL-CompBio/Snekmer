@@ -169,7 +169,7 @@ rule preselect:
         data=temp(join(out_dir, "motif", "preselection", "{nb}.csv.gz")),
         kmers=join(out_dir, "motif", "kmers", "{nb}.csv.gz"),
         vecs=join(out_dir, "motif", "sequences", "{nb}.csv.gz"),
-        model=join(out_dir, "motif", "preselection", "{nb}.model")
+        model=join(out_dir, "motif", "preselection", "{nb}.model"),
     script:
         resource_filename("snekmer", join("scripts/motif_preselect.py"))
 
