@@ -97,10 +97,12 @@ while scores.iloc[score_index].lt(-0.2).sum()>0:
 
 
 
-del svm, data, vecs
+del data, vecs
 gc.collect()
     
 # save output
 scores.iloc[score_index].to_csv(snakemake.output.data, index=False, compression="gzip")
 kmers.to_csv(snakemake.output.kmers, index=False, compression="gzip")
 sequences.to_csv(snakemake.output.vecs, index=False, compression="gzip")
+with open(snakemake.output.model, "wb") as save_model:
+    pickle.dump(svm, save_model)

@@ -1,9 +1,9 @@
 Using Snekmer
 =============
 
-Snekmer has three modeling operations: ``cluster`` (unsupervised clustering),
-``model`` (supervised modeling), and ``search`` (application
-of model to new sequences). We will call the first two modes
+Snekmer has four modeling operations: ``cluster`` (unsupervised clustering),
+``model`` (supervised modeling), ``search`` (application
+of model to new sequences), and ``motif`` (feature selection). We will call the first two modes
 **learning modes** due to their utility in learning relationships
 between protein family input files. Users may choose a mode to best
 suit their specific use case.
