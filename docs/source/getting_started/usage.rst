@@ -251,6 +251,8 @@ Snekmer's motif mode produces the following output files and directories in addi
     │   │   ├── preselection/
     │   │   │   ├── A.csv # kmer weights learned for A after recursive feature elimination
     │   │   │   ├── B.csv # kmer weights learned for B after recursive feature elimination
+    │   │   │   ├── A.model # last (A/not A) classification model trained during RFE
+    │   │   │   ├── B.model # last (B/not B) classification model trained during RFE
     │   │   ├── sequences/
     │   │   │   ├── A.csv # Sequence vectors for A using the kmer subset retained after recursive feature elimination
     │   │   │   ├── B.csv # Sequence vectors for B using the kmer subset retained after recursive feature elimination
