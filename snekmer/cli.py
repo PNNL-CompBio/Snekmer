@@ -9,7 +9,7 @@ import os
 
 from multiprocessing import cpu_count
 from pkg_resources import resource_filename
-from snakemake import snakemake, parse_config, get_profile_file
+from snakemake import snakemake, parse_config, parse_resources
 from snekmer import __version__
 
 # define options
@@ -215,6 +215,18 @@ def get_argument_parser():
         help="List all output files for which the defined params have changed "
         "in the Snakefile.",
     )
+    parser["smk"].add_argument(
+        "--resources",
+        "--res",
+        nargs="+",
+        metavar="NAME=INT",
+        default=dict(),
+        help=(
+            "Define additional resources, defined via a name and an integer "
+            "value. E.g. --resources mem_mb=1000. See Snakemake documentation "
+            "for more details."
+        ),
+    )
 
     # clust execution options
     parser["clust"] = parser["smk"].add_argument_group("Cluster Execution Arguments")
@@ -282,6 +294,9 @@ def main():
     args = parser["main"].parse_args()
     config = parse_config(args)
 
+    # parse resources
+    resources = parse_resources(args.resources)
+
     # start/stop config
     if args.count is not None:
         config = {
@@ -314,125 +329,58 @@ def main():
     else:
         configfile = list(map(os.path.abspath, configfile))
 
+    snakemake_args = {
+        "cluster_config": args.clust,
+        "cluster": cluster,
+        "config": config,
+        "configfiles": configfile,
+        "cores": args.cores,
+        "dryrun": args.dryrun,
+        "force_incomplete": True,
+        "forcerun": args.forcerun,
+        "keepgoing": args.keepgoing,
+        "latency_wait": args.latency,
+        "list_code_changes": args.list_code_changes,
+        "list_params_changes": args.list_params_changes,
+        "nodes": args.jobs,
+        "quiet": args.quiet,
+        "resources": resources,
+        "touch": args.touch,
+        "unlock": args.unlock,
+        "until": args.until,
+        "verbose": args.verbose,
+        "workdir": args.directory,
+    }
+
     # parse operation mode
     if args.mode == "cluster":
         snakemake(
             resource_filename("snekmer", os.path.join("rules", "cluster.smk")),
-            configfiles=configfile,
-            config=config,
-            cluster_config=args.clust,
-            cluster=cluster,
-            keepgoing=args.keepgoing,
-            force_incomplete=True,
-            forcerun=args.forcerun,
-            cores=args.cores,
-            nodes=args.jobs,
-            workdir=args.directory,
-            dryrun=args.dryrun,
-            unlock=args.unlock,
-            list_code_changes=args.list_code_changes,
-            list_params_changes=args.list_params_changes,
-            until=args.until,
-            touch=args.touch,
-            latency_wait=args.latency,
-            verbose=args.verbose,
-            quiet=args.quiet,
+            **snakemake_args,
         )
 
     elif args.mode == "model":
         snakemake(
             resource_filename("snekmer", os.path.join("rules", "model.smk")),
-            configfiles=configfile,
-            config=config,
-            cluster_config=args.clust,
-            cluster=cluster,
-            keepgoing=args.keepgoing,
-            force_incomplete=True,
-            forcerun=args.forcerun,
-            cores=args.cores,
-            nodes=args.jobs,
-            workdir=args.directory,
-            dryrun=args.dryrun,
-            unlock=args.unlock,
-            list_code_changes=args.list_code_changes,
-            list_params_changes=args.list_params_changes,
-            until=args.until,
-            touch=args.touch,
-            latency_wait=args.latency,
-            verbose=args.verbose,
-            quiet=args.quiet,
+            **snakemake_args,
         )
 
     elif args.mode == "search":
         snakemake(
             resource_filename("snekmer", os.path.join("rules", "search.smk")),
-            configfiles=configfile,
-            config=config,
-            cluster_config=args.clust,
-            cluster=cluster,
-            keepgoing=True,
-            force_incomplete=True,
-            forcerun=args.forcerun,
-            cores=args.cores,
-            nodes=args.jobs,
-            workdir=args.directory,
-            dryrun=args.dryrun,
-            unlock=args.unlock,
-            list_code_changes=args.list_code_changes,
-            list_params_changes=args.list_params_changes,
-            until=args.until,
-            touch=args.touch,
-            latency_wait=args.latency,
-            verbose=args.verbose,
-            quiet=args.quiet,
+            **snakemake_args,
         )
 
     elif args.mode == "learn":
         snakemake(
             resource_filename("snekmer", os.path.join("rules", "learn.smk")),
-            configfiles=configfile,
-            config=config,
-            cluster_config=args.clust,
-            cluster=cluster,
-            keepgoing=True,
-            force_incomplete=True,
-            forcerun=args.forcerun,
-            cores=args.cores,
-            nodes=args.jobs,
-            workdir=args.directory,
-            dryrun=args.dryrun,
-            unlock=args.unlock,
-            list_code_changes=args.list_code_changes,
-            list_params_changes=args.list_params_changes,
-            until=args.until,
-            touch=args.touch,
-            latency_wait=args.latency,
-            verbose=args.verbose,
-            quiet=args.quiet,
+            **snakemake_args,
         )
-        
+
     elif args.mode == "apply":
         snakemake(
             resource_filename("snekmer", os.path.join("rules", "apply.smk")),
-            configfiles=configfile,
-            config=config,
-            cluster_config=args.clust,
-            cluster=cluster,
-            keepgoing=True,
-            force_incomplete=True,
-            forcerun=args.forcerun,
-            cores=args.cores,
-            nodes=args.jobs,
-            workdir=args.directory,
-            dryrun=args.dryrun,
-            unlock=args.unlock,
-            list_code_changes=args.list_code_changes,
-            list_params_changes=args.list_params_changes,
-            until=args.until,
-            touch=args.touch,
-            latency_wait=args.latency,
-            verbose=args.verbose,
-            quiet=args.quiet,
+            **snakemake_args,
         )
 
     else:
@@ -441,4 +389,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
