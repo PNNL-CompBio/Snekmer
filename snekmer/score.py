@@ -148,7 +148,10 @@ class KmerScoreScaler:
         # ND arrays
         array_size = array.shape
         input_size = self.input_shape
-        return array[:, self.basis_index]
+        # print(array)
+        # print(array.shape)
+        # print(self.basis_index)
+        return array[self.basis_index]
 
 
 # functions
@@ -675,13 +678,14 @@ class KmerScorer:
         labels = data[label_col].values
         x = len(data[vec_col])
         y = len(data[vec_col][0])
+        matrix = np.vstack(data[vec_col].values)
 
-        matrix = np.zeros(x * y).reshape((x, y))
-        for i in range(x):
-            for j in range(y):
-                value = data[vec_col][i]
-                value = value[j]
-                matrix[i, j] = value
+        # matrix = np.zeros(x * y).reshape((x, y))
+        # for i in range(x):
+        #     for j in range(y):
+        #         value = data[vec_col][i]
+        #         value = value[j]
+        #         matrix[i, j] = value
         probas = feature_class_probabilities(
             matrix.T,
             labels,
@@ -690,19 +694,17 @@ class KmerScorer:
             bg=bg,
             weight_bg=weight_bg,
         )
-        self.probabilities = probas[probas["label"] == self.label][
-            self.score_col
-        ].to_numpy()
+        in_family = probas[probas["label"] == self.label]
+        self.probabilities = in_family[self.score_col].to_numpy()
 
         # step 3: fit scaler to the sample data (ignore the background)
         self.scaler = KmerScoreScaler(**scaler_kwargs)
-        self.scaler.fit(
-            probas[probas["label"] == label]["probability"]
-        )  # probas is an ordered list of scores from kmers. returns indices for these scores
+        self.scaler.fit(in_family["probability"])
+        # probas is an ordered list of scores from kmers. returns indices for these scores
 
         # get probability scores for each label
         scores = apply_feature_probabilities(
-            matrix, self.probabilities, scaler=self.scaler
+            matrix.T, self.probabilities, scaler=self.scaler
         )
 
         # normalize by sum of all positive scores

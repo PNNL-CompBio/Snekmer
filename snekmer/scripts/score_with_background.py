@@ -71,8 +71,8 @@ if any(families):
     data[label] = families
 
 # binary T/F for classification into family
-family = skm.utils.get_family(snakemake.wildcards.f)
-binary_labels = [True if value == family else False for value in data[label]]
+family = skm.utils.get_family(snakemake.wildcards.f, regex=config["input_file_regex"])
+binary_labels = [value == family for value in data[label]]
 
 # define k-fold split indices
 if config["model"]["cv"] > 1:
@@ -91,7 +91,7 @@ scorer = skm.score.KmerScorer(method=config["score"]["method"])
 scorer.fit(
     list(basis.kmer_set.kmers),
     data,
-    skm.utils.get_family(snakemake.wildcards.f, regex=config["input_file_regex"]),
+    family,
     bg=counts_bg,
     label_col=label,
     vec_col="sequence_vector",
