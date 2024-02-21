@@ -151,6 +151,6 @@ output_matrix.sort_values(by=["p", "real score"], ascending=[True, False], inpla
 
 # save output
 score_matrix.to_csv(snakemake.output.data, index=False, compression="gzip")
-output_matrix.to_csv(snakemake.output.p_values, index=False, compression="gzip")
+output_matrix.to_csv(snakemake.output.p_values, index=False)
 # record script endtime
 # skm.utils.log_runtime(snakemake.log[0], start_time)

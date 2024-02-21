@@ -105,7 +105,8 @@ n_iter = config["motif"]["n"]
 rule all:
     input:
         expand(join("input", "{uz}"), uz=UZS),
-        expand(join(out_dir, "motif", "p_values", "{nb}.csv.gz"), nb=NON_BGS),
+        expand(join(out_dir, "motif", "p_values", "{nb}.csv"), nb=NON_BGS),
+        join(out_dir, "Snekmer_Motif_Report.html"),
 
 
 # if any files are gzip zipped, unzip them
@@ -205,6 +206,28 @@ rule motif:
         scores=rules.preselect.output.data,
     output:
         data=join(out_dir, "motif", "scores", "{nb}.csv.gz"),
-        p_values=join(out_dir, "motif", "p_values", "{nb}.csv.gz"),
+        p_values=join(out_dir, "motif", "p_values", "{nb}.csv"),
     script:
         resource_filename("snekmer", join("scripts/motif_motif.py"))
+
+
+rule motif_report:
+    input:
+        results=expand(join(out_dir, "motif", "p_values", "{nb}.csv"), nb=NON_BGS),
+    output:
+        join(out_dir, "Snekmer_Motif_Report.html"),
+    run:
+        tab_dir = dirname(input.results[0])
+
+        motif_vars = dict(
+            page_title="Snekmer Motif Report",
+            title="Snekmer Motif Results",
+            text=(
+                "Feature selection results using "
+                f"({config['motif']['n']} permutations) "
+                f"are below."
+            ),
+            dir=skm.report.correct_rel_path(tab_dir),
+        )
+
+        skm.report.create_report_many_tables(tab_dir, motif_vars, "motif", output[0])
