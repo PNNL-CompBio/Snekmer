@@ -63,6 +63,8 @@ The output is a table for each file containing sequence annotation predictions w
 
    tutorial/index
    tutorial/snekmer_demo
+   tutorial/snekmer_learnapp_tutorial
+   tutorial/snekmer_motif_tutorial
 
 .. toctree::
    :caption: Background
