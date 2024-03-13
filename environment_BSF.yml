@@ -22,5 +22,5 @@ dependencies:
   - hdbscan
   - pip
   - pip:
-      - -e git+https://github.com/PNNL-CompBio/Snekmer#egg=snekmer
+      - snekmer
       - -e git+https://github.com/PNNL-Compbio/bsf-jaccard-py#egg=bsf
