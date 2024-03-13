@@ -676,8 +676,6 @@ class KmerScorer:
 
         # step 2: get feature matrix and all labels
         labels = data[label_col].values
-        x = len(data[vec_col])
-        y = len(data[vec_col][0])
         matrix = np.vstack(data[vec_col].values)
 
         # matrix = np.zeros(x * y).reshape((x, y))

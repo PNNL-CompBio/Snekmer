@@ -94,8 +94,8 @@ for n in range(cv):
     i_test = data[~data[f"train_cv-{n + 1:02d}"]].index
     df_train = data.iloc[i_train][unscored_cols].reset_index(drop=True)
     df_test = data.iloc[i_test][unscored_cols].reset_index(drop=True)
-    df_train_labels = [True if value == family else False for value in df_train[label]]
-    df_test_labels = [True if value == family else False for value in df_test[label]]
+    df_train_labels = [value == family for value in df_train[label]]
+    df_test_labels = [value == family for value in df_test[label]]
 
     # score kmers separately per split
     scorer = skm.score.KmerScorer(method=config["score"]["method"])
