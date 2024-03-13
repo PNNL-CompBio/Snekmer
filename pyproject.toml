@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "snekmer"
+authors = [
+  { name="Pacific Northwest National Laboratory" }
+]
+maintainers = [
+  { name="Christine Chang", email="christine.chang@pnnl.gov" },
+  { name="Jason McDermott", email="jason.mcdermott@pnnl.gov" }
+]
+description = "A computational pipeline enabling functional annotation using amino acid recoding."
+readme = "README.md"
+license = { file="LICENSE" }
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Bio-Informatics"
+]
+dynamic = ["version", "dependencies"]
+
+[project.urls]
+Homepage = "https://github.com/PNNL-CompBio/Snekmer"
+Documentation = "https://snekmer.readthedocs.io"
+Issues = "https://github.com/PNNL-CompBio/Snekmer/issues"
+
+[tool.setuptools.dynamic]
+version = { attr="snekmer._version.__version__" }
+dependencies = { file=["requirements.txt"] }
+
+[tool.setuptools.packages.find]
+include = ["snekmer"]
+
+[tool.setuptools.package-data]
+snekmer = ["rules/*.smk", "scripts/*.py", "templates/*.html"]
+
+[project.scripts]
+snekmer = "snekmer.cli:main"
