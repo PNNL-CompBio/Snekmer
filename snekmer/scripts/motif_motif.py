@@ -52,7 +52,6 @@ family = skm.utils.get_family(
     skm.utils.split_file_ext(snakemake.input.weights)[0],
     regex=config["input_file_regex"],
 )
-# scores = coeffs.iloc[score_index]
 scorer = skm.score.KmerScorer()
 
 gc.collect()
@@ -72,10 +71,8 @@ else:
     alphabet_name = str(config["alphabet"]).capitalize()
 
 
-# run permutations and score each
-
+# gather scores from rescoring jobs
 score_matrix = kmers.rename(columns={"0": "kmer"})
-# score_matrix.rename(columns={"0": "kmer"}, inplace=True)
 score_array = pd.DataFrame.to_numpy(score_matrix)
 motif = skm.motif.SnekmerMotif()
 for file in snakemake.input.perm_scores:
@@ -83,13 +80,12 @@ for file in snakemake.input.perm_scores:
         perm_scores = pd.DataFrame.to_numpy(pd.read_csv(f))
     score_array = np.hstack((score_array, perm_scores))
 
-else:
-    score_array = np.delete(score_array, 0, 1)
-    score_matrix = score_matrix.merge(
-        pd.DataFrame(score_array), left_index=True, right_index=True
-    )
+score_array = np.delete(score_array, 0, 1)
+score_matrix = score_matrix.merge(
+    pd.DataFrame(score_array), left_index=True, right_index=True
+)
 
-
+# format output
 scores = np.ravel(scores)
 output_matrix = motif.p_values(score_matrix, scores, n_iter)
 output_matrix = output_matrix.astype(
