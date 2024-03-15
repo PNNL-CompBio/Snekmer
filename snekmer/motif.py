@@ -6,44 +6,27 @@ author: @tnitka
 # ---------------------------------------------------------
 # Imports
 # ---------------------------------------------------------
-# import pickle
-# from datetime import datetime
-
-# import snekmer as skm
 import pandas as pd
 import numpy as np
-# import snekmer.motif
-# from typing import Any, Dict, List, Optional
-# from ._version import __version__
-# from .vectorize import KmerBasis
-# from .score import KmerScorer
-# from .model import SnekmerModel, SnekmerModelCV
-#from numpy.typing import NDArray
-# from sklearn.base import BaseEstimator, ClassifierMixin
-# from sklearn.tree import DecisionTreeClassifier
-# from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
-# from sklearn.linear_model import LogisticRegression  # LogisticRegressionCV
-# from sklearn.model_selection import GridSearchCV, cross_validate
-# from sklearn.pipeline import make_pipeline, Pipeline
-# from sklearn.svm import SVC
+
 
 # object to permute training data and retrain
 class SnekmerMotif:
     """Permute training data and retrain to find highly distinguishing kmers.
-    
+
     Parameters
     ----------
     n : int
     Number of permutations to test.
     scores : NDArray
-    """   
+    """
+
     def __init__(self):
         self.generator = np.random.default_rng()
-        # self.scorer = skm.score.KmerScorer()
-    
+
     def permute(self, X: pd.DataFrame, label, label_col="family"):
         """
-        
+
         Parameters
         ----------
         X : Dataframe containing matrix of shape (n_kmers, n_features)
@@ -62,17 +45,15 @@ class SnekmerMotif:
         # save primary family label
         self.primary_label = label
         self.labels = X[label_col].values
-        
+
         self.generator.shuffle(self.labels)
-        # self.permuted_labels = self.generator.permutation(self.labels)
-        # self.permuted_data = X
         X[label_col] = self.labels
-        
+
         return X
-        
+
     def p_values(self, X, y: np.ndarray, n: int):
         """
-        
+
         Parameters
         ----------
         X: Dataframe containing matrix of shape (n_kmers, n_iterations)
@@ -90,20 +71,23 @@ class SnekmerMotif:
             proportion of scores on permuted data that exceed that on real data.
 
         """
-        # self.output = pd.DataFrame(columns=('kmer', 'real score', 'false positives', 'n', 'p'))
         self.output_matrix = np.empty((1, 5))
-        for i in range(0, len(y)-1):
-            self.seq = X['kmer'].iloc[i]
+        for i in range(0, len(y) - 1):
+            self.seq = X["kmer"].iloc[i]
             self.real_score = y[i]
-            self.false_score = X.iloc[i, 1:(n+1)].ge(self.real_score).sum()
-            self.p = self.false_score/n
-            self.vec = np.array([[self.seq, self.real_score, self.false_score, n, self.p]])
+            self.false_score = X.iloc[i, 1 : (n + 1)].ge(self.real_score).sum()
+            self.p = self.false_score / n
+            self.vec = np.array(
+                [[self.seq, self.real_score, self.false_score, n, self.p]]
+            )
             self.output_matrix = np.append(self.output_matrix, self.vec, axis=0)
 
-            
         else:
             self.output_matrix = np.delete(self.output_matrix, 0, 0)
-            
-        self.output = pd.DataFrame(self.output_matrix, columns=('kmer', 'real score', 'false positives', 'n', 'p'))
-        
+
+        self.output = pd.DataFrame(
+            self.output_matrix,
+            columns=("kmer", "real score", "false positives", "n", "p"),
+        )
+
         return self.output

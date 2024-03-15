@@ -59,6 +59,7 @@ unique_labels = np.unique(data[label])
 unique_labels.sort()
 score_index = np.searchsorted(unique_labels, family)
 
+# train SVM with all kmers as features
 svm = LinearSVC(class_weight="balanced", random_state=None, max_iter=1000000)
 vecs = np.array(
     data["sequence_vector"].astype(str).str.strip("[]").str.split(",").tolist(),
@@ -66,15 +67,17 @@ vecs = np.array(
 )
 svm.fit(vecs, data[label])
 
+# load sequence vectors into dataframe
 sequences = pd.DataFrame(vecs)
 
-# del data, vecs
+# normalize kmer weights
 gc.collect()
 scores = pd.DataFrame(svm.coef_)
 unit_score = max(scores.iloc[score_index].values)
 for i in range(len(scores.iloc[score_index].values)):
     scores.iloc[score_index, i] = scores.iloc[score_index, i] / unit_score
 
+# iteratively drop kmers with weight < -0.1 and retrain until lowest weight is > -0.2
 kmers = pd.Series(kmers)
 while scores.iloc[score_index].lt(-0.2).sum() > 0:
     # temp_scores = scores

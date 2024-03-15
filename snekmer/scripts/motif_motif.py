@@ -9,23 +9,11 @@ author: @tnitka
 # ---------------------------------------------------------
 import pickle
 
-# from datetime import datetime
-
 import snekmer as skm
 import pandas as pd
 import numpy as np
 import gzip
 import gc
-
-# import glob
-# from typing import Any, Dict, List, Optional
-# from sklearn.base import BaseEstimator, ClassifierMixin
-# from sklearn.tree import DecisionTreeClassifier
-# from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
-# from sklearn.linear_model import LogisticRegression  # LogisticRegressionCV
-# from sklearn.model_selection import GridSearchCV, cross_validate
-# from sklearn.pipeline import make_pipeline, Pipeline
-# from sklearn.svm import SVC
 
 # ---------------------------------------------------------
 # Files and parameters
@@ -37,18 +25,9 @@ config = snakemake.config
 # Run script
 # ---------------------------------------------------------
 
-# log script start time
-# start_time = datetime.now()
-
-# with open(snakemake.log[0], "a") as f:
-#     f.write(f"start time:\t{{start_time}}\n")
-
 # load input data
 with open(snakemake.input.matrix, "rb") as f:
     data = pickle.load(f)
-
-# with open(snakemake.input.kmers, "rb") as f:
-#     kmers = f.readlines()
 
 with gzip.open(snakemake.input.weights, "rb") as f:
     weights = pd.read_csv(f)
@@ -65,24 +44,10 @@ with gzip.open(snakemake.input.kmers, "rb") as f:
 # set category label name (e.g. "family")
 label = config["score"]["lname"] if str(config["score"]["lname"]) != "None" else "label"
 
-# with open(snakemake.input.model, "rb") as f:
-#     model = pickle.load(f)
-
-# with gzip.open(snakemake.input.vecs, "rb") as f:
-#     vecs=pd.read_csv(f)
-#     vecs.to_numpy
-
-# svm = LinearSVC(class_weight="balanced", random_state=None, max_iter=1000000)
-# vecs=np.array(data["sequence_vector"].astype(str).str.strip('[]').str.split(",").tolist(), dtype='float')
-# svm.fit(vecs, data[label])
-
-# prevent kmer NA being read as np.nan
 if config["k"] == 2:
     kmers = kmers.fillna("NA")
     scores = scores.fillna("NA")
 
-# kmers = weights['kmer'].values
-# scores = weights['sample'].values
 family = skm.utils.get_family(
     skm.utils.split_file_ext(snakemake.input.weights)[0],
     regex=config["input_file_regex"],
@@ -92,19 +57,8 @@ scorer = skm.score.KmerScorer()
 
 gc.collect()
 
-# unit_score = max(scores)
-# print(unit_score)
-# for i in range(len(scores)):
-#     print(scores.iloc[i])
-#     scores.iloc[i] = scores.iloc[i]/unit_score
-
 # set number of permutations to test
 n_iter = config["motif"]["n"]
-
-
-# get kmers for this particular set of sequences
-# with open(snakemake.input.kmerobj, "rb") as f:
-#     kmerobj = pickle.load(f)
 
 
 # binary T/F for classification into family
@@ -152,5 +106,3 @@ output_matrix.sort_values(by=["p", "real score"], ascending=[True, False], inpla
 # save output
 score_matrix.to_csv(snakemake.output.data, index=False, compression="gzip")
 output_matrix.to_csv(snakemake.output.p_values, index=False)
-# record script endtime
-# skm.utils.log_runtime(snakemake.log[0], start_time)

@@ -140,3 +140,4 @@ The following parameters are required for Snekmer's motif mode (``snekmer motif`
      Parameter                    Type            Description
 ========================  =====================  ==================================================================================
 ``n``                     ``int``                Number of label permutation and rescoring iterations to run for each input family.
+========================  =====================  ==================================================================================
