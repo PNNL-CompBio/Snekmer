@@ -73,7 +73,7 @@ binary_labels = [True if value == family else False for value in data[label]]
 # get and sort only unique labels
 unique_labels = np.unique(data["label"])
 unique_labels.sort()
-score_index = np.searchsorted(unique_labels, family)
+score_index = 0
 
 # get alphabet name
 if config["alphabet"] in skm.alphabet.ALPHABET_ORDER.keys():

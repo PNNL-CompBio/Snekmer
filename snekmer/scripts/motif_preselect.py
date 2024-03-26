@@ -57,7 +57,7 @@ binary_labels = [True if value == family else False for value in data[label]]
 # get and sort only unique labels
 unique_labels = np.unique(data[label])
 unique_labels.sort()
-score_index = np.searchsorted(unique_labels, family)
+score_index = 0
 
 # train SVM with all kmers as features
 svm = LinearSVC(class_weight="balanced", random_state=None, max_iter=1000000)
