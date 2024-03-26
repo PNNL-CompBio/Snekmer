@@ -131,3 +131,13 @@ General parameters related to Snekmer's learn and apply mode (``snekmer learn``,
  ``seed``                        ``int``               Choose any (random) seed for reproducible fragmentation.
 =============================  =====================  =========================================================================
 
+
+Motif Parameters
+````````````````
+The following parameters are required for Snekmer's motif mode (``snekmer motif``), wherein feature selection is performed to find functionally relevant kmers.
+
+========================  =====================  ==================================================================================
+     Parameter                    Type            Description
+========================  =====================  ==================================================================================
+``n``                     ``int``                Number of label permutation and rescoring iterations to run for each input family.
+========================  =====================  ==================================================================================

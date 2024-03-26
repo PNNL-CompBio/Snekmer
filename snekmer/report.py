@@ -12,6 +12,7 @@ TEMPLATES = {
     "cluster": "cluster_template.html",
     "model": "model_template.html",
     "search": "search_template.html",
+    "motif": "motif_template.html",
 }
 
 
@@ -138,6 +139,44 @@ def create_report_many_csvs(
             if os.path.split(os.path.split(j)[0])[1] == i:
                 ordered.append(j)
 
-    rep_vars['dirs_list'] = dirs_list
-    rep_vars['ordered'] = [correct_rel_path(f) for f in ordered]
+    rep_vars["dirs_list"] = dirs_list
+    rep_vars["ordered"] = [correct_rel_path(f) for f in ordered]
+    create_report(rep_vars, template, report_file_name)
+
+
+# Motif
+def create_report_many_tables(
+    table_path: str,
+    rep_vars: dict,
+    template: str,
+    report_file_name: str,
+):
+    """Create report for Snekmer motif mode.
+
+    Parameters
+    ----------
+    table_path : str
+        /path/to/tables/
+    rep_vars : dict
+        Variables defined in Jinja template
+    template : str
+        Name of template ("motif", "cluster", "model", or "search")
+    report_file_name : str
+        /path/to/report_file.html
+
+    Returns
+    -------
+    None
+        Creates file and exits.
+
+    """
+    table_list = list()
+
+    # collate tables
+    for root, dirs, files in os.walk(table_path):
+        for file in files:
+            if file.endswith(".csv"):
+                table_list.append(os.path.join(root, file))
+    rep_vars["tables"] = [correct_rel_path(f) for f in table_list]
+
     create_report(rep_vars, template, report_file_name)

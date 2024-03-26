@@ -52,7 +52,7 @@ jobs:
       - shell: bash -l {0}
         run: mamba install -y -c conda-forge snakemake==7.0 tabulate==0.8.10
       - shell: bash -l {0}
-        run: pip install -e git+https://github.com/PNNL-CompBio/Snekmer@kmer-association#egg=snekmer
+        run: pip install -e git+https://github.com/PNNL-CompBio/Snekmer@functionmotifs#egg=snekmer
 
       #test clustering step
       - name: Snekmer Cluster
@@ -104,4 +104,12 @@ jobs:
           export PATH="/usr/share/miniconda/bin:$PATH"
           source activate snekmer
           snekmer apply --configfile .test/config_learnapp.yaml -d .test --cores 1
+          rm -rf .test/output
+
+      # run Snekmer Motif using previously generated model files
+      - name: Snekmer Motif
+        run: |
+          export PATH="/usr/share/miniconda/bin:$PATH"
+          source activate snekmer
+          snekmer motif --configfile .test/config.yaml -d .test --cores 1
           rm -rf .test/output

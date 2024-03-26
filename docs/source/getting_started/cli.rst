@@ -15,7 +15,7 @@ For an overview of Snekmer usage, reference the help command (``snekmer --help``
 .. code-block:: console
 
     $ snekmer --help
-    usage: snekmer [-h] [-v] {cluster,model,search,learn,apply} ...
+    usage: snekmer [-h] [-v] {cluster,model,search,learn,apply,motif} ...
 
     Snekmer: A tool for kmer-based sequence analysis using amino acid reduction (AAR)
 
@@ -26,7 +26,7 @@ For an overview of Snekmer usage, reference the help command (``snekmer --help``
     mode:
     Snekmer mode
 
-    {cluster,model,search,learn,apply}
+    {cluster,model,search,learn,apply,motif}
 
 Tailored references for the individual operation modes can be accessed
 via ``snekmer {mode} --help``.
@@ -49,7 +49,7 @@ files. Snekmer also assumes background files, if any, are stored in
 is shown below:
 
 
-Snekmer ``cluster``, ``model``, and ``search`` input
+Snekmer ``cluster``, ``model``, ``search``, and ``motif`` input
 
 .. code-block:: console
 

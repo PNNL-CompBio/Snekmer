@@ -6,6 +6,7 @@ author: @christinehc, @biodataganache
 # imports
 import numpy as np
 import pandas as pd
+import gc
 
 from ._version import __version__
 from .vectorize import KmerBasis
@@ -612,6 +613,9 @@ class KmerScorer:
         #     ll: list(data.index[data[label_col] == ll])
         #     for ll in data[label_col].unique()
         # }
+        
+        del data
+        gc.collect()
 
         # step 1: score sample sequences and fit score scaler
         sample_matrix = matrix[i_background["sample"]]
@@ -623,6 +627,9 @@ class KmerScorer:
         self.probabilities["sample"] = probas[probas["label"] == self.primary_label][
             "score"
         ].values
+        
+        del sample_matrix
+        gc.collect()
 
         # step 2: fit scaler to the sample data (ignore the background)
         self.scaler = KmerScoreScaler(**scaler_kwargs)
@@ -640,6 +647,9 @@ class KmerScorer:
             self.probabilities["background"] = bg_probas[
                 bg_probas["label"] == self.primary_label
             ]["score"].values
+            
+            del background_matrix
+            gc.collect()
 
             # step 3.1: background family probability scores
             for bl in np.unique(bg_labels):
@@ -657,6 +667,7 @@ class KmerScorer:
                 bg_norm = np.max(bg_only_scores)
 
                 self.scores["background"][bl] = bg_only_scores / bg_norm
+                
 
         # step 3.2: assign family probability scores
         for sl in np.unique(s_labels):

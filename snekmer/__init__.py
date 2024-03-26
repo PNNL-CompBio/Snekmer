@@ -8,6 +8,7 @@ from . import cluster
 from . import vectorize
 from . import report
 from . import _version
+from . import motif
 
 # from . import walk
 
