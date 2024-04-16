@@ -9,7 +9,7 @@ import datetime
 import gzip
 import re
 
-from os.path import basename, exists, splitext
+from os.path import basename, exists
 from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
@@ -89,9 +89,7 @@ def check_list(array: Any) -> bool:
         Returns True if input is a list/sequence, array, or Series.
 
     """
-    if not isinstance(array, (collections.abc.Sequence, np.ndarray, pd.Series)):
-        return False
-    return True
+    return isinstance(array, (collections.abc.Sequence, np.ndarray, pd.Series, list))
 
 
 def get_family(

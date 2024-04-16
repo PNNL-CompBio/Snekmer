@@ -4,7 +4,6 @@
 from datetime import datetime
 
 import numpy as np
-import pandas as pd
 import snekmer as skm
 
 # ---------------------------------------------------------
@@ -58,44 +57,27 @@ basis = skm.io.load_pickle(snakemake.input.kmerobj)
 matrix = np.zeros(len(np.hstack(basis.basis.basis)))
 total_norm = 0
 for bgf in snakemake.input.data:
+    # load input files
     kmerlist, df = skm.io.load_npz(bgf)
+    kmerlist = np.hstack(kmerlist)
 
     # create matrix of kmer counts
-    x, y = len(df), len(df["sequence_vector"].to_numpy()[0])
-    counts = np.zeros(x * y).reshape((x, y))
-    for i in range(x):
-        for j in range(y):
-            value = df["sequence_vector"].to_numpy()[i]
-            value = value[j]
-            counts[i, j] = value
+    counts = np.vstack(df["sequence_vector"].values)
+    x, y = len(df), len(counts[0])
+    del df  # clear memory
 
-    harmonized = basis.harmonize(counts, np.hstack(kmerlist))
-    summed = np.sum(harmonized, axis=0)
+    # sum counts per kmer and harmonize
+    counts = np.sum(counts, axis=0)
+    counts = basis.harmonize(counts, kmerlist)
 
+    # combine counts with full matrix
     total_norm += x
-    matrix = np.add(matrix, summed)
+    matrix = np.add(matrix, counts)
+
+    del counts
 
 # normalize by total # background seqs
-matrix = matrix / total_norm
-
-# rescale probabilities to respective file sizes (nseqs)
-# scaled = list()
-# for i, p in enumerate(scores):
-#     scaled.append(s * norms[i])
-
-# make a superset of kmers
-# basis = skm.vectorize.KmerVec(config["alphabet"], config["k"])
-# basis.set_kmer_set(np.unique(np.concatenate(kmers)))
-
-# rescale vecs before combining
-# score_vec = np.zeros(len(np.hstack(basis.basis.basis)))
-# for i, s in enumerate(scaled):
-#     # converted = basis.harmonize(s.reshape(-1, 1).T, kmers[i])
-#     score_vec += s
-
-# renormalize combined scores from all bg files w/ total nseqs
-# total_norm = sum(norms)
-# score_vec = score_vec / total_norm
+matrix = np.divide(matrix, total_norm)
 
 # save new background kmer vector
 np.savez_compressed(

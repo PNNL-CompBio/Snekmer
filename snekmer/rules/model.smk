@@ -83,6 +83,16 @@ onstart:
         for f, e in zip(seq_input.filename, seq_input.ext)
     ]
 
+    # raise error if no background files supplied in a bg mode
+    # if (len(bg_input.filename) == 0) and (
+    #     config["score"]["method"].lower() != "family"
+    # ):
+    #     raise FileNotFoundError(
+    #         f"Score method `{config['score']['method']}`"
+    #         " requires background files (none found)."
+    #     )
+
+
 
 # define output files to be created by snekmer
 output = [

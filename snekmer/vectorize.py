@@ -28,7 +28,7 @@ class KmerBasis:
     """
 
     def __init__(self):
-        self.basis = []
+        self.basis = np.empty(0, dtype=object)
         self.basis_order = {}
 
     def set_basis(self, basis):
@@ -47,9 +47,8 @@ class KmerBasis:
         """
         if not check_list(basis):
             raise TypeError("`basis` input must be list or array-like.")
-
-        self.basis = basis
-        self.basis_order = {i: k for i, k in enumerate(basis)}
+        self.basis = np.array(basis, dtype=object)
+        self.basis_order = {kmer: i for i, kmer in enumerate(self.basis)}
 
     def transform(self, vector, vector_basis):
         """Apply basis to new vector with separate basis.
@@ -75,54 +74,33 @@ class KmerBasis:
             Transformed array of size (m, p).
 
         """
+        # Enforce types and utilize numpy arrays
         if not check_list(vector_basis):
             raise TypeError("`vector_basis` input must be list or array-like.")
+        vector = np.asarray(vector)
+        vector_basis = np.asarray(vector_basis)
 
-        if not isinstance(vector, np.ndarray):
-            vector = np.asarray(vector)
+        if vector_basis.shape[0] != vector.shape[0]:
+            raise ValueError("Vector and supplied basis shapes must match.")
 
-        # make sure input vector matches shape of vector basis
-        try:
-            vector_size = vector.shape[1]
-        except IndexError:
-            vector_size = len(vector)
+        # Get mapping of kmers in the vector basis set
+        vector_basis_order = {kmer: i for i, kmer in enumerate(vector_basis)}
 
-        if vector_size != len(vector_basis):
-            raise ValueError(
-                "Vector and supplied basis shapes"
-                " must match (vector shape ="
-                f" {vector.shape}"
-                " and len(vector_basis) ="
-                f" {len(vector_basis)})."
-            )
+        # Find indices of kmers in vector_basis corresponding to kmers in self.basis
+        idx_in_vector_basis = np.array(
+            [vector_basis_order.get(kmer, -1) for kmer in self.basis]
+        )
 
-        # get index order of kmers in the vector basis set
-        vector_basis_order = {
-            k: i if k in self.basis else np.nan for i, k in enumerate(vector_basis)
-        }
+        # Create a mask to filter out kmers not present in vector_basis
+        mask = idx_in_vector_basis != -1
 
-        # convert vector basis into set basis
-        # we'll add a dummy column for all those that
-        # aren't present in the input basis
-        unseen = [0] * vector.shape[0]
-        vector = np.insert(vector, vector.shape[1], unseen, axis=1)
+        # Initialize transformed vector with zeros
+        transformed_vector = np.zeros(len(self.basis), dtype=vector.dtype)
 
-        i_convert = list()
-        for i in range(len(self.basis)):
-            kmer = self.basis_order[i]  # get basis set kmer in correct order
-            if kmer in vector_basis_order:
-                idx = vector_basis_order[kmer]  # locate kmer in the new vector
-            else:
-                idx = vector.shape[1] - 1
-            i_convert.append(idx)
+        # Fill transformed vector with values from vector based on indices
+        transformed_vector[mask] = vector[idx_in_vector_basis[mask]]
 
-        return vector[:, i_convert]
-
-        # correctly index into ND or 1D array
-        try:
-            return vector[:, i_convert]
-        except IndexError:
-            return vector[i_convert]
+        return transformed_vector
 
 
 # generate all possible kmer combinations
