@@ -193,7 +193,15 @@ and directories in addition to the files described previously.
 
     .
     ├── output/
-    │   ├── ...
+    │   ├── kmerize/
+    │   │   ├── A.kmers  # kmer labels for A
+    │   │   └── B.kmers  # kmer labels for B
+    │   ├── vector/
+    │   │   ├── A.npz    # sequences, sequence IDs, and kmer vectors for A
+    │   │   └── B.npz    # sequences, sequence IDs, and kmer vectors for B
+    │   ├── vector_frag/ 
+    │   │   ├── A.npz    # Conditional output for vector when the fragmentation option is True.
+    │   │   └── B.npz    # Conditional output for vector when the fragmentation option is True.
     │   ├── learn/
     │   │   ├── kmer-counts-A.csv    # Kmer Counts matrix for A seqs
     │   │   ├── kmer-counts-B.csv     # Kmer Counts matrix for B seqs
@@ -201,10 +209,11 @@ and directories in addition to the files described previously.
     │   ├── eval_apply/
     │   │   ├── Seq-Annotation-Scores-A.model     # Self-assessed sequence-annotation cosine similarity scores for A seqs
     │   │   ├── Seq-Annotation-Scores-B.model     # Self-assessed sequence-annotation cosine similarity scores for B seqs
+    │   ├── eval_apply_frag/
+    │   │   ├── Seq-Annotation-Scores-A.model     # Conditional output for eval_apply when the fragmentation option is True.
+    │   │   ├── Seq-Annotation-Scores-B.model     # Conditional output for eval_apply when the fragmentation option is True.
     │   ├── eval_conf/
     │   │   ├── global-confidence-scores.csv     # Global confidence score distribution
-    │   │   ├── true_total.csv    # Global confidence score True Pos distribution
-    │   │   ├── false_total.csv    # Global confidence score False Pos distribution
     │   │   └── confidence_matrix.csv   # Confidence distribution Matrix for each annotation
 
 

@@ -116,10 +116,18 @@ The following parameters are required in your config file for `snekmer search`.
 Learn/Apply Parameters
 ````````````````
 
-General parameters related to Snekmer's learn and apply mode (``snekmer learn``), wherein supervised models are trained via the workflow.
+General parameters related to Snekmer's learn and apply mode (``snekmer learn``, ``snekmer apply``) , wherein supervised models are trained via the workflow.
 
 =============================  =====================  =========================================================================
      Parameter                    Type                 Description
 =============================  =====================  =========================================================================
- ``save_apply_associations``     ``int``               Save optional output files containing all generated cosine similarity scores.
+ ``save_apply_associations``     ``bool``              Save large optional output files containing all generated cosine similarity scores.
+ ``conf_weight_modifier``        ``int``               Weighting modifer for updating confidence when adding data to an existing kmer count matrix.
+ ``fragmentation``               ``bool``              Option to fragment training data with multiple sub-options listed below.
+ ``version``                     ``str``               Choose 'absolute' or 'percent'. An absolute length of 50 would be 50 amino acids long.
+ ``frag_length``                 ``int``               Length of fragment. Depending on "version", this is a percent or absolute length.
+ ``min_length``                  ``int``               Minimum length of fragment that should be retained. Values less than this are discarded.
+ ``location``                    ``str``               Choose 'start', 'end', or 'random'. This is where on a sequence a fragment is taken from.
+ ``seed``                        ``int``               Choose any (random) seed for reproducible fragmentation.
 =============================  =====================  =========================================================================
+
