@@ -10,7 +10,7 @@ dependencies:
   - pyarrow
   - jinja2
   - matplotlib
-  - numpy >= 1.22.3
+  - numpy == 1.22.3
   - numba >= 0.56
   - scipy
   - pandas
