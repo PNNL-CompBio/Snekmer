@@ -3,6 +3,7 @@
 author: @christinehc, @biodataganache
 
 """
+
 # imports
 from typing import Optional, Union
 import numpy as np
@@ -245,6 +246,10 @@ def _get_kmer_presence(feature_matrix: ArrayLike, label_match: ArrayLike) -> NDA
     """
     # convert feature count matrix into binary presence/absence
     feature_matrix = _binarize(feature_matrix)
+
+    # account for 1D feature matrix
+    if feature_matrix.ndim == 1:
+        feature_matrix = feature_matrix.reshape(-1, len(feature_matrix))
 
     # for each kmer, compute presence in seqs
     # then account for seqs matching a given label

@@ -32,7 +32,6 @@ basis = skm.io.load_pickle(snakemake.input.kmerobj)
 
 # collect all seq data and raw lists of kmers
 data, kmers = list(), list()
-# data = list()
 for f in snakemake.input.data:
     kmerlist, df = skm.io.load_npz(f)
     data.append(df)
@@ -42,7 +41,7 @@ for f in snakemake.input.data:
 if "bg" in vars(snakemake.input).keys():
     bg = np.load(snakemake.input.bg, allow_pickle=True)
     kmers_bg, counts_bg = bg["kmer_list"], bg["kmer_counts"]
-    counts_bg = basis.harmonize(counts_bg.reshape(-1, 1).T, kmers_bg)
+    counts_bg = basis.harmonize(np.hstack(counts_bg), kmers_bg)
 else:
     counts_bg = None
 

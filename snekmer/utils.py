@@ -3,13 +3,14 @@
 author: @christinehc
 
 """
+
 # imports
 import collections.abc
 import datetime
 import gzip
 import re
 
-from os.path import basename, exists
+from os.path import basename
 from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
@@ -217,7 +218,9 @@ def count_n_seqs(filename: str) -> int:
     return len([1 for line in open(filename) if line.startswith(">")])
 
 
-def check_n_seqs(filename: str, k: int, show_warning: bool = True) -> bool:
+def check_n_seqs(
+    filename: str, k: int, show_warning: bool = True, gzipped: bool = False
+) -> bool:
     """Check that a file contains at least k sequences.
 
     Parameters
@@ -230,6 +233,8 @@ def check_n_seqs(filename: str, k: int, show_warning: bool = True) -> bool:
     show_warning : bool, optional
         When True, if len(file) < k, a warning is displayed;
         by default True.
+    gzip : bool, optional
+        When True, assumes file is gzipped; by default False.
 
     Returns
     -------
@@ -238,8 +243,7 @@ def check_n_seqs(filename: str, k: int, show_warning: bool = True) -> bool:
 
     """
     opener, mode = open, "r"
-    if not exists(filename):
-        filename = f"{filename}.gz"
+    if gzipped:
         opener, mode = gzip.open, "rt"
     n_seqs = len([1 for line in opener(filename, mode=mode) if line.startswith(">")])
     if (n_seqs < k) and (show_warning):

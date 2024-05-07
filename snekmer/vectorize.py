@@ -3,6 +3,7 @@
 author: @christinehc
 
 """
+
 import itertools
 from collections import Counter
 from typing import Dict, Generator, Set, Union
@@ -77,7 +78,7 @@ class KmerBasis:
         # Enforce types and utilize numpy arrays
         if not check_list(vector_basis):
             raise TypeError("`vector_basis` input must be list or array-like.")
-        vector = np.asarray(vector)
+        vector = np.asarray(vector).T
         vector_basis = np.asarray(vector_basis)
 
         if vector_basis.shape[0] != vector.shape[0]:
@@ -94,13 +95,18 @@ class KmerBasis:
         # Create a mask to filter out kmers not present in vector_basis
         mask = idx_in_vector_basis != -1
 
+        # Set output array shape to match either 1D or 2D array
+        vecshape = (
+            (len(self.basis),) if vector.ndim == 1 else (len(self.basis), len(vector.T))
+        )
+
         # Initialize transformed vector with zeros
-        transformed_vector = np.zeros(len(self.basis), dtype=vector.dtype)
+        transformed_vector = np.zeros(vecshape, dtype=vector.dtype)
 
         # Fill transformed vector with values from vector based on indices
         transformed_vector[mask] = vector[idx_in_vector_basis[mask]]
 
-        return transformed_vector
+        return transformed_vector.T
 
 
 # generate all possible kmer combinations

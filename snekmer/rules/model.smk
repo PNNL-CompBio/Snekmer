@@ -73,7 +73,6 @@ out_dir = skm.io.define_output_dir(
     config["alphabet"], config["k"], nested=config["nested_output"]
 )
 
-
 # show warnings if files excluded
 onstart:
     [
@@ -81,6 +80,14 @@ onstart:
             join("input", f"{f}.{e}"), config["model"]["cv"], show_warning=True
         )
         for f, e in zip(seq_input.filename, seq_input.ext)
+        if f not in gz_input.filename
+    ]
+    [
+        skm.utils.check_n_seqs(
+            join("input", f"{f}.{e}.gz"), config["model"]["cv"], show_warning=True, gzipped=True
+        )
+        for f, e in zip(seq_input.filename, seq_input.ext)
+        if f in gz_input.filename
     ]
 
     # raise error if no background files supplied in a bg mode
@@ -96,12 +103,6 @@ onstart:
 
 # define output files to be created by snekmer
 output = [
-    # expand(
-    #     join("input", "{gzf}.{gze}"),
-    #     zip,
-    #     gzf=gz_input.filename,
-    #     gze=gz_input.ext,
-    # ),
     expand(
         join(out_dir, "kmerize", "{f}.{e}.kmers"),
         zip,
@@ -125,28 +126,11 @@ if len(bg_input.filename) > 0:
             e=seq_input.ext,
         )
     )
-    # output.append(
-    #     expand(
-    #         join(out_dir, "background", "{bf}.{be}.npz"),
-    #         zip,
-    #         bf=bg_input.filename,
-    #         be=bg_input.ext,
-    #     )
-    # )
-    # output.append(
-    #     expand(
-    #         join(out_dir, "background", "{f}.{e}.npz"),
-    #         zip,
-    #         f=seq_input.filename,
-    #         e=seq_input.ext,
-    #     )
-    # )
 
 
 rule all:
     input:
         output,
-        # expand(join(out_dir, "vector", "background", "{b}.npz", b=BGS)),
 
 
 rule unzip:
