@@ -25,6 +25,9 @@ import snekmer as skm
 # change matplotlib backend to non-interactive
 plt.switch_backend("Agg")
 
+# terminate with error if invalid alphabet specified
+skm.alphabet.check_valid(config["alphabet"])
+
 # collect all fasta-like files, unzipped filenames, and basenames
 gz_input = glob_wildcards(join("input", "{filename,\w+}.{ext,fasta|fna|faa|fa}.gz"))
 seq_input = glob_wildcards(join("input", "{filename,\w+}.{ext,fasta|fna|faa|fa}"))

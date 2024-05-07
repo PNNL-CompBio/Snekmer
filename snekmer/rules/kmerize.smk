@@ -4,11 +4,6 @@ author: @christinehc
 
 """
 
-
-# include unzipping module
-include: "process.smk"
-
-
 # built-in imports
 import itertools
 import gzip
@@ -26,39 +21,39 @@ import snekmer as skm
 from Bio import SeqIO
 
 # get input files
-input_dir = (
-    "input"
-    if (("input_dir" not in config) or (str(config["input_dir"]) == "None"))
-    else config["input_dir"]
-)
-input_files = glob(join(input_dir, "*"))
+# input_dir = (
+#     "input"
+#     if (("input_dir" not in config) or (str(config["input_dir"]) == "None"))
+#     else config["input_dir"]
+# )
+# input_files = glob(join(input_dir, "*"))
 
-input_file_exts = ["fasta", "fna", "faa", "fa"]
-if "input_file_exts" in config:
-    input_file_exts = config["input_file_exts"]
+# input_file_exts = ["fasta", "fna", "faa", "fa"]
+# if "input_file_exts" in config:
+#     input_file_exts = config["input_file_exts"]
 
-unzipped = [
-    fa.rstrip(".gz")
-    for fa, ext in itertools.product(input_files, input_file_exts)
-    if fa.rstrip(".gz").endswith(f".{ext}")
-]
-zipped = [fa for fa in input_files if fa.endswith(".gz")]
-UZS = [skm.utils.split_file_ext(f)[0] for f in zipped]
-FAS = [skm.utils.split_file_ext(f)[0] for f in unzipped]
+# unzipped = [
+#     fa.rstrip(".gz")
+#     for fa, ext in itertools.product(input_files, input_file_exts)
+#     if fa.rstrip(".gz").endswith(f".{ext}")
+# ]
+# zipped = [fa for fa in input_files if fa.endswith(".gz")]
+# UZS = [skm.utils.split_file_ext(f)[0] for f in zipped]
+# FAS = [skm.utils.split_file_ext(f)[0] for f in unzipped]
 
-# map extensions to basename (basename.ext.gz -> {basename: ext})
-UZ_MAP = {
-    skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in zipped
-}
-FA_MAP = {
-    skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in unzipped
-}
+# # map extensions to basename (basename.ext.gz -> {basename: ext})
+# UZ_MAP = {
+#     skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in zipped
+# }
+# FA_MAP = {
+#     skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in unzipped
+# }
 
 
 rule vectorize:
     input:
         fasta=lambda wildcards: join("input", f"{wildcards.f}.{FA_MAP[wildcards.f]}"),
-        kmerbasis=join(input_dir, "basis.txt"),  # this is optional
+        kmerbasis=join("input", "basis.txt"),  # this is optional
     output:
         data=join("output", "vector", "{nb}.npz"),
         kmerobj=join("output", "kmerize", "{nb}.kmers"),
@@ -71,7 +66,7 @@ rule vectorize:
 rule vectorize_background:
     input:
         fasta=lambda wildcards: join("input", f"{wildcards.f}.{FA_MAP[wildcards.f]}"),
-        kmerbasis=join(input_dir, "basis.txt"),  # this is optional
+        kmerbasis=join("input", "basis.txt"),  # this is optional
     output:
         data=join("output", "vector", "{nb}.npz"),
         kmerobj=join("output", "kmerize", "{nb}.kmers"),
