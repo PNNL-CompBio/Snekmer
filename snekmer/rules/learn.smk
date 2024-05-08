@@ -52,51 +52,60 @@ import snekmer as skm
 
 # Note:
 # Pyarrow installed via "conda install -c conda-forge pyarrow"
-# collect all fasta-like files, unzipped filenames, and basenames
-input_dir = (
-    "input"
-    if (("input_dir" not in config) or (str(config["input_dir"]) == "None"))
-    else config["input_dir"]
-)
-input_files = glob(join(input_dir, "*"))
-# base_file = glob(join(input_dir,"base" "*"))
-zipped = [fa for fa in input_files if fa.endswith(".gz")]
-unzipped = [
-    fa.rstrip(".gz")
-    for fa, ext in product(input_files, config["input_file_exts"])
-    if fa.rstrip(".gz").endswith(f".{ext}")
-]
-annot_files = glob(join("annotations", "*.ann"))
-base_counts = glob(join("base", "counts", "*.csv"))
-base_confidence = glob(join("base", "confidence", "*.csv"))
-# map extensions to basename (basename.ext.gz -> {basename: ext})
-UZ_MAP = {
-    skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in zipped
-}
-FA_MAP = {
-    skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in unzipped
-}
 
-# get unzipped filenames
-UZS = [f"{f}.{ext}" for f, ext in UZ_MAP.items()]
-# isolate basenames for all files
-FAS = list(FA_MAP.keys())
-# parse any background files
-bg_files = glob(join(input_dir, "background", "*"))
-if len(bg_files) > 0:
-    bg_files = [skm.utils.split_file_ext(basename(f))[0] for f in bg_files]
-NON_BGS, BGS = [f for f in FAS if f not in bg_files], bg_files
 # terminate with error if invalid alphabet specified
 skm.alphabet.check_valid(config["alphabet"])
+
+# collect all fasta-like files, unzipped filenames, and basenames
+# collect all fasta-like files, unzipped filenames, and basenames
+gz_input = glob_wildcards(join("input", "{filename,\w+}.{ext,fasta|fna|faa|fa}.gz"))
+seq_input = glob_wildcards(join("input", "{filename,\w+}.{ext,fasta|fna|faa|fa}"))
+ann_input = glob_wildcards(join("annotations", "{filename,\w+}.ann"))
+cts_input = glob_wildcards(join("base", "counts", "{filename,\w+}.csv"))
+conf_input = glob_wildcards(join("base", "confidence", "{filename,\w+}.csv"))
+
+
+ruleorder: unzip > fragmentation > vectorize > learn > merge > eval_apply > evaluate
+
+
+# check input file size
+for f, e in zip(seq_input.filename, seq_input.ext):
+    skm.utils.check_n_seqs(
+        join("input", f"{f}.{e}"), config["model"]["cv"], show_warning=False
+    )
+
+# add unzipped gz files to total input list
+for f, e in zip(gz_input.filename, gz_input.ext):
+    getattr(seq_input, "filename").append(f)
+    getattr(seq_input, "ext").append(e)
+for f, e in zip(bgz_input.filename, bgz_input.ext):
+    getattr(bg_input, "filename").append(f)
+    getattr(bg_input, "ext").append(e)
+
 # define output directory (helpful for multiple runs)
 out_dir = skm.io.define_output_dir(
     config["alphabet"], config["k"], nested=config["nested_output"]
 )
 
-
-output_prefixes = (
+out_prefixes = (
     ["vector"] if not config["learnapp"]["fragmentation"] else ["vector", "vector_frag"]
 )
+
+
+# show warnings if files excluded
+onstart:
+    [
+        skm.utils.check_n_seqs(
+            join("input", f"{f}.{e}"), config["model"]["cv"], show_warning=True
+        )
+        for f, e in zip(seq_input.filename, seq_input.ext)
+    ]
+
+
+# define output files to be created by snekmer
+output = [
+    expand(join(out_dir, "vector", "{nb}.npz"), nb=FAS),
+]
 
 
 # define output files to be created by snekmer
@@ -126,10 +135,17 @@ rule all:
 
 
 # if any files are gzip zipped, unzip them
-use rule unzip from process with:
+rule unzip:
+    input:
+        join("input", "{f}.{e}.gz"),
     output:
-        unzipped=join(input_dir, "{uz}"),
-        zipped=join(input_dir, "zipped", "{uz}.gz"),
+        unzipped=join("input", "{f}.{e}"),
+        zipped=join("input", "zipped", "{f}.{e}.gz"),
+    wildcard_constraints:
+        f="\w+",
+        e="fasta|fna|faa|fa",
+    script:
+        resource_filename("snekmer", join("scripts", "unzip.py"))
 
 
 if config["learnapp"]["fragmentation"]:
