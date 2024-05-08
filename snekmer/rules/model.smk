@@ -21,7 +21,7 @@ module kmerize:
 # imports
 from glob import glob
 from itertools import product
-from os.path import basename, dirname, isdir, join, splitext
+from os.path import basename, dirname, exists, isdir, join, splitext
 from pkg_resources import resource_filename
 
 import matplotlib.pyplot as plt
@@ -35,6 +35,9 @@ from sklearn.linear_model import LogisticRegression
 skm.alphabet.check_valid(config["alphabet"])
 
 
+ruleorder: unzip > vectorize > score > model > model_report
+
+
 # collect all fasta-like files, unzipped filenames, and basenames
 gz_input = glob_wildcards(join("input", "{filename,\w+}.{ext,fasta|fna|faa|fa}.gz"))
 seq_input = glob_wildcards(join("input", "{filename,\w+}.{ext,fasta|fna|faa|fa}"))
@@ -45,33 +48,39 @@ bgz_input = glob_wildcards(
     join("input", "background", "{filename,\w+}.{ext,fasta|fna|faa|fa}.gz")
 )
 
-if len(bg_input.filename) > 0:
 
-    ruleorder: unzip > vectorize > vectorize_background > score > model > model_report
+# get bg files
+if config["score"]["method"] in ["combined", "c", "background", "bg"]:
+    if len(bg_input.filename) > 0:
 
-else:
+        ruleorder: unzip > vectorize > vectorize_background > score > model > model_report
+    else:
+        print(f"Warning: Score method is set to `{config['score']['method']}`")
 
-    ruleorder: unzip > vectorize > score > model > model_report
+    for f, e in zip(bgz_input.filename, bgz_input.ext):
+        getattr(bg_input, "filename").append(f)
+        getattr(bg_input, "ext").append(e)
 
 
 # check input file size
-for f, e in zip(seq_input.filename, seq_input.ext):
-    skm.utils.check_n_seqs(
-        join("input", f"{f}.{e}"), config["model"]["cv"], show_warning=False
-    )
+# for f, e in zip(seq_input.filename, seq_input.ext):
+#     skm.utils.check_n_seqs(
+#         join("input", f"{f}.{e}"), config["model"]["cv"], show_warning=False
+#     )
 
 # add unzipped gz files to total input list
 for f, e in zip(gz_input.filename, gz_input.ext):
     getattr(seq_input, "filename").append(f)
     getattr(seq_input, "ext").append(e)
-for f, e in zip(bgz_input.filename, bgz_input.ext):
-    getattr(bg_input, "filename").append(f)
-    getattr(bg_input, "ext").append(e)
+# for f, e in zip(bgz_input.filename, bgz_input.ext):
+#     getattr(bg_input, "filename").append(f)
+#     getattr(bg_input, "ext").append(e)
 
 # define output directory (helpful for multiple runs)
 out_dir = skm.io.define_output_dir(
     config["alphabet"], config["k"], nested=config["nested_output"]
 )
+
 
 # show warnings if files excluded
 onstart:
@@ -84,7 +93,10 @@ onstart:
     ]
     [
         skm.utils.check_n_seqs(
-            join("input", f"{f}.{e}.gz"), config["model"]["cv"], show_warning=True, gzipped=True
+            join("input", f"{f}.{e}.gz"),
+            config["model"]["cv"],
+            show_warning=True,
+            gzipped=True,
         )
         for f, e in zip(seq_input.filename, seq_input.ext)
         if f in gz_input.filename
@@ -211,7 +223,9 @@ def score_input(wildcards):
             se=seq_input.ext,
         ),
     }
-    if config["score"]["method"] in ["background", "bg", "combined"]:
+    if (config["score"]["method"] in ["background", "bg", "combined"]) and (
+        len(bg_input.filename) > 0
+    ):
         input_files["bg"] = join(
             out_dir, "background", f"{wildcards.f}.{wildcards.e}.npz"
         )
@@ -245,7 +259,9 @@ def model_input(wildcards):
         ),
         "matrix": join(out_dir, "scoring", f"{wildcards.f}.{wildcards.e}.matrix"),
     }
-    if config["score"]["method"] in ["background", "bg", "combined"]:
+    if (config["score"]["method"] in ["background", "bg", "combined"]) and (
+        len(bg_input.filename) > 0
+    ):
         input_files["bg"] = join(
             out_dir, "background", f"{wildcards.f}.{wildcards.e}.npz"
         )

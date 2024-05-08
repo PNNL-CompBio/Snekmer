@@ -245,7 +245,20 @@ def check_n_seqs(
     opener, mode = open, "r"
     if gzipped:
         opener, mode = gzip.open, "rt"
-    n_seqs = len([1 for line in opener(filename, mode=mode) if line.startswith(">")])
+    try:
+        n_seqs = len(
+            [1 for line in opener(filename, mode=mode) if line.startswith(">")]
+        )
+    except UnicodeDecodeError:
+        print(
+            f"\nWARNING: The number of sequences in {filename}"
+            " could not be determined. Note that files containing"
+            " an insufficient number of sequences for model"
+            " cross-validation will be excluded from Snekmer"
+            f" modeling. ({k} folds specified in config.)\n"
+        )
+        return True
+
     if (n_seqs < k) and (show_warning):
         print(
             f"\nWARNING: {filename} contains an insufficient"
