@@ -19,8 +19,8 @@ dependencies:
   - snakemake == 7.0
   - tabulate == 0.8.10
   - umap-learn
-  - hdbscan
+  - hdbscan >= 0.8.29
   - pip
   - pip:
-      - -e git+https://github.com/PNNL-CompBio/Snekmer#egg=snekmer
+      - snekmer
       - -e git+https://github.com/PNNL-Compbio/bsf-jaccard-py#egg=bsf
