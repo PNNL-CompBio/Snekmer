@@ -87,16 +87,31 @@ elif config["model"]["cv"] in [0, 1]:
 
 # generate family scores and object
 scorer = skm.score.KmerScorer(method=config["score"]["method"])
-scorer.fit(
-    list(basis.kmer_set.kmers),
-    data,
-    family,
-    bg=counts_bg,
-    label_col=label,
-    vec_col="sequence_vector",
-    weight_bg=config["score"]["background_weight"],
-    **config["score"]["scaler_kwargs"],
-)
+try:
+    scorer.fit(
+        list(basis.kmer_set.kmers),
+        data,
+        family,
+        bg=counts_bg,
+        label_col=label,
+        vec_col="sequence_vector",
+        weight_bg=config["score"]["background_weight"],
+        **config["score"]["scaler_kwargs"],
+    )
+except TypeError as e:
+    raise ValueError(
+        """
+        Snekmer model background weights detected as `None`. 
+        This typically occurs when a score method of 
+        `'combined'` or `'background'` is specified and no 
+        accompanying background files are detected.
+
+        Please make sure any background files are stored in 
+        an `input/background/` directory, or if no background 
+        files are to be used, the `'family'` scoring method 
+        is selected.
+        """
+    ) from e
 
 # append scored sequences to dataframe
 data = data.merge(
