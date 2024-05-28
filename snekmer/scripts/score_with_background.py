@@ -4,6 +4,7 @@
 import pickle
 from datetime import datetime
 
+import numpy as np
 import pandas as pd
 import snekmer as skm
 from sklearn.model_selection import train_test_split, StratifiedKFold
@@ -26,26 +27,34 @@ label = (
 with open(snakemake.log[0], "a") as f:
     f.write(f"start time:\t{start_time}\n")
 
-# get kmers for this particular set of sequences
-kmers = skm.io.load_pickle(snakemake.input.kmerobj)
+# load kmer basis for family of interest
+basis = skm.io.load_pickle(snakemake.input.kmerobj)
 
-# tabulate vectorized seq data
-data = list()
-kmer_sets = list()
+# collect all seq data and raw lists of kmers
+data, kmers = list(), list()
 for f in snakemake.input.data:
     kmerlist, df = skm.io.load_npz(f)
     data.append(df)
-    kmer_sets.append(kmerlist[0])
+    kmers.append(kmerlist[0])
 
-# loading all other models and harmonize basis sets
+# optionally load bg depending on score method and harmonize
+if "bg" in vars(snakemake.input).keys():
+    bg = np.load(snakemake.input.bg, allow_pickle=True)
+    kmers_bg, counts_bg = bg["kmer_list"], bg["kmer_counts"]
+    counts_bg = basis.harmonize(np.hstack(counts_bg), kmers_bg)
+else:
+    counts_bg = None
+
+# loading all other models, harmonize basis sets, & subtract bg
 for i in range(len(data)):
     df = data[i]
-    kmerlist = kmer_sets[i]
+    kmerlist = kmers[i]
     vecs = skm.utils.to_feature_matrix(df["sequence_vector"].values)
-    df["sequence_vector"] = kmers.harmonize(vecs, kmerlist).tolist()
+    harmonized = basis.harmonize(vecs, kmerlist)
+    df["sequence_vector"] = list(harmonized)
+    data[i] = df
 
 data = pd.concat(data, ignore_index=True)
-data["background"] = [f in snakemake.input.bg for f in data["filename"]]
 
 # log conversion step runtime
 skm.utils.log_runtime(snakemake.log[0], start_time, step="files_to_df")
@@ -61,8 +70,8 @@ if any(families):
     data[label] = families
 
 # binary T/F for classification into family
-family = skm.utils.get_family(snakemake.wildcards.nb)
-binary_labels = [True if value == family else False for value in data[label]]
+family = skm.utils.get_family(snakemake.wildcards.f, regex=config["input_file_regex"])
+binary_labels = [value == family for value in data[label]]
 
 # define k-fold split indices
 if config["model"]["cv"] > 1:
@@ -77,20 +86,37 @@ elif config["model"]["cv"] in [0, 1]:
     data["train"] = [idx in i_train for idx in data.index]
 
 # generate family scores and object
-scorer = skm.score.KmerScorer()
-scorer.fit(
-    list(kmers.kmer_set.kmers),
-    data,
-    skm.utils.get_family(snakemake.wildcards.nb, regex=config["input_file_regex"]),
-    label_col=label,
-    vec_col="sequence_vector",
-    **config["score"]["scaler_kwargs"],
-)
+scorer = skm.score.KmerScorer(method=config["score"]["method"])
+try:
+    scorer.fit(
+        list(basis.kmer_set.kmers),
+        data,
+        family,
+        bg=counts_bg,
+        label_col=label,
+        vec_col="sequence_vector",
+        weight_bg=config["score"]["background_weight"],
+        **config["score"]["scaler_kwargs"],
+    )
+except TypeError as e:
+    raise ValueError(
+        """
+        Snekmer model background weights detected as `None`. 
+        This typically occurs when a score method of 
+        `'combined'` or `'background'` is specified and no 
+        accompanying background files are detected.
+
+        Please make sure any background files are stored in 
+        an `input/background/` directory, or if no background 
+        files are to be used, the `'family'` scoring method 
+        is selected.
+        """
+    ) from e
 
 # append scored sequences to dataframe
 data = data.merge(
-    pd.DataFrame(scorer.scores["sample"]), left_index=True, right_index=True
-)
+    pd.DataFrame(scorer.scores), left_index=True, right_index=True
+).rename(columns={0: f"{family}_score"})
 if data.empty:
     raise ValueError("Blank df")
 
@@ -98,7 +124,7 @@ if data.empty:
 class_probabilities = (
     pd.DataFrame(scorer.probabilities, index=scorer.kmers.basis)
     .reset_index()
-    .rename(columns={"index": "kmer"})
+    .rename(columns={"index": "kmer", 0: scorer.score_col})
 )
 
 # log time to compute class probabilities

@@ -15,11 +15,11 @@ dependencies:
   - scipy
   - pandas == 1.4.2
   - seaborn
-  - scikit-learn
+  - scikit-learn == 1.2.2
   - snakemake == 7.0
   - tabulate == 0.8.10
   - umap-learn
-  - hdbscan
+  - hdbscan == 0.8.29  # see: https://stackoverflow.com/questions/76714347/hdbscan-error-typeerror-numpy-float64-object-cannot-be-interpreted-as-an-int
   - pip
   - pip:
       - -e git+https://github.com/PNNL-CompBio/Snekmer#egg=snekmer

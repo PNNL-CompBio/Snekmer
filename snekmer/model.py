@@ -4,17 +4,17 @@ author: @christinehc
 
 """
 # imports
+import numpy as np
 import pandas as pd
 from typing import Any, Dict, List, Optional
 from ._version import __version__
-from .vectorize import KmerBasis
 from numpy.typing import NDArray
-from sklearn.base import BaseEstimator, ClassifierMixin
+from sklearn.base import BaseEstimator
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 from sklearn.linear_model import LogisticRegression  # LogisticRegressionCV
-from sklearn.model_selection import GridSearchCV, cross_validate
-from sklearn.pipeline import make_pipeline, Pipeline
+from sklearn.model_selection import GridSearchCV
+from sklearn.pipeline import Pipeline
 from sklearn.svm import SVC
 
 # define default gridsearch param dict
@@ -216,7 +216,6 @@ class SnekmerModelCV:
         results = {col: [] for col in cols + ["score", "cv_split"]}
         X, y = {i: {} for i in range(self.cv)}, {i: {} for i in range(self.cv)}
         for n in range(self.cv):
-
             # remove score cols that were generated from full dataset
             unscored_cols = [col for col in list(data.columns) if "_score" not in col]
 
@@ -252,7 +251,7 @@ class SnekmerModelCV:
             df_test = df_test.merge(
                 pd.DataFrame(
                     scorer.predict(
-                        skm.utils.to_feature_matrix(df_test["sequence_vector"]),
+                        np.vstack(df_test["sequence_vector"]),
                         list(kmer.kmer_set.kmers),
                     )
                 ),

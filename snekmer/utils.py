@@ -3,12 +3,14 @@
 author: @christinehc
 
 """
+
 # imports
 import collections.abc
 import datetime
+import gzip
 import re
 
-from os.path import basename, splitext
+from os.path import basename
 from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
@@ -88,13 +90,11 @@ def check_list(array: Any) -> bool:
         Returns True if input is a list/sequence, array, or Series.
 
     """
-    if not isinstance(array, (collections.abc.Sequence, np.ndarray, pd.Series)):
-        return False
-    return True
+    return isinstance(array, (collections.abc.Sequence, np.ndarray, pd.Series, list))
 
 
 def get_family(
-    filename: str, regex: str = r"[a-z]{3}[A-Z]{1}", return_first: bool = True
+    filename: str, regex: Optional[str] = None, return_first: bool = True
 ) -> Union[str, List[str]]:
     """Extract family from filename given regular expression format.
 
@@ -108,11 +108,7 @@ def get_family(
         path/to/filename.ext
     regex : str or r-string or None
         Regular expression for matching a family name
-        (default: "[a-z]{3}[A-Z]{1}").
-        The default expression is 3 lowercase letters followed
-            by one uppercase letter. To write a custom regular
-            expression, see https://docs.python.org/3/library/re.html
-            for more details on using the built-in re library.
+        (by default None).
         If None, returns the full file basename.
     return_first : bool
         If True, returns only the first occurrence (default: True).
@@ -129,7 +125,7 @@ def get_family(
     filename = basename(filename)
 
     # account for directories
-    if "." not in filename:  # and filename[-1] == "/"
+    if "." not in filename and filename[-1] == "/":
         filename = f"{filename}.dir"
     s = "_".join(filename.split(".")[:-1]).replace("-", "_").replace(" ", "_")
 
@@ -150,7 +146,9 @@ def get_family(
     return filename.split(".")[0]
 
 
-def split_file_ext(filename: str) -> Tuple[str, str]:
+def split_file_ext(
+    filename: str, exts: List[str] = ["fna", "faa", "fasta", "fa"]
+) -> Tuple[str, str]:
     """Split file.ext into (file, ext).
 
     Ignores ".gz" for gzipped files; e.g. "file.ext.gz" returns
@@ -160,6 +158,9 @@ def split_file_ext(filename: str) -> Tuple[str, str]:
     ----------
     filename : str
         /path/to/file.ext.
+    exts: List[str]
+        List of possible file extensions, by default
+            ["fna", "faa", "fasta", "fa"]
 
     Returns
     -------
@@ -169,15 +170,11 @@ def split_file_ext(filename: str) -> Tuple[str, str]:
     """
     filename = basename(filename)
 
-    # for compressed files, returns (filename, ext) without .gz
-    if splitext(filename)[1] == ".gz":
-        return (
-            splitext(splitext(filename)[0])[0],
-            splitext(splitext(filename)[0])[1].lstrip("."),
-        )
+    for e in exts:
+        if f".{e}" in filename:
+            f = filename.split(f".{e}")[0]
 
-    # otherwise, returns (filename, ext)
-    return splitext(filename)[0], splitext(filename)[1].lstrip(".")
+    return f, filename.split(f)[1]
 
 
 def to_feature_matrix(
@@ -221,7 +218,9 @@ def count_n_seqs(filename: str) -> int:
     return len([1 for line in open(filename) if line.startswith(">")])
 
 
-def check_n_seqs(filename: str, k: int, show_warning: bool = True) -> bool:
+def check_n_seqs(
+    filename: str, k: int, show_warning: bool = True, gzipped: bool = False
+) -> bool:
     """Check that a file contains at least k sequences.
 
     Parameters
@@ -234,6 +233,8 @@ def check_n_seqs(filename: str, k: int, show_warning: bool = True) -> bool:
     show_warning : bool, optional
         When True, if len(file) < k, a warning is displayed;
         by default True.
+    gzip : bool, optional
+        When True, assumes file is gzipped; by default False.
 
     Returns
     -------
@@ -241,7 +242,23 @@ def check_n_seqs(filename: str, k: int, show_warning: bool = True) -> bool:
         True if len(file) < k; False otherwise.
 
     """
-    n_seqs = len([1 for line in open(filename) if line.startswith(">")])
+    opener, mode = open, "r"
+    if gzipped:
+        opener, mode = gzip.open, "rt"
+    try:
+        n_seqs = len(
+            [1 for line in opener(filename, mode=mode) if line.startswith(">")]
+        )
+    except UnicodeDecodeError:
+        print(
+            f"\nWARNING: The number of sequences in {filename}"
+            " could not be determined. Note that files containing"
+            " an insufficient number of sequences for model"
+            " cross-validation will be excluded from Snekmer"
+            f" modeling. ({k} folds specified in config.)\n"
+        )
+        return True
+
     if (n_seqs < k) and (show_warning):
         print(
             f"\nWARNING: {filename} contains an insufficient"

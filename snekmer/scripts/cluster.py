@@ -71,21 +71,21 @@ basis.set_kmer_set(kmerbasis)
 
 for i in range(len(data)):
     df, kmerlist = data[i], kmers[i]
-    vecs = skm.utils.to_feature_matrix(df["sequence_vector"].values)
+    vecs = np.vstack(df["sequence_vector"].values)
 
     converted = basis.harmonize(vecs, kmerlist)
     df["sequence_vector"] = converted.tolist()
 
 data = pd.concat(data, ignore_index=True)
-data["background"] = [f in snakemake.input.bg for f in data["filename"]]
+# data["background"] = [f in snakemake.input.bg for f in data["filename"]]
 
 # log conversion step runtime
 skm.utils.log_runtime(snakemake.log[0], start_time, step="load_npz")
 
 # define feature matrix of kmer vectors not from background set
-bg, non_bg = data[data["background"]], data[~data["background"]]
-full_feature_matrix = skm.utils.to_feature_matrix(data["sequence_vector"].values)
-feature_matrix = skm.utils.to_feature_matrix(non_bg["sequence_vector"].values)
+# bg, non_bg = data[data["background"]], data[~data["background"]]
+full_feature_matrix = np.vstack(data["sequence_vector"].values)
+# feature_matrix = skm.utils.to_feature_matrix(non_bg["sequence_vector"].values)
 
 # filter by kmer occurrence
 # print("Filtering?")
@@ -195,7 +195,10 @@ if config["cluster"]["method"] in [
     # output matrix for diagnostics - time/space heavy for large comparisons
     if config["cluster"]["save_matrix"] is True:
         np.savetxt(
-            join(output_bsf, "bsf_matrix.csv"), bsf_mat, fmt="%.3f", delimiter=",",
+            join(output_bsf, "bsf_matrix.csv"),
+            bsf_mat,
+            fmt="%.3f",
+            delimiter=",",
         )
 
     model.fit(bsf_mat)

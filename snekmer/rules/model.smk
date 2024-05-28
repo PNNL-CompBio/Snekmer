@@ -3,6 +3,7 @@
 author: @christinehc
 
 """
+
 # snakemake config
 from snakemake.utils import min_version
 
@@ -10,13 +11,6 @@ min_version("6.0")  # force snakemake v6.0+ (required for modules)
 
 
 # load modules
-module process:
-    snakefile:
-        "process.smk"
-    config:
-        config
-
-
 module kmerize:
     snakefile:
         "kmerize.smk"
@@ -27,7 +21,7 @@ module kmerize:
 # imports
 from glob import glob
 from itertools import product
-from os.path import basename, dirname, join, splitext
+from os.path import basename, dirname, exists, isdir, join, splitext
 from pkg_resources import resource_filename
 
 import matplotlib.pyplot as plt
@@ -37,52 +31,50 @@ from Bio import SeqIO
 from sklearn.linear_model import LogisticRegression
 
 
-# # change matplotlib backend to non-interactive
-# plt.switch_backend("Agg")
-
-# collect all fasta-like files, unzipped filenames, and basenames
-input_dir = (
-    "input"
-    if (("input_dir" not in config) or (str(config["input_dir"]) == "None"))
-    else config["input_dir"]
-)
-input_files = glob(join(input_dir, "*"))
-zipped = [fa for fa in input_files if fa.endswith(".gz")]
-unzipped = [
-    fa.rstrip(".gz")
-    for fa, ext in product(input_files, config["input_file_exts"])
-    if fa.rstrip(".gz").endswith(f".{ext}")
-    and skm.utils.check_n_seqs(fa, config["model"]["cv"], show_warning=False)
-]
-
-
-# map extensions to basename (basename.ext.gz -> {basename: ext})
-UZ_MAP = {
-    skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in zipped
-}
-FA_MAP = {
-    skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in unzipped
-}
-
-# final file map: checks that files are large enough for model building
-# FA_MAP = {
-#     k: v for k, v in f_map.items() if skm.utils.check_n_seqs(k, config["model"]["cv"])
-# }
-
-# get unzipped filenames
-UZS = [f"{f}.{ext}" for f, ext in UZ_MAP.items()]
-
-# isolate basenames for all files
-FAS = list(FA_MAP.keys())
-
-# parse any background files
-bg_files = glob(join(input_dir, "background", "*"))
-if len(bg_files) > 0:
-    bg_files = [skm.utils.split_file_ext(basename(f))[0] for f in bg_files]
-NON_BGS, BGS = [f for f in FAS if f not in bg_files], bg_files
-
 # terminate with error if invalid alphabet specified
 skm.alphabet.check_valid(config["alphabet"])
+
+
+ruleorder: unzip > vectorize > score > model > model_report
+
+
+# collect all fasta-like files, unzipped filenames, and basenames
+gz_input = glob_wildcards(join("input", "{filename,\w+}.{ext,fasta|fna|faa|fa}.gz"))
+seq_input = glob_wildcards(join("input", "{filename,\w+}.{ext,fasta|fna|faa|fa}"))
+bg_input = glob_wildcards(
+    join("input", "background", "{filename,\w+}.{ext,fasta|fna|faa|fa}")
+)
+bgz_input = glob_wildcards(
+    join("input", "background", "{filename,\w+}.{ext,fasta|fna|faa|fa}.gz")
+)
+
+
+# get bg files
+if config["score"]["method"] in ["combined", "c", "background", "bg"]:
+    if len(bg_input.filename) > 0:
+
+        ruleorder: unzip > vectorize > vectorize_background > score > model > model_report
+    else:
+        print(f"Warning: Score method is set to `{config['score']['method']}`")
+
+    for f, e in zip(bgz_input.filename, bgz_input.ext):
+        getattr(bg_input, "filename").append(f)
+        getattr(bg_input, "ext").append(e)
+
+
+# check input file size
+# for f, e in zip(seq_input.filename, seq_input.ext):
+#     skm.utils.check_n_seqs(
+#         join("input", f"{f}.{e}"), config["model"]["cv"], show_warning=False
+#     )
+
+# add unzipped gz files to total input list
+for f, e in zip(gz_input.filename, gz_input.ext):
+    getattr(seq_input, "filename").append(f)
+    getattr(seq_input, "ext").append(e)
+# for f, e in zip(bgz_input.filename, bgz_input.ext):
+#     getattr(bg_input, "filename").append(f)
+#     getattr(bg_input, "ext").append(e)
 
 # define output directory (helpful for multiple runs)
 out_dir = skm.io.define_output_dir(
@@ -93,73 +85,214 @@ out_dir = skm.io.define_output_dir(
 # show warnings if files excluded
 onstart:
     [
-        skm.utils.check_n_seqs(fa, config["model"]["cv"], show_warning=True)
-        for fa in input_files
+        skm.utils.check_n_seqs(
+            join("input", f"{f}.{e}"), config["model"]["cv"], show_warning=True
+        )
+        for f, e in zip(seq_input.filename, seq_input.ext)
+        if f not in gz_input.filename
     ]
+    [
+        skm.utils.check_n_seqs(
+            join("input", f"{f}.{e}.gz"),
+            config["model"]["cv"],
+            show_warning=True,
+            gzipped=True,
+        )
+        for f, e in zip(seq_input.filename, seq_input.ext)
+        if f in gz_input.filename
+    ]
+
+    # raise error if no background files supplied in a bg mode
+    # if (len(bg_input.filename) == 0) and (
+    #     config["score"]["method"].lower() != "family"
+    # ):
+    #     raise FileNotFoundError(
+    #         f"Score method `{config['score']['method']}`"
+    #         " requires background files (none found)."
+    #     )
+
 
 
 # define output files to be created by snekmer
+output = [
+    expand(
+        join(out_dir, "kmerize", "{f}.{e}.kmers"),
+        zip,
+        f=seq_input.filename,
+        e=seq_input.ext,
+    ),
+    expand(
+        join(out_dir, "model", "{sf}.{se}.model"),
+        zip,
+        sf=seq_input.filename,
+        se=seq_input.ext,
+    ),  # require model-building for non-background seqs
+    join(out_dir, "Snekmer_Model_Report.html"),
+]
+if len(bg_input.filename) > 0:
+    output.append(
+        expand(
+            join(out_dir, "scoring", "{f}.{e}.matrix"),
+            zip,
+            f=seq_input.filename,
+            e=seq_input.ext,
+        )
+    )
+
+
 rule all:
     input:
-        expand(join("input", "{uz}"), uz=UZS),  # require unzipping
-        expand(join(out_dir, "model", "{nb}.model"), nb=NON_BGS),  # require model-building
-        join(out_dir, "Snekmer_Model_Report.html"),
+        output,
 
 
-# if any files are gzip zipped, unzip them
-use rule unzip from process with:
+rule unzip:
+    input:
+        join("input", "{f}.{e}.gz"),
     output:
-        unzipped=join("input", "{uz}"),
-        zipped=join("input", "zipped", "{uz}.gz"),
+        unzipped=join("input", "{f}.{e}"),
+        zipped=join("input", "zipped", "{f}.{e}.gz"),
+    wildcard_constraints:
+        f="\w+",
+        e="fasta|fna|faa|fa",
+    script:
+        resource_filename("snekmer", join("scripts", "unzip.py"))
 
 
 # build kmer count vectors for each basis set
 use rule vectorize from kmerize with:
     input:
-        fasta=lambda wildcards: join("input", f"{wildcards.nb}.{FA_MAP[wildcards.nb]}"),
+        fasta=join("input", "{f}.{e}"),
     output:
-        data=join(out_dir, "vector", "{nb}.npz"),
-        kmerobj=join(out_dir, "kmerize", "{nb}.kmers"),
+        data=join(out_dir, "vector", "{f}.{e}.npz"),
+        kmerobj=join(out_dir, "kmerize", "{f}.{e}.kmers"),
+    wildcard_constraints:
+        f="\w+",
+        e="fasta|fna|faa|fa",
     log:
-        join(out_dir, "kmerize", "log", "{nb}.log"),
+        join(out_dir, "kmerize", "log", "{f}.{e}.log"),
+
+
+if len(bg_input.filename) > 0:
+
+    rule unzip_background:
+        input:
+            join("input", "background", "{bf}.{be}.gz"),
+        output:
+            unzipped=join("input", "background", "{bf}.{be}"),
+            zipped=join("input", "background", "zipped", "{bf}.{be}.gz"),
+        wildcard_constraints:
+            bf="\w+",
+            be="fasta|fna|faa|fa",
+        script:
+            resource_filename("snekmer", join("scripts", "unzip.py"))
+
+    use rule vectorize from kmerize as vectorize_background with:
+        input:
+            fasta=join("input", "background", "{bf}.{be}"),
+        output:
+            data=join(out_dir, "background", "vector", "{bf}.{be}.npz"),
+            kmerobj=join(out_dir, "background", "kmerize", "{bf}.{be}.kmers"),
+        wildcard_constraints:
+            bf="\w+",
+            be="fasta|fna|faa|fa",
+        log:
+            join(out_dir, "background", "kmerize", "log", "{bf}.{be}.log"),
+
+    rule combine_background:
+        input:
+            kmerobj=join(out_dir, "kmerize", "{f}.{e}.kmers"),
+            data=expand(
+                join(out_dir, "background", "vector", "{bf_a}.{be_a}.npz"),
+                zip,
+                bf_a=bg_input.filename,
+                be_a=bg_input.ext,
+            ),
+        output:
+            join(out_dir, "background", "{f}.{e}.npz"),
+        script:
+            resource_filename("snekmer", join("scripts", "combine_background.py"))
+
+
+def score_input(wildcards):
+    input_files = {
+        "kmerobj": join(out_dir, "kmerize", f"{wildcards.f}.{wildcards.e}.kmers"),
+        "data": expand(
+            join(out_dir, "vector", "{sf}.{se}.npz"),
+            zip,
+            sf=seq_input.filename,
+            se=seq_input.ext,
+        ),
+    }
+    if (config["score"]["method"] in ["background", "bg", "combined"]) and (
+        len(bg_input.filename) > 0
+    ):
+        input_files["bg"] = join(
+            out_dir, "background", f"{wildcards.f}.{wildcards.e}.npz"
+        )
+    return input_files
 
 
 # build family score basis
 rule score:
     input:
-        kmerobj=join(out_dir, "kmerize", "{nb}.kmers"),
-        data=expand(join(out_dir, "vector", "{fa}.npz"), fa=NON_BGS),
-        bg=BGS,
+        unpack(score_input),
     output:
-        data=join(out_dir, "scoring", "sequences", "{nb}.csv.gz"),
-        weights=join(out_dir, "scoring", "weights", "{nb}.csv.gz"),
-        scorer=join(out_dir, "scoring", "{nb}.scorer"),
-        matrix=join(out_dir, "scoring", "{nb}.matrix"),
+        data=join(out_dir, "scoring", "sequences", "{f}.{e}.csv.gz"),
+        weights=join(out_dir, "scoring", "weights", "{f}.{e}.csv.gz"),
+        scorer=join(out_dir, "scoring", "{f}.{e}.scorer"),
+        matrix=join(out_dir, "scoring", "{f}.{e}.matrix"),
     log:
-        join(out_dir, "scoring", "log", "{nb}.log"),
+        join(out_dir, "scoring", "log", "{f}.{e}.log"),
     script:
-        resource_filename("snekmer", join("scripts/model_score.py"))
+        resource_filename("snekmer", join("scripts", "score_with_background.py"))
+
+
+def model_input(wildcards):
+    input_files = {
+        "kmerobj": join(out_dir, "kmerize", f"{wildcards.f}.{wildcards.e}.kmers"),
+        "raw": join(out_dir, "vector", f"{wildcards.f}.{wildcards.e}.npz"),
+        "data": join(
+            out_dir, "scoring", "sequences", f"{wildcards.f}.{wildcards.e}.csv.gz"
+        ),
+        "weights": join(
+            out_dir, "scoring", "weights", f"{wildcards.f}.{wildcards.e}.csv.gz"
+        ),
+        "matrix": join(out_dir, "scoring", f"{wildcards.f}.{wildcards.e}.matrix"),
+    }
+    if (config["score"]["method"] in ["background", "bg", "combined"]) and (
+        len(bg_input.filename) > 0
+    ):
+        input_files["bg"] = join(
+            out_dir, "background", f"{wildcards.f}.{wildcards.e}.npz"
+        )
+    return input_files
 
 
 rule model:
     input:
-        raw=rules.score.input.data,
-        data=rules.score.output.data,
-        weights=rules.score.output.weights,
-        kmerobj=rules.score.input.kmerobj,
-        matrix=rules.score.output.matrix,
+        unpack(model_input),
     output:
-        model=join(out_dir, "model", "{nb}.model"),
-        results=join(out_dir, "model", "results", "{nb}.csv"),
-        figs=directory(join(out_dir, "model", "figures", "{nb}")),
+        model=join(out_dir, "model", "{f}.{e}.model"),
+        results=join(out_dir, "model", "results", "{f}.{e}.csv"),
+        figs=directory(join(out_dir, "model", "figures", "{f}.{e}")),
     script:
         resource_filename("snekmer", join("scripts/model_model.py"))
 
 
 rule model_report:
     input:
-        results=expand(join(out_dir, "model", "results", "{nb}.csv"), nb=NON_BGS),
-        figs=expand(join(out_dir, "model", "figures", "{nb}"), nb=NON_BGS),
+        results=expand(
+            join(out_dir, "model", "results", "{sf}.{se}.csv"),
+            zip,
+            sf=seq_input.filename,
+            se=seq_input.ext,
+        ),
+        figs=expand(
+            join(out_dir, "model", "figures", "{sf}.{se}"),
+            zip,
+            sf=seq_input.filename,
+            se=seq_input.ext,
+        ),
     output:
         join(out_dir, "Snekmer_Model_Report.html"),
     run:
