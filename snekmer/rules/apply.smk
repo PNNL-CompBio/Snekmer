@@ -279,8 +279,24 @@ rule apply:
                 """
         Compute cosine similarity between kmer counts of sequences.
         """
+                # learn-apply-scoring
+                # this is where we need to update code to reflect
+                #       scoring changes. Doing it on the fly (i.e. in
+                #       apply - not in learn) will allow more flexiblity
+                #       so we can change how it's done each time.
+                #       If we're thinking of probability based scoring
+                #       we'll have to do that elsewhere since it requres
+                #       the use of the entire matrix
+                factor = 2319
+                kmer_count_thresholds = self.kmer_count_totals.sum(axis = 1)/float(factor)
+                kmer_count_totals_filt = (self.kmer_count_totals.T > kmer_count_thresholds).T
+
+                # saving these so I can debug outside of snakmake hell
+                #import uuid
+                #pickle.dump([self.kmer_count_totals, self.kmer_counts], open(str(uuid.uuid4()), "wb"))
+
                 cosine_df = sklearn.metrics.pairwise.cosine_similarity(
-                    self.kmer_count_totals, self.kmer_counts
+                    kmer_count_totals_filt, self.kmer_counts
                 ).T
                 self.kmer_count_totals = pd.DataFrame(
                     cosine_df,
