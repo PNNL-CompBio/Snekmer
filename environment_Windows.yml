@@ -7,7 +7,7 @@ channels:
 dependencies:
   - python >= 3.9
   - biopython
-  - pyarrow
+  - defaults::pyarrow
   - jinja2
   - matplotlib
   - numpy == 1.22.3
