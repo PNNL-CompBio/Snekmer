@@ -40,7 +40,9 @@ and the outputs received from Learn. Snekmer uses cosine distance to predict the
 sequence from the kmer counts matrix. The output is a table for each file containing sequence annotation
 predictions with confidence levels.
 
-**Motif mode:** The user supplies files containing sequences in an appropriate format (e.g. FASTA) and the outputs received from Model. Snekmer performs a feature selection workflow to produce a list of motifs ordered by degree of conservation and a classification model using the selected features (.model).
+**Motif mode:** The user supplies files containing sequences in an appropriate format (e.g. FASTA)
+and the outputs received from Model. Snekmer performs a feature selection workflow to produce a 
+list of motifs ordered by degree of conservation and a classification model using the selected features (.model).
 
 ## How to Use Snekmer
 
