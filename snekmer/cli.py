@@ -257,6 +257,11 @@ def get_argument_parser():
         description="Search sequences against pre-existing models via Snekmer.",
         parents=[parser["smk"]],
     )
+    parser["motif"] = parser["subparsers"].add_parser(
+        "motif",
+        description="Find structurally and functionally relevant motifs via Snekmer.",
+        parents=[parser["smk"]]
+    )
     parser["learn"] = parser["subparsers"].add_parser(
         "learn",
         description="Learn kmer-annotation associations via Snekmer",
@@ -371,6 +376,30 @@ def main():
             cluster_config=args.clust,
             cluster=cluster,
             keepgoing=True,
+            force_incomplete=True,
+            forcerun=args.forcerun,
+            cores=args.cores,
+            nodes=args.jobs,
+            workdir=args.directory,
+            dryrun=args.dryrun,
+            unlock=args.unlock,
+            list_code_changes=args.list_code_changes,
+            list_params_changes=args.list_params_changes,
+            until=args.until,
+            touch=args.touch,
+            latency_wait=args.latency,
+            verbose=args.verbose,
+            quiet=args.quiet,
+        )
+        
+    elif args.mode == "motif":
+        snakemake(
+            resource_filename("snekmer", os.path.join("rules", "motif.smk")),
+            configfiles=configfile,
+            config=config,
+            cluster_config=args.clust,
+            cluster=cluster,
+            keepgoing=args.keepgoing,
             force_incomplete=True,
             forcerun=args.forcerun,
             cores=args.cores,

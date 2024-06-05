@@ -1,0 +1,22 @@
+<html>
+    <head>
+        <title>{{page_title}}</title>
+    </head>
+    <body>
+            <h1>{{title}}</h1>
+            <p>{{text}}</p>
+            <a href={{dir}}>
+                See Snekmer motif results in file explorer: (<b>output/motif/p_values/</b>)
+            </a>
+            <p>
+                Direct link to motif results tables:
+                <br>
+                {% for tab in tables %}
+                    <a href={{tab}}>
+                        <b>{{tab}}</b>
+                    </a>
+                    <br>
+                {% endfor %}
+            </p>
+    </body>
+</html>
