@@ -37,6 +37,9 @@ from multiprocessing import Pool
 from os import makedirs
 from os.path import basename, dirname, exists, join, split, splitext
 from pathlib import Path
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 
 import numpy as np
 import pandas as pd
@@ -69,6 +72,11 @@ unzipped = [
 annot_files = glob(join("annotations", "*.ann"))
 base_counts = glob(join("base", "counts", "*.csv"))
 base_confidence = glob(join("base", "confidence", "*.csv"))
+decoy_files = glob(join("decoys", "*"))
+decoy_basenames = [skm.utils.split_file_ext(f)[0] for f in decoy_files]
+decoy_map = {
+    skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in decoy_files
+}
 # map extensions to basename (basename.ext.gz -> {basename: ext})
 UZ_MAP = {
     skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in zipped
@@ -103,12 +111,13 @@ output_prefixes = (
 rule all:
     input:
         expand(join("output", "vector", "{nb}.npz"), nb=FAS),
+        expand(join("output", "vector_decoy", "{dc}.npz"), dc=decoy_basenames),
         expand(join("output", "learn", "kmer-counts-{nb}.csv"), nb=FAS),
         join("output", "learn", "kmer-counts-total.csv"),
         expand(join("output", "fragmented", "{nb}.fasta"), nb=FAS)
         if config["learnapp"]["fragmentation"]
         else [],
-        expand(join("output", "vector_frag", "{nb}.npz"), nb=FAS)
+        expand(join("output", "vector_frag", "{dc}.npz"), nb=FAS)
         if config["learnapp"]["fragmentation"]
         else [],
         expand(
@@ -117,12 +126,16 @@ rule all:
                 "eval_apply"
                 if not config["learnapp"]["fragmentation"]
                 else "eval_apply_frag",
-                "seq-annotation-scores-{nb}.csv",
+                "seq-annotation-scores-{dc}.csv",
             ),
-            nb=FAS,
+            dc=decoy_basenames,
         ),
-        "output/eval_conf/confidence-matrix.csv",
-        "output/eval_conf/global-confidence-scores.csv",
+        # "output/eval_conf/confidence-matrix.csv",
+        # "output/eval_conf/global-confidence-scores.csv",
+        # "output/eval_conf/max_scores_distribution.png",
+        # "output/eval_conf/max_scores_summary_stats.csv",
+        "output/eval_conf/median_values_distribution.png",
+        "output/eval_conf/family_summary_stats.csv",
 
 
 # if any files are gzip zipped, unzip them
@@ -213,6 +226,8 @@ if config["learnapp"]["fragmentation"]:
                             the_file.write(frag + "\n")
 
 
+ruleorder:
+    vectorize > vectorize_decoy
 
 use rule vectorize from kmerize with:
     input:
@@ -226,6 +241,19 @@ use rule vectorize from kmerize with:
         kmerobj=join("output", "kmerize_{prefix}", "{nb}.kmers"),
     log:
         join("output", "{prefix}_kmerize", "log", "{nb}.log"),
+
+use rule vectorize from kmerize as vectorize_decoy with:
+    input:
+        # fasta=lambda wildcards: expand(join("decoys", "{dc}.fa"), dc=decoy_basenames)[0],
+        fasta=lambda wildcards: join(
+            "decoys",
+            f"{wildcards.dc}.{decoy_map[wildcards.dc]}",
+        ),
+    output:
+        data=join("output", "vector_decoy", "{dc}.npz"),  # Output path updated
+        kmerobj=join("output", "kmerize_decoy", "{dc}.kmers"),  # Output path updated
+    log:
+        join("output", "vector_decoy", "log", "{dc}.log"),  # Log path updated
 
 
 # WORKFLOW to learn kmer associations
@@ -602,10 +630,10 @@ rule eval_apply:
     input:
         data=join(
             "output",
-            "vector"
+            "vector_decoy"
             if config["learnapp"]["fragmentation"] == False
             else "vector_frag",
-            "{nb}.npz",
+            "{dc}.npz",
         ),
         annotation=expand("{an}", an=annot_files),
         compare_associations=join("output", "learn", "kmer-counts-total.csv"),
@@ -615,10 +643,10 @@ rule eval_apply:
             "eval_apply"
             if config["learnapp"]["fragmentation"] == False
             else "eval_apply_frag",
-            "seq-annotation-scores-{nb}.csv",
+            "seq-annotation-scores-{dc}.csv",
         ),
     log:
-        join(out_dir, "eval_apply", "log", "{nb}.log"),
+        join(out_dir, "eval_apply", "log", "{dc}.log"),
     run:
         start_time = datetime.now()
         with open(log[0], "a") as f:
@@ -848,6 +876,27 @@ rule eval_apply:
                 final_matrix_with_scores.values[~mask] = np.nan
                 return final_matrix_with_scores
 
+
+            def filter_top_one_value(self, final_matrix_with_scores):
+                """
+        Filters the similarity scores to keep only the top one value for each row.
+
+        Args:
+            final_matrix_with_scores (DataFrame): DataFrame of similarity scores.
+
+        Returns:
+            DataFrame: DataFrame with all but the top single score set to NaN.
+        """
+                top_1_indices = np.argsort(-final_matrix_with_scores.values, axis=1)[:, :1]  # Changed to top 1
+                mask = np.zeros_like(final_matrix_with_scores.values, dtype=bool)
+
+                for i, index_1 in enumerate(top_1_indices):  # Only one index now
+                    mask[i, index_1] = True
+
+                final_matrix_with_scores.values[~mask] = np.nan
+                return final_matrix_with_scores
+
+
             def write_output(self, final_matrix_with_scores):
                 """
         Writes the provided DataFrame to a CSV file at the specified output path.
@@ -867,7 +916,7 @@ rule eval_apply:
         This includes:
             1. Loading inputs.
             2. Generating kmer counts.
-            3. Adding known/unknown tags.
+            # 3. Adding known/unknown tags.
             4. Constructing a k-mer counts dataframe.
             5. Matching format with comparison data.
             6. Calculating cosine similarity.
@@ -876,14 +925,18 @@ rule eval_apply:
         """
                 self.generate_inputs()
                 self.generate_kmer_counts()
-                self.add_known_unknown_tag()
+                # self.add_known_unknown_tag()
                 kmer_counts = self.construct_kmer_counts_dataframe()
                 kmer_counts = self.match_kmer_counts_format(kmer_counts)
                 final_matrix_with_scores = self.calculate_cosine_similarity(kmer_counts)
-                if not config["learnapp"]["save_apply_associations"]:
-                    final_matrix_with_scores = self.filter_top_two_values(
-                        final_matrix_with_scores
-                    )
+                # if not config["learnapp"]["save_apply_associations"]:
+                #     final_matrix_with_scores = self.filter_top_two_values(
+                #         final_matrix_with_scores
+                #     )
+                # if not config["learnapp"]["save_apply_associations"]:
+                #     final_matrix_with_scores = self.filter_top_one_value(
+                #         final_matrix_with_scores
+                #     )
                 self.write_output(final_matrix_with_scores)
 
 
@@ -894,7 +947,9 @@ rule eval_apply:
         skm.utils.log_runtime(log[0], start_time)
 
 
-rule evaluate:
+
+
+rule family_evaluate:
     input:
         eval_apply_data=expand(
             join(
@@ -902,459 +957,758 @@ rule evaluate:
                 "eval_apply"
                 if config["learnapp"]["fragmentation"] == False
                 else "eval_apply_frag",
-                "seq-annotation-scores-{nb}.csv",
+                "seq-annotation-scores-{dc}.csv",
             ),
-            nb=FAS,
+            dc=decoy_basenames,
         ),
         base_confidence=expand("{bc}", bc=base_confidence),
     output:
-        eval_conf="output/eval_conf/confidence-matrix.csv",
-        eval_glob="output/eval_conf/global-confidence-scores.csv",
-    params:
-        modifer=config["learnapp"]["conf_weight_modifier"],
-    log:
-        join(out_dir, "eval_conf", "log", "conf.log"),
+        plot_median="output/eval_conf/median_values_distribution.png",
+        plot_min="output/eval_conf/min_values_distribution.png",
+        plot_max="output/eval_conf/max_values_distribution.png",
+        plot_mean="output/eval_conf/mean_values_distribution.png",
+        plot_90th="output/eval_conf/90th_percentile_values_distribution.png",
+        family_stats="output/eval_conf/family_summary_stats.csv",
     run:
-        start_time = datetime.now()
-        with open(log[0], "a") as f:
-            f.write(f"start time:\t{start_time}\n")
 
-
-        class Evaluator:
+        def collect_family_values(filename):
             """
-    The Evaluater class processes compares predictions with results and generates confidence metrics.
+            Reads a CSV file and returns a dictionary with all values for each family (column).
+            """
+            # Read the CSV file using pandas
+            seq_ann_scores = pd.read_csv(
+                filename,
+                index_col=None,
+                header=0,
+                engine="c"
+            )
 
-    Attributes:
-        input_data (list): List of paths to input files.
-        output_conf_path (str): Path to save the output confidence table.
-        output_glob_path (str): Path to save the output global crosstab.
-        confidence_data (list, optional): List of paths to base confidence files. Defaults to None.
-    """
+            # Dictionary to store values for each family (column)
+            family_values = {family: [] for family in seq_ann_scores.columns[:-1]}  # Exclude the last column (sequence name)
 
-            def __init__(
-                self,
-                input_data,
-                output_conf_path,
-                output_glob_path,
-                confidence_data=None,
-            ):
-                """
-        Initializes the Evaluator object with input data and paths.
-        """
-                self.input_data = input_data
-                self.confidence_data = confidence_data
-                self.output_conf = output_conf_path
-                self.output_glob = output_glob_path
-                self.true_running_crosstab = None
-                self.false_running_crosstab = None
+            # Iterate over the rows in the DataFrame
+            for index, row in seq_ann_scores.iterrows():
+                # Iterate over all families (columns except the last one)
+                for family in family_values.keys():
+                    value = row[family]
+                    if not pd.isna(value):  # Check if the value is not NaN
+                        family_values[family].append(float(value))
 
-            def read_and_transform_input_data(self, file_path):
-                """
-        Reads and transforms input data from a given CSV file.
+            return family_values
 
-        Args:
-            file_path (str): Path to the input CSV file.
+        def generate_family_statistics(family_values):
+            """
+            Generates statistics (max, min, mean, median, 90th percentile) for each family.
+            """
+            stats_data = {
+                'Family': [],
+                'Max': [],
+                'Min': [],
+                'Mean': [],
+                'Median': [],
+                '90th Percentile': []
+            }
 
-        Returns:
-            tuple: Parsed and transformed values from the input data.
-        """
-                seq_ann_scores = pd.read_csv(
-                    file_path,
-                    index_col="__index_level_0__",
-                    header=0,
-                    engine="c",
-                )
-                max_value_index = seq_ann_scores.idxmax(axis="columns")
-                result = max_value_index.keys()
-                tf, known = self._generate_tf_and_known(max_value_index, result)
+            for family, values in family_values.items():
+                stats_data['Family'].append(family)
+                stats_data['Max'].append(np.max(values))
+                stats_data['Min'].append(np.min(values))
+                stats_data['Mean'].append(np.mean(values))
+                stats_data['Median'].append(np.median(values))
+                stats_data['90th Percentile'].append(np.percentile(values, 90))
 
-                seq_ann_vals = seq_ann_scores.values[
-                    np.arange(len(seq_ann_scores))[:, None],
-                    np.argpartition(-seq_ann_scores.values, np.arange(2), axis=1)[
-                        :, :2
-                    ],
-                ]
-                return seq_ann_vals, max_value_index, result, tf, known
+            return pd.DataFrame(stats_data)
 
-            def _generate_tf_and_known(self, max_value_index, result):
-                """
-        Helper function to generate "True/False" and "Known/Unknown" labels based on input data.
+        def plot_distribution(data, column_name, output_file):
+            """
+            Plots the distribution of a specified column in the given data.
+            """
+            plt.figure(figsize=(10, 6))
+            plt.hist(data[column_name], bins=30, alpha=0.75, edgecolor='black')
+            plt.title(f'Distribution of {column_name} Values for Each Family')
+            plt.xlabel(f'{column_name} Value')
+            plt.ylabel('Frequency')
+            plt.grid(axis='y', alpha=0.75)
+            plt.savefig(output_file)
+            plt.close()
 
-        Args:
-            max_value_index (Series): Maximum value's index from the data.
-            result (Index): Result keys from data.
+        # Step 1: Collect values for each family from all input files
+        combined_family_values = {}
 
-        Returns:
-            tuple: Lists of "True/False" and "Known/Unknown" labels.
-        """
-                tf = []
-                known = []
-                for i, item in enumerate(list(max_value_index)):
-                    if item in result[i]:
-                        tf.append("T")
-                    else:
-                        tf.append("F")
-                    if "unknown" in result[i]:
-                        known.append("Unknown")
-                    else:
-                        known.append("Known")
-                return tf, known
+        for filename in input.eval_apply_data:
+            family_values = collect_family_values(filename)
 
-            def generate_diff_dataframe(
-                self, seq_ann_vals, max_value_index, result, tf, known
-            ):
-                """
-        Generates a dataframe showing the differences and other metrics.
+            # Combine values from multiple files if needed
+            for family, values in family_values.items():
+                if family not in combined_family_values:
+                    combined_family_values[family] = []
+                combined_family_values[family].extend(values)
 
-        Args:
-            seq_ann_vals (array-like): Array of sequence annotation values.
-            max_value_index (Series): Maximum value's index from the data.
-            result (Index): Result keys from data.
-            tf (list): List of "True/False" labels.
-            known (list): List of "Known/Unknown" labels.
+        # Step 2: Generate summary statistics for each family
+        family_statistics_df = generate_family_statistics(combined_family_values)
 
-        Returns:
-            DataFrame: Constructed dataframe with computed differences and other metrics.
-        """
-                diff_df = pd.DataFrame(seq_ann_vals, columns=["Top", "Second"])
-                diff_df["Difference"] = -(
-                    np.diff(seq_ann_vals, axis=1).round(decimals=2)
-                )
-                diff_df["Prediction"] = list(max_value_index)
-                diff_df["Actual"] = result
-                diff_df["T/F"] = tf
-                diff_df["Known/Unknown"] = known
-                return diff_df
+        # Save family statistics to CSV
+        family_statistics_df.to_csv(output.family_stats, index=False)
 
-            def create_tf_crosstabs(self, diff_df):
-                """
-        Creates crosstabs for True and False predictions based on the given dataframe.
-
-        Args:
-            diff_df (DataFrame): DataFrame with differences and metrics.
-
-        Returns:
-            tuple: Crosstabs for True and False predictions.
-        """
-                known_true_diff_df = diff_df[
-                    (diff_df["Known/Unknown"] == "Known") & (diff_df["T/F"] == "T")
-                ]
-                known_false_diff_df = diff_df[
-                    (diff_df["Known/Unknown"] == "Known") & (diff_df["T/F"] == "F")
-                ]
-                possible_vals = [round(x * 0.01, 2) for x in range(0, 101)]
-                true_crosstab = pd.crosstab(
-                    known_true_diff_df.Prediction, known_true_diff_df.Difference
-                )
-                false_crosstab = pd.crosstab(
-                    known_false_diff_df.Prediction, known_false_diff_df.Difference
-                )
-                return true_crosstab, false_crosstab
-
-            def handle_running_crosstabs(
-                self, true_crosstab, false_crosstab, iteration
-            ):
-                """
-        Handles and updates running crosstabs over iterations.
-
-        Args:
-            true_crosstab (DataFrame): Crosstab for True predictions.
-            false_crosstab (DataFrame): Crosstab for False predictions.
-            iteration (int): Current iteration.
-        """
-                possible_vals = [round(x * 0.01, 2) for x in range(0, 101)]
-
-                if iteration == 0:
-                    self.true_running_crosstab = true_crosstab
-                    self.false_running_crosstab = false_crosstab
-                else:
-                    self.true_running_crosstab = (
-                        pd.concat([self.true_running_crosstab, true_crosstab])
-                        .reset_index()
-                        .groupby("Prediction", sort=False)
-                        .sum(min_count=1)
-                    ).fillna(0)
-                    self.false_running_crosstab = (
-                        pd.concat([self.false_running_crosstab, false_crosstab])
-                        .reset_index()
-                        .groupby("Prediction", sort=False)
-                        .sum(min_count=1)
-                    ).fillna(0)
-
-                add_to_true_df = pd.DataFrame(
-                    0,
-                    index=sorted(
-                        set(self.false_running_crosstab.index)
-                        - set(self.true_running_crosstab.index)
-                    ),
-                    columns=self.true_running_crosstab.columns,
-                )
-                add_to_false_df = pd.DataFrame(
-                    0,
-                    index=sorted(
-                        set(self.true_running_crosstab.index)
-                        - set(self.false_running_crosstab.index)
-                    ),
-                    columns=self.false_running_crosstab.columns,
-                )
-
-                self.true_running_crosstab = pd.concat(
-                    [self.true_running_crosstab, add_to_true_df]
-                )[
-                    sorted(
-                        list(
-                            set(possible_vals) & set(self.true_running_crosstab.columns)
-                        )
-                    )
-                ].assign(
-                    **dict.fromkeys(
-                        list(
-                            map(
-                                str,
-                                sorted(
-                                    list(
-                                        set(possible_vals)
-                                        ^ set(
-                                            self.true_running_crosstab.columns.astype(
-                                                float
-                                            )
-                                        )
-                                    )
-                                ),
-                            )
-                        ),
-                        0,
-                    )
-                )
-                self.false_running_crosstab = pd.concat(
-                    [self.false_running_crosstab, add_to_false_df]
-                )[
-                    sorted(
-                        list(
-                            set(possible_vals)
-                            & set(self.false_running_crosstab.columns)
-                        )
-                    )
-                ].assign(
-                    **dict.fromkeys(
-                        list(
-                            map(
-                                str,
-                                sorted(
-                                    list(
-                                        set(possible_vals)
-                                        ^ set(
-                                            self.false_running_crosstab.columns.astype(
-                                                float
-                                            )
-                                        )
-                                    )
-                                ),
-                            )
-                        ),
-                        0,
-                    )
-                )
-
-                self.true_running_crosstab.index.names = ["Prediction"]
-                self.false_running_crosstab.index.names = ["Prediction"]
-                self.true_running_crosstab.sort_index(inplace=True)
-                self.false_running_crosstab.sort_index(inplace=True)
-                self.true_running_crosstab.columns = (
-                    self.true_running_crosstab.columns.astype(float)
-                )
-                self.false_running_crosstab.columns = (
-                    self.false_running_crosstab.columns.astype(float)
-                )
-                self.true_running_crosstab = self.true_running_crosstab[
-                    sorted(self.true_running_crosstab.columns)
-                ]
-                self.false_running_crosstab = self.false_running_crosstab[
-                    sorted(self.false_running_crosstab.columns)
-                ]
-
-            def generate_inputs(self):
-                """
-        Generates and processes input data for each file in the input_data attribute.
-        """
-                for j, f in enumerate(self.input_data):
-                    (
-                        seq_ann_vals,
-                        max_value_index,
-                        result,
-                        tf,
-                        known,
-                    ) = self.read_and_transform_input_data(f)
-                    diff_df = self.generate_diff_dataframe(
-                        seq_ann_vals, max_value_index, result, tf, known
-                    )
-                    true_crosstab, false_crosstab = self.create_tf_crosstabs(diff_df)
-                    known_count = (
-                        diff_df["Known/Unknown"].value_counts().get("Known", 0)
-                    )
-                    self.handle_running_crosstabs(true_crosstab, false_crosstab, j)
-                return
-
-            def generate_global_crosstab(self):
-                """
-        Generates a global crosstab based on the running True and False crosstabs.
-
-        Returns:
-            DataFrame: Computed global crosstab.
-        """
-                return self.true_running_crosstab / (
-                    self.true_running_crosstab + self.false_running_crosstab
-                )
-
-            def calculate_distributions(self):
-                """
-        Calculates distributions for True and False predictions.
-
-        Returns:
-            tuple: Total distributions for True and False predictions.
-        """
-                true_total_dist = self.true_running_crosstab.sum(
-                    numeric_only=True, axis=0
-                )
-                false_total_dist = self.false_running_crosstab.sum(
-                    numeric_only=True, axis=0
-                )
-
-                return true_total_dist, false_total_dist
-
-            def compute_ratio_distribution(self, true_total_dist, false_total_dist):
-                """
-        Computes the ratio distribution for True and False total distributions.
-
-        Args:
-            true_total_dist (Series): Total distribution for True predictions.
-            false_total_dist (Series): Total distribution for False predictions.
-
-        Returns:
-            Series: Computed ratio distribution.
-        """
-                ratio_total_dist = true_total_dist / (
-                    true_total_dist + false_total_dist
-                )
-                return ratio_total_dist.interpolate(method="linear")
-
-            def check_confidence_merge(self, new_ratio_dist):
-                """
-        Merge with base confidence file if available.
-
-        Args:
-            new_ratio_dist (Series): Total distribution for T/(T+F) predictions.
-
-        Returns:
-            DataFrame: Updated ratio distribution.
-        """
-                sum_series = (
-                    self.true_running_crosstab.sum() + self.false_running_crosstab.sum()
-                )
-                current_weight = (
-                    self.true_running_crosstab.values.sum()
-                    + self.false_running_crosstab.values.sum()
-                )
-
-                updated_data = pd.DataFrame(new_ratio_dist, columns=["confidence"])
-                updated_data = updated_data.assign(
-                    weight=[current_weight] * 101, sum=sum_series
-                )
-
-                if self.confidence_data and len(self.confidence_data) == 1:
-                    prior_conf = pd.read_csv(
-                        self.confidence_data[0], index_col="Difference"
-                    )
-                    print(f"Prior Confidence Data:\n{prior_conf}")
-
-                    total_weight_prior = prior_conf["weight"]
-                    k_factor = 1 + params.modifer * (
-                        current_weight / (current_weight + total_weight_prior)
-                    )
-                    out_weight = total_weight_prior + current_weight
-                    weighted_current = k_factor * current_weight
-                    total_weight = total_weight_prior + weighted_current
-                    prior_weighted_score = (
-                        prior_conf["confidence"] * prior_conf["weight"]
-                    )
-                    current_weighted_score = (
-                        updated_data["confidence"] * weighted_current
-                    )
-
-                    updated_confidence = (
-                        prior_weighted_score + current_weighted_score
-                    ) / total_weight
-
-                    updated_data = pd.DataFrame({"confidence": updated_confidence})
-
-                    updated_data = updated_data.assign(
-                        weight=out_weight,
-                        sum=sum_series + prior_conf["sum"],
-                    )
-
-                    print(f"Final Confidence Data\n{updated_data}")
-                else:
-                    print(
-                        "Base confidence file not found. Only one file is allowed in base/confidence."
-                    )
-
-                return updated_data
-
-            def save_results(
-                self,
-                ratio_total_dist,
-                true_total_dist,
-                false_total_dist,
-                output_path,
-                conf_path,
-            ):
-                """
-        Saves the computed results to specified paths.
-
-        Args:
-            ratio_total_dist (Series): Ratio distribution to be saved.
-            output_path (str): Path to save the ratio distribution.
-            conf_path (str): Path to save the confidence table.
-        """
-
-                ratio_total_dist.to_csv(output_path)
-                table = pa.Table.from_pandas(self.generate_global_crosstab())
-                csv.write_csv(table, conf_path)
-
-            def execute_all(self):
-                """
-        Executes all functions in order.
-
-        This method does the following:
-
-        1. Processes each input file by reading, transforming, and storing intermediate variables.
-        2. After processing all files, generates a global crosstab to summarize the data.
-        3. Calculates distributions for True and False predictions. If base confidence files are provided,
-        it merges the calculated distributions with the base ones.
-        4. Computes a ratio distribution based on the True and False total distributions.
-        5. Finally, writes the ratio distribution and global crosstab to csv.
-        """
-                self.generate_inputs()
-                ratio_crosstab = self.generate_global_crosstab()
-                true_dist, false_dist = self.calculate_distributions()
-                ratio_dist = self.compute_ratio_distribution(true_dist, false_dist)
-                ratio_dist = self.check_confidence_merge(ratio_dist)
-                self.save_results(
-                    ratio_dist,
-                    true_dist,
-                    false_dist,
-                    self.output_glob,
-                    self.output_conf,
-                )
+        # Step 3: Create plots for each statistic
+        plot_distribution(family_statistics_df, 'Median', output.plot_median)
+        plot_distribution(family_statistics_df, 'Min', output.plot_min)
+        plot_distribution(family_statistics_df, 'Max', output.plot_max)
+        plot_distribution(family_statistics_df, 'Mean', output.plot_mean)
+        plot_distribution(family_statistics_df, '90th Percentile', output.plot_90th)
 
 
-        evaluator = Evaluator(
-            input.eval_apply_data,
-            output.eval_conf,
-            output.eval_glob,
-            input.base_confidence,
-        )
-        evaluator.execute_all()
+    #newish working code but just plot for median.
+        # def collect_family_values(filename):
+        #     """
+        #     Reads a CSV file and returns a dictionary with all values for each family (column).
+        #     """
+        #     # Read the CSV file using pandas
+        #     seq_ann_scores = pd.read_csv(
+        #         filename,
+        #         index_col=None,
+        #         header=0,
+        #         engine="c"
+        #     )
+
+        #     # Dictionary to store values for each family (column)
+        #     family_values = {family: [] for family in seq_ann_scores.columns[:-1]}  # Exclude the last column (sequence name)
+
+        #     # Iterate over the rows in the DataFrame
+        #     for index, row in seq_ann_scores.iterrows():
+        #         # Iterate over all families (columns except the last one)
+        #         for family in family_values.keys():
+        #             value = row[family]
+        #             if not pd.isna(value):  # Check if the value is not NaN
+        #                 family_values[family].append(float(value))
+
+        #     return family_values
+
+        # def generate_family_statistics(family_values):
+        #     """
+        #     Generates statistics (max, min, mean, median, 90th percentile) for each family.
+        #     """
+        #     stats_data = {
+        #         'Family': [],
+        #         'Max': [],
+        #         'Min': [],
+        #         'Mean': [],
+        #         'Median': [],
+        #         '90th Percentile': []
+        #     }
+
+        #     for family, values in family_values.items():
+        #         stats_data['Family'].append(family)
+        #         stats_data['Max'].append(np.max(values))
+        #         stats_data['Min'].append(np.min(values))
+        #         stats_data['Mean'].append(np.mean(values))
+        #         stats_data['Median'].append(np.median(values))
+        #         stats_data['90th Percentile'].append(np.percentile(values, 90))
+
+        #     return pd.DataFrame(stats_data)
+
+        # # Step 1: Collect values for each family from all input files
+        # combined_family_values = {}
+
+        # for filename in input.eval_apply_data:
+        #     family_values = collect_family_values(filename)
+
+        #     # Combine values from multiple files if needed
+        #     for family, values in family_values.items():
+        #         if family not in combined_family_values:
+        #             combined_family_values[family] = []
+        #         combined_family_values[family].extend(values)
+
+        # # Step 2: Generate summary statistics for each family
+        # family_statistics_df = generate_family_statistics(combined_family_values)
+
+        # # Save family statistics to CSV
+        # family_statistics_df.to_csv(output.family_stats, index=False)
+
+        # # Step 3: Create a plot of the distribution of median values for each family
+        # plt.figure(figsize=(10, 6))
+        # plt.hist(family_statistics_df['Median'], bins=30, alpha=0.75, color='green', edgecolor='black')
+        # plt.title('Distribution of Median Values for Each Family')
+        # plt.xlabel('Median Value')
+        # plt.ylabel('Frequency')
+        # plt.grid(axis='y', alpha=0.75)
+        # plt.savefig(output.plot)
+        # plt.close()
 
 
-        skm.utils.log_runtime(log[0], start_time)
+
+
+
+
+
+
+# rule simple_evaluate:
+#     input:
+#         eval_apply_data=expand(
+#             join(
+#                 "output",
+#                 "eval_apply"
+#                 if config["learnapp"]["fragmentation"] == False
+#                 else "eval_apply_frag",
+#                 "seq-annotation-scores-{dc}.csv",
+#             ),
+#             dc=decoy_basenames,
+#         ),
+#         base_confidence=expand("{bc}", bc=base_confidence),
+#     output:
+#         # eval_conf_new="output/eval_conf/confidence-matrix.csv",
+#         # eval_glob_new="output/eval_conf/global-confidence-scores.csv",
+#         plot="output/eval_conf/max_scores_distribution.png",
+#         summary_stats="output/eval_conf/max_scores_summary_stats.csv",
+#     # params:
+#     #     modifer=config["learnapp"]["conf_weight_modifier"],
+#     # log:
+#     #     join(out_dir, "eval_conf", "log", "conf.log"),
+#     run:
+
+#         def find_max_values(filename):
+#             # Read the CSV file using pandas
+#             seq_ann_scores = pd.read_csv(
+#                 filename,
+#                 index_col=None,
+#                 header=0,
+#                 engine="c"
+#             )
+
+#             # Dictionary to store maximum values for each sequence
+#             max_values = {}
+
+#             # Skip the first row (header) and iterate over the remaining rows in the DataFrame
+#             for index, row in seq_ann_scores.iloc[1:].iterrows():
+#                 # Extract sequence name (last column)
+#                 sequence_name = row.iloc[-1].strip()
+
+#                 # Extract numeric values (all columns except the last one)
+#                 values = row.iloc[:-1].dropna().astype(float).tolist()
+
+#                 # Compute the maximum value for this sequence
+#                 max_val = max(values) if values else None
+
+#                 # Update the dictionary with the max value for this sequence
+#                 max_values[sequence_name] = max_val
+
+#             return max_values
+
+
+#         # Step 1: Collect maximum scores
+#         list_of_max_scores = []
+
+#         for filename in input.eval_apply_data:
+#             max_values = find_max_values(filename)
+#             list_of_max_scores.extend(max_values.values())
+
+#         # Filter out None values if any
+#         list_of_max_scores = [score for score in list_of_max_scores if score is not None]
+
+#         # Step 2: Create a plot of the distribution of max scores
+#         plt.figure(figsize=(10, 6))
+#         plt.hist(list_of_max_scores, bins=50, alpha=0.75, color='blue', edgecolor='black')
+#         plt.title('Distribution of Maximum Scores')
+#         plt.xlabel('Maximum Scores')
+#         plt.ylabel('Frequency')
+#         plt.grid(axis='y', alpha=0.75)
+#         plt.savefig(output.plot)
+#         plt.close()
+
+#         # Step 3: Generate summary statistics
+#         max_score = np.max(list_of_max_scores)
+#         num_values = len(list_of_max_scores)
+#         percentiles = np.percentile(list_of_max_scores, np.arange(0, 101, 1))
+#         mean_score = np.mean(list_of_max_scores)
+#         std_dev = np.std(list_of_max_scores)
+
+#         # Creating a DataFrame for summary statistics
+#         summary_data = {
+#             'Statistic': ['Max Score', 'Number of Values', 'Mean Score', 'Standard Deviation'] + [f'{i}th Percentile' for i in range(0, 101, 1)],
+#             'Value': [max_score, num_values, mean_score, std_dev] + list(percentiles)
+#         }
+
+#         summary_df = pd.DataFrame(summary_data)
+
+#         # Save summary statistics to CSV
+#         summary_df.to_csv(output.summary_stats, index=False)
+
+            
+        
+
+
+        # seq_ann_scores = pd.read_csv(
+        #     file_path,
+        #     index_col="__index_level_0__",
+        #     header=0,
+        #     engine="c",
+        # )
+        # max_value_index = seq_ann_scores.idxmax(axis="columns")
+
+
+
+# Old Top 2 hit Evaluation Metric
+# rule evaluate:
+#     input:
+#         eval_apply_data=expand(
+#             join(
+#                 "output",
+#                 "eval_apply"
+#                 if config["learnapp"]["fragmentation"] == False
+#                 else "eval_apply_frag",
+#                 "seq-annotation-scores-{dc}.csv",
+#             ),
+#             dc=decoy_basenames,
+#         ),
+#         base_confidence=expand("{bc}", bc=base_confidence),
+#     output:
+#         eval_conf="output/eval_conf/confidence-matrix.csv",
+#         eval_glob="output/eval_conf/global-confidence-scores.csv",
+#     params:
+#         modifer=config["learnapp"]["conf_weight_modifier"],
+#     log:
+#         join(out_dir, "eval_conf", "log", "conf.log"),
+#     run:
+#         start_time = datetime.now()
+#         with open(log[0], "a") as f:
+#             f.write(f"start time:\t{start_time}\n")
+
+
+#         class Evaluator:
+#             """
+#     The Evaluater class processes compares predictions with results and generates confidence metrics.
+
+#     Attributes:
+#         input_data (list): List of paths to input files.
+#         output_conf_path (str): Path to save the output confidence table.
+#         output_glob_path (str): Path to save the output global crosstab.
+#         confidence_data (list, optional): List of paths to base confidence files. Defaults to None.
+#     """
+
+#             def __init__(
+#                 self,
+#                 input_data,
+#                 output_conf_path,
+#                 output_glob_path,
+#                 confidence_data=None,
+#             ):
+#                 """
+#         Initializes the Evaluator object with input data and paths.
+#         """
+#                 self.input_data = input_data
+#                 self.confidence_data = confidence_data
+#                 self.output_conf = output_conf_path
+#                 self.output_glob = output_glob_path
+#                 self.true_running_crosstab = None
+#                 self.false_running_crosstab = None
+
+#             def read_and_transform_input_data(self, file_path):
+#                 """
+#         Reads and transforms input data from a given CSV file.
+
+#         Args:
+#             file_path (str): Path to the input CSV file.
+
+#         Returns:
+#             tuple: Parsed and transformed values from the input data.
+#         """
+#                 seq_ann_scores = pd.read_csv(
+#                     file_path,
+#                     index_col="__index_level_0__",
+#                     header=0,
+#                     engine="c",
+#                 )
+#                 max_value_index = seq_ann_scores.idxmax(axis="columns")
+#                 result = max_value_index.keys()
+#                 tf, known = self._generate_tf_and_known(max_value_index, result)
+
+#                 seq_ann_vals = seq_ann_scores.values[
+#                     np.arange(len(seq_ann_scores))[:, None],
+#                     np.argpartition(-seq_ann_scores.values, np.arange(2), axis=1)[
+#                         :, :2
+#                     ],
+#                 ]
+#                 return seq_ann_vals, max_value_index, result, tf, known
+
+#             def _generate_tf_and_known(self, max_value_index, result):
+#                 """
+#         Helper function to generate "True/False" and "Known/Unknown" labels based on input data.
+
+#         Args:
+#             max_value_index (Series): Maximum value's index from the data.
+#             result (Index): Result keys from data.
+
+#         Returns:
+#             tuple: Lists of "True/False" and "Known/Unknown" labels.
+#         """
+#                 tf = []
+#                 known = []
+#                 for i, item in enumerate(list(max_value_index)):
+#                     if item in result[i]:
+#                         tf.append("T")
+#                     else:
+#                         tf.append("F")
+#                     if "unknown" in result[i]:
+#                         known.append("Unknown")
+#                     else:
+#                         known.append("Known")
+#                 return tf, known
+
+#             def generate_diff_dataframe(
+#                 self, seq_ann_vals, max_value_index, result, tf, known
+#             ):
+#                 """
+#         Generates a dataframe showing the differences and other metrics.
+
+#         Args:
+#             seq_ann_vals (array-like): Array of sequence annotation values.
+#             max_value_index (Series): Maximum value's index from the data.
+#             result (Index): Result keys from data.
+#             tf (list): List of "True/False" labels.
+#             known (list): List of "Known/Unknown" labels.
+
+#         Returns:
+#             DataFrame: Constructed dataframe with computed differences and other metrics.
+#         """
+#                 diff_df = pd.DataFrame(seq_ann_vals, columns=["Top", "Second"])
+#                 diff_df["Difference"] = -(
+#                     np.diff(seq_ann_vals, axis=1).round(decimals=2)
+#                 )
+#                 diff_df["Prediction"] = list(max_value_index)
+#                 diff_df["Actual"] = result
+#                 diff_df["T/F"] = tf
+#                 diff_df["Known/Unknown"] = known
+#                 return diff_df
+
+#             def create_tf_crosstabs(self, diff_df):
+#                 """
+#         Creates crosstabs for True and False predictions based on the given dataframe.
+
+#         Args:
+#             diff_df (DataFrame): DataFrame with differences and metrics.
+
+#         Returns:
+#             tuple: Crosstabs for True and False predictions.
+#         """
+#                 known_true_diff_df = diff_df[
+#                     (diff_df["Known/Unknown"] == "Known") & (diff_df["T/F"] == "T")
+#                 ]
+#                 known_false_diff_df = diff_df[
+#                     (diff_df["Known/Unknown"] == "Known") & (diff_df["T/F"] == "F")
+#                 ]
+#                 possible_vals = [round(x * 0.01, 2) for x in range(0, 101)]
+#                 true_crosstab = pd.crosstab(
+#                     known_true_diff_df.Prediction, known_true_diff_df.Difference
+#                 )
+#                 false_crosstab = pd.crosstab(
+#                     known_false_diff_df.Prediction, known_false_diff_df.Difference
+#                 )
+#                 return true_crosstab, false_crosstab
+
+#             def handle_running_crosstabs(
+#                 self, true_crosstab, false_crosstab, iteration
+#             ):
+#                 """
+#         Handles and updates running crosstabs over iterations.
+
+#         Args:
+#             true_crosstab (DataFrame): Crosstab for True predictions.
+#             false_crosstab (DataFrame): Crosstab for False predictions.
+#             iteration (int): Current iteration.
+#         """
+#                 possible_vals = [round(x * 0.01, 2) for x in range(0, 101)]
+
+#                 if iteration == 0:
+#                     self.true_running_crosstab = true_crosstab
+#                     self.false_running_crosstab = false_crosstab
+#                 else:
+#                     self.true_running_crosstab = (
+#                         pd.concat([self.true_running_crosstab, true_crosstab])
+#                         .reset_index()
+#                         .groupby("Prediction", sort=False)
+#                         .sum(min_count=1)
+#                     ).fillna(0)
+#                     self.false_running_crosstab = (
+#                         pd.concat([self.false_running_crosstab, false_crosstab])
+#                         .reset_index()
+#                         .groupby("Prediction", sort=False)
+#                         .sum(min_count=1)
+#                     ).fillna(0)
+
+#                 add_to_true_df = pd.DataFrame(
+#                     0,
+#                     index=sorted(
+#                         set(self.false_running_crosstab.index)
+#                         - set(self.true_running_crosstab.index)
+#                     ),
+#                     columns=self.true_running_crosstab.columns,
+#                 )
+#                 add_to_false_df = pd.DataFrame(
+#                     0,
+#                     index=sorted(
+#                         set(self.true_running_crosstab.index)
+#                         - set(self.false_running_crosstab.index)
+#                     ),
+#                     columns=self.false_running_crosstab.columns,
+#                 )
+
+#                 self.true_running_crosstab = pd.concat(
+#                     [self.true_running_crosstab, add_to_true_df]
+#                 )[
+#                     sorted(
+#                         list(
+#                             set(possible_vals) & set(self.true_running_crosstab.columns)
+#                         )
+#                     )
+#                 ].assign(
+#                     **dict.fromkeys(
+#                         list(
+#                             map(
+#                                 str,
+#                                 sorted(
+#                                     list(
+#                                         set(possible_vals)
+#                                         ^ set(
+#                                             self.true_running_crosstab.columns.astype(
+#                                                 float
+#                                             )
+#                                         )
+#                                     )
+#                                 ),
+#                             )
+#                         ),
+#                         0,
+#                     )
+#                 )
+#                 self.false_running_crosstab = pd.concat(
+#                     [self.false_running_crosstab, add_to_false_df]
+#                 )[
+#                     sorted(
+#                         list(
+#                             set(possible_vals)
+#                             & set(self.false_running_crosstab.columns)
+#                         )
+#                     )
+#                 ].assign(
+#                     **dict.fromkeys(
+#                         list(
+#                             map(
+#                                 str,
+#                                 sorted(
+#                                     list(
+#                                         set(possible_vals)
+#                                         ^ set(
+#                                             self.false_running_crosstab.columns.astype(
+#                                                 float
+#                                             )
+#                                         )
+#                                     )
+#                                 ),
+#                             )
+#                         ),
+#                         0,
+#                     )
+#                 )
+
+#                 self.true_running_crosstab.index.names = ["Prediction"]
+#                 self.false_running_crosstab.index.names = ["Prediction"]
+#                 self.true_running_crosstab.sort_index(inplace=True)
+#                 self.false_running_crosstab.sort_index(inplace=True)
+#                 self.true_running_crosstab.columns = (
+#                     self.true_running_crosstab.columns.astype(float)
+#                 )
+#                 self.false_running_crosstab.columns = (
+#                     self.false_running_crosstab.columns.astype(float)
+#                 )
+#                 self.true_running_crosstab = self.true_running_crosstab[
+#                     sorted(self.true_running_crosstab.columns)
+#                 ]
+#                 self.false_running_crosstab = self.false_running_crosstab[
+#                     sorted(self.false_running_crosstab.columns)
+#                 ]
+
+#             def generate_inputs(self):
+#                 """
+#         Generates and processes input data for each file in the input_data attribute.
+#         """
+#                 for j, f in enumerate(self.input_data):
+#                     (
+#                         seq_ann_vals,
+#                         max_value_index,
+#                         result,
+#                         tf,
+#                         known,
+#                     ) = self.read_and_transform_input_data(f)
+#                     diff_df = self.generate_diff_dataframe(
+#                         seq_ann_vals, max_value_index, result, tf, known
+#                     )
+#                     true_crosstab, false_crosstab = self.create_tf_crosstabs(diff_df)
+#                     known_count = (
+#                         diff_df["Known/Unknown"].value_counts().get("Known", 0)
+#                     )
+#                     self.handle_running_crosstabs(true_crosstab, false_crosstab, j)
+#                 return
+
+#             def generate_global_crosstab(self):
+#                 """
+#         Generates a global crosstab based on the running True and False crosstabs.
+
+#         Returns:
+#             DataFrame: Computed global crosstab.
+#         """
+#                 return self.true_running_crosstab / (
+#                     self.true_running_crosstab + self.false_running_crosstab
+#                 )
+
+#             def calculate_distributions(self):
+#                 """
+#         Calculates distributions for True and False predictions.
+
+#         Returns:
+#             tuple: Total distributions for True and False predictions.
+#         """
+#                 true_total_dist = self.true_running_crosstab.sum(
+#                     numeric_only=True, axis=0
+#                 )
+#                 false_total_dist = self.false_running_crosstab.sum(
+#                     numeric_only=True, axis=0
+#                 )
+
+#                 return true_total_dist, false_total_dist
+
+#             def compute_ratio_distribution(self, true_total_dist, false_total_dist):
+#                 """
+#         Computes the ratio distribution for True and False total distributions.
+
+#         Args:
+#             true_total_dist (Series): Total distribution for True predictions.
+#             false_total_dist (Series): Total distribution for False predictions.
+
+#         Returns:
+#             Series: Computed ratio distribution.
+#         """
+#                 ratio_total_dist = true_total_dist / (
+#                     true_total_dist + false_total_dist
+#                 )
+#                 return ratio_total_dist.interpolate(method="linear")
+
+#             def check_confidence_merge(self, new_ratio_dist):
+#                 """
+#         Merge with base confidence file if available.
+
+#         Args:
+#             new_ratio_dist (Series): Total distribution for T/(T+F) predictions.
+
+#         Returns:
+#             DataFrame: Updated ratio distribution.
+#         """
+#                 sum_series = (
+#                     self.true_running_crosstab.sum() + self.false_running_crosstab.sum()
+#                 )
+#                 current_weight = (
+#                     self.true_running_crosstab.values.sum()
+#                     + self.false_running_crosstab.values.sum()
+#                 )
+
+#                 updated_data = pd.DataFrame(new_ratio_dist, columns=["confidence"])
+#                 updated_data = updated_data.assign(
+#                     weight=[current_weight] * 101, sum=sum_series
+#                 )
+
+#                 if self.confidence_data and len(self.confidence_data) == 1:
+#                     prior_conf = pd.read_csv(
+#                         self.confidence_data[0], index_col="Difference"
+#                     )
+#                     print(f"Prior Confidence Data:\n{prior_conf}")
+
+#                     total_weight_prior = prior_conf["weight"]
+#                     k_factor = 1 + params.modifer * (
+#                         current_weight / (current_weight + total_weight_prior)
+#                     )
+#                     out_weight = total_weight_prior + current_weight
+#                     weighted_current = k_factor * current_weight
+#                     total_weight = total_weight_prior + weighted_current
+#                     prior_weighted_score = (
+#                         prior_conf["confidence"] * prior_conf["weight"]
+#                     )
+#                     current_weighted_score = (
+#                         updated_data["confidence"] * weighted_current
+#                     )
+
+#                     updated_confidence = (
+#                         prior_weighted_score + current_weighted_score
+#                     ) / total_weight
+
+#                     updated_data = pd.DataFrame({"confidence": updated_confidence})
+
+#                     updated_data = updated_data.assign(
+#                         weight=out_weight,
+#                         sum=sum_series + prior_conf["sum"],
+#                     )
+
+#                     print(f"Final Confidence Data\n{updated_data}")
+#                 else:
+#                     print(
+#                         "Base confidence file not found. Only one file is allowed in base/confidence."
+#                     )
+
+#                 return updated_data
+
+#             def save_results(
+#                 self,
+#                 ratio_total_dist,
+#                 true_total_dist,
+#                 false_total_dist,
+#                 output_path,
+#                 conf_path,
+#             ):
+#                 """
+#         Saves the computed results to specified paths.
+
+#         Args:
+#             ratio_total_dist (Series): Ratio distribution to be saved.
+#             output_path (str): Path to save the ratio distribution.
+#             conf_path (str): Path to save the confidence table.
+#         """
+
+#                 ratio_total_dist.to_csv(output_path)
+#                 table = pa.Table.from_pandas(self.generate_global_crosstab())
+#                 csv.write_csv(table, conf_path)
+
+#             def execute_all(self):
+#                 """
+#         Executes all functions in order.
+
+#         This method does the following:
+
+#         1. Processes each input file by reading, transforming, and storing intermediate variables.
+#         2. After processing all files, generates a global crosstab to summarize the data.
+#         3. Calculates distributions for True and False predictions. If base confidence files are provided,
+#         it merges the calculated distributions with the base ones.
+#         4. Computes a ratio distribution based on the True and False total distributions.
+#         5. Finally, writes the ratio distribution and global crosstab to csv.
+#         """
+#                 self.generate_inputs()
+#                 ratio_crosstab = self.generate_global_crosstab()
+#                 true_dist, false_dist = self.calculate_distributions()
+#                 ratio_dist = self.compute_ratio_distribution(true_dist, false_dist)
+#                 ratio_dist = self.check_confidence_merge(ratio_dist)
+#                 self.save_results(
+#                     ratio_dist,
+#                     true_dist,
+#                     false_dist,
+#                     self.output_glob,
+#                     self.output_conf,
+#                 )
+
+
+#         evaluator = Evaluator(
+#             input.eval_apply_data,
+#             output.eval_conf,
+#             output.eval_glob,
+#             input.base_confidence,
+#         )
+#         evaluator.execute_all()
+
+
+#         skm.utils.log_runtime(log[0], start_time)
