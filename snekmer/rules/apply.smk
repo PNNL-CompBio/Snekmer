@@ -139,7 +139,7 @@ rule apply:
         data="output/vector/{nb}.npz",
         annotation=expand("{an}", an=annot_files),
         compare_associations=expand("{comp}", comp=compare_file),
-        # confidence_associations=expand("{conf}", conf=confidence_file), # modifed
+        confidence_associations=expand("{conf}", conf=confidence_file),
         decoy_stats = expand("{decoy}", decoy=decoy_stats_file),
     output:
         seq_ann=expand(
@@ -161,7 +161,8 @@ rule apply:
                 self,
                 compare_associations,
                 data,
-                decoy_stats,  # modified 
+                confidence_associations,
+                decoy_stats,
                 annotation,
                 output_seq_ann,
                 output_kmer_summary,
@@ -178,7 +179,7 @@ rule apply:
         """
                 self.compare_associations = compare_associations
                 self.data = data
-                # self.confidence_associations = confidence_associations   # modifed 
+                self.confidence_associations = confidence_associations
                 self.annotation = annotation
                 self.decoy_stats = decoy_stats
                 self.output_seq_ann = output_seq_ann
@@ -303,79 +304,79 @@ rule apply:
                     index=self.kmer_counts.index,
                 )
 
-        #     def format_and_write_output(self):
-        #         """
-        # Format the results and write to specified output files.
-        # """
-        #         if config["learnapp"]["save_apply_associations"]:
-        #             kmer_count_totals_write = pa.Table.from_pandas(
-        #                 self.kmer_count_totals
-        #             )
-        #             csv.write_csv(kmer_count_totals_write, self.output_seq_ann)
+            def format_and_write_output(self):
+                """
+        Format the results and write to specified output files.
+        """
+                if config["learnapp"]["save_apply_associations"]:
+                    kmer_count_totals_write = pa.Table.from_pandas(
+                        self.kmer_count_totals
+                    )
+                    csv.write_csv(kmer_count_totals_write, self.output_seq_ann)
 
-        #         global_confidence_scores = pd.read_csv(
-        #             str(self.confidence_associations)  # old method
-        #         )
-        #         global_confidence_scores.index = global_confidence_scores[
-        #             global_confidence_scores.columns[0]
-        #         ]
-        #         global_confidence_scores = global_confidence_scores.iloc[:, 1:]
-        #         global_confidence_scores = global_confidence_scores[
-        #             global_confidence_scores.columns[0]
-        #         ].squeeze()
+                global_confidence_scores = pd.read_csv(
+                    str(self.confidence_associations)  # old method
+                )
+                global_confidence_scores.index = global_confidence_scores[
+                    global_confidence_scores.columns[0]
+                ]
+                global_confidence_scores = global_confidence_scores.iloc[:, 1:]
+                global_confidence_scores = global_confidence_scores[
+                    global_confidence_scores.columns[0]
+                ].squeeze()
 
-        #         score_rank = []
-        #         sorted_vals = np.argsort(-self.kmer_count_totals.values, axis=1)[:, :2]
-        #         for i, item in enumerate(sorted_vals):
-        #             score_rank.append(
-        #                 (
-        #                     self.kmer_count_totals[
-        #                         self.kmer_count_totals.columns[[item]]
-        #                     ][i : i + 1]
-        #                 ).values.tolist()[0]
-        #             )
+                score_rank = []
+                sorted_vals = np.argsort(-self.kmer_count_totals.values, axis=1)[:, :2]
+                for i, item in enumerate(sorted_vals):
+                    score_rank.append(
+                        (
+                            self.kmer_count_totals[
+                                self.kmer_count_totals.columns[[item]]
+                            ][i : i + 1]
+                        ).values.tolist()[0]
+                    )
 
-        #         delta = [score[0] - score[1] for score in score_rank]
-        #         top_score = [score[0] for score in score_rank]
+                delta = [score[0] - score[1] for score in score_rank]
+                top_score = [score[0] for score in score_rank]
 
-        #         vals = pd.DataFrame({"delta": delta})
-        #         predictions = pd.DataFrame(
-        #             self.kmer_count_totals.columns[sorted_vals][:, :1]
-        #         )
-        #         score = pd.DataFrame(top_score)
-        #         score.columns = ["Score"]
-        #         predictions.columns = ["Prediction"]
-        #         predictions = predictions.astype(str)
-        #         vals = vals.round(decimals=2)
-        #         vals["Confidence"] = vals["delta"].map(global_confidence_scores)
+                vals = pd.DataFrame({"delta": delta})
+                predictions = pd.DataFrame(
+                    self.kmer_count_totals.columns[sorted_vals][:, :1]
+                )
+                score = pd.DataFrame(top_score)
+                score.columns = ["Score"]
+                predictions.columns = ["Prediction"]
+                predictions = predictions.astype(str)
+                vals = vals.round(decimals=2)
+                vals["Confidence"] = vals["delta"].map(global_confidence_scores)
 
-        #         results = pd.concat([predictions, score, vals], axis=1)
-        #         results.index = self.kmer_count_totals.index
+                results = pd.concat([predictions, score, vals], axis=1)
+                results.index = self.kmer_count_totals.index
 
-        #         results.reset_index(inplace=True)
-        #         results_write = pa.Table.from_pandas(results)
-        #         csv.write_csv(results_write, self.output_kmer_summary)
+                results.reset_index(inplace=True)
+                results_write = pa.Table.from_pandas(results)
+                csv.write_csv(results_write, self.output_kmer_summary)
 
 
             #method_0
-            def select_top_no_threshold(self):
-                # Initialize an empty dictionary to store the top values
-                self.top_values_no_thresh = {}
-                
-                # Iterate over each row in the kmer_count_totals DataFrame
-                for row_id, row in self.kmer_count_totals.iterrows():
-                    # Filter values (no threshold applied)
-                    row_values = row
+                def select_top_no_threshold(self):
+                    # Initialize an empty dictionary to store the top values
+                    self.top_values_no_thresh = {}
                     
-                    # Get the maximum value and its corresponding family
-                    if not row_values.empty:
-                        top_value = row_values.max()  # Select the highest value
-                        top_family = row_values.idxmax()  # Get the corresponding family (column name)
-                        self.top_values_no_thresh[row_id] = (top_family, top_value)
-                
-                # Print a sample of top values for debugging
-                print(f"Top values: {dict(itertools.islice(self.top_values_no_thresh.items(), 10))}")
-                print(f"len(self.top_values_no_thresh): {len(self.top_values_no_thresh)}")
+                    # Iterate over each row in the kmer_count_totals DataFrame
+                    for row_id, row in self.kmer_count_totals.iterrows():
+                        # Filter values (no threshold applied)
+                        row_values = row
+                        
+                        # Get the maximum value and its corresponding family
+                        if not row_values.empty:
+                            top_value = row_values.max()  # Select the highest value
+                            top_family = row_values.idxmax()  # Get the corresponding family (column name)
+                            self.top_values_no_thresh[row_id] = (top_family, top_value)
+                    
+                    # Print a sample of top values for debugging
+                    print(f"Top values: {dict(itertools.islice(self.top_values_no_thresh.items(), 10))}")
+                    print(f"len(self.top_values_no_thresh): {len(self.top_values_no_thresh)}")
 
 
             #Method 1
@@ -390,16 +391,6 @@ rule apply:
                 self.top_values = {}
                 filtered_out_count = 0
                 top_filtered_count = 0
-
-                # for row_id, row in self.kmer_count_totals.iterrows():
-                #     # Filter values above threshold
-                #     row_values = row[row > row.index.map(threshold_dict.get)]
-                #     if not row_values.empty:
-                #         top_value = row_values.max()  # Select the highest value above the threshold
-                #         top_family = row_values.idxmax()  # Get the corresponding family (column name)
-                #         self.top_values[row_id] = (top_family, top_value)
-                #     else:
-                #         filtered_out_count += 1
 
                 for row_id, row in self.kmer_count_totals.iterrows():
                     # Get threshold values for the current row family
@@ -424,9 +415,6 @@ rule apply:
                 print(f"len(self.top_values): {len(self.top_values)}")
                 print(f"Full Rows filtered by threshold: {filtered_out_count}")
                 print(f"Top Values filtered by threshold: {top_filtered_count}")
-
-
-
 
             # Method 2: Select value with the greatest distance from its threshold
             def select_by_greatest_distance(self):
@@ -455,80 +443,8 @@ rule apply:
                 print(f"distance values: {dict(itertools.islice(self.distance_values.items(), 10))}")
                 print(f"Distance vals filtered by threshold: {filtered_out_count}")
 
-
-            # #Method 3: Relative Distance Above Threshold
-            # def select_by_greatest_relative_distance(self):
-            #     # Load decoy statistics
-            #     self.decoy_df = pd.read_csv(
-            #         str(self.decoy_stats),
-            #         header=0,
-            #         engine="c",
-            #     )
-            #     threshold_dict = dict(zip(self.decoy_df.Family, self.decoy_df[threshold_type]))
-                
-            #     self.relative_distance_values = {}
-            #     filtered_out_count = 0
-                
-            #     for row_id, row in self.kmer_count_totals.iterrows():
-            #         # Calculate relative distance from threshold
-            #         relative_distances = (row - row.index.map(threshold_dict.get)) / row.index.map(threshold_dict.get)
-            #         positive_relative_distances = relative_distances[relative_distances > 0]  # Only consider positive relative distances (i.e., values above their thresholds)
-                    
-            #         if not positive_relative_distances.empty:
-            #             greatest_relative_distance_family = positive_relative_distances.idxmax()  # Get the family with the greatest relative distance
-            #             greatest_relative_distance_value = row[greatest_relative_distance_family]  # Get the corresponding value
-            #             self.relative_distance_values[row_id] = (greatest_relative_distance_family, greatest_relative_distance_value)
-            #         else:
-            #             filtered_out_count += 1
-
-            #     # Print out top results for inspection
-            #     print(f"relative distance values: {dict(itertools.islice(self.relative_distance_values.items(), 10))}")
-            #     print(f"Relative distance vals filtered by threshold: {filtered_out_count}")
-
-            # #Method 4: 
-            # def select_by_combined_distance(self, weight_absolute=0.5, weight_relative=0.5):
-            #     """
-            #     Selects values based on a balance between absolute and relative distance from thresholds.
-            #     Parameters:
-            #         - weight_absolute: weight given to absolute distance
-            #         - weight_relative: weight given to relative distance
-            #     """
-            #     # Load decoy statistics
-            #     self.decoy_df = pd.read_csv(
-            #         str(self.decoy_stats),
-            #         header=0,
-            #         engine="c",
-            #     )
-            #     threshold_dict = dict(zip(self.decoy_df.Family, self.decoy_df[threshold_type]))
-
-            #     self.combined_distance_values = {}
-            #     filtered_out_count = 0
-
-            #     for row_id, row in self.kmer_count_totals.iterrows():
-            #         # Calculate absolute distance
-            #         absolute_distances = row - row.index.map(threshold_dict.get)
-            #         positive_absolute_distances = absolute_distances[absolute_distances > 0]  # Only consider positive distances
-                    
-            #         # Calculate relative distance
-            #         relative_distances = (row - row.index.map(threshold_dict.get)) / row.index.map(threshold_dict.get)
-            #         positive_relative_distances = relative_distances[relative_distances > 0]  # Only consider positive relative distances
-
-            #         # Combine absolute and relative distances with given weights
-            #         combined_distances = (positive_absolute_distances * weight_absolute) + (positive_relative_distances * weight_relative)
-
-            #         if not combined_distances.empty:
-            #             greatest_combined_distance_family = combined_distances.idxmax()  # Get the family with the greatest combined distance
-            #             greatest_combined_distance_value = row[greatest_combined_distance_family]  # Get the corresponding value
-            #             self.combined_distance_values[row_id] = (greatest_combined_distance_family, greatest_combined_distance_value)
-            #         else:
-            #             filtered_out_count += 1
-
-            #     # Print top results for inspection
-            #     print(f"Combined distance values: {dict(itertools.islice(self.combined_distance_values.items(), 10))}")
-            #     print(f"Values filtered by threshold: {filtered_out_count}")
-
-            #Method 5
-            def select_by_combined_top_and_distance(self, weight_top=0.5, weight_distance=0.5):
+            #Method 3:
+            def select_by_balanced_distance(self, weight_top=0.5, weight_distance=0.5):
                 """
                 Selects values based on a balance between the top value above the threshold and the value with the greatest distance from the threshold.
                 Parameters:
@@ -543,7 +459,7 @@ rule apply:
                 )
                 threshold_dict = dict(zip(self.decoy_df.Family, self.decoy_df[threshold_type]))
 
-                self.combined_top_distance_values = {}
+                self.balanced_distance_values = {}
                 filtered_out_count = 0
 
                 for row_id, row in self.kmer_count_totals.iterrows():
@@ -604,10 +520,10 @@ rule apply:
                         continue
 
                     # Store the selected family and value as a tuple
-                    self.combined_top_distance_values[row_id] = (combined_family, combined_value)
+                    self.balanced_distance_values[row_id] = (combined_family, combined_value)
 
                 # Print top results for inspection
-                print(f"Combined top and distance values: {dict(itertools.islice(self.combined_top_distance_values.items(), 10))}")
+                print(f"Combined top and distance values: {dict(itertools.islice(self.balanced_distance_values.items(), 10))}")
                 print(f"Values filtered by threshold: {filtered_out_count}")
 
 
@@ -709,12 +625,12 @@ rule apply:
                 # Loop over weight combinations for combined top and distance method
                 for i, (weight_top, weight_distance) in enumerate(weight_combinations):
                     # Use the combined top and distance method with the current weight combination
-                    self.select_by_combined_top_and_distance(weight_top=weight_top, weight_distance=weight_distance)
+                    self.select_by_balanced_distance(weight_top=weight_top, weight_distance=weight_distance)
 
                     # Evaluate the combined top and distance method
                     combined_top_distance_eval = _evaluate_method(
                         annotation_dict, 
-                        self.combined_top_distance_values, 
+                        self.balanced_distance_values, 
                         f"Combined Top and Distance ({weight_top},{weight_distance})"
                     )
                     
@@ -959,7 +875,7 @@ rule apply:
         apply = KmerCompare(
             input.compare_associations,
             input.data,
-            # input.confidence_associations,
+            input.confidence_associations,
             input.decoy_stats,
             input.annotation,
             output.seq_ann,
