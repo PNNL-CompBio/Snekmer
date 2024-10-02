@@ -71,7 +71,7 @@ unzipped = [
 ]
 annot_files = glob(join("annotations", "*.ann"))
 compare_file = glob(join("counts", "*.csv"))
-# confidence_file = glob(join("confidence", "*.csv"))
+confidence_file = glob(join("confidence", "*.csv"))
 decoy_stats_file = glob(join("stats", "*.csv"))
 # map extensions to basename (basename.ext.gz -> {basename: ext})
 UZ_MAP = {
@@ -98,12 +98,8 @@ out_dir = skm.io.define_output_dir(
     config["alphabet"], config["k"], nested=config["nested_output"]
 )
 
-threshold_type = (
-    config["learnapp"]["threshold"]
-)
-selection_type = (
-    config["learnapp"]["selection"]
-)
+threshold_type = config["learnapp"]["threshold"]
+selection_type = config["learnapp"]["selection"]
 
 
 wildcard_constraints:
@@ -140,7 +136,7 @@ rule apply:
         annotation=expand("{an}", an=annot_files),
         compare_associations=expand("{comp}", comp=compare_file),
         confidence_associations=expand("{conf}", conf=confidence_file),
-        decoy_stats = expand("{decoy}", decoy=decoy_stats_file),
+        decoy_stats=expand("{decoy}", decoy=decoy_stats_file),
     output:
         seq_ann=expand(
             join("output", "apply", "seq-annotation-scores-{nb}.csv"), nb=FAS
@@ -166,6 +162,8 @@ rule apply:
                 annotation,
                 output_seq_ann,
                 output_kmer_summary,
+                selection_type,
+                threshold_type,
             ):
                 """
         Initialize KmerCompare with necessary file paths.
@@ -173,9 +171,13 @@ rule apply:
         Args:
             compare_associations (str): Path to compare associations file.
             data (str): Path to data file.
-            decoy_stats (str): Path to decoy_stats associations file. # modifed
+            confidence_associations (str): Path to confidence associations file.
+            decoy_stats (str): Path to decoy stats file.
+            annotation (str): Path to annotation file.
             output_seq_ann (str): Path to output sequence annotation file.
             output_kmer_summary (str): Path to output kmer summary file.
+            selection_type (str): Method selection based on config.
+            threshold_type (str): Threshold type from config.
         """
                 self.compare_associations = compare_associations
                 self.data = data
@@ -184,6 +186,8 @@ rule apply:
                 self.decoy_stats = decoy_stats
                 self.output_seq_ann = output_seq_ann
                 self.output_kmer_summary = output_kmer_summary
+                self.selection_type = selection_type
+                self.threshold_type = threshold_type
                 self.df = None
 
             def load_data(self):
@@ -304,6 +308,129 @@ rule apply:
                     index=self.kmer_counts.index,
                 )
 
+            # Method 0: Hit Hit No Threshold
+            def select_top_no_threshold(self):
+                self.selected_values = {}
+                for row_id, row in self.kmer_count_totals.iterrows():
+                    if not row.empty:
+                        sorted_row = row.sort_values(ascending=False)
+                        top_value = sorted_row.iloc[0]
+                        top_family = sorted_row.index[0]
+                        if len(sorted_row) > 1:
+                            second_value = sorted_row.iloc[1]
+                            delta = top_value - second_value
+                        else:
+                            delta = top_value
+                        self.selected_values[row_id] = (top_family, top_value, delta)
+                    else:
+                        self.selected_values[row_id] = (None, None, None)
+
+            # Method 1: Top Hit Above Threshold
+            def select_top_above_threshold(self):
+                self.decoy_df = pd.read_csv(
+                    str(self.decoy_stats),
+                    header=0,
+                    engine="c",
+                )
+                threshold_dict = dict(zip(self.decoy_df.Family, self.decoy_df[self.threshold_type]))
+
+                self.selected_values = {}
+                filtered_out_count = 0
+
+                for row_id, row in self.kmer_count_totals.iterrows():
+                    threshold_values = row.index.map(threshold_dict.get)
+                    threshold_series = pd.Series(threshold_values, index=row.index)
+
+                    row_values = row[row > threshold_series]
+
+                    if not row_values.empty:
+                        sorted_row = row_values.sort_values(ascending=False)
+                        top_value = sorted_row.iloc[0]
+                        top_family = sorted_row.index[0]
+                        if len(sorted_row) > 1:
+                            second_value = sorted_row.iloc[1]
+                            delta = top_value - second_value
+                        else:
+                            delta = top_value - threshold_dict.get(top_family, 0)
+                        self.selected_values[row_id] = (top_family, top_value, delta)
+                    else:
+                        self.selected_values[row_id] = (None, None, None)
+                        filtered_out_count += 1
+
+            # Method 2: Greatest Distance
+            def select_by_greatest_distance(self):
+                self.decoy_df = pd.read_csv(
+                    str(self.decoy_stats),
+                    header=0,
+                    engine="c",
+                )
+                threshold_dict = dict(zip(self.decoy_df.Family, self.decoy_df[self.threshold_type]))
+
+                self.selected_values = {}
+                filtered_out_count = 0
+
+                for row_id, row in self.kmer_count_totals.iterrows():
+                    distances = row - row.index.map(threshold_dict.get)
+                    positive_distances = distances[distances > 0]
+
+                    if not positive_distances.empty:
+                        greatest_distance_family = positive_distances.idxmax()
+                        greatest_distance_value = row[greatest_distance_family]
+                        delta = positive_distances.max()
+                        self.selected_values[row_id] = (greatest_distance_family, greatest_distance_value, delta)
+                    else:
+                        self.selected_values[row_id] = (None, None, None)
+                        filtered_out_count += 1
+
+            # Method 3: Balanced Distance
+            def select_by_balanced_distance(self, weight_top=0.5, weight_distance=0.5):
+                self.decoy_df = pd.read_csv(
+                    str(self.decoy_stats),
+                    header=0,
+                    engine="c",
+                )
+                threshold_dict = dict(zip(self.decoy_df.Family, self.decoy_df[self.threshold_type]))
+
+                self.selected_values = {}
+                filtered_out_count = 0
+
+                for row_id, row in self.kmer_count_totals.iterrows():
+                    threshold_values = row.index.map(threshold_dict.get)
+                    threshold_series = pd.Series(threshold_values, index=row.index)
+
+                    row_values_above_threshold = row[row > threshold_series]
+                    distances = row - threshold_series
+                    positive_distances = distances[distances > 0]
+
+                    candidates = {}
+
+                    if not row_values_above_threshold.empty:
+                        top_value = row_values_above_threshold.max()
+                        top_family = row_values_above_threshold.idxmax()
+                        top_threshold = threshold_dict.get(top_family, 0)
+                        candidates[top_family] = {
+                            'value': top_value,
+                            'delta': top_value - top_threshold,
+                            'score': (top_value * weight_top) + ((top_value - top_threshold) * weight_distance)
+                        }
+
+                    if not positive_distances.empty:
+                        greatest_distance_family = positive_distances.idxmax()
+                        greatest_distance_value = row[greatest_distance_family]
+                        greatest_distance_threshold = threshold_dict.get(greatest_distance_family, 0)
+                        candidates[greatest_distance_family] = {
+                            'value': greatest_distance_value,
+                            'delta': positive_distances.max(),
+                            'score': (greatest_distance_value * weight_top) + (positive_distances.max() * weight_distance)
+                        }
+
+                    if candidates:
+                        best_candidate = max(candidates.items(), key=lambda x: x[1]['score'])
+                        self.selected_values[row_id] = (best_candidate[0], best_candidate[1]['value'], best_candidate[1]['delta'])
+                    else:
+                        self.selected_values[row_id] = (None, None, None)
+                        filtered_out_count += 1
+
             def format_and_write_output(self):
                 """
         Format the results and write to specified output files.
@@ -315,7 +442,7 @@ rule apply:
                     csv.write_csv(kmer_count_totals_write, self.output_seq_ann)
 
                 global_confidence_scores = pd.read_csv(
-                    str(self.confidence_associations)  # old method
+                    str(self.confidence_associations)
                 )
                 global_confidence_scores.index = global_confidence_scores[
                     global_confidence_scores.columns[0]
@@ -325,534 +452,29 @@ rule apply:
                     global_confidence_scores.columns[0]
                 ].squeeze()
 
-                score_rank = []
-                sorted_vals = np.argsort(-self.kmer_count_totals.values, axis=1)[:, :2]
-                for i, item in enumerate(sorted_vals):
-                    score_rank.append(
-                        (
-                            self.kmer_count_totals[
-                                self.kmer_count_totals.columns[[item]]
-                            ][i : i + 1]
-                        ).values.tolist()[0]
-                    )
+                results_list = []
+                for row_id in self.kmer_count_totals.index:
+                    if row_id in self.selected_values:
+                        prediction, score, delta = self.selected_values[row_id]
+                        if delta is None:
+                            delta = 0
+                    else:
+                        prediction, score, delta = None, None, 0
+                    results_list.append({
+                        'Sequence': row_id,
+                        'Prediction': prediction,
+                        'Score': score,
+                        'delta': round(delta,2)
+                    })
 
-                delta = [score[0] - score[1] for score in score_rank]
-                top_score = [score[0] for score in score_rank]
+                results = pd.DataFrame(results_list)
+                results.set_index('Sequence', inplace=True)
 
-                vals = pd.DataFrame({"delta": delta})
-                predictions = pd.DataFrame(
-                    self.kmer_count_totals.columns[sorted_vals][:, :1]
-                )
-                score = pd.DataFrame(top_score)
-                score.columns = ["Score"]
-                predictions.columns = ["Prediction"]
-                predictions = predictions.astype(str)
-                vals = vals.round(decimals=2)
-                vals["Confidence"] = vals["delta"].map(global_confidence_scores)
-
-                results = pd.concat([predictions, score, vals], axis=1)
-                results.index = self.kmer_count_totals.index
+                results['Confidence'] = results['delta'].map(global_confidence_scores)
 
                 results.reset_index(inplace=True)
                 results_write = pa.Table.from_pandas(results)
                 csv.write_csv(results_write, self.output_kmer_summary)
-
-
-            #method_0
-                def select_top_no_threshold(self):
-                    # Initialize an empty dictionary to store the top values
-                    self.top_values_no_thresh = {}
-                    
-                    # Iterate over each row in the kmer_count_totals DataFrame
-                    for row_id, row in self.kmer_count_totals.iterrows():
-                        # Filter values (no threshold applied)
-                        row_values = row
-                        
-                        # Get the maximum value and its corresponding family
-                        if not row_values.empty:
-                            top_value = row_values.max()  # Select the highest value
-                            top_family = row_values.idxmax()  # Get the corresponding family (column name)
-                            self.top_values_no_thresh[row_id] = (top_family, top_value)
-                    
-                    # Print a sample of top values for debugging
-                    print(f"Top values: {dict(itertools.islice(self.top_values_no_thresh.items(), 10))}")
-                    print(f"len(self.top_values_no_thresh): {len(self.top_values_no_thresh)}")
-
-
-            #Method 1
-            def select_top_above_threshold(self):
-                self.decoy_df = pd.read_csv(
-                    str(self.decoy_stats),
-                    header=0,
-                    engine="c",
-                )
-                threshold_dict = dict(zip(self.decoy_df.Family, self.decoy_df[threshold_type]))
-                
-                self.top_values = {}
-                filtered_out_count = 0
-                top_filtered_count = 0
-
-                for row_id, row in self.kmer_count_totals.iterrows():
-                    # Get threshold values for the current row family
-                    threshold_values = row.index.map(threshold_dict.get)
-                    
-                    # Retain values above the threshold; values below the threshold and NaNs are excluded
-                    row_values = row[row > threshold_values]
-
-                    if not row_values.empty:
-                        top_value = row_values.max()  # Select the highest value above the threshold
-                        top_family = row_values.idxmax()  # Get the corresponding family (column name)
-
-                        # Check if the top_value is the highest in the entire row
-                        if top_value != row.max():  # Compare with the maximum value of the original row
-                            # print(f"Family: {top_family}, Threshold: {threshold_values[row.index.get_loc(top_family)]}, Value: {top_value}")
-                            top_filtered_count +=1
-                        self.top_values[row_id] = (top_family, top_value)
-                    else:
-                        filtered_out_count += 1
-                
-                print(f"top values: {dict(itertools.islice(self.top_values.items(), 10))}")
-                print(f"len(self.top_values): {len(self.top_values)}")
-                print(f"Full Rows filtered by threshold: {filtered_out_count}")
-                print(f"Top Values filtered by threshold: {top_filtered_count}")
-
-            # Method 2: Select value with the greatest distance from its threshold
-            def select_by_greatest_distance(self):
-                self.decoy_df = pd.read_csv(
-                    str(self.decoy_stats),
-                    header=0,
-                    engine="c",
-                )
-                threshold_dict = dict(zip(self.decoy_df.Family, self.decoy_df[threshold_type]))
-                
-                self.distance_values = {}
-                filtered_out_count = 0
-                
-                for row_id, row in self.kmer_count_totals.iterrows():
-                    # Calculate distance from threshold
-                    distances = row - row.index.map(threshold_dict.get)
-                    positive_distances = distances[distances > 0]  # Only consider values above their thresholds
-                    
-                    if not positive_distances.empty:
-                        greatest_distance_family = positive_distances.idxmax()  # Get the family with the greatest distance
-                        greatest_distance_value = row[greatest_distance_family]  # Get the corresponding value
-                        self.distance_values[row_id] = (greatest_distance_family, greatest_distance_value)
-                    else:
-                        filtered_out_count += 1
-
-                print(f"distance values: {dict(itertools.islice(self.distance_values.items(), 10))}")
-                print(f"Distance vals filtered by threshold: {filtered_out_count}")
-
-            #Method 3:
-            def select_by_balanced_distance(self, weight_top=0.5, weight_distance=0.5):
-                """
-                Selects values based on a balance between the top value above the threshold and the value with the greatest distance from the threshold.
-                Parameters:
-                    - weight_top: weight given to selecting the top value above the threshold
-                    - weight_distance: weight given to selecting the value with the greatest distance from the threshold
-                """
-                # Load decoy statistics
-                self.decoy_df = pd.read_csv(
-                    str(self.decoy_stats),
-                    header=0,
-                    engine="c",
-                )
-                threshold_dict = dict(zip(self.decoy_df.Family, self.decoy_df[threshold_type]))
-
-                self.balanced_distance_values = {}
-                filtered_out_count = 0
-
-                for row_id, row in self.kmer_count_totals.iterrows():
-                    # Get the threshold values for the current row
-                    threshold_values = row.index.map(threshold_dict.get)
-                    # Convert threshold_values to a pandas Series with the same index as row
-                    threshold_values = pd.Series(threshold_values, index=row.index)
-
-                    # Step 1: Get top value above threshold
-                    row_values_above_threshold = row[row > threshold_values]
-                    if not row_values_above_threshold.empty:
-                        top_value = row_values_above_threshold.max()  # Select the highest value above the threshold
-                        top_family = row_values_above_threshold.idxmax()  # Get the family with the top value above threshold
-                    else:
-                        top_value, top_family = None, None
-
-                    # Step 2: Calculate absolute distance from threshold
-                    distances = row - threshold_values
-                    positive_distances = distances[distances > 0]  # Only consider positive distances
-                    if not positive_distances.empty:
-                        greatest_distance_family = positive_distances.idxmax()  # Get the family with the greatest distance
-                        greatest_distance_value = row[greatest_distance_family]  # Get the corresponding value
-                    else:
-                        greatest_distance_family, greatest_distance_value = None, None
-
-                    # Step 3: Combine both strategies using weighted scores
-                    if top_value is not None and greatest_distance_value is not None:
-                        # Calculate a combined score for each family based on both the cosine similarity (value) and distance from threshold
-                        top_threshold = threshold_dict.get(top_family)
-                        greatest_distance_threshold = threshold_dict.get(greatest_distance_family)
-
-                        # Ensure thresholds are not None
-                        if top_threshold is None or greatest_distance_threshold is None:
-                            filtered_out_count += 1
-                            continue
-
-                        top_score = (top_value * weight_top) + ((top_value - top_threshold) * weight_distance)
-                        greatest_distance_score = (greatest_distance_value * weight_top) + ((greatest_distance_value - greatest_distance_threshold) * weight_distance)
-
-                        # Select the family with the highest combined score
-                        if top_score >= greatest_distance_score:
-                            combined_family = top_family
-                            combined_value = top_value
-                        else:
-                            combined_family = greatest_distance_family
-                            combined_value = greatest_distance_value
-
-                    elif top_value is not None:
-                        # If only the top value is available, use the top family
-                        combined_family = top_family
-                        combined_value = top_value
-                    elif greatest_distance_value is not None:
-                        # If only the greatest distance value is available, use the greatest distance family
-                        combined_family = greatest_distance_family
-                        combined_value = greatest_distance_value
-                    else:
-                        filtered_out_count += 1
-                        continue
-
-                    # Store the selected family and value as a tuple
-                    self.balanced_distance_values[row_id] = (combined_family, combined_value)
-
-                # Print top results for inspection
-                print(f"Combined top and distance values: {dict(itertools.islice(self.balanced_distance_values.items(), 10))}")
-                print(f"Values filtered by threshold: {filtered_out_count}")
-
-
-            # Self Validation Script
-            def calculate_accuracy_greatest_distance(self):
-
-                def _extract_id(full_id):
-                    """Extracts the ID from a string, splitting on '|' and returning the second part if it exists."""
-                    return full_id.split('|')[1] if '|' in full_id else full_id
-
-                def _evaluate_method(annotation_dict, prediction_dict, method_name):
-                    total_known = 0
-                    total_unknown = 0
-                    total = 0
-                    true = 0
-                    false = 0
-                    
-                    for k, v in prediction_dict.items():
-                        fam_id = _extract_id(k)
-                        predicted_family = v[0] if isinstance(v, tuple) else v  # Adjusted to handle both formats
-                        if fam_id in annotation_dict:
-                            if annotation_dict[fam_id] == predicted_family:
-                                true += 1
-                            else:
-                                false += 1
-                            total_known += 1
-                        else:
-                            total_unknown += 1
-                        total += 1
-                    
-                    # Calculate accuracy
-                    accuracy = true / (true + false) if (true + false) > 0 else 0
-
-                    print(f"---- {method_name} Summary ----")
-                    print(f"True: {true}")
-                    print(f"False: {false}")
-                    print(f"Unknown: {total_unknown}")
-                    print(f"Total known: {total_known}")
-                    print(f"Total Items: {len(prediction_dict)}")
-                    print(f"Accuracy: {accuracy:.4f}")
-
-                    return {
-                        'method': method_name,
-                        'true': true,
-                        'false': false,
-                        'unknown': total_unknown,
-                        'known': total_known,
-                        'accuracy': accuracy
-                    }
-
-                # Load the annotations
-                annotation_df = pd.read_csv(
-                    str(self.annotation),
-                    header=0,
-                    engine="c",
-                    sep="\t"
-                )
-
-                annotation_dict = dict(zip(annotation_df['id'], annotation_df['TIGRFAMs']))
-
-                # Evaluate existing methods
-                distance_eval = _evaluate_method(annotation_dict, self.distance_values, "Greatest Distance")
-                top_eval = _evaluate_method(annotation_dict, self.top_values, "Top Values")
-                no_thresh_eval = _evaluate_method(annotation_dict, self.top_values_no_thresh, "Top Values No Threshold")
-                rel_dist_eval = _evaluate_method(annotation_dict, self.relative_distance_values, "Relative Distance")
-
-                # Create a summary table
-                summary_table = pd.DataFrame([distance_eval, top_eval, no_thresh_eval, rel_dist_eval])
-
-                weight_combinations = [
-                    (0.1, 0.9),
-                    (0.2, 0.8),
-                    (0.3, 0.7),
-                    (0.4, 0.6),
-                    (0.5, 0.5),
-                    (0.6, 0.4),
-                    (0.7, 0.3),
-                    (0.8, 0.2),
-                    (0.9, 0.1),
-                    (0.99, 0.01),
-                    (1.0, 0.0)  # Pure absolute distance for comparison
-                ]
-
-                # # Loop over weight combinations for combined distance method
-                # for i, (weight_absolute, weight_relative) in enumerate(weight_combinations):
-                #     # Use the combined distance method with the current weight combination
-                #     self.select_by_combined_distance(weight_absolute=weight_absolute, weight_relative=weight_relative)
-
-                #     # Evaluate the combined distance method
-                #     combined_eval = _evaluate_method(
-                #         annotation_dict, 
-                #         self.combined_distance_values, 
-                #         f"Combined Distance ({weight_absolute},{weight_relative})"
-                #     )
-                    
-                #     # Add the evaluation to the summary table
-                #     summary_table = summary_table.append(combined_eval, ignore_index=True)
-
-                # Loop over weight combinations for combined top and distance method
-                for i, (weight_top, weight_distance) in enumerate(weight_combinations):
-                    # Use the combined top and distance method with the current weight combination
-                    self.select_by_balanced_distance(weight_top=weight_top, weight_distance=weight_distance)
-
-                    # Evaluate the combined top and distance method
-                    combined_top_distance_eval = _evaluate_method(
-                        annotation_dict, 
-                        self.balanced_distance_values, 
-                        f"Combined Top and Distance ({weight_top},{weight_distance})"
-                    )
-                    
-                    # Add the evaluation to the summary table
-                    summary_table = summary_table.append(combined_top_distance_eval, ignore_index=True)
-
-                print("\n--- Summary Table ---")
-                print(summary_table)
-                                                            
-
-
-                # # Prepare sets for true and false predictions
-                # true_distance_set = set()
-                # false_distance_set = set()
-
-                # true_top_set = set()
-                # false_top_set = set()
-
-                # true_rel_dist_set = set()
-                # false_rel_dist_set = set()
-
-                # true_no_thresh_set = set()
-                # false_no_thresh_set = set()
-
-                # # Categorize predictions as true or false for each method
-                # for k, v in self.distance_values.items():
-                #     fam_id = _extract_id(k)
-                #     if fam_id in annotation_dict:
-                #         if annotation_dict[fam_id] == v[0]:
-                #             true_distance_set.add(k)
-                #         else:
-                #             false_distance_set.add(k)
-
-                # for k, v in self.top_values.items():
-                #     fam_id = _extract_id(k)
-                #     if fam_id in annotation_dict:
-                #         if annotation_dict[fam_id] == v[0]:
-                #             true_top_set.add(k)
-                #         else:
-                #             false_top_set.add(k)
-
-                # for k, v in self.relative_distance_values.items():
-                #     fam_id = _extract_id(k)
-                #     if fam_id in annotation_dict:
-                #         if annotation_dict[fam_id] == v[0]:
-                #             true_rel_dist_set.add(k)
-                #         else:
-                #             false_rel_dist_set.add(k)
-
-                # # Categorize predictions for top_values_no_thresh
-                # for k, v in self.top_values_no_thresh.items():
-                #     fam_id = _extract_id(k)
-                #     if fam_id in annotation_dict:
-                #         if annotation_dict[fam_id] == v[0]:
-                #             true_no_thresh_set.add(k)
-                #         else:
-                #             false_no_thresh_set.add(k)
-
-                # # Use the Agg backend for headless operation
-                # plt.switch_backend('Agg')
-
-                # Plot Venn diagrams for TRUE predictions overlap
-                # Helper function to print colors used in Venn diagram
-                # Helper function to print colors of main labels in the Venn diagram
-
-                # def print_label_colors(venn, labels):
-                #     """Print the colors of the main labels in the Venn diagram."""
-                #     for subset, label in zip(['100', '010', '001'], labels):
-                #         if venn.get_patch_by_id(subset) is not None:
-                #             color = venn.get_patch_by_id(subset).get_facecolor()[:3]  # Extract RGB color
-                #             print(f"{label} Color: {color}")
-
-                # # For TRUE predictions overlap
-                # plt.figure(figsize=(8, 8))
-                # venn_true_orig = venn3([true_distance_set, true_top_set, true_rel_dist_set], 
-                #                         ('Absolute Distance', 'Top Values', 'Relative Distance'))
-                # plt.title('Overlap of Correct Predictions: Absolute Distance vs Top Values vs Relative Distance')
-                # print("Colors for 'Absolute Distance', 'Top Values', 'Relative Distance'")
-                # print_label_colors(venn_true_orig, ['Absolute Distance', 'Top Values', 'Relative Distance'])
-                # plt.savefig('venn_diagram_true_original_three.png')
-                # plt.close()
-
-                # # Replace Relative Distance with Top Values No Thresh
-                # plt.figure(figsize=(8, 8))
-                # venn_true_no_thresh = venn3([true_distance_set, true_top_set, true_no_thresh_set], 
-                #                             ('Absolute Distance', 'Top Values', 'Top Values No Thresh'))
-                # plt.title('Overlap of Correct Predictions: Absolute Distance vs Top Values vs Top Values (No Threshold)')
-                # print("Colors for 'Absolute Distance', 'Top Values', 'Top Values (No Thresh)'")
-                # print_label_colors(venn_true_no_thresh, ['Absolute Distance', 'Top Values', 'Top Values (No Thresh)'])
-                # plt.savefig('venn_diagram_true_no_thresh.png')
-                # plt.close()
-
-                # # For FALSE predictions overlap
-                # plt.figure(figsize=(8, 8))
-                # venn_false_orig = venn3([false_distance_set, false_top_set, false_rel_dist_set], 
-                #                         ('Absolute Distance', 'Top Values', 'Relative Distance'))
-                # plt.title('Overlap of Incorrect Predictions: Absolute Distance vs Top Values vs Relative Distance')
-                # print("Colors for Incorrect Predictions: 'Absolute Distance', 'Top Values', 'Relative Distance'")
-                # print_label_colors(venn_false_orig, ['Absolute Distance', 'Top Values', 'Relative Distance'])
-                # plt.savefig('venn_diagram_false_original_three.png')
-                # plt.close()
-
-                # Replace Relative Distance with Top Values No Thresh
-                # plt.figure(figsize=(8, 8))
-                # venn_false_no_thresh = venn3([false_distance_set, false_top_set, false_no_thresh_set], 
-                #                             ('Absolute Distance', 'Top Values', 'Top Values No Thresh'))
-                # plt.title('Overlap of Incorrect Predictions: Absolute Distance vs Top Values vs Top Values (No Threshold)')
-                # print("Colors for Incorrect Predictions: 'Absolute Distance', 'Top Values', 'Top Values (No Thresh)'")
-                # print_label_colors(venn_false_no_thresh, ['Absolute Distance', 'Top Values', 'Top Values (No Thresh)'])
-                # plt.savefig('venn_diagram_false_no_thresh.png')
-                # plt.close()
-
-                # # Create a Venn Diagram showing overlap between the methods
-                # distance_set = set(self.distance_values.keys())
-                # top_set = set(self.top_values.keys())
-                # rel_dist_set = set(self.relative_distance_values.keys())
-                
-                # plt.switch_backend('Agg')
-
-                # venn = venn3([distance_set, top_set, rel_dist_set], ('Greatest Distance', 'Top Values', 'Relative Distance'))
-                # plt.title('Venn Diagram of Prediction Overlap')
-
-                # # Save the plot to a file
-                # plt.savefig('venn_diagram.png')
-
-                # total_known = 0
-                # total_unknown = 0
-                # total = 0
-                # true = 0
-                # total_false = 0
-
-                # for k,v in self.distance_values.items():
-                #     fam_id = _extract_id(k)
-                #     if fam_id in annotation_dict:
-                #         if annotation_dict[fam_id] == v[0]:
-                #             true +=1
-                #         else:
-                #             total_false += 1
-                #         total_known += 1
-                #     else:
-                #         total_unknown += 1
-                #     total +=1
-                
-                # print(f"Total Items: {len(self.distance_values)}")
-                # print(f"True for Distance: {true}")
-                # print(f"False for Distance: {total_false}")
-                # print(f"Unknown for Distance: {total_unknown}")
-                # print(f"Total for Distance: {total}")
-                # print(f"Total_known for top_values_no_thresh: {total_known}")
-
-                # total_known_2 = 0
-                # total_2 = 0
-                # true_2 = 0
-                # total_false_2 = 0
-                # total_unknown_2 = 0
-                # for k,v in self.top_values.items():
-                #     fam_id = _extract_id(k)
-                #     if fam_id in annotation_dict:
-                #         if annotation_dict[fam_id] == v[0]:
-                #             true_2 +=1
-                #         else:
-                #             total_false_2 += 1
-                #         total_known_2 += 1
-                #     else:
-                #         total_unknown_2 += 1
-                #     total_2 +=1
-
-                # print(f"Total Items: {len(self.top_values)}")
-                # print(f"True for Top: {true_2}")
-                # print(f"False for Top: {total_false_2}")
-                # print(f"Unknown for Top: {total_unknown_2}")
-                # print(f"Total for Top: {total_2}")
-                # print(f"Total_known for Top: {total_known_2}")
-
-                # total_known_3 = 0
-                # total_3  = 0
-                # true_3 = 0
-                # total_false_3 = 0
-                # total_unknown_3 = 0
-                # for k,v in self.top_values_no_thresh.items():
-                #     fam_id = _extract_id(k)
-                #     if fam_id in annotation_dict:
-                #         if annotation_dict[fam_id] == v[0]:
-                #             true_3 += 1
-                #         else:
-                #             total_false_3 += 1
-                #         total_known_3 += 1
-                #     else:
-                #         total_unknown_3 += 1
-                #     total_3 +=1
-
-                # print(f"Total Items: {len(self.top_values_no_thresh)}")
-                # print(f"True for top_values_no_thresh: {true_3}")
-                # print(f"False for top_values_no_thresh: {total_false_3}")
-                # print(f"Unknown for top_values_no_thresh: {total_unknown_3}")
-                # print(f"Total for top_values_no_thresh: {total_3}")
-                # print(f"Total_known for top_values_no_thresh: {total_known_3}")
-
-                # total_known_4 = 0
-                # total_4  = 0
-                # true_4 = 0
-                # total_false_4 = 0
-                # total_unknown_4 = 0
-                # for k,v in self.top_values_no_thresh.items():
-                #     fam_id = _extract_id(k)
-                #     if fam_id in annotation_dict:
-                #         if annotation_dict[fam_id] == v[0]:
-                #             true_4 += 1
-                #         else:
-                #             total_false_4 += 1
-                #         total_known_4 += 1
-                #     else:
-                #         total_unknown_4 += 1
-                #     total_4 +=1
-
-                # print(f"Total Items: {len(self.relative_distance_values)}")
-                # print(f"True for top_values_no_thresh: {true_4}")
-                # print(f"False for top_values_no_thresh: {total_false_4}")
-                # print(f"Unknown for top_values_no_thresh: {total_unknown_4}")
-                # print(f"Total for top_values_no_thresh: {total_4}")
-                # print(f"Total_known for top_values_no_thresh: {total_known_4}")
-
 
             def execute_all(self):
                 """
@@ -863,13 +485,18 @@ rule apply:
                 self.construct_kmer_counts_dataframe()
                 self.match_kmer_counts_format()
                 self.cosine_similarity()
-                # self.format_and_write_output()
-                self.select_top_no_threshold()
-                self.select_top_above_threshold()
-                self.select_by_greatest_distance()
-                self.select_by_greatest_relative_distance()
-                self.calculate_accuracy_greatest_distance()
-
+                # Select method based on selection_type
+                if self.selection_type == 'top_hit_no_threshold':
+                    self.select_top_no_threshold()
+                elif self.selection_type == 'top_hit_with_threshold':
+                    self.select_top_above_threshold()
+                elif self.selection_type == 'greatest_distance_from_threshold':
+                    self.select_by_greatest_distance()
+                elif self.selection_type == 'combined_score_with_threshold':
+                    self.select_by_balanced_distance()
+                else:
+                    raise ValueError(f"Invalid selection_type: {self.selection_type}")
+                self.format_and_write_output()
 
 
         apply = KmerCompare(
@@ -880,6 +507,8 @@ rule apply:
             input.annotation,
             output.seq_ann,
             output.kmer_summary,
+            selection_type,
+            threshold_type,
         )
         apply.execute_all()
         skm.utils.log_runtime(log[0], start_time)
