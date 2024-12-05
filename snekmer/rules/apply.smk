@@ -62,7 +62,7 @@ input_dir = (
     else config["input_dir"]
 )
 input_files = glob(join(input_dir, "*"))
-# base_file = glob(join(input_dir,"base" "*"))
+# base_file = glob(join(input_dir,"base" "*"))xf
 zipped = [fa for fa in input_files if fa.endswith(".gz")]
 unzipped = [
     fa.rstrip(".gz")
@@ -325,6 +325,54 @@ rule apply:
                     else:
                         self.selected_values[row_id] = (None, None, None)
 
+            # Method 0, Faster. Untested
+            def select_top_no_threshold_optimized_handling_duplicates(self):
+                """
+                Selects the top k-mer family (or families) for each row without considering any threshold.
+                Handles cases where multiple families share the top value.
+                Stores the selected family, its value, and the delta between top and second top values.
+                """
+                # Step 1: Find the top k-mer value for each row
+                top_value = self.kmer_count_totals.max(axis=1)
+                
+                # Step 2: Create a boolean DataFrame indicating where counts equal the top value
+                top_families_mask = self.kmer_count_totals.eq(top_value, axis=0)
+                
+                # Step 3: Find all families that have the top value for each row
+                # This results in a Series of lists
+                top_families = top_families_mask.apply(lambda row: row.index[row].tolist(), axis=1)
+                
+                # Step 4: Find the second top k-mer value for each row
+                # Replace all top values with -inf to exclude them and find the next maximum
+                second_top_value = self.kmer_count_totals.where(
+                    ~top_families_mask, 
+                    float('-inf')
+                ).max(axis=1)
+                
+                # Step 5: Calculate delta (difference between top and second top values)
+                delta = top_value - second_top_value
+                
+                # Step 6: Handle cases where there is only one k-mer family or all values are NaN
+                delta = delta.where(second_top_value != float('-inf'), top_value)
+                
+                # Step 7: Prepare the selected_values dictionary
+                selected_values = {}
+                
+                # Step 8: Iterate over the Series to populate selected_values
+                for row_id, families in top_families.items():
+                    if families:
+                        # Assign a list of tuples for multiple top families
+                        selected_values[row_id] = [
+                            (family, top_value[row_id], delta[row_id]) for family in families
+                        ]
+                    else:
+                        # Assign None for rows with no valid top family
+                        selected_values[row_id] = (None, None, None)
+                
+                # Step 9: Assign to self.selected_values
+                self.selected_values = selected_values
+
+
             # Method 1: Top Hit Above Threshold
             def select_top_above_threshold(self):
                 self.decoy_df = pd.read_csv(
@@ -358,6 +406,8 @@ rule apply:
                         filtered_out_count += 1
 
             # Method 2: Greatest Distance
+            # Note, Delta is calculated different from Top Two Hit method - and as such, is not comparable in the same way.
+            # Note, Score is also maybe calculated differently.  Actually I think it might still be cosine score.  CONFIRM THIS.
             def select_by_greatest_distance(self):
                 self.decoy_df = pd.read_csv(
                     str(self.decoy_stats),
@@ -383,6 +433,8 @@ rule apply:
                         filtered_out_count += 1
 
             # Method 3: Balanced Distance
+            # Note, Delta is calculated different from Top Two Hit method - and as such, is not comparable in the same way.
+            # Note, Score is also now calculated differently. It is not the Cosine Similarity Score, it is weighted
             def select_by_balanced_distance(self, weight_top=0.5, weight_distance=0.5):
                 self.decoy_df = pd.read_csv(
                     str(self.decoy_stats),
@@ -490,10 +542,19 @@ rule apply:
                     self.select_top_no_threshold()
                 elif self.selection_type == 'top_hit_with_threshold':
                     self.select_top_above_threshold()
-                elif self.selection_type == 'greatest_distance_from_threshold':
+                elif self.selection_type == 'greatest_distance_from_threshold_tt':
                     self.select_by_greatest_distance()
-                elif self.selection_type == 'combined_score_with_threshold':
-                    self.select_by_balanced_distance()
+                elif self.selection_type == 'greatest_distance_from_threshold_dt':
+                    self.select_by_greatest_distance()
+                elif self.selection_type == 'combined_method_with_dynamic_delta':
+                    weight_top = config["learnapp"].get("weight_top", 0.5)
+                    weight_distance = config["learnapp"].get("weight_distance", 0.5)
+                    self.select_by_balanced_distance(weight_top,weight_distance)
+                elif self.selection_type == 'combined_top_two_scores':
+                    weight_top = config["learnapp"].get("weight_top", 0.5)
+                    weight_distance = config["learnapp"].get("weight_distance", 0.5)
+                    self.select_by_balanced_distance(weight_top,weight_distance)
+
                 else:
                     raise ValueError(f"Invalid selection_type: {self.selection_type}")
                 self.format_and_write_output()
