@@ -52,7 +52,7 @@ ALPHABETS = {
     "hydrocharge": {
         "SFTNYQCWPH": "L",  # hydrophilic (L-ove)
         "VMLAIG": "H",  # hydrophobic (H-ate)
-        "KNDR": "C",  # charged (C-harged)
+        "KNDER": "C",  # charged (C-harged)
         "_keys": "LHC",
     },
     # 2-value hydrophobicity with structural-breakers as a third category
