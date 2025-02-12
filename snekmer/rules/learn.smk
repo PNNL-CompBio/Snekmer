@@ -78,6 +78,7 @@ unzipped = [
 annotFiles = glob(join("annotations", "*.ann"))
 baseCounts = glob(join("base", "counts", "*.csv"))
 baseConfidence = glob(join("base", "confidence", "*.csv"))
+baseFamilyCheckpoint = glob(join("base", "thresholds", "*.csv"))
 # reverseDecoy_files = glob(join("decoys", "*"))
 # reverseDecoy_basenames = [skm.utils.split_file_ext(f)[0] for f in reverseDecoy_files]
 # reverseDecoy_map = {
@@ -362,7 +363,7 @@ rule learn:
         """
                 self.totalSeqs = len(self.seqKmerdict)
                 for i, seqid in enumerate(list(self.seqKmerdict)):
-                    x = re.findall(r"\|(.*?)\|", seqid)[0]
+                    x = re.findall(r"^(?:[^|]*\|){3}([^|]+)", seqid)[0].strip()
                     if x not in self.seqs:
                         del self.seqKmerdict[seqid]
                     else:
@@ -895,6 +896,161 @@ rule eval_apply_reverse_seqs:
         analysis.executeAll(config)
         skm.utils.log_runtime(log[0], start_time)
 
+# Working, non-additive
+# rule reverseDecoy_evaluations:
+#     input:
+#         evalApplyData=expand(
+#             join(
+#                 "output",
+#                 "eval_apply_reversed"
+#                 if config["learnapp"]["fragmentation"] == False
+#                 else "eval_apply_frag",
+#                 "seq-annotation-scores-{nb}.csv.gz",
+#             ),
+#             nb=FAS,
+#         )
+#     output:
+#         familyStats="output/eval_conf/family_summary_stats.csv",
+#     run:
+
+#         def collectFamilyStatistics(filename, existingStats=None):
+#             """
+#             Reads a CSV file in chunks and updates statistics for each family (column).
+
+#             Args:
+#                 filename (str): Path to the CSV file.
+#                 existingStats (dict): Existing statistics to update.
+
+#             Returns:
+#                 dict: Updated statistics for each family.
+#             """
+#             chunk_size = 10000  # Adjust based on available memory
+#             reservoir_size = 100000  # Size of the reservoir for percentiles
+
+#             if existingStats is None:
+#                 existingStats = {}
+
+#             for chunk in pd.read_csv(filename, chunksize=chunk_size, engine="c"):
+#                 families = chunk.columns[:-1]  # Exclude the last column if it's the sequence name
+
+#                 # Process each family (column)
+#                 for family in families:
+#                     values = chunk[family].dropna().astype(float).values
+#                     if family not in existingStats:
+#                         existingStats[family] = {
+#                             'count': 0,
+#                             'sum': 0.0,
+#                             'sumSqr': 0.0,
+#                             'min': np.inf,
+#                             'max': -np.inf,
+#                             'values_for_percentiles': []
+#                         }
+
+#                     stats = existingStats[family]
+
+#                     n = len(values)
+#                     if n == 0:
+#                         continue
+
+#                     # Update count and sum statistics
+#                     stats['sum'] += values.sum()
+#                     stats['sumSqr'] += np.dot(values, values)
+#                     stats['min'] = min(stats['min'], values.min())
+#                     stats['max'] = max(stats['max'], values.max())  
+
+#                     # Reservoir sampling for percentiles
+#                     for value in values:
+#                         stats['count'] += 1  # Update total count
+#                         total_seen = stats['count']
+
+#                         if len(stats['values_for_percentiles']) < reservoir_size:
+#                             # Fill the reservoir until it reaches the desired size
+#                             stats['values_for_percentiles'].append(value)
+#                         else:
+#                             # Replace elements with decreasing probability
+#                             j = random.randint(0, total_seen - 1)
+#                             if j < reservoir_size:
+#                                 stats['values_for_percentiles'][j] = value
+
+#                 del chunk  # Clean up to free memory
+
+#             return existingStats
+
+#         def generateFamilyStatistics(combinedStats):
+#             """
+#             Generates statistics for each family using the combined statistics.
+
+#             Args:
+#                 combinedStats (dict): Combined statistics for each family.
+
+#             Returns:
+#                 pd.DataFrame: DataFrame containing the statistics for each family.
+#             """
+#             statsData = {
+#                 'Family': [],
+#                 'Mean': [],
+#                 'Std Dev': [],
+#                 'Min': [],
+#                 '10th Percentile': [],
+#                 '20th Percentile': [],
+#                 '25th Percentile': [],
+#                 '30th Percentile': [],
+#                 '40th Percentile': [],
+#                 'Median': [],
+#                 '60th Percentile': [],
+#                 '70th Percentile': [],
+#                 '75th Percentile': [],
+#                 '80th Percentile': [],
+#                 '90th Percentile': [],
+#                 'Max': [],
+#                 '1 Std Dev Above': [],
+#                 '1 Std Dev Below': [],
+#                 '2 Std Dev Above': [],
+#                 '2 Std Dev Below': [],
+#             }
+
+#             for family, stats in combinedStats.items():
+#                 n = stats['count']
+#                 sum_ = stats['sum']
+#                 sumSqr = stats['sumSqr']
+#                 mean = sum_ / n
+#                 variance = (sumSqr - (sum_ ** 2) / n) / (n - 1) if n > 1 else 0.0
+#                 std_dev = np.sqrt(variance)
+
+#                 # Use all stored values to compute percentiles
+#                 values = np.array(stats['values_for_percentiles'])
+#                 percentiles = np.percentile(values, [10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90])
+
+#                 statsData['Family'].append(family)
+#                 statsData['Mean'].append(round(mean, 3))
+#                 statsData['Std Dev'].append(round(std_dev, 3))
+#                 statsData['Min'].append(round(stats['min'], 3))
+#                 statsData['10th Percentile'].append(round(percentiles[0], 3))
+#                 statsData['20th Percentile'].append(round(percentiles[1], 3))
+#                 statsData['25th Percentile'].append(round(percentiles[2], 3))
+#                 statsData['30th Percentile'].append(round(percentiles[3], 3))
+#                 statsData['40th Percentile'].append(round(percentiles[4], 3))
+#                 statsData['Median'].append(round(percentiles[5], 3))
+#                 statsData['60th Percentile'].append(round(percentiles[6], 3))
+#                 statsData['70th Percentile'].append(round(percentiles[7], 3))
+#                 statsData['75th Percentile'].append(round(percentiles[8], 3))
+#                 statsData['80th Percentile'].append(round(percentiles[9], 3))
+#                 statsData['90th Percentile'].append(round(percentiles[10], 3))
+#                 statsData['Max'].append(round(stats['max'], 3))
+#                 statsData['1 Std Dev Above'].append(round(mean + std_dev, 3))
+#                 statsData['1 Std Dev Below'].append(round(mean - std_dev, 3))
+#                 statsData['2 Std Dev Above'].append(round(mean + 2 * std_dev, 3))
+#                 statsData['2 Std Dev Below'].append(round(mean - 2 * std_dev, 3))
+
+#             return pd.DataFrame(statsData)
+
+#         combinedStats = {}
+
+#         for filename in input.evalApplyData:
+#             combinedStats = collectFamilyStatistics(filename, existingStats=combinedStats)
+#         familyStatisticsDf = generateFamilyStatistics(combinedStats)
+#         familyStatisticsDf.to_csv(output.familyStats, index=False)
+
 
 rule reverseDecoy_evaluations:
     input:
@@ -907,21 +1063,67 @@ rule reverseDecoy_evaluations:
                 "seq-annotation-scores-{nb}.csv.gz",
             ),
             nb=FAS,
-        )
+        ),
+        baseFamilyCheckpoint=expand("{bc}", bc=baseFamilyCheckpoint),
     output:
         familyStats="output/eval_conf/family_summary_stats.csv",
+        checkpoint="output/eval_conf/family_stats_checkpoint.csv"
     run:
+
+        def load_existing_stats_from_csv(csv_file):
+            """
+            Load existing family statistics from a CSV checkpoint file.
+
+            The CSV must have the following columns:
+            Family, count, sum, sumSqr, min, max, values_for_percentiles (JSON-encoded list)
+            """
+            csv_file = str(csv_file)
+            print(f"csv_file:{csv_file}")
+            print(f"csv_file type:{type(csv_file)}")
+            if not csv_file :
+                return {}
+
+            df = pd.read_csv(csv_file)
+            combinedStats = {}
+            for _, row in df.iterrows():
+                family = row["Family"]
+                combinedStats[family] = {
+                    "count": int(row["count"]),
+                    "sum": float(row["sum"]),
+                    "sumSqr": float(row["sumSqr"]),
+                    "min": float(row["min"]),
+                    "max": float(row["max"]),
+                    "values_for_percentiles": json.loads(row["values_for_percentiles"])
+                }
+            return combinedStats
+
+        def save_stats_to_csv(combinedStats, csv_file):
+            """
+            Save the combined statistics to a CSV file.
+
+            Each row will contain:
+            Family, count, sum, sumSqr, min, max, values_for_percentiles (as a JSON string)
+            """
+            rows = []
+            for family, stats in combinedStats.items():
+                row = {
+                    "Family": family,
+                    "count": stats["count"],
+                    "sum": stats["sum"],
+                    "sumSqr": stats["sumSqr"],
+                    "min": stats["min"],
+                    "max": stats["max"],
+                    # Encode values_for_percentiles as JSON string
+                    "values_for_percentiles": json.dumps(stats["values_for_percentiles"])
+                }
+                rows.append(row)
+
+            df = pd.DataFrame(rows)
+            df.to_csv(csv_file, index=False)
 
         def collectFamilyStatistics(filename, existingStats=None):
             """
             Reads a CSV file in chunks and updates statistics for each family (column).
-
-            Args:
-                filename (str): Path to the CSV file.
-                existingStats (dict): Existing statistics to update.
-
-            Returns:
-                dict: Updated statistics for each family.
             """
             chunk_size = 10000  # Adjust based on available memory
             reservoir_size = 100000  # Size of the reservoir for percentiles
@@ -932,7 +1134,6 @@ rule reverseDecoy_evaluations:
             for chunk in pd.read_csv(filename, chunksize=chunk_size, engine="c"):
                 families = chunk.columns[:-1]  # Exclude the last column if it's the sequence name
 
-                # Process each family (column)
                 for family in families:
                     values = chunk[family].dropna().astype(float).values
                     if family not in existingStats:
@@ -971,19 +1172,13 @@ rule reverseDecoy_evaluations:
                             if j < reservoir_size:
                                 stats['values_for_percentiles'][j] = value
 
-                del chunk  # Clean up to free memory
+                del chunk  # Free memory
 
             return existingStats
 
         def generateFamilyStatistics(combinedStats):
             """
             Generates statistics for each family using the combined statistics.
-
-            Args:
-                combinedStats (dict): Combined statistics for each family.
-
-            Returns:
-                pd.DataFrame: DataFrame containing the statistics for each family.
             """
             statsData = {
                 'Family': [],
@@ -1012,13 +1207,16 @@ rule reverseDecoy_evaluations:
                 n = stats['count']
                 sum_ = stats['sum']
                 sumSqr = stats['sumSqr']
-                mean = sum_ / n
+                mean = sum_ / n if n > 0 else 0.0
                 variance = (sumSqr - (sum_ ** 2) / n) / (n - 1) if n > 1 else 0.0
                 std_dev = np.sqrt(variance)
 
-                # Use all stored values to compute percentiles
                 values = np.array(stats['values_for_percentiles'])
-                percentiles = np.percentile(values, [10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90])
+                if len(values) > 0:
+                    percentiles = np.percentile(values, [10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90])
+                else:
+                    # If no values, fill with NaN
+                    percentiles = [np.nan] * 11
 
                 statsData['Family'].append(family)
                 statsData['Mean'].append(round(mean, 3))
@@ -1043,12 +1241,23 @@ rule reverseDecoy_evaluations:
 
             return pd.DataFrame(statsData)
 
-        combinedStats = {}
+        # Load existing stats from checkpoint CSV if exists
+        if input.baseFamilyCheckpoint:
+            print(f"input.baseFamilyCheckpoint is: {input.baseFamilyCheckpoint}")
+            combinedStats = load_existing_stats_from_csv(input.baseFamilyCheckpoint)
+        else:
+            combinedStats = None
 
+        # Update combinedStats with new data
         for filename in input.evalApplyData:
             combinedStats = collectFamilyStatistics(filename, existingStats=combinedStats)
+
+        # Generate updated family statistics
         familyStatisticsDf = generateFamilyStatistics(combinedStats)
         familyStatisticsDf.to_csv(output.familyStats, index=False)
+
+        # Save updated combinedStats to checkpoint CSV
+        save_stats_to_csv(combinedStats, output.checkpoint)
 
 
 rule eval_apply_sequences:
@@ -1172,7 +1381,7 @@ rule eval_apply_sequences:
                 seqs = set(self.annotation[0]["id"].tolist())
                 count = 0
                 for seqid in list(self.seqKmerdict):
-                    x = re.findall(r"\|(.*?)\|", seqid)[0]
+                    x = seqid.split("|")[3]
                     if x not in seqs:
                         self.seqKmerdict[
                             (x + "_unknown_" + str(count))
@@ -2003,89 +2212,182 @@ rule evaluate:
                 return trueTotalDist, false_total_dist
 
 
+            # def computeRatioDistribution(self, trueTotalDist, false_total_dist):
+            #     """
+            #     Computes the ratio distribution for True and False total distributions.
+
+            #     Args:
+            #         trueTotalDist (Series): Total distribution for True predictions.
+            #         false_total_dist (Series): Total distribution for False predictions.
+
+            #     Returns:
+            #         Series: Computed ratio distribution.
+            #     """
+            #     # Calculate the ratio
+            #     ratioTotalDist = trueTotalDist / (trueTotalDist + false_total_dist)
+                
+            #     # Create a new index from 0 to 1 with .01 increments
+            #     newIndex = pd.Index([round(i, 2) for i in pd.np.arange(0, 1.01, 0.01)], name="ratioTotalDist")
+            #     ratioTotalDist = ratioTotalDist.reindex(newIndex)
+                
+            #     # Interpolate the missing values linearly and fill nan values with 0.
+            #     ratioTotalDist = ratioTotalDist.interpolate(method="linear")
+            #     ratioTotalDist.fillna(0, inplace=True)
+            #     return ratioTotalDist
+
+            # def checkConfidenceMerge(self, newRatioDist):
+            #     """
+            #     Merge with base confidence file if available.
+
+            #     Args:
+            #         newRatioDist (Series): Total distribution for T/(T+F) predictions.
+
+            #     Returns:
+            #         DataFrame: Updated ratio distribution.
+            #     """
+            #     sumSeries = (
+            #         self.trueRunningCrosstab.sum() + self.falseRunningCrosstab.sum()
+            #     )
+            #     currentWeight = (
+            #         self.trueRunningCrosstab.values.sum()
+            #         + self.falseRunningCrosstab.values.sum()
+            #     )
+
+            #     updatedData = pd.DataFrame(newRatioDist, columns=["confidence"])
+            #     updatedData = updatedData.assign(
+            #         weight=[currentWeight] * len(updatedData), sum=sumSeries
+            #     )
+            #     updatedData.index.name = 'Difference'
+
+            #     if self.confidenceData and len(self.confidenceData) == 1:
+            #         priorConf = pd.read_csv(
+            #             self.confidenceData[0], index_col="Difference"
+            #         )
+            #         print(f"Prior Confidence Data:\n{priorConf}")
+
+            #         totalWeightPrior = priorConf["weight"]
+            #         kFactor = 1 + self.modifier * (
+            #             currentWeight / (currentWeight + totalWeightPrior)
+            #         )
+            #         outWeight = totalWeightPrior + currentWeight
+            #         weightedCurrent = kFactor * currentWeight
+            #         totalWeight = totalWeightPrior + weightedCurrent
+            #         priorWeightedScore = (
+            #             priorConf["confidence"] * priorConf["weight"]
+            #         )
+            #         currentWeighted_score = (
+            #             updatedData["confidence"] * weightedCurrent
+            #         )
+
+            #         updatedConfidence = (
+            #             priorWeightedScore + currentWeighted_score
+            #         ) / totalWeight
+
+            #         updatedData = pd.DataFrame({"confidence": updatedConfidence})
+
+            #         updatedData = updatedData.assign(
+            #             weight=outWeight,
+            #             sum=sumSeries + priorConf["sum"],
+            #         )
+
+            #         print(f"Final Confidence Data\n{updatedData}")
+            #     else:
+            #         print(
+            #             "Base confidence file not found or multiple files present. Only one file is allowed in baseConfidence."
+            #         )
+            #     updatedData.fillna(0, inplace=True)
+            #     return updatedData
+
+
             def computeRatioDistribution(self, trueTotalDist, false_total_dist):
                 """
-                Computes the ratio distribution for True and False total distributions.
+                Computes ratioDist, total_sum, and inter_sum.
 
-                Args:
-                    trueTotalDist (Series): Total distribution for True predictions.
-                    false_total_dist (Series): Total distribution for False predictions.
-
-                Returns:
-                    Series: Computed ratio distribution.
+                - ratioDist: as before, a ratio of True/(True+False), interpolated over 0.0 to 1.0 increments.
+                - total_sum: the raw cumulative sum of (True + False) counts at each increment, without interpolation.
+                            For increments not originally present, we set 0 to indicate no data (no interpolation).
+                - inter_sum: an interpolated version of total_sum over the same increments, filling in gaps smoothly.
                 """
-                # Calculate the ratio
+                # Calculate ratio (as before)
                 ratioTotalDist = trueTotalDist / (trueTotalDist + false_total_dist)
-                
-                # Create a new index from 0 to 1 with .01 increments
-                newIndex = pd.Index([round(i, 2) for i in pd.np.arange(0, 1.01, 0.01)], name="ratioTotalDist")
+
+                # This is the raw total cumulative sum of samples at each increment
+                raw_total_sum = (trueTotalDist + false_total_dist).copy()
+
+                # Define a uniform index from 0.0 to 1.0 with 0.01 increments
+                newIndex = pd.Index([round(i, 2) for i in pd.np.arange(0, 1.01, 0.01)], name="Difference")
+
+                # Reindex ratioDist to the uniform index, then interpolate to fill missing increments
                 ratioTotalDist = ratioTotalDist.reindex(newIndex)
-                
-                # Interpolate the missing values linearly and fill nan values with 0.
                 ratioTotalDist = ratioTotalDist.interpolate(method="linear")
                 ratioTotalDist.fillna(0, inplace=True)
-                return ratioTotalDist
 
-            def checkConfidenceMerge(self, newRatioDist):
+                # For total_sum, reindex to the same uniform scale but do not interpolate:
+                # Instead of interpolating, we simply fill missing increments with 0.
+                # This preserves the "no interpolation" requirement for total_sum.
+                total_sum = raw_total_sum.reindex(newIndex, fill_value=0)
+
+                # Now create inter_sum by interpolating total_sum
+                inter_sum = total_sum.interpolate(method="linear")
+                inter_sum.fillna(0, inplace=True)
+
+                return ratioTotalDist, total_sum, inter_sum
+
+
+
+            def checkConfidenceMerge(self, newRatioDist, total_sum, inter_sum):
                 """
-                Merge with base confidence file if available.
-
-                Args:
-                    newRatioDist (Series): Total distribution for T/(T+F) predictions.
-
-                Returns:
-                    DataFrame: Updated ratio distribution.
+                Merge the computed distributions with a base confidence file if available.
+                Now we have total_sum and inter_sum to include in the output DataFrame.
                 """
-                sumSeries = (
-                    self.trueRunningCrosstab.sum() + self.falseRunningCrosstab.sum()
-                )
-                currentWeight = (
-                    self.trueRunningCrosstab.values.sum()
-                    + self.falseRunningCrosstab.values.sum()
-                )
+                # currentWeight is total number of sequences processed
+                currentWeight = self.trueRunningCrosstab.values.sum() + self.falseRunningCrosstab.values.sum()
 
+                # Prepare the updatedData DataFrame with the new columns
                 updatedData = pd.DataFrame(newRatioDist, columns=["confidence"])
-                updatedData = updatedData.assign(
-                    weight=[currentWeight] * len(updatedData), sum=sumSeries
-                )
-                updatedData.index.name = 'Difference'
+                updatedData["weight"] = currentWeight
+                updatedData["total_sum"] = total_sum  # no interpolation, raw cumulative counts
+                updatedData["inter_sum"] = inter_sum  # interpolated cumulative counts
+                # sum (if needed) can be derived from total_sum or inter_sum as well.
 
                 if self.confidenceData and len(self.confidenceData) == 1:
-                    priorConf = pd.read_csv(
-                        self.confidenceData[0], index_col="Difference"
-                    )
+                    priorConf = pd.read_csv(self.confidenceData[0], index_col="Difference")
                     print(f"Prior Confidence Data:\n{priorConf}")
 
                     totalWeightPrior = priorConf["weight"]
-                    kFactor = 1 + self.modifier * (
-                        currentWeight / (currentWeight + totalWeightPrior)
-                    )
+                    kFactor = 1 + self.modifier * (currentWeight / (currentWeight + totalWeightPrior))
                     outWeight = totalWeightPrior + currentWeight
                     weightedCurrent = kFactor * currentWeight
                     totalWeight = totalWeightPrior + weightedCurrent
-                    priorWeightedScore = (
-                        priorConf["confidence"] * priorConf["weight"]
-                    )
-                    currentWeighted_score = (
-                        updatedData["confidence"] * weightedCurrent
-                    )
+                    priorWeightedScore = priorConf["confidence"] * priorConf["weight"]
+                    currentWeighted_score = updatedData["confidence"] * weightedCurrent
 
-                    updatedConfidence = (
-                        priorWeightedScore + currentWeighted_score
-                    ) / totalWeight
+                    updatedConfidence = (priorWeightedScore + currentWeighted_score) / totalWeight
+                    updatedData["confidence"] = updatedConfidence
 
-                    updatedData = pd.DataFrame({"confidence": updatedConfidence})
+                    # Merge total_sum and inter_sum with prior if they exist:
+                    if "total_sum" in priorConf.columns:
+                        updatedData["total_sum"] += priorConf["total_sum"]
+                    if "inter_sum" in priorConf.columns:
+                        updatedData["inter_sum"] += priorConf["inter_sum"]
 
-                    updatedData = updatedData.assign(
-                        weight=outWeight,
-                        sum=sumSeries + priorConf["sum"],
-                    )
+                    # Update weights and sums if "cur_sum" column is used
+                    if "cur_sum" in priorConf.columns:
+                        # sum might represent cumulative distributions at increments.
+                        # We can merge them similarly by adding or using another merging strategy:
+                        updatedData["cur_sum"] = priorConf["cur_sum"] + (self.trueRunningCrosstab.sum() + self.falseRunningCrosstab.sum())
+                    else:
+                        # If no prior sum, just create it now
+                        updatedData["cur_sum"] = self.trueRunningCrosstab.sum() + self.falseRunningCrosstab.sum()
 
+                    updatedData["weight"] = outWeight
                     print(f"Final Confidence Data\n{updatedData}")
                 else:
-                    print(
-                        "Base confidence file not found or multiple files present. Only one file is allowed in baseConfidence."
-                    )
+                    print("Base confidence file not found or multiple files present. Only one file is allowed in baseConfidence.")
+                    # If no merging, assign sum as needed
+                    updatedData["cur_sum"] = self.trueRunningCrosstab.sum() + self.falseRunningCrosstab.sum()
+                
+                # updatedData = updatedData[["Difference","confidence", "weight","inter_sum", "total_sum", "cur_sum"]]
                 updatedData.fillna(0, inplace=True)
                 return updatedData
 
@@ -2121,9 +2423,8 @@ rule evaluate:
                 self.generateInputs()
                 ratioCrosstab = self.generateGlobalCrosstab()
                 trueDist, falseDist = self.calculateDistributions()
-                ratioDist = self.computeRatioDistribution(trueDist, falseDist)
-                ratioDist = self.checkConfidenceMerge(ratioDist)
-                globalConfidence = self.checkConfidenceMerge(ratioDist)
+                ratioDist, total_sum, inter_sum = self.computeRatioDistribution(trueDist, falseDist)
+                globalConfidence = self.checkConfidenceMerge(ratioDist, total_sum, inter_sum)
                 # globalConfidence = self.smooth_confidence(globalConfidence)
                 self.saveResults(
                     globalConfidence,
