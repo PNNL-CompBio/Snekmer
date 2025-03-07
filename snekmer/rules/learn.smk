@@ -56,7 +56,7 @@ from scipy.ndimage import gaussian_filter1d
 import sklearn.metrics.pairwise
 import itertools
 import os
-
+import shutil
 
 
 # Note:
@@ -79,12 +79,7 @@ annotFiles = glob(join("annotations", "*.ann"))
 baseCounts = glob(join("base", "counts", "*.csv"))
 baseConfidence = glob(join("base", "confidence", "*.csv"))
 baseFamilyCheckpoint = glob(join("base", "thresholds", "*.csv"))
-# reverseDecoy_files = glob(join("decoys", "*"))
-# reverseDecoy_basenames = [skm.utils.split_file_ext(f)[0] for f in reverseDecoy_files]
-# reverseDecoy_map = {
-#     skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in reverseDecoy_files
-# }
-# map extensions to basename (basename.ext.gz -> {basename: ext})
+
 uzMap = {
     skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in zipped
 }
@@ -111,47 +106,38 @@ output_prefixes = (
     ["vector"] if not config["learnapp"]["fragmentation"] else ["vector", "vector_frag"]
 )
 
+if config["learnapp"]["selection"] != "top_hit" and config["learnapp"]["threshold"] == "None":
+    raise Exception("The only selection method that allows for None is `top_hit`. Other methods inherently use a threshold")
 
 # define output files to be created by snekmer
 rule all:
     input:
-        expand(join("output", "vector", "{nb}.npz"), nb=FAS),
-        # expand(join("output", "vector_decoy", "{dc}.npz"), dc=reverseDecoy_basenames),
-        expand(join("output", "learn", "kmer-counts-{nb}.csv"), nb=FAS),
-        join("output", "learn", "kmer-counts-total.csv"),
-        expand(join("output", "fragmented", "{nb}.fasta"), nb=FAS)
-        if config["learnapp"]["fragmentation"]
-        else [],
-        expand(join("output", "vector_frag", "nb}.npz"), nb=FAS)
-        if config["learnapp"]["fragmentation"]
-        else [],
+        # Vector files
+        expand(join(outDir, "vector", "{nb}.npz"), nb=FAS),
+        # Kmer counts files for learning
+        expand(join(outDir, "learn", "kmer-counts-{nb}.csv"), nb=FAS),
+        join(outDir, "learn", "kmer-counts-total.csv"),
+        # Fragmentation outputs (only if enabled)
+        expand(join(outDir, "fragmented", "{nb}.fasta"), nb=FAS)
+            if config["learnapp"]["fragmentation"] else [],
+        expand(join(outDir, "vector_frag", "{nb}.npz"), nb=FAS)
+            if config["learnapp"]["fragmentation"] else [],
+        # Evaluation application sequences (or fragments if fragmentation is enabled)
         expand(
             join(
-                "output",
-                "eval_apply_sequences"
-                if not config["learnapp"]["fragmentation"]
-                else "eval_apply_frag",
-                "seq-annotation-scores-{nb}.csv.gz",
+                outDir,
+                "eval_apply_sequences" if not config["learnapp"]["fragmentation"] else "eval_apply_frag",
+                "seq-annotation-scores-{nb}.csv.gz"
             ),
             nb=FAS,
         ),
-        # expand(
-        #     join(
-        #         "output",
-        #         "eval_apply_reversed"
-        #         if not config["learnapp"]["fragmentation"]
-        #         else "eval_apply_frag",
-        #         "seq-annotation-scores-{nb}.csv",
-        #     ),
-        #     nb=FAS,
-        # ),
-        # "output/evalConf/confidence-matrix.csv",
-        # "output/evalConf/global-confidence-scores.csv",
-        # "output/evalConf/max_scores_distribution.png",
-        # "output/evalConf/max_scores_summary_stats.csv",
-        # "output/evalConf/median_values_distribution.png",
-        "output/eval_conf/family_summary_stats.csv",
-        "output/eval_conf/global-confidence-scores.csv",
+        # Evaluation configuration outputs
+        join("output", "eval_conf", "family_summary_stats.csv"),
+        join("output", "eval_conf", "global-confidence-scores.csv"),
+        # Duplicated some outputs for each of use on the user side.
+        join(outDir, "apply_inputs", "counts", "kmer-counts-total.csv"),
+        join(outDir, "apply_inputs", "stats", "family_summary_stats.csv"),
+        join(outDir, "apply_inputs", "confidence", "global-confidence-scores.csv")
 
 
 # if any files are gzip zipped, unzip them
@@ -169,7 +155,7 @@ if config["learnapp"]["fragmentation"]:
                 inputDir, f"{wildcards.nb}.{faMap[wildcards.nb]}"
             ),
         output:
-            fasta_out=join("output", "fragmented", "{nb}.fasta"),
+            fasta_out=join(outDir, "fragmented", "{nb}.fasta"),
         params:
             version=config["learnapp"]["version"],
             frag_length=config["learnapp"]["frag_length"],
@@ -242,44 +228,26 @@ if config["learnapp"]["fragmentation"]:
                             the_file.write(frag + "\n")
 
 
-# ruleorder:
-#     vectorize > vectorize_decoy
-
 use rule vectorize from kmerize with:
     input:
         fasta=lambda wildcards: join(
-            "output" if wildcards.prefix == "vector_frag" else inputDir,
+            outDir if wildcards.prefix == "vector_frag" else inputDir,
             "fragmented" if wildcards.prefix == "vector_frag" else "",
             f"{wildcards.nb}.{faMap[wildcards.nb]}",
         ),
     output:
-        data=join("output", "{prefix}", "{nb}.npz"),
-        kmerobj=join("output", "kmerize_{prefix}", "{nb}.kmers"),
+        data=join(outDir, "{prefix}", "{nb}.npz"),
+        kmerobj=join(outDir, "kmerize_{prefix}", "{nb}.kmers"),
     log:
-        join("output", "{prefix}_kmerize", "log", "{nb}.log"),
-
-# use rule vectorize from kmerize as vectorize_decoy with:
-#     input:
-#         # fasta=lambda wildcards: expand(join("decoys", "{dc}.fa"), dc=reverseDecoy_basenames)[0],
-#         fasta=lambda wildcards: join(
-#             "decoys",
-#             f"{wildcards.dc}.{reverseDecoy_map[wildcards.dc]}",
-#         ),
-#     output:
-#         data=join("output", "vector_decoy", "{dc}.npz"),  # Output path updated
-#         kmerobj=join("output", "kmerize_decoy", "{dc}.kmers"),  # Output path updated
-#     log:
-#         join("output", "vector_decoy", "log", "{dc}.log"),  # Log path updated
-
+        join(outDir, "{prefix}_kmerize", "log", "{nb}.log"),
 
 # WORKFLOW to learn kmer associations
-# collect all seq files and generate mega-cluster
 rule learn:
     input:
-        data="output/vector/{nb}.npz",
+        data = join(outDir, "vector", "{nb}.npz"),
         annotation=expand("{an}", an=annotFiles),
     output:
-        counts="output/learn/kmer-counts-{nb}.csv",
+        counts = join(outDir, "learn", "kmer-counts-{nb}.csv"),
     log:
         join(outDir, "learn", "log", "learn-{nb}.log"),
     run:
@@ -329,7 +297,9 @@ rule learn:
                     self.annotation.append(pd.read_table(f))
                 annotations = pd.concat(self.annotation)
                 seqs = annotations["id"].tolist()
-                anns = annotations["Family"].tolist()
+                # anns = annotations["Family"].tolist()
+                anns = [str(fam) for fam in annotations["Family"].tolist()]
+
                 for i, seqid in enumerate(seqs):
                     self.seqAnnot[seqid] = anns[i]
                 self.seqs = set(seqs)
@@ -363,7 +333,7 @@ rule learn:
         """
                 self.totalSeqs = len(self.seqKmerdict)
                 for i, seqid in enumerate(list(self.seqKmerdict)):
-                    x = re.findall(r"^(?:[^|]*\|){3}([^|]+)", seqid)[0].strip()
+                    x = re.findall(r"\|(.*?)\|", seqid)[0]      # A Note, it could be useful to allow a user to define their own regex.
                     if x not in self.seqs:
                         del self.seqKmerdict[seqid]
                     else:
@@ -395,7 +365,7 @@ rule learn:
                 newIndex = ["Totals"] + list(self.annotationCounts.keys())
                 kmerCounts.index = newIndex
                 kmerCounts.replace(0, "", inplace=True)
-                out_name = "output/learn/kmer-counts-" + str(inputData)[14:-4] + ".csv"
+                out_name = join(outDir, "learn", "kmer-counts-" + str(inputData)[14:-4] + ".csv")
                 kmerCounts.index.name = "__index_level_0__"
                 kmerCounts.to_csv(out_name, index=True)
                 skm.utils.log_runtime(log[0], start_time)
@@ -465,17 +435,16 @@ rule learn:
                 self.filterAndConstruct()
                 self.formatAndWriteOutput(inputData)
 
-
         library = Library()
         library.executeAll(input.annotation, input.data)
 
 
 rule merge:
     input:
-        counts=expand(join("output", "learn", "kmer-counts-{nb}.csv"), nb=FAS),
+        counts=expand(join(outDir, "learn", "kmer-counts-{nb}.csv"), nb=FAS),
         baseCounts=expand("{bf}", bf=baseCounts),
     output:
-        totals=join("output", "learn", "kmer-counts-total.csv"),
+        totals=join(outDir, "learn", "kmer-counts-total.csv"),
     log:
         join(outDir, "learn", "log", "merge.log"),
     run:
@@ -644,18 +613,18 @@ rule merge:
 rule eval_apply_reverse_seqs:
     input:
         data=join(
-            "output",
+            outDir,
             "vector"
             if config["learnapp"]["fragmentation"] == False
             else "vector_frag",
             "{nb}.npz",
         ),
         annotation=expand("{an}", an=annotFiles),
-        compareAssociations=join("output", "learn", "kmer-counts-total.csv"),
+        compareAssociations=join(outDir, "learn", "kmer-counts-total.csv"),
 
     output:
         apply=join(
-            "output",
+            outDir,
             "eval_apply_reversed"
             if config["learnapp"]["fragmentation"] == False
             else "eval_apply_frag",
@@ -850,7 +819,7 @@ rule eval_apply_reverse_seqs:
                     columns=self.kmerCountTotals.index,
                     index=kmerCounts.index,
                 )
-                finalMatrixWithScores = finalMatrixWithScores.round(3)  #Adding rounding for storage saving.
+                finalMatrixWithScores = finalMatrixWithScores.round(3)  #Adding rounding for storage space.
                 return finalMatrixWithScores
 
             def writeOutput(self, finalMatrixWithScores):
@@ -885,178 +854,19 @@ rule eval_apply_reverse_seqs:
                 kmerCounts = self.constructKmerCountsDataframe()
                 kmerCounts = self.matchkmerCountsFormat(kmerCounts)
                 finalMatrixWithScores = self.calculateCosineSimilarity(kmerCounts)
-                # finalMatrixWithScores = self.filterTopTwoValues(finalMatrixWithScores)  # We can't do this because we don't know the thresholds at this point yet.
                 self.writeOutput(finalMatrixWithScores)
-                # Add next things here
                 
-
         analysis = KmerCompare(
             input.compareAssociations, input.annotation, input.data, output.apply
         )
         analysis.executeAll(config)
         skm.utils.log_runtime(log[0], start_time)
 
-# Working, non-additive
-# rule reverseDecoy_evaluations:
-#     input:
-#         evalApplyData=expand(
-#             join(
-#                 "output",
-#                 "eval_apply_reversed"
-#                 if config["learnapp"]["fragmentation"] == False
-#                 else "eval_apply_frag",
-#                 "seq-annotation-scores-{nb}.csv.gz",
-#             ),
-#             nb=FAS,
-#         )
-#     output:
-#         familyStats="output/eval_conf/family_summary_stats.csv",
-#     run:
-
-#         def collectFamilyStatistics(filename, existingStats=None):
-#             """
-#             Reads a CSV file in chunks and updates statistics for each family (column).
-
-#             Args:
-#                 filename (str): Path to the CSV file.
-#                 existingStats (dict): Existing statistics to update.
-
-#             Returns:
-#                 dict: Updated statistics for each family.
-#             """
-#             chunk_size = 10000  # Adjust based on available memory
-#             reservoir_size = 100000  # Size of the reservoir for percentiles
-
-#             if existingStats is None:
-#                 existingStats = {}
-
-#             for chunk in pd.read_csv(filename, chunksize=chunk_size, engine="c"):
-#                 families = chunk.columns[:-1]  # Exclude the last column if it's the sequence name
-
-#                 # Process each family (column)
-#                 for family in families:
-#                     values = chunk[family].dropna().astype(float).values
-#                     if family not in existingStats:
-#                         existingStats[family] = {
-#                             'count': 0,
-#                             'sum': 0.0,
-#                             'sumSqr': 0.0,
-#                             'min': np.inf,
-#                             'max': -np.inf,
-#                             'values_for_percentiles': []
-#                         }
-
-#                     stats = existingStats[family]
-
-#                     n = len(values)
-#                     if n == 0:
-#                         continue
-
-#                     # Update count and sum statistics
-#                     stats['sum'] += values.sum()
-#                     stats['sumSqr'] += np.dot(values, values)
-#                     stats['min'] = min(stats['min'], values.min())
-#                     stats['max'] = max(stats['max'], values.max())  
-
-#                     # Reservoir sampling for percentiles
-#                     for value in values:
-#                         stats['count'] += 1  # Update total count
-#                         total_seen = stats['count']
-
-#                         if len(stats['values_for_percentiles']) < reservoir_size:
-#                             # Fill the reservoir until it reaches the desired size
-#                             stats['values_for_percentiles'].append(value)
-#                         else:
-#                             # Replace elements with decreasing probability
-#                             j = random.randint(0, total_seen - 1)
-#                             if j < reservoir_size:
-#                                 stats['values_for_percentiles'][j] = value
-
-#                 del chunk  # Clean up to free memory
-
-#             return existingStats
-
-#         def generateFamilyStatistics(combinedStats):
-#             """
-#             Generates statistics for each family using the combined statistics.
-
-#             Args:
-#                 combinedStats (dict): Combined statistics for each family.
-
-#             Returns:
-#                 pd.DataFrame: DataFrame containing the statistics for each family.
-#             """
-#             statsData = {
-#                 'Family': [],
-#                 'Mean': [],
-#                 'Std Dev': [],
-#                 'Min': [],
-#                 '10th Percentile': [],
-#                 '20th Percentile': [],
-#                 '25th Percentile': [],
-#                 '30th Percentile': [],
-#                 '40th Percentile': [],
-#                 'Median': [],
-#                 '60th Percentile': [],
-#                 '70th Percentile': [],
-#                 '75th Percentile': [],
-#                 '80th Percentile': [],
-#                 '90th Percentile': [],
-#                 'Max': [],
-#                 '1 Std Dev Above': [],
-#                 '1 Std Dev Below': [],
-#                 '2 Std Dev Above': [],
-#                 '2 Std Dev Below': [],
-#             }
-
-#             for family, stats in combinedStats.items():
-#                 n = stats['count']
-#                 sum_ = stats['sum']
-#                 sumSqr = stats['sumSqr']
-#                 mean = sum_ / n
-#                 variance = (sumSqr - (sum_ ** 2) / n) / (n - 1) if n > 1 else 0.0
-#                 std_dev = np.sqrt(variance)
-
-#                 # Use all stored values to compute percentiles
-#                 values = np.array(stats['values_for_percentiles'])
-#                 percentiles = np.percentile(values, [10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90])
-
-#                 statsData['Family'].append(family)
-#                 statsData['Mean'].append(round(mean, 3))
-#                 statsData['Std Dev'].append(round(std_dev, 3))
-#                 statsData['Min'].append(round(stats['min'], 3))
-#                 statsData['10th Percentile'].append(round(percentiles[0], 3))
-#                 statsData['20th Percentile'].append(round(percentiles[1], 3))
-#                 statsData['25th Percentile'].append(round(percentiles[2], 3))
-#                 statsData['30th Percentile'].append(round(percentiles[3], 3))
-#                 statsData['40th Percentile'].append(round(percentiles[4], 3))
-#                 statsData['Median'].append(round(percentiles[5], 3))
-#                 statsData['60th Percentile'].append(round(percentiles[6], 3))
-#                 statsData['70th Percentile'].append(round(percentiles[7], 3))
-#                 statsData['75th Percentile'].append(round(percentiles[8], 3))
-#                 statsData['80th Percentile'].append(round(percentiles[9], 3))
-#                 statsData['90th Percentile'].append(round(percentiles[10], 3))
-#                 statsData['Max'].append(round(stats['max'], 3))
-#                 statsData['1 Std Dev Above'].append(round(mean + std_dev, 3))
-#                 statsData['1 Std Dev Below'].append(round(mean - std_dev, 3))
-#                 statsData['2 Std Dev Above'].append(round(mean + 2 * std_dev, 3))
-#                 statsData['2 Std Dev Below'].append(round(mean - 2 * std_dev, 3))
-
-#             return pd.DataFrame(statsData)
-
-#         combinedStats = {}
-
-#         for filename in input.evalApplyData:
-#             combinedStats = collectFamilyStatistics(filename, existingStats=combinedStats)
-#         familyStatisticsDf = generateFamilyStatistics(combinedStats)
-#         familyStatisticsDf.to_csv(output.familyStats, index=False)
-
-
 rule reverseDecoy_evaluations:
     input:
         evalApplyData=expand(
             join(
-                "output",
+                outDir,
                 "eval_apply_reversed"
                 if config["learnapp"]["fragmentation"] == False
                 else "eval_apply_frag",
@@ -1066,8 +876,8 @@ rule reverseDecoy_evaluations:
         ),
         baseFamilyCheckpoint=expand("{bc}", bc=baseFamilyCheckpoint),
     output:
-        familyStats="output/eval_conf/family_summary_stats.csv",
-        checkpoint="output/eval_conf/family_stats_checkpoint.csv"
+        familyStats = join(outDir, "eval_conf", "family_summary_stats.csv"),
+        checkpoint = join(outDir, "eval_conf", "family_stats_checkpoint.csv")
     run:
 
         def load_existing_stats_from_csv(csv_file):
@@ -1263,17 +1073,17 @@ rule reverseDecoy_evaluations:
 rule eval_apply_sequences:
     input:
         data=join(
-            "output",
+            outDir,
             "vector"
             if config["learnapp"]["fragmentation"] == False
             else "vector_frag",
             "{nb}.npz",
         ),
         annotation=expand("{an}", an=annotFiles),
-        compareAssociations=join("output", "learn", "kmer-counts-total.csv"),
+        compareAssociations=join(outDir, "learn", "kmer-counts-total.csv"),
     output:
         apply=join(
-            "output",
+            outDir,
             "eval_apply_sequences"
             if config["learnapp"]["fragmentation"] == False
             else "eval_apply_frag",
@@ -1338,6 +1148,7 @@ rule eval_apply_sequences:
                     self.annotation.append(pd.read_table(f))
                 seqs = self.annotation[0]["id"].tolist()
                 anns = self.annotation[0]["Family"].tolist()
+                
                 for i, seqid in enumerate(seqs):
                     self.seqAnnot[seqid] = anns[i]
 
@@ -1381,14 +1192,14 @@ rule eval_apply_sequences:
                 seqs = set(self.annotation[0]["id"].tolist())
                 count = 0
                 for seqid in list(self.seqKmerdict):
-                    x = seqid.split("|")[3]
+                    x = re.findall(r"\|(.*?)\|", seqid)[0]
                     if x not in seqs:
                         self.seqKmerdict[
-                            (x + "_unknown_" + str(count))
+                            (str(x) + "_unknown_" + str(count))
                         ] = self.seqKmerdict.pop(seqid)
                     else:
                         self.seqKmerdict[
-                            (self.seqAnnot[x] + "_known_" + str(count))
+                            (str(self.seqAnnot[x]) + "_known_" + str(count))
                         ] = self.seqKmerdict.pop(seqid)
                     count += 1
                 self.totalSeqs = len(self.seqKmerdict)
@@ -1521,10 +1332,10 @@ rule eval_apply_sequences:
         Returns:
             DataFrame: DataFrame with all but the top single score set to NaN.
         """
-                top_1_indices = np.argsort(-finalMatrixWithScores.values, axis=1)[:, :1]  # Changed to top 1
+                top_1_indices = np.argsort(-finalMatrixWithScores.values, axis=1)[:, :1]
                 mask = np.zeros_like(finalMatrixWithScores.values, dtype=bool)
 
-                for i, indexOne in enumerate(top_1_indices):  # Only one index now
+                for i, indexOne in enumerate(top_1_indices):
                     mask[i, indexOne] = True
 
                 finalMatrixWithScores.values[~mask] = np.nan
@@ -1581,7 +1392,7 @@ rule evaluate:
     input:
         evalApplyData=expand(
             join(
-                "output",
+                outDir,
                 "eval_apply_sequences"
                 if config["learnapp"]["fragmentation"] == False
                 else "eval_apply_frag",
@@ -1590,11 +1401,11 @@ rule evaluate:
             nb=FAS,
         ),
         baseConfidence=expand("{bc}", bc=baseConfidence),
-        reverseDecoyStats="output/eval_conf/family_summary_stats.csv",
+        reverseDecoyStats = join(outDir, "eval_conf", "family_summary_stats.csv"),
     output:
-        evalGlob="output/eval_conf/global-confidence-scores.csv",
+        evalGlob = join(outDir, "eval_conf", "global-confidence-scores.csv"),
     params:
-        modifier=config["learnapp"]["conf_weight_modifier"],
+        modifier = config["learnapp"]["conf_weight_modifier"],
     log:
         join(outDir, "eval_conf", "log", "conf.log"),
     run:
@@ -1651,19 +1462,28 @@ rule evaluate:
                 )
 
                 # Load thresholds
+
                 thresholds_df = pd.read_csv(
                     self.reverseDecoyStats,
                     header=0,
                     engine="c",
                 )
+
+
                 threshold_type = config["learnapp"]["threshold"]
-                threshold_dict = dict(zip(thresholds_df.Family, thresholds_df[threshold_type]))
-                self.threshold_dict = threshold_dict  # Store for later use
+                selectionMethod = config["learnapp"]["selection"]
+
+                if threshold_type == "None":
+                    threshold_type = None
+                if threshold_type is not None:
+                    threshold_dict = dict(zip(thresholds_df.Family.astype(str), thresholds_df[threshold_type]))
+
+                    self.threshold_dict = threshold_dict  # Store for later use
 
                 # Apply the selection method
-                predictions, deltas, topTwo = self.apply_selectionMethod(seqAnnScores)
+                predictions, deltas, topTwo = self.apply_selectionMethod(seqAnnScores,selectionMethod, threshold_type)
                 
-                result = seqAnnScores.index.tolist()  # Assuming the actual labels are in the index
+                result = seqAnnScores.index.tolist() 
 
                 # Generate True/False labels based on predictions
                 tf = []
@@ -1691,11 +1511,9 @@ rule evaluate:
 
                 return topTwo, predictions, deltas, result, tf, known
 
-            def apply_selectionMethod(self, seqAnnScores):
-                selectionMethod = config["learnapp"]["selection"]
-                threshold_type = config["learnapp"]["threshold"]
+            def apply_selectionMethod(self, seqAnnScores, selectionMethod,threshold_type):
 
-                if selectionMethod == 'top_hit_no_threshold':
+                if selectionMethod == 'top_hit' and threshold_type is None:
                     def get_topTwo(row):
                         top2 = row.nlargest(2)
                         return pd.Series({
@@ -1705,19 +1523,14 @@ rule evaluate:
                             'keyValueTwoHeader': top2.index[1] if len(top2) > 1 else np.nan
                         })
 
-                    # Apply the function to each row of your DataFrame
                     keyValsDf = seqAnnScores.apply(get_topTwo, axis=1)
-
-                    # Display the resulting DataFrame
-                    print(keyValsDf)
-
-                    predictions = keyValsDf['keyValueOneHeader'].tolist()  # List of largest value headers
-                    deltas = (keyValsDf['keyValueOne'] - keyValsDf['keyValueTwo']).tolist()  # Difference between largest and second largest values
-                    topTwo = keyValsDf[['keyValueOne', 'keyValueTwo']]  # DataFrame with keyValueOne and keyValueTwo
+                    predictions = keyValsDf['keyValueOneHeader'].tolist()
+                    deltas = (keyValsDf['keyValueOne'] - keyValsDf['keyValueTwo']).tolist()
+                    topTwo = keyValsDf[['keyValueOne', 'keyValueTwo']]
 
                     return predictions, deltas, topTwo
 
-                elif selectionMethod == 'top_hit_with_threshold':
+                elif selectionMethod == 'top_hit' and threshold_type is not None:
                     def get_topTwo(row):
                         # Filter values based on threshold, keeping only values above the threshold
                         thresholds = row.index.map(self.threshold_dict).to_numpy()  # Map thresholds to each family (column) for this row
@@ -1736,62 +1549,24 @@ rule evaluate:
                     keyValsDf = seqAnnScores.apply(get_topTwo, axis=1)
 
                     # Extracting the predictions and deltas for output
-                    predictions = keyValsDf['keyValueOneHeader'].tolist()  # List of largest value headers
-                    deltas = (keyValsDf['keyValueOne'] - keyValsDf['keyValueTwo']).tolist()  # Difference between largest and second largest values
-                    topTwo = keyValsDf[['keyValueOne', 'keyValueTwo']]  # DataFrame with keyValueOne and keyValueTwo
-
+                    predictions = keyValsDf['keyValueOneHeader'].tolist()
+                    deltas = (keyValsDf['keyValueOne'] - keyValsDf['keyValueTwo']).tolist()
+                    topTwo = keyValsDf[['keyValueOne', 'keyValueTwo']]
                     return predictions, deltas, topTwo
 
-
-                # Delta compares value from threshold  - Lets call this Method: Val - Thresh
-                elif selectionMethod == 'greatest_distance_from_threshold_dt':
+                # The top two values compared here are: Greatest dist from threshold and Second greatest dist from Threshold
+                elif selectionMethod == 'greatest_distance':
                     thresholds = seqAnnScores.columns.to_series().map(self.threshold_dict)
-                    filteredScores = seqAnnScores.where(seqAnnScores >= thresholds, np.nan)
-
-                    # Method: Select top score above threshold
-                    # Get the top value and its corresponding column
-                    top_vals = filteredScores.max(axis=1)
-                    top_headers = filteredScores.idxmax(axis=1)
-                    print(f"thresholds: {thresholds}")
-                    print(f"top_vals: {top_vals}")
-                    print(f"top_headers: {top_headers}")
-                    # Create a new DataFrame with the top value, threshold, and their respective column headers
-                    keyValsDf = pd.DataFrame({
-                        'keyValueOne': top_vals,  # Largest value in each row
-                        'keyValueOneHeader': top_headers,  # Column name of the largest value
-                        'keyValueTwo': top_headers.map(thresholds).values,  # Threshold value for the largest value
-                        'keyValueTwoHeader': top_headers  # Column name of the threshold value
-                    })
-
-                    predictions = keyValsDf['keyValueOneHeader'].tolist()  # List of largest value headers
-                    deltas = (keyValsDf['keyValueOne'] - keyValsDf['keyValueTwo']).tolist()  # Difference between largest value and threshold
-                    topTwo = keyValsDf[['keyValueOne', 'keyValueTwo']] 
-
-                    return predictions, deltas, topTwo
-
-
-                # # # Maybe more accurate.  Delta compares top greatest distances
-                elif selectionMethod == 'greatest_distance_from_threshold_tt':
-                    thresholds = seqAnnScores.columns.to_series().map(self.threshold_dict)
-                    
-                    # Compute the distances from thresholds
                     distances = seqAnnScores.subtract(thresholds, axis=1)
-                    
-                    # Filter out distances less than 0 (scores below threshold)
                     filtered_distances = distances.where(distances >= 0, np.nan)
-                    
-                    # Method: Select top two distances
-                    # Use numpy to partition the values, get the two largest distances without fully sorting (ignoring NaNs)
                     partitioned_distances = np.partition(
                         np.nan_to_num(filtered_distances.values, nan=-np.inf), -2, axis=1
                     )
                     
-                    # Get the indices of the top 2 distances
                     topTwoIdx = np.argpartition(
                         np.nan_to_num(filtered_distances.values, nan=-np.inf), -2, axis=1
                     )[:, -2:]
                     
-                    # Sort the indices to get the max and second max in the correct order
                     sortedTopTwoIdx = np.argsort(
                         filtered_distances.values[
                             np.arange(filtered_distances.shape[0])[:, None], topTwoIdx
@@ -1799,34 +1574,26 @@ rule evaluate:
                         axis=1,
                     )[:, ::-1]
                     
-                    # Get the actual top 2 distances
                     topTwoDistances = np.take_along_axis(
                         filtered_distances.values,
                         topTwoIdx[np.arange(filtered_distances.shape[0])[:, None], sortedTopTwoIdx],
                         axis=1,
                     )
                     
-                    # Get the corresponding scores
                     topTwoScores = np.take_along_axis(
                         seqAnnScores.values,
                         topTwoIdx[np.arange(filtered_distances.shape[0])[:, None], sortedTopTwoIdx],
                         axis=1,
                     )
                     
-                    # Get the corresponding column headers for the top 2 distances
                     topTwoHeaders = np.array(filtered_distances.columns)[
                         topTwoIdx[np.arange(filtered_distances.shape[0])[:, None], sortedTopTwoIdx]
                     ]
                     
-                    # Get thresholds for the top 2 headers
-                    # Flatten the headers to 1D array
                     flattened_headers = topTwoHeaders.flatten()
-                    
-                    # Retrieve thresholds and reshape back to (n_samples, 2)
                     flattened_thresholds = thresholds[flattened_headers].values
                     topTwoThresholds = flattened_thresholds.reshape(topTwoHeaders.shape)
                     
-                    # Create a new DataFrame with the top values, distances, thresholds, and their respective column headers
                     keyValsDf = pd.DataFrame({
                         'keyValueOne': topTwoScores[:, 0],
                         'keyValueOneHeader': topTwoHeaders[:, 0],
@@ -1838,46 +1605,29 @@ rule evaluate:
                         'keyValueTwoThreshold': topTwoThresholds[:, 1],
                     })
                     
-                    # Calculate deltas as the difference between the distances from thresholds
                     deltas = (keyValsDf['keyValueOneDistance'] - keyValsDf['keyValueTwoDistance']).tolist()
-                    
                     predictions = keyValsDf['keyValueOneHeader'].tolist()
                     topTwo = keyValsDf[['keyValueOne', 'keyValueTwo']]
                     
                     return predictions, deltas, topTwo
 
         
-                elif selectionMethod == 'combined_method_with_dynamic_delta':
+                elif selectionMethod == 'combined_distance':
                     # Method 4: Combined method with dynamic delta calculation
                     # Set weights
                     weight_top = config["learnapp"].get("weight_top", 0.5)
                     weight_distance = config["learnapp"].get("weight_distance", 0.5)
-
-                    # Map thresholds to the columns (families)
                     thresholds = seqAnnScores.columns.to_series().map(self.threshold_dict)
-
-                    # Calculate distances
                     distances = seqAnnScores - thresholds
-
-                    # Only consider positive distances
                     positiveDistances = distances.where(distances >= 0, np.nan)
-
-                    # Calculate combined scores
                     combinedScores = (seqAnnScores * weight_top) + (distances * weight_distance)
-
-                    # Only consider combined scores where distances are positive
                     combinedScores = combinedScores.where(positiveDistances.notna(), np.nan)
-
-                    # Select the top family based on combined scores
                     topCombinedScores = combinedScores.max(axis=1)
                     predictions = combinedScores.idxmax(axis=1)
                     predictions = predictions.where(~topCombinedScores.isna(), None)
 
-                    # Prepare data structures for delta calculation
                     deltas = []
                     topTwoList = []
-
-                    # Precompute top families and scores from methods 1/2 and method 3
 
                     ## Method 1/2: Top hit with threshold
                     filteredScores = seqAnnScores.where(seqAnnScores >= thresholds, np.nan)
@@ -1908,7 +1658,7 @@ rule evaluate:
                         if pred_family == topFamilyMethod1:
                             # Use delta from method 1/2: difference between top two scores
                             delta = top_scores_method1.iloc[idx] - secondScoresMethod1.iloc[idx]
-                            # For topTwo, use top two scores from method 1/2
+                            # For topTwo, use top two scores from method 1
                             topTwo = [top_scores_method1.iloc[idx], secondScoresMethod1.iloc[idx]]
                         elif pred_family == topFamilyMethod3:
                             # Use delta from method 3: difference between top score and threshold
@@ -1937,134 +1687,9 @@ rule evaluate:
 
                     return predictions, deltas, topTwo
 
-                ###first attempt 90%
-                elif selectionMethod == 'combined_topTwo_scores':
-                    # Method 4: Combine methods 2 and 3
-                    # Set weights
-                    weight_top = config["learnapp"].get("weight_top", 0.5)
-                    weight_distance = config["learnapp"].get("weight_distance", 0.5)
-
-                    # Map thresholds to the columns (families)
-                    thresholds = seqAnnScores.columns.to_series().map(self.threshold_dict)
-
-                    # Calculate distances
-                    distances = seqAnnScores - thresholds
-
-                    # Only consider positive distances
-                    positiveDistances = distances.where(distances >= 0, np.nan)
-
-                    # Calculate combined scores
-                    combinedScores = (seqAnnScores * weight_top) + (distances * weight_distance)
-
-                    # Only consider combined scores where distances are positive
-                    combinedScores = combinedScores.where(positiveDistances.notna(), np.nan)
-
-                    # Method: Select top two combined scores
-                    # Use numpy to partition the values, get the two largest combined scores without fully sorting (ignoring NaNs)
-                    partitioned_combinedScores = np.partition(
-                        np.nan_to_num(combinedScores.values, nan=-np.inf), -2, axis=1
-                    )
-
-                    # Get the indices of the top 2 combined scores
-                    topTwoIdx = np.argpartition(
-                        np.nan_to_num(combinedScores.values, nan=-np.inf), -2, axis=1
-                    )[:, -2:]
-
-                    # Sort the indices to get the max and second max in the correct order
-                    sortedTopTwoIdx = np.argsort(
-                        combinedScores.values[
-                            np.arange(combinedScores.shape[0])[:, None], topTwoIdx
-                        ],
-                        axis=1
-                    )[:, ::-1]
-
-                    # Get the actual top 2 combined scores
-                    topTwoCombinedScores = np.take_along_axis(
-                        combinedScores.values,
-                        topTwoIdx[np.arange(combinedScores.shape[0])[:, None], sortedTopTwoIdx],
-                        axis=1,
-                    )
-
-                    # Get the corresponding original scores
-                    topTwoScores = np.take_along_axis(
-                        seqAnnScores.values,
-                        topTwoIdx[np.arange(combinedScores.shape[0])[:, None], sortedTopTwoIdx],
-                        axis=1,
-                    )
-
-                    # Get the corresponding distances
-                    topTwoDistances = np.take_along_axis(
-                        distances.values,
-                        topTwoIdx[np.arange(combinedScores.shape[0])[:, None], sortedTopTwoIdx],
-                        axis=1,
-                    )
-
-                    # Get the corresponding thresholds
-                    topTwoThresholds = np.take_along_axis(
-                        thresholds.values[np.newaxis, :],
-                        topTwoIdx[np.arange(combinedScores.shape[0])[:, None], sortedTopTwoIdx],
-                        axis=1,
-                    )
-
-                    # Get the corresponding column headers for the top 2 combined scores
-                    topTwoHeaders = np.array(combinedScores.columns)[
-                        topTwoIdx[np.arange(combinedScores.shape[0])[:, None], sortedTopTwoIdx]
-                    ]
-
-                    # Create a new DataFrame with the top values, distances, thresholds, and their respective column headers
-                    keyValsDf = pd.DataFrame({
-                        'keyValueOne': topTwoCombinedScores[:, 0],
-                        'keyValueOneHeader': topTwoHeaders[:, 0],
-                        'keyValueTwo': topTwoCombinedScores[:, 1],
-                        'keyValueTwoHeader': topTwoHeaders[:, 1],
-                        'keyValueOneScore': topTwoScores[:, 0],
-                        'keyValueOneDistance': topTwoDistances[:, 0],
-                        'keyValueOneThreshold': topTwoThresholds[:, 0],
-                        'keyValueTwoScore': topTwoScores[:, 1],
-                        'keyValueTwoDistance': topTwoDistances[:, 1],
-                        'keyValueTwoThreshold': topTwoThresholds[:, 1],
-                    })
-
-                    # Predictions are the top headers
-                    predictions = keyValsDf['keyValueOneHeader'].tolist()
-
-                    # Deltas are the difference between top two combined scores
-                    deltas = (keyValsDf['keyValueOne'] - keyValsDf['keyValueTwo']).tolist()
-
-                    # topTwo DataFrame with keyValueOne and keyValueTwo
-                    topTwo = keyValsDf[['keyValueOne', 'keyValueTwo']]
-
-                    return predictions, deltas, topTwo
-                ###
-
-                # elif selectionMethod == 'combined_score_with_threshold':
-                #     # Method 3: Balanced distance
-                #     # Set weights
-                #     weight_top = config["learnapp"].get("weight_top", 0.5)
-                #     weight_distance = config["learnapp"].get("weight_distance", 0.5)
-
-                #     # Map thresholds to the columns (families)
-                #     thresholds = seqAnnScores.columns.to_series().map(self.threshold_dict)
-                #     # Calculate distances
-                #     distances = seqAnnScores - thresholds
-                #     # Only consider positive distances
-                #     positiveDistances = distances.where(distances > 0, np.nan)
-                #     # Calculate combined scores
-                #     combinedScores = (seqAnnScores * weight_top) + (distances * weight_distance)
-                #     # Only consider combined scores where distances are positive
-                #     combinedScores = combinedScores.where(positiveDistances.notna(), np.nan)
-                #     # Select the family with the highest combined score
-                #     topCombinedScores = combinedScores.max(axis=1)
-                #     predictions = combinedScores.idxmax(axis=1)
-                #     predictions = predictions.where(~topCombinedScores.isna(), None)
-
-                #     # Delta is the combined score
-                #     deltas = topCombinedScores.round(2)
-
-                #     return predictions, deltas
-
                 else:
                     raise ValueError(f"Invalid selection method: {selectionMethod}")
+
 
             def generateDiffDataframe(
                 self, two_key_vals, predictions, deltas, result, tf, known
@@ -2097,12 +1722,8 @@ rule evaluate:
                     "Known/Unknown": known
                 })
 
-                
-
                 diffDataframe['Difference'] = pd.to_numeric(diffDataframe['Difference'], errors='coerce')
-                
 
-                # print("diffDataframe:\n", diffDataframe.head())
                 return diffDataframe
 
             def createTrueFalseCrosstabs(self, diffDataframe):
@@ -2212,93 +1833,6 @@ rule evaluate:
                 return trueTotalDist, false_total_dist
 
 
-            # def computeRatioDistribution(self, trueTotalDist, false_total_dist):
-            #     """
-            #     Computes the ratio distribution for True and False total distributions.
-
-            #     Args:
-            #         trueTotalDist (Series): Total distribution for True predictions.
-            #         false_total_dist (Series): Total distribution for False predictions.
-
-            #     Returns:
-            #         Series: Computed ratio distribution.
-            #     """
-            #     # Calculate the ratio
-            #     ratioTotalDist = trueTotalDist / (trueTotalDist + false_total_dist)
-                
-            #     # Create a new index from 0 to 1 with .01 increments
-            #     newIndex = pd.Index([round(i, 2) for i in pd.np.arange(0, 1.01, 0.01)], name="ratioTotalDist")
-            #     ratioTotalDist = ratioTotalDist.reindex(newIndex)
-                
-            #     # Interpolate the missing values linearly and fill nan values with 0.
-            #     ratioTotalDist = ratioTotalDist.interpolate(method="linear")
-            #     ratioTotalDist.fillna(0, inplace=True)
-            #     return ratioTotalDist
-
-            # def checkConfidenceMerge(self, newRatioDist):
-            #     """
-            #     Merge with base confidence file if available.
-
-            #     Args:
-            #         newRatioDist (Series): Total distribution for T/(T+F) predictions.
-
-            #     Returns:
-            #         DataFrame: Updated ratio distribution.
-            #     """
-            #     sumSeries = (
-            #         self.trueRunningCrosstab.sum() + self.falseRunningCrosstab.sum()
-            #     )
-            #     currentWeight = (
-            #         self.trueRunningCrosstab.values.sum()
-            #         + self.falseRunningCrosstab.values.sum()
-            #     )
-
-            #     updatedData = pd.DataFrame(newRatioDist, columns=["confidence"])
-            #     updatedData = updatedData.assign(
-            #         weight=[currentWeight] * len(updatedData), sum=sumSeries
-            #     )
-            #     updatedData.index.name = 'Difference'
-
-            #     if self.confidenceData and len(self.confidenceData) == 1:
-            #         priorConf = pd.read_csv(
-            #             self.confidenceData[0], index_col="Difference"
-            #         )
-            #         print(f"Prior Confidence Data:\n{priorConf}")
-
-            #         totalWeightPrior = priorConf["weight"]
-            #         kFactor = 1 + self.modifier * (
-            #             currentWeight / (currentWeight + totalWeightPrior)
-            #         )
-            #         outWeight = totalWeightPrior + currentWeight
-            #         weightedCurrent = kFactor * currentWeight
-            #         totalWeight = totalWeightPrior + weightedCurrent
-            #         priorWeightedScore = (
-            #             priorConf["confidence"] * priorConf["weight"]
-            #         )
-            #         currentWeighted_score = (
-            #             updatedData["confidence"] * weightedCurrent
-            #         )
-
-            #         updatedConfidence = (
-            #             priorWeightedScore + currentWeighted_score
-            #         ) / totalWeight
-
-            #         updatedData = pd.DataFrame({"confidence": updatedConfidence})
-
-            #         updatedData = updatedData.assign(
-            #             weight=outWeight,
-            #             sum=sumSeries + priorConf["sum"],
-            #         )
-
-            #         print(f"Final Confidence Data\n{updatedData}")
-            #     else:
-            #         print(
-            #             "Base confidence file not found or multiple files present. Only one file is allowed in baseConfidence."
-            #         )
-            #     updatedData.fillna(0, inplace=True)
-            #     return updatedData
-
-
             def computeRatioDistribution(self, trueTotalDist, false_total_dist):
                 """
                 Computes ratioDist, total_sum, and inter_sum.
@@ -2324,7 +1858,6 @@ rule evaluate:
 
                 # For total_sum, reindex to the same uniform scale but do not interpolate:
                 # Instead of interpolating, we simply fill missing increments with 0.
-                # This preserves the "no interpolation" requirement for total_sum.
                 total_sum = raw_total_sum.reindex(newIndex, fill_value=0)
 
                 # Now create inter_sum by interpolating total_sum
@@ -2332,7 +1865,6 @@ rule evaluate:
                 inter_sum.fillna(0, inplace=True)
 
                 return ratioTotalDist, total_sum, inter_sum
-
 
 
             def checkConfidenceMerge(self, newRatioDist, total_sum, inter_sum):
@@ -2348,7 +1880,6 @@ rule evaluate:
                 updatedData["weight"] = currentWeight
                 updatedData["total_sum"] = total_sum  # no interpolation, raw cumulative counts
                 updatedData["inter_sum"] = inter_sum  # interpolated cumulative counts
-                # sum (if needed) can be derived from total_sum or inter_sum as well.
 
                 if self.confidenceData and len(self.confidenceData) == 1:
                     priorConf = pd.read_csv(self.confidenceData[0], index_col="Difference")
@@ -2387,7 +1918,6 @@ rule evaluate:
                     # If no merging, assign sum as needed
                     updatedData["cur_sum"] = self.trueRunningCrosstab.sum() + self.falseRunningCrosstab.sum()
                 
-                # updatedData = updatedData[["Difference","confidence", "weight","inter_sum", "total_sum", "cur_sum"]]
                 updatedData.fillna(0, inplace=True)
                 return updatedData
 
@@ -2425,7 +1955,6 @@ rule evaluate:
                 trueDist, falseDist = self.calculateDistributions()
                 ratioDist, total_sum, inter_sum = self.computeRatioDistribution(trueDist, falseDist)
                 globalConfidence = self.checkConfidenceMerge(ratioDist, total_sum, inter_sum)
-                # globalConfidence = self.smooth_confidence(globalConfidence)
                 self.saveResults(
                     globalConfidence,
                     self.outputGlob
@@ -2435,9 +1964,28 @@ rule evaluate:
             input.evalApplyData,
             output.evalGlob,
             input.reverseDecoyStats,
-            params.modifier,  # Pass the modifier to the Evaluator
+            params.modifier,
             input.baseConfidence,
         )
         evaluator.executeAll()
 
         skm.utils.log_runtime(log[0], start_time)
+
+rule copy_results_for_apply:
+    input:
+        kmer_counts_total = join(outDir, "learn", "kmer-counts-total.csv"),
+        family_stats = join(outDir, "eval_conf", "family_summary_stats.csv"),
+        global_conf_scores = join(outDir, "eval_conf", "global-confidence-scores.csv")
+    output:
+        kmer_counts_total=join(outDir, "apply_inputs","counts","kmer-counts-total.csv"),
+        family_stats=join(outDir, "apply_inputs", "stats","family_summary_stats.csv"),
+        global_conf_scores=join(outDir, "apply_inputs","confidence", "global-confidence-scores.csv")
+    run:
+        target_dir = os.path.join(outDir, "apply_inputs")
+        os.makedirs(target_dir, exist_ok=True)
+        shutil.copy(input.kmer_counts_total, output.kmer_counts_total)
+        shutil.copy(input.family_stats, output.family_stats)
+        shutil.copy(input.global_conf_scores, output.global_conf_scores)
+
+
+        

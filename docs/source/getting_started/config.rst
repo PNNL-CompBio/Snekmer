@@ -129,6 +129,8 @@ General parameters related to Snekmer's learn and apply mode (``snekmer learn``,
  ``min_length``                  ``int``               Minimum length of fragment that should be retained. Values less than this are discarded.
  ``location``                    ``str``               Choose 'start', 'end', or 'random'. This is where on a sequence a fragment is taken from.
  ``seed``                        ``int``               Choose any (random) seed for reproducible fragmentation.
+ ``selection``                   ``str``               The method for selecting an annotation: 'top_hit', 'greatest_distance' or 'combined_distance'.
+ ``threshold``                   ``str`` or ``None``   A family-specific threshold used for prediction filtering: None, 'Mean', '90th Percentile', etc.
 =============================  =====================  =========================================================================
 
 

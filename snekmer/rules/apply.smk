@@ -111,11 +111,11 @@ rule all:
     input:
         expand(join(input_dir, "{uz}"), uz=UZS),
         *[
-            expand(join("output", "apply", "seq-annotation-scores-{nb}.csv"), nb=FAS)
+            expand(join(out_dir, "apply", "seq-annotation-scores-{nb}.csv"), nb=FAS)
             if config["learnapp"]["save_apply_associations"]
             else []
         ],
-        expand(join("output", "apply", "kmer-summary-{nb}.csv"), nb=FAS),
+        expand(join(out_dir, "apply", "kmer-summary-{nb}.csv"), nb=FAS),
 
 
 use rule vectorize from kmerize with:
@@ -124,33 +124,32 @@ use rule vectorize from kmerize with:
             input_dir, f"{wildcards.nb}.{FA_MAP[wildcards.nb]}"
         ),
     output:
-        data=join("output", "vector", "{nb}.npz"),
-        kmerobj=join("output", "kmerize", "{nb}.kmers"),
+        data=join(out_dir, "vector", "{nb}.npz"),
+        kmerobj=join(out_dir, "kmerize", "{nb}.kmers"),
     log:
-        join("output", "kmerize", "log", "{nb}.log"),
+        join(out_dir, "kmerize", "log", "{nb}.log"),
 
 
 rule apply:
     input:
-        data="output/vector/{nb}.npz",
+        data = join(out_dir, "vector", "{nb}.npz"),
         annotation=expand("{an}", an=annot_files),
         compare_associations=expand("{comp}", comp=compare_file),
         confidence_associations=expand("{conf}", conf=confidence_file),
         decoy_stats=expand("{decoy}", decoy=decoy_stats_file),
     output:
         seq_ann=expand(
-            join("output", "apply", "seq-annotation-scores-{nb}.csv"), nb=FAS
+            join(out_dir, "apply", "seq-annotation-scores-{nb}.csv"), nb=FAS
         )
         if config["learnapp"]["save_apply_associations"]
         else [],
-        kmer_summary="output/apply/kmer-summary-{nb}.csv",
+        kmer_summary = join(out_dir, "apply", "kmer-summary-{nb}.csv"),
     log:
         join(out_dir, "apply", "log", "{nb}.log"),
     run:
         start_time = datetime.now()
         with open(log[0], "a") as f:
             f.write(f"start time:\t{start_time}\n")
-
 
         class KmerCompare:
             def __init__(
@@ -325,54 +324,6 @@ rule apply:
                     else:
                         self.selected_values[row_id] = (None, None, None)
 
-            # Method 0, Faster. Untested
-            def select_top_no_threshold_optimized_handling_duplicates(self):
-                """
-                Selects the top k-mer family (or families) for each row without considering any threshold.
-                Handles cases where multiple families share the top value.
-                Stores the selected family, its value, and the delta between top and second top values.
-                """
-                # Step 1: Find the top k-mer value for each row
-                top_value = self.kmer_count_totals.max(axis=1)
-                
-                # Step 2: Create a boolean DataFrame indicating where counts equal the top value
-                top_families_mask = self.kmer_count_totals.eq(top_value, axis=0)
-                
-                # Step 3: Find all families that have the top value for each row
-                # This results in a Series of lists
-                top_families = top_families_mask.apply(lambda row: row.index[row].tolist(), axis=1)
-                
-                # Step 4: Find the second top k-mer value for each row
-                # Replace all top values with -inf to exclude them and find the next maximum
-                second_top_value = self.kmer_count_totals.where(
-                    ~top_families_mask, 
-                    float('-inf')
-                ).max(axis=1)
-                
-                # Step 5: Calculate delta (difference between top and second top values)
-                delta = top_value - second_top_value
-                
-                # Step 6: Handle cases where there is only one k-mer family or all values are NaN
-                delta = delta.where(second_top_value != float('-inf'), top_value)
-                
-                # Step 7: Prepare the selected_values dictionary
-                selected_values = {}
-                
-                # Step 8: Iterate over the Series to populate selected_values
-                for row_id, families in top_families.items():
-                    if families:
-                        # Assign a list of tuples for multiple top families
-                        selected_values[row_id] = [
-                            (family, top_value[row_id], delta[row_id]) for family in families
-                        ]
-                    else:
-                        # Assign None for rows with no valid top family
-                        selected_values[row_id] = (None, None, None)
-                
-                # Step 9: Assign to self.selected_values
-                self.selected_values = selected_values
-
-
             # Method 1: Top Hit Above Threshold
             def select_top_above_threshold(self):
                 self.decoy_df = pd.read_csv(
@@ -538,19 +489,14 @@ rule apply:
                 self.match_kmer_counts_format()
                 self.cosine_similarity()
                 # Select method based on selection_type
-                if self.selection_type == 'top_hit_no_threshold':
-                    self.select_top_no_threshold()
-                elif self.selection_type == 'top_hit_with_threshold':
-                    self.select_top_above_threshold()
-                elif self.selection_type == 'greatest_distance_from_threshold_tt':
+                if self.selection_type == 'top_hit':
+                    if self.threshold_type is None:
+                        self.select_top_no_threshold()
+                    else:
+                        self.select_top_above_threshold()
+                elif self.selection_type == 'greatest_distance':
                     self.select_by_greatest_distance()
-                elif self.selection_type == 'greatest_distance_from_threshold_dt':
-                    self.select_by_greatest_distance()
-                elif self.selection_type == 'combined_method_with_dynamic_delta':
-                    weight_top = config["learnapp"].get("weight_top", 0.5)
-                    weight_distance = config["learnapp"].get("weight_distance", 0.5)
-                    self.select_by_balanced_distance(weight_top,weight_distance)
-                elif self.selection_type == 'combined_top_two_scores':
+                elif self.selection_type == 'combined_distance':
                     weight_top = config["learnapp"].get("weight_top", 0.5)
                     weight_distance = config["learnapp"].get("weight_distance", 0.5)
                     self.select_by_balanced_distance(weight_top,weight_distance)
