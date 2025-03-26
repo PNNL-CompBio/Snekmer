@@ -5,9 +5,8 @@ numba >= 0.56
 pandas == 1.4.2
 seaborn
 scipy
-scikit-learn
+scikit-learn < 1.2
 snakemake == 7.0
-scikit-learn
 tabulate == 0.8.10
 umap-learn
 hdbscan
