@@ -235,9 +235,13 @@ if str(config["cluster"]["cluster_plots"]) == "True":
     plt.close("all")
 
     # plot umap
-    umap_embedding = UMAP(metric="jaccard", n_components=2).fit_transform(
-        full_feature_matrix
-    )
+    print("len data:", len(data))
+    n_neighbors = round(len(data) / 500)
+    if n_neighbors <= 4:
+        n_neighbors = 5
+    umap_embedding = UMAP(
+        metric="jaccard", n_components=2, n_neighbors=n_neighbors, min_dist=0.05
+    ).fit_transform(full_feature_matrix)
     fig, ax = plt.subplots(dpi=150)
     sns.scatterplot(
         x=umap_embedding[:, 0],
