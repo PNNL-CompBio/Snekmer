@@ -95,7 +95,7 @@ using the included specifications:
 .. code-block:: bash
 
   pip install -r requirements.txt
-  pip install -e git+https://github.com/PNNL-CompBio/Snekmer#egg=snekmer
+  pip install snekmer
 
 Install Snekmer via Docker
 --------------------------
