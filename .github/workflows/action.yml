@@ -42,6 +42,7 @@ jobs:
           mamba-version: "*"
           channels: anaconda,conda-forge,bioconda,numba
           environment-file: .test/test-env.yml
+          activate-environment: snekmer
           auto-activate-base: false
       - shell: bash -l {0}
         run: |
