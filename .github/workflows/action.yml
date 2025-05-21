@@ -10,7 +10,7 @@ on:
 jobs:
   # apply formating and linting
   Format:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
       - name: Apply snakefmt
@@ -25,7 +25,7 @@ jobs:
 
   # run all tests
   Test:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs:
       - Format
 
@@ -42,17 +42,28 @@ jobs:
           mamba-version: "*"
           channels: anaconda,conda-forge,bioconda,numba
           auto-activate-base: false
-          activate-environment: snekmer
-          environment-file: .test/test-env.yml
       - shell: bash -l {0}
         run: |
           conda info
           conda list
           conda config --show
-      - shell: bash -l {0}
-        run: mamba install -y -c conda-forge snakemake==7.0 tabulate==0.8.10
-      - shell: bash -l {0}
-        run: pip install -e git+https://github.com/PNNL-CompBio/Snekmer@functionmotifs#egg=snekmer
+          conda env list
+      - name: Create snekmer environment from YAML
+        shell: bash -l {0}
+        run: |
+          mamba env create -n snekmer -f .test/test-env.yml --yes
+      - name: Show conda info
+        shell: bash -l {0}
+        run: |
+          conda activate snekmer
+          conda info
+          conda list | head
+          conda env list
+
+      # - shell: bash -l {0}
+      #   run: mamba env create -f .test/test-env.yml
+      # - shell: bash -l {0}
+      #   run: pip install -e git+https://github.com/PNNL-CompBio/Snekmer@learn_decoy_implementation#egg=snekmer
 
       #test clustering step
       - name: Snekmer Cluster
@@ -93,9 +104,7 @@ jobs:
           export PATH="/usr/share/miniconda/bin:$PATH"
           source activate snekmer
           snekmer learn --configfile .test/config_learnapp.yaml -d .test --cores 1
-          mkdir .test/counts .test/confidence
-          mv .test/output/learn/kmer-counts-total.csv .test/counts/kmer-counts-total.csv
-          mv .test/output/eval_conf/global-confidence-scores.csv .test/confidence/global-confidence-scores.csv
+          mv .test/output/apply_inputs/* .test
           rm -rf .test/output
         
       # run Snekmer Learn against previously generated counts files
