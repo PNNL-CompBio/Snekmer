@@ -10,4 +10,4 @@ mistune>=2
 biopython
 numpy >= 1.22.3
 snakemake >= 6.0
-scikit-learn
+scikit-learn < 1.2

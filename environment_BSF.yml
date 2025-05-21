@@ -15,7 +15,7 @@ dependencies:
   - scipy
   - pandas
   - seaborn
-  - scikit-learn
+  - scikit-learn < 1.2
   - snakemake == 7.0
   - tabulate == 0.8.10
   - umap-learn
