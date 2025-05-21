@@ -23,4 +23,4 @@ dependencies:
   - tabulate=0.8.10
   - pip
   - pip:
-      - git+https://github.com/PNNL-CompBio/Snekmer@learn_decoy_implementation#egg=snekmer
+      - git+https://github.com/PNNL-CompBio/Snekmer#egg=snekmer
