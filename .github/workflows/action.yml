@@ -35,20 +35,23 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+
       - name: Build test environment
         uses: conda-incubator/setup-miniconda@v2
         with:
           mamba-version: "*"
           channels: anaconda,conda-forge,bioconda,numba
-          auto-activate-base: false
           environment-file: .test/test-env.yml
+          activate-environment: snekmer
+          auto-activate-base: false
       - shell: bash -l {0}
         run: |
           conda info
           conda list
           conda config --show
-      - shell: bash -l {0}
-        run: mamba env create -f .test/test-env.yml
+          conda env list
+      # - shell: bash -l {0}
+      #   run: mamba env create -f .test/test-env.yml
       # - shell: bash -l {0}
       #   run: pip install -e git+https://github.com/PNNL-CompBio/Snekmer@learn_decoy_implementation#egg=snekmer
 
