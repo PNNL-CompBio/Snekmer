@@ -49,8 +49,8 @@ jobs:
           conda info
           conda list
           conda config --show
-      # - shell: bash -l {0}
-      #   run: mamba create -y -n snekmer
+      - shell: bash -l {0}
+        run: mamba env create -f .test/test-env.yml
       # - shell: bash -l {0}
       #   run: pip install -e git+https://github.com/PNNL-CompBio/Snekmer@learn_decoy_implementation#egg=snekmer
 
