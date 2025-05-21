@@ -10,7 +10,7 @@ on:
 jobs:
   # apply formating and linting
   Format:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
       - name: Apply snakefmt
@@ -25,7 +25,7 @@ jobs:
 
   # run all tests
   Test:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs:
       - Format
 
@@ -93,9 +93,7 @@ jobs:
           export PATH="/usr/share/miniconda/bin:$PATH"
           source activate snekmer
           snekmer learn --configfile .test/config_learnapp.yaml -d .test --cores 1
-          mkdir .test/counts .test/confidence
-          mv .test/output/learn/kmer-counts-total.csv .test/counts/kmer-counts-total.csv
-          mv .test/output/eval_conf/global-confidence-scores.csv .test/confidence/global-confidence-scores.csv
+          mv .test/output/apply_inputs/* .test
           rm -rf .test/output
         
       # run Snekmer Learn against previously generated counts files
