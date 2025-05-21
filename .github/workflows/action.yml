@@ -41,8 +41,6 @@ jobs:
         with:
           mamba-version: "*"
           channels: anaconda,conda-forge,bioconda,numba
-          environment-file: .test/test-env.yml
-          activate-environment: snekmer
           auto-activate-base: false
       - shell: bash -l {0}
         run: |
@@ -50,6 +48,19 @@ jobs:
           conda list
           conda config --show
           conda env list
+      - name: Create snekmer environment from YAML
+        shell: bash -l {0}
+        run: |
+          # Always (re)create; safe because mamba skips work if identical
+          mamba env create -n snekmer -f .test/test-env.yml --yes
+      - name: Show conda info
+        shell: bash -l {0}
+        run: |
+          source activate snekmer
+          conda info
+          conda list | head
+          conda env list
+
       # - shell: bash -l {0}
       #   run: mamba env create -f .test/test-env.yml
       # - shell: bash -l {0}
