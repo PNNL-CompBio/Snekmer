@@ -50,8 +50,6 @@ from scipy.stats import rankdata
 
 import snekmer as skm
 
-import matplotlib.pyplot as plt
-from matplotlib_venn import venn3
 
 # Note:
 # Pyarrow installed via "conda install -c conda-forge pyarrow"
@@ -111,9 +109,13 @@ rule all:
     input:
         expand(join(input_dir, "{uz}"), uz=UZS),
         *[
-            expand(join(out_dir, "apply", "seq-annotation-scores-{nb}.csv"), nb=FAS)
-            if config["learnapp"]["save_apply_associations"]
-            else []
+            (
+                expand(
+                    join(out_dir, "apply", "seq-annotation-scores-{nb}.csv"), nb=FAS
+                )
+                if config["learnapp"]["save_apply_associations"]
+                else []
+            )
         ],
         expand(join(out_dir, "apply", "kmer-summary-{nb}.csv"), nb=FAS),
 
@@ -132,24 +134,25 @@ use rule vectorize from kmerize with:
 
 rule apply:
     input:
-        data = join(out_dir, "vector", "{nb}.npz"),
+        data=join(out_dir, "vector", "{nb}.npz"),
         annotation=expand("{an}", an=annot_files),
         compare_associations=expand("{comp}", comp=compare_file),
         confidence_associations=expand("{conf}", conf=confidence_file),
         decoy_stats=expand("{decoy}", decoy=decoy_stats_file),
     output:
-        seq_ann=expand(
-            join(out_dir, "apply", "seq-annotation-scores-{nb}.csv"), nb=FAS
-        )
-        if config["learnapp"]["save_apply_associations"]
-        else [],
-        kmer_summary = join(out_dir, "apply", "kmer-summary-{nb}.csv"),
+        seq_ann=(
+            expand(join(out_dir, "apply", "seq-annotation-scores-{nb}.csv"), nb=FAS)
+            if config["learnapp"]["save_apply_associations"]
+            else []
+        ),
+        kmer_summary=join(out_dir, "apply", "kmer-summary-{nb}.csv"),
     log:
         join(out_dir, "apply", "log", "{nb}.log"),
     run:
         start_time = datetime.now()
         with open(log[0], "a") as f:
             f.write(f"start time:\t{start_time}\n")
+
 
         class KmerCompare:
             def __init__(
@@ -307,7 +310,8 @@ rule apply:
                     index=self.kmer_counts.index,
                 )
 
-            # Method 0: Hit Hit No Threshold
+                # Method 0: Hit Hit No Threshold
+
             def select_top_no_threshold(self):
                 self.selected_values = {}
                 for row_id, row in self.kmer_count_totals.iterrows():
@@ -324,14 +328,17 @@ rule apply:
                     else:
                         self.selected_values[row_id] = (None, None, None)
 
-            # Method 1: Top Hit Above Threshold
+                        # Method 1: Top Hit Above Threshold
+
             def select_top_above_threshold(self):
                 self.decoy_df = pd.read_csv(
                     str(self.decoy_stats),
                     header=0,
                     engine="c",
                 )
-                threshold_dict = dict(zip(self.decoy_df.Family, self.decoy_df[self.threshold_type]))
+                threshold_dict = dict(
+                    zip(self.decoy_df.Family, self.decoy_df[self.threshold_type])
+                )
 
                 self.selected_values = {}
                 filtered_out_count = 0
@@ -356,16 +363,19 @@ rule apply:
                         self.selected_values[row_id] = (None, None, None)
                         filtered_out_count += 1
 
-            # Method 2: Greatest Distance
-            # Note, Delta is calculated different from Top Two Hit method - and as such, is not comparable in the same way.
-            # Note, Score is also maybe calculated differently.  Actually I think it might still be cosine score.  CONFIRM THIS.
+                        # Method 2: Greatest Distance
+                        # Note, Delta is calculated different from Top Two Hit method - and as such, is not comparable in the same way.
+                        # Note, Score is also maybe calculated differently.  Actually I think it might still be cosine score.  CONFIRM THIS.
+
             def select_by_greatest_distance(self):
                 self.decoy_df = pd.read_csv(
                     str(self.decoy_stats),
                     header=0,
                     engine="c",
                 )
-                threshold_dict = dict(zip(self.decoy_df.Family, self.decoy_df[self.threshold_type]))
+                threshold_dict = dict(
+                    zip(self.decoy_df.Family, self.decoy_df[self.threshold_type])
+                )
 
                 self.selected_values = {}
                 filtered_out_count = 0
@@ -378,21 +388,28 @@ rule apply:
                         greatest_distance_family = positive_distances.idxmax()
                         greatest_distance_value = row[greatest_distance_family]
                         delta = positive_distances.max()
-                        self.selected_values[row_id] = (greatest_distance_family, greatest_distance_value, delta)
+                        self.selected_values[row_id] = (
+                            greatest_distance_family,
+                            greatest_distance_value,
+                            delta,
+                        )
                     else:
                         self.selected_values[row_id] = (None, None, None)
                         filtered_out_count += 1
 
-            # Method 3: Balanced Distance
-            # Note, Delta is calculated different from Top Two Hit method - and as such, is not comparable in the same way.
-            # Note, Score is also now calculated differently. It is not the Cosine Similarity Score, it is weighted
+                        # Method 3: Balanced Distance
+                        # Note, Delta is calculated different from Top Two Hit method - and as such, is not comparable in the same way.
+                        # Note, Score is also now calculated differently. It is not the Cosine Similarity Score, it is weighted
+
             def select_by_balanced_distance(self, weight_top=0.5, weight_distance=0.5):
                 self.decoy_df = pd.read_csv(
                     str(self.decoy_stats),
                     header=0,
                     engine="c",
                 )
-                threshold_dict = dict(zip(self.decoy_df.Family, self.decoy_df[self.threshold_type]))
+                threshold_dict = dict(
+                    zip(self.decoy_df.Family, self.decoy_df[self.threshold_type])
+                )
 
                 self.selected_values = {}
                 filtered_out_count = 0
@@ -412,32 +429,39 @@ rule apply:
                         top_family = row_values_above_threshold.idxmax()
                         top_threshold = threshold_dict.get(top_family, 0)
                         candidates[top_family] = {
-                            'value': top_value,
-                            'delta': top_value - top_threshold,
-                            'score': (top_value * weight_top) + ((top_value - top_threshold) * weight_distance)
+                            "value": top_value,
+                            "delta": top_value - top_threshold,
+                            "score": (top_value * weight_top)
+                            + ((top_value - top_threshold) * weight_distance),
                         }
 
                     if not positive_distances.empty:
                         greatest_distance_family = positive_distances.idxmax()
                         greatest_distance_value = row[greatest_distance_family]
-                        greatest_distance_threshold = threshold_dict.get(greatest_distance_family, 0)
+                        greatest_distance_threshold = threshold_dict.get(
+                            greatest_distance_family, 0
+                        )
                         candidates[greatest_distance_family] = {
-                            'value': greatest_distance_value,
-                            'delta': positive_distances.max(),
-                            'score': (greatest_distance_value * weight_top) + (positive_distances.max() * weight_distance)
+                            "value": greatest_distance_value,
+                            "delta": positive_distances.max(),
+                            "score": (greatest_distance_value * weight_top)
+                            + (positive_distances.max() * weight_distance),
                         }
 
                     if candidates:
-                        best_candidate = max(candidates.items(), key=lambda x: x[1]['score'])
-                        self.selected_values[row_id] = (best_candidate[0], best_candidate[1]['value'], best_candidate[1]['delta'])
+                        best_candidate = max(
+                            candidates.items(), key=lambda x: x[1]["score"]
+                        )
+                        self.selected_values[row_id] = (
+                            best_candidate[0],
+                            best_candidate[1]["value"],
+                            best_candidate[1]["delta"],
+                        )
                     else:
                         self.selected_values[row_id] = (None, None, None)
                         filtered_out_count += 1
 
             def format_and_write_output(self):
-                """
-        Format the results and write to specified output files.
-        """
                 if config["learnapp"]["save_apply_associations"]:
                     kmer_count_totals_write = pa.Table.from_pandas(
                         self.kmer_count_totals
@@ -463,44 +487,42 @@ rule apply:
                             delta = 0
                     else:
                         prediction, score, delta = None, None, 0
-                    results_list.append({
-                        'Sequence': row_id,
-                        'Prediction': prediction,
-                        'Score': score,
-                        'delta': round(delta,2)
-                    })
+                    results_list.append(
+                        {
+                            "Sequence": row_id,
+                            "Prediction": prediction,
+                            "Score": score,
+                            "delta": round(delta, 2),
+                        }
+                    )
 
                 results = pd.DataFrame(results_list)
-                results.set_index('Sequence', inplace=True)
+                results.set_index("Sequence", inplace=True)
 
-                results['Confidence'] = results['delta'].map(global_confidence_scores)
+                results["Confidence"] = results["delta"].map(global_confidence_scores)
 
                 results.reset_index(inplace=True)
                 results_write = pa.Table.from_pandas(results)
                 csv.write_csv(results_write, self.output_kmer_summary)
 
             def execute_all(self):
-                """
-        Execute the entire sequence of operations in the KmerCompare process.
-        """
                 self.load_data()
                 self.generate_kmer_counts()
                 self.construct_kmer_counts_dataframe()
                 self.match_kmer_counts_format()
                 self.cosine_similarity()
                 # Select method based on selection_type
-                if self.selection_type == 'top_hit':
+                if self.selection_type == "top_hit":
                     if self.threshold_type is None:
                         self.select_top_no_threshold()
                     else:
                         self.select_top_above_threshold()
-                elif self.selection_type == 'greatest_distance':
+                elif self.selection_type == "greatest_distance":
                     self.select_by_greatest_distance()
-                elif self.selection_type == 'combined_distance':
+                elif self.selection_type == "combined_distance":
                     weight_top = config["learnapp"].get("weight_top", 0.5)
                     weight_distance = config["learnapp"].get("weight_distance", 0.5)
-                    self.select_by_balanced_distance(weight_top,weight_distance)
-
+                    self.select_by_balanced_distance(weight_top, weight_distance)
                 else:
                     raise ValueError(f"Invalid selection_type: {self.selection_type}")
                 self.format_and_write_output()
