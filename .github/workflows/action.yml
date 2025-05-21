@@ -51,12 +51,11 @@ jobs:
       - name: Create snekmer environment from YAML
         shell: bash -l {0}
         run: |
-          # Always (re)create; safe because mamba skips work if identical
           mamba env create -n snekmer -f .test/test-env.yml --yes
       - name: Show conda info
         shell: bash -l {0}
         run: |
-          source activate snekmer
+          conda activate snekmer
           conda info
           conda list | head
           conda env list
@@ -65,8 +64,6 @@ jobs:
       #   run: mamba env create -f .test/test-env.yml
       # - shell: bash -l {0}
       #   run: pip install -e git+https://github.com/PNNL-CompBio/Snekmer@learn_decoy_implementation#egg=snekmer
-
-
 
       #test clustering step
       - name: Snekmer Cluster
