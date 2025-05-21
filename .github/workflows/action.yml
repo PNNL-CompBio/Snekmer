@@ -41,8 +41,9 @@ jobs:
         with:
           mamba-version: "*"
           channels: anaconda,conda-forge,bioconda,numba
+          auto-activate-base: false
           environment-file: .test/test-env.yml
-          activate-environment: snekmer
+          # activate-environment: snekmer
           auto-activate-base: false
       - shell: bash -l {0}
         run: |
@@ -53,6 +54,8 @@ jobs:
         run: mamba env create -f .test/test-env.yml
       # - shell: bash -l {0}
       #   run: pip install -e git+https://github.com/PNNL-CompBio/Snekmer@learn_decoy_implementation#egg=snekmer
+
+
 
       #test clustering step
       - name: Snekmer Cluster
