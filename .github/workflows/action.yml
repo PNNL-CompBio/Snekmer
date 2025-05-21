@@ -35,7 +35,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-
       - name: Build test environment
         uses: conda-incubator/setup-miniconda@v2
         with:
@@ -43,8 +42,6 @@ jobs:
           channels: anaconda,conda-forge,bioconda,numba
           auto-activate-base: false
           environment-file: .test/test-env.yml
-          # activate-environment: snekmer
-          auto-activate-base: false
       - shell: bash -l {0}
         run: |
           conda info
