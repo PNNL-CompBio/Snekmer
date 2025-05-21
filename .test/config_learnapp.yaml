@@ -42,7 +42,7 @@ model_dir: "/path/to/output/model/"
 basis_dir: "/path/to/output/kmerize/"
 score_dir: "/path/to/output/scoring/"
 
-# learnapp params 
+
 learnapp:
   save_apply_associations: False
   fragmentation: False
@@ -52,3 +52,7 @@ learnapp:
   location: random
   seed: 999
   conf_weight_modifier: 20
+  selection: 'top_hit'  
+  threshold: 'Median'                  # Column name from family_summary_stats.csv
+  weight_top: 0.7                      # For combined_distance selection method
+  weight_distance: 0.3                 # For combined_distance selection method
