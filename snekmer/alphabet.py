@@ -6,6 +6,7 @@
 author(s): @biodataganache, @wichne
 
 """
+
 # imports
 from typing import Dict, Mapping, Set, Union
 
@@ -50,9 +51,9 @@ ALPHABETS = {
     # 2-value hydrophobicity with charged residues as a third
     # category. Made by @biodataganache.
     "hydrocharge": {
-        "SFTNYQCWPH": "L",  # hydrophilic (L-ove)
+        "SFTYQCWPH": "L",  # hydrophilic (L-ove)
         "VMLAIG": "H",  # hydrophobic (H-ate)
-        "KNDR": "C",  # charged (C-harged)
+        "KNDER": "C",  # charged (C-harged)
         "_keys": "LHC",
     },
     # 2-value hydrophobicity with structural-breakers as a third category
