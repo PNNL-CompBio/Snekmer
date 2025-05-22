@@ -1,10 +1,6 @@
 # ---------------------------------------------------------
 # Imports
 # ---------------------------------------------------------
-
-
-print("Starting imports")
-
 import pickle
 from datetime import datetime
 from os import makedirs
@@ -39,9 +35,6 @@ import re
 # ---------------------------------------------------------
 # Files and Parameters
 # ---------------------------------------------------------
-
-print("Starting files params")
-
 config = snakemake.config
 
 # change matplotlib backend to non-interactive

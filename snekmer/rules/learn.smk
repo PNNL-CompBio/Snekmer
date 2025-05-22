@@ -116,6 +116,7 @@ if (
         "The only selection method that allows for None is `top_hit`. Other methods inherently use a threshold"
     )
 
+
 # define output files to be created by snekmer
 rule all:
     input:
@@ -205,6 +206,7 @@ rule learn:
     script:
         resource_filename("snekmer", join("scripts/learn_learn.py"))
 
+
 rule merge:
     input:
         counts=expand(join(outDir, "learn", "kmer-counts-{nb}.csv"), nb=FAS),
@@ -266,7 +268,7 @@ rule reverseDecoy_evaluations:
         checkpoint=join(outDir, "eval_conf", "family_stats_checkpoint.csv"),
     script:
         resource_filename("snekmer", join("scripts/learn_reverse_decoy_evaluations.py"))
-    
+
 
 rule eval_apply_sequences:
     input:

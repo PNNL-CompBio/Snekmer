@@ -52,7 +52,6 @@ import snekmer as skm
 from pkg_resources import resource_filename
 
 
-
 # Note:
 # Pyarrow installed via "conda install -c conda-forge pyarrow"
 # collect all fasta-like files, unzipped filenames, and basenames
@@ -153,6 +152,5 @@ rule apply:
         kmer_summary=join(out_dir, "apply", "kmer-summary-{nb}.csv"),
     log:
         join(out_dir, "apply", "log", "{nb}.log"),
-
     script:
         resource_filename("snekmer", join("scripts/apply.py"))
