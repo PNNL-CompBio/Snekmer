@@ -215,7 +215,11 @@ and directories in addition to the files described previously.
     │   ├── eval_conf/
     │   │   ├── global-confidence-scores.csv     # Global confidence score distribution
     │   │   └── confidence_matrix.csv   # Confidence distribution Matrix for each annotation
-
+    │   │   ├── family_summary_stats.csv # Statistics of Apply results for all reversed sequences
+    │   │   └── family_stats_checkpoint.csv # Checkpoint file containing statistics of Apply results for reversed sequences, used to update thresholds when adding new sequences to a family model
+    │   ├── eval_apply_reversed/ 
+    │   │   ├── seq-annotation-scores-A.csv.gz # Self-assessed sequence-annotation cosine similarity scores for reversed A sequences
+    │   │   └── seq-annotation-scores-B.csv.gz # Self-assessed sequence-annotation cosine similarity scores for reversed B sequences
 
 Snekmer Apply Output Files
 ::::::::::::::::::::::::::
