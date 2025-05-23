@@ -206,12 +206,12 @@ and directories in addition to the files described previously.
     │   │   ├── kmer-counts-A.csv    # Kmer Counts matrix for A seqs
     │   │   ├── kmer-counts-B.csv     # Kmer Counts matrix for B seqs
     │   │   └── kmer-counts-total.csv    # Kmer Counts matrix for merged (total) database.
-    │   ├── eval_apply/
-    │   │   ├── Seq-Annotation-Scores-A.model     # Self-assessed sequence-annotation cosine similarity scores for A seqs
-    │   │   ├── Seq-Annotation-Scores-B.model     # Self-assessed sequence-annotation cosine similarity scores for B seqs
+    │   ├── eval_apply_sequences/
+    │   │   ├── seq-annotation-scores-A.model     # Self-assessed sequence-annotation cosine similarity scores for A seqs
+    │   │   ├── seq-annotation-scores-B.model     # Self-assessed sequence-annotation cosine similarity scores for B seqs
     │   ├── eval_apply_frag/
-    │   │   ├── Seq-Annotation-Scores-A.model     # Conditional output for eval_apply when the fragmentation option is True.
-    │   │   ├── Seq-Annotation-Scores-B.model     # Conditional output for eval_apply when the fragmentation option is True.
+    │   │   ├── seq-annotation-scores-A.model     # Conditional output for eval_apply when the fragmentation option is True.
+    │   │   ├── seq-annotation-scores-B.model     # Conditional output for eval_apply when the fragmentation option is True.
     │   ├── eval_conf/
     │   │   ├── global-confidence-scores.csv     # Global confidence score distribution
     │   │   └── confidence_matrix.csv   # Confidence distribution Matrix for each annotation
@@ -220,6 +220,10 @@ and directories in addition to the files described previously.
     │   ├── eval_apply_reversed/ 
     │   │   ├── seq-annotation-scores-A.csv.gz # Self-assessed sequence-annotation cosine similarity scores for reversed A sequences
     │   │   └── seq-annotation-scores-B.csv.gz # Self-assessed sequence-annotation cosine similarity scores for reversed B sequences
+    │   ├── apply_inputs/
+    │   │   ├── kmer-counts-total.csv 
+    │   │   ├── family_summary_stats.csv
+    │   │   └── global-confidence-scores.csv
 
 Snekmer Apply Output Files
 ::::::::::::::::::::::::::
