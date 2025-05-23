@@ -101,6 +101,8 @@ Snekmer ``apply`` input
     │   └── kmer-counts-total.csv #kmer counts matrix generated in ``learn``
     ├── confidence/
     │   └── global-confidence-scores.csv #global confidence distribution generated in ``learn``
+    ├── stats/
+    │   └── family_summary_stats.csv #decoy thresholds generated in ``learn``
     ├── output/
     │   ├── ...
     │   └── ...
