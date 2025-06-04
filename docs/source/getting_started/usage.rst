@@ -230,6 +230,8 @@ Snekmer Apply Output Files
 
 Snekmer's apply mode produces the following output files
 and directories in addition to the files described previously.
+Predictions are stored in the kmer-summary-x.csv files, which are 5-column CSV files that contain one line (and prediction) per sequence, along with the cosine similarity of each sequence to its predicted family, the difference between the top two scores for each sequence, and the confidence predicted from this difference.
+The (optional and potentially very large) Seq-Annotation-Scores-x.csv files contain all of the cosine similarity scores calculated, with one row per sequence and one column for each family.
 
 .. code-block:: console
 

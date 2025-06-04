@@ -24,7 +24,7 @@ To run an example set of fasta files use the following commands:
 .. code-block:: bash
 
    conda activate snekmer
-   cd resources/snekmer_learnapp_tutorial.ipynb
+   cd resources/tutorial
    jupyter notebook snekmer_learnapp_tutorial.ipynb
 
 

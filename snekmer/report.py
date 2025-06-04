@@ -13,6 +13,7 @@ TEMPLATES = {
     "model": "model_template.html",
     "search": "search_template.html",
     "motif": "motif_template.html",
+    "apply": "apply_template.html"
 }
 
 
