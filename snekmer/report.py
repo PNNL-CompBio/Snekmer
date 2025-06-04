@@ -3,6 +3,7 @@
 author: @abbyjerger, @christinehc
 
 """
+
 from jinja2 import Environment, PackageLoader
 import os
 
@@ -13,7 +14,7 @@ TEMPLATES = {
     "model": "model_template.html",
     "search": "search_template.html",
     "motif": "motif_template.html",
-    "apply": "apply_template.html"
+    "apply": "apply_template.html",
 }
 
 

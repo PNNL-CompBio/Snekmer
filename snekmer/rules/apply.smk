@@ -156,11 +156,12 @@ rule apply:
     script:
         resource_filename("snekmer", join("scripts/apply.py"))
 
+
 rule apply_report:
     input:
-        	files=expand(join(out_dir, "apply", "kmer-summary-{f}.csv"), f=FAS),
+        files=expand(join(out_dir, "apply", "kmer-summary-{f}.csv"), f=FAS),
     output:
-        	join(out_dir, "Snekmer_Apply_Report.html"),
+        join(out_dir, "Snekmer_Apply_Report.html"),
     run:
         file_dir = dirname(dirname(input.files[0]))
 
