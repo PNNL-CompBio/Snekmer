@@ -6,6 +6,7 @@ import itertools
 import pandas as pd
 import pyarrow as pa
 import pyarrow.csv as csv
+import snekmer as skm
 
 
 # ---------------------------------------------------------
@@ -22,21 +23,27 @@ config = snakemake.config
 
 class Merge:
     """
-Initializes the Merge object.
+    Initializes the Merge object.
 
-This object is designed to merge all dataframes containing kmer counts
-and, if present, merge them with a base dataframe.
+    This object is designed to merge all dataframes containing kmer counts
+    and, if present, merge them with a base dataframe.
 
-Attributes:
-countsFiles (list): List of paths to the CSV files containing k-mer counts.
-baseCountsPath (str): Path to the base CSV file for merging.
-outputPath (str): Path to save the merged dataframe.
-runningMerge (DataFrame or None): Merged dataframe from countsFiles.
-baseCheck (bool): Flag to check if the base file exists and can be merged.
-baseKmerCounts (DataFrame or None): Dataframe loaded from baseCountsPath.
-"""
-
-    def __init__(self, countsFiles, baseCountsPath, outputPath):
+    Attributes:
+    countsFiles (list): List of paths to the CSV files containing k-mer counts.
+    baseCountsPath (str): Path to the base CSV file for merging.
+    outputPath (str): Path to save the merged dataframe.
+    runningMerge (DataFrame or None): Merged dataframe from countsFiles.
+    baseCheck (bool): Flag to check if the base file exists and can be merged.
+    baseKmerCounts (DataFrame or None): Dataframe loaded from baseCountsPath.
+    """
+    countsFiles: list
+    baseCountsPath: str
+    outputPath: str
+    runningMerge: pd.DataFrame
+    baseCheck: bool
+    baseKmerCounts: None
+        
+    def __init__(self, countsFiles: list, baseCountsPath: str, outputPath: str) -> None:
         self.countsFiles = countsFiles
         self.baseCountsPath = baseCountsPath
         self.outputPath = outputPath
@@ -44,13 +51,13 @@ baseKmerCounts (DataFrame or None): Dataframe loaded from baseCountsPath.
         self.baseCheck = False
         self.baseKmerCounts = None
 
-    def mergeDataframes(self):
+    def mergeDataframes(self) -> None:
         """
-Merges dataframes from the list of kmer count files.
+        Merges dataframes from the list of kmer count files.
 
-Loads each dataframe from countsFiles, then successively merges them
-into a running merged dataframe.
-"""
+        Loads each dataframe from countsFiles, then successively merges them
+        into a running merged dataframe.
+        """
         for fileNum, f in enumerate(self.countsFiles):
             kmerCounts = pd.read_csv(
                 f,
@@ -73,12 +80,12 @@ into a running merged dataframe.
                 f"Dataframes merged: {fileNum} out of {len(self.countsFiles)}"
             )
 
-    def checkForBaseFile(self):
+    def checkForBaseFile(self) -> None:
         """
-Checks for the presence of a base file to merge with.
+        Checks for the presence of a base file to merge with.
 
-Sets the baseCheck flag to True if a CSV file is detected in the base path.
-"""
+        Sets the baseCheck flag to True if a CSV file is detected in the base path.
+        """
         print("\nChecking for base file to merge with.\n")
         if "csv" in str(self.baseCountsPath):
             print(
@@ -94,13 +101,13 @@ Sets the baseCheck flag to True if a CSV file is detected in the base path.
                 "No file type detected. Please use a .csv file in input/base directory.\n"
             )
 
-    def confirmKmerCountsAndAlphabet(self):
+    def confirmKmerCountsAndAlphabet(self) -> None:
         """
-Confirms consistency between the alphabets and k-mer lengths
-of the running merged dataframe and the base dataframe.
+        Confirms consistency between the alphabets and k-mer lengths
+        of the running merged dataframe and the base dataframe.
 
-If any inconsistency is found, the baseCheck flag is set to False.
-"""
+        If any inconsistency is found, the baseCheck flag is set to False.
+        """
         if self.baseCheck:
             self.baseKmerCounts = pd.read_csv(
                 str(self.baseCountsPath),
@@ -136,13 +143,13 @@ If any inconsistency is found, the baseCheck flag is set to False.
                 self.baseCheck = False
                 print("Different kmer lengths detected. Base File not merged.")
 
-    def mergeWithBase(self):
+    def mergeWithBase(self) -> None:
         """
-Merges the running merged dataframe with the base dataframe,
-if the baseCheck flag is True.
+        Merges the running merged dataframe with the base dataframe,
+        if the baseCheck flag is True.
 
-If the flag is False, only the running merged dataframe is saved to output.
-"""
+        If the flag is False, only the running merged dataframe is saved to output.
+        """
         if self.baseCheck:
             print("\nMerged Database \n")
             data = (
@@ -160,16 +167,16 @@ If the flag is False, only the running merged dataframe is saved to output.
             )
             csv.write_csv(runningMergeOut, self.outputPath)
 
-    def executeAll(self):
+    def executeAll(self) -> None:
         """
-Executes all the merging steps in sequence.
+        Executes all the merging steps in sequence.
 
-This includes:
-    1. Merging individual count dataframes.
-    2. Checking for a base file.
-    3. Confirming kmer counts and alphabet consistency.
-    4. Merging with the base file if applicable.
-"""
+        This includes:
+            1. Merging individual count dataframes.
+            2. Checking for a base file.
+            3. Confirming kmer counts and alphabet consistency.
+            4. Merging with the base file if applicable.
+        """
         self.mergeDataframes()
         self.checkForBaseFile()
         self.confirmKmerCountsAndAlphabet()

@@ -3,8 +3,10 @@
 # ---------------------------------------------------------
 
 import numpy as np
+from typing import Tuple, List, Optional, Dict, Any, Sequence, Mapping
 import pandas as pd
 import itertools
+import snekmer as skm
 
 
 # ---------------------------------------------------------
@@ -28,15 +30,23 @@ class Evaluator:
     modifier (float): Weight modifier for confidence merging.
     confidenceData (list, optional): List of paths to base confidence files. Defaults to None.
     """
+    inputData: list
+    outputGlob: str
+    reverseDecoyStats: str
+    modifier: float
+    confidenceData: None
+    trueRunningCrosstab = None
+    falseRunningCrosstab = None
 
     def __init__(
         self,
-        inputData,
-        outputGlobPath,
-        reverseDecoyStats,
-        modifier,
-        confidenceData=None,
-    ):
+        inputData: list,
+        outputGlobPath: str,
+        reverseDecoyStats: str,
+        modifier: float,
+        confidenceData: None,
+        ) -> None:
+        
         self.inputData = inputData
         self.outputGlob = outputGlobPath
         self.reverseDecoyStats = reverseDecoyStats
@@ -45,25 +55,40 @@ class Evaluator:
         self.trueRunningCrosstab = None
         self.falseRunningCrosstab = None
 
-    def readAndTransformInputData(self, filePath):
+    def readAndTransformInputData(self, filePath: str) -> Tuple[
+        List[Tuple[str, str]],
+        List[Optional[str]],
+        List[float],
+        List[str],
+        List[str],
+        List[str],
+        List[float]
+        ]:
         """
-Reads and transforms input data from a given CSV file, applying thresholds if necessary.
+        Reads and transforms input data from a given CSV file, applying thresholds if necessary.
 
-Args:
-    filePath (str): Path to the input CSV file.
+        Args:
+            filePath (str): Path to the input CSV file.
 
-Returns:
-    tuple: Parsed and transformed values from the input data.
-"""
+        Returns:
+            Tuple containing:
+            - topTwo (List[Tuple[str, str]]): the top two candidate labels per sequence
+            - predictions (List[Optional[str]]): the selected label per sequence
+            - deltas (List[float]): the delta scores used in selection
+            - result (List[str]): original sequence IDs
+            - tf (List[str]): "T" if prediction matches sequence ID, else "F"
+            - known (List[str]): "Known" or "Unknown" status per sequence
+            - topScores (List[float]): the score associated with each prediction
+        """
+        
         seqAnnScores = pd.read_csv(
             filePath,
-            indexCol="__index_level_0__",
+            index_col="__index_level_0__",
             header=0,
             engine="c",
         )
 
         # Load thresholds
-
         thresholdsDataframe = pd.read_csv(
             self.reverseDecoyStats,
             header=0,
@@ -85,7 +110,7 @@ Returns:
 
             self.thresholdDict = thresholdDict  # Store for later use
 
-            # Apply the selection method
+        # Apply the selection method
         predictions, deltas, topTwo = self.applySelectionMethod(
             seqAnnScores, selectionMethod, thresholdType
         )
@@ -107,7 +132,7 @@ Returns:
             else:
                 known.append("Known")
 
-                # Retrieve top scores based on predictions
+        # Retrieve top scores based on predictions
         topScores = []
         for idx, pred in zip(seqAnnScores.index, predictions):
             if pred is not None and isinstance(pred, str):
@@ -118,16 +143,19 @@ Returns:
 
         return topTwo, predictions, deltas, result, tf, known
 
-    def createTrueFalseCrosstabs(self, diffDataframe):
+    def createTrueFalseCrosstabs(self, diffDataframe: pd.DataFrame) -> Tuple[
+        pd.DataFrame, 
+        pd.DataFrame
+        ]:
         """
-Creates crosstabs for True and False predictions based on the given dataframe.
+        Creates crosstabs for True and False predictions based on the given dataframe.
 
-Args:
-    diffDataframe (DataFrame): DataFrame with differences and metrics.
+        Args:
+            diffDataframe (DataFrame): DataFrame with differences and metrics.
 
-Returns:
-    tuple: Crosstabs for True and False predictions.
-"""
+        Returns:
+            tuple: Crosstabs for True and False predictions.
+        """
         # Filter out rows where Prediction is None
         validPredictions = diffDataframe.dropna(subset=["Prediction"])
 
@@ -150,15 +178,18 @@ Returns:
         )
         return trueCrosstab, falseCrosstab
 
-    def handleRunningCrosstabs(self, trueCrosstab, falseCrosstab, iteration):
+    def handleRunningCrosstabs(self, 
+        trueCrosstab: pd.DataFrame, 
+        falseCrosstab: pd.DataFrame, 
+        iteration: int) -> None:
         """
-Handles and updates running crosstabs over iterations.
+        Handles and updates running crosstabs over iterations.
 
-Args:
-    trueCrosstab (DataFrame): Crosstab for True predictions.
-    falseCrosstab (DataFrame): Crosstab for False predictions.
-    iteration (int): Current iteration.
-"""
+        Args:
+            trueCrosstab (DataFrame): Crosstab for True predictions.
+            falseCrosstab (DataFrame): Crosstab for False predictions.
+            iteration (int): Current iteration.
+        """
         if iteration == 0:
             self.trueRunningCrosstab = trueCrosstab
             self.falseRunningCrosstab = falseCrosstab
@@ -183,7 +214,10 @@ Args:
         self.trueRunningCrosstab.fillna(0, inplace=True)
         self.falseRunningCrosstab.fillna(0, inplace=True)
 
-    def generateInputs(self):
+    def generateInputs(self) -> None:
+        """
+        Format the data so it is ready to be compared to the kmer association matrix.
+        """
         for j, f in enumerate(self.inputData):
             (
                 twoKeyVals,
@@ -201,26 +235,25 @@ Args:
                 diffDataframe
             )
             self.handleRunningCrosstabs(trueCrosstab, falseCrosstab, j)
-        return
 
-    def generateGlobalCrosstab(self):
+    def generateGlobalCrosstab(self) -> pd.DataFrame:
         """
-Generates a global crosstab based on the running True and False crosstabs.
+        Generates a global crosstab based on the running True and False crosstabs.
 
-Returns:
-    DataFrame: Computed global crosstab.
-"""
+        Returns:
+            DataFrame: Computed global crosstab.
+        """
         return self.trueRunningCrosstab / (
             self.trueRunningCrosstab + self.falseRunningCrosstab
         )
 
-    def calculateDistributions(self):
+    def calculateDistributions(self) -> Tuple[pd.Series, pd.Series]:
         """
-Calculates distributions for True and False predictions.
+        Calculates distributions for True and False predictions.
 
-Returns:
-    tuple: Total distributions for True and False predictions.
-"""
+        Returns:
+            tuple: Total distributions for True and False predictions.
+        """
         trueTotalDist = self.trueRunningCrosstab.sum(numeric_only=True, axis=0)
         falseTotalDist = self.falseRunningCrosstab.sum(
             numeric_only=True, axis=0
@@ -228,47 +261,70 @@ Returns:
 
         return trueTotalDist, falseTotalDist
 
-    def computeRatioDistribution(self, trueTotalDist, falseTotalDist):
+    def computeRatioDistribution(
+        self,
+        trueTotalDist: pd.Series,
+        falseTotalDist: pd.Series
+        ) -> Tuple[pd.Series, 
+               pd.Series, 
+               pd.Series]:
         """
-Computes ratioDist, totalSum, and interSum.
+        Computes ratioDist, totalSum, and interSum.
 
-- ratioDist: as before, a ratio of True/(True+False), interpolated over 0.0 to 1.0 increments.
-- totalSum: the raw cumulative sum of (True + False) counts at each increment, without interpolation.
-            For increments not originally present, we set 0 to indicate no data (no interpolation).
-- interSum: an interpolated version of totalSum over the same increments, filling in gaps smoothly.
-"""
-        # Calculate ratio (as before)
+        Args:
+            trueTotalDist (pd.Series): Counts for True predictions at each increment.
+            falseTotalDist (pd.Series): Counts for False predictions at each increment.
+
+        Returns:
+            Tuple[pd.Series, pd.Series, pd.Series]:
+                - ratioDist: ratio of True/(True+False), interpolated over 0.00 to 1.00 by 0.01.
+                - totalSum: raw cumulative sum of (True + False) at each increment (missing filled with 0).
+                - interSum: interpolated version of totalSum over the uniform increments.
+        """
         ratioTotalDist = trueTotalDist / (trueTotalDist + falseTotalDist)
-
         # This is the raw total cumulative sum of samples at each increment
         rawTotalSum = (trueTotalDist + falseTotalDist).copy()
-
         # Define a uniform index from 0.0 to 1.0 with 0.01 increments
         newIndex = pd.Index(
             [round(i, 2) for i in pd.np.arange(0, 1.01, 0.01)],
             name="Difference",
         )
-
         # Reindex ratioDist to the uniform index, then interpolate to fill missing increments
         ratioTotalDist = ratioTotalDist.reindex(newIndex)
         ratioTotalDist = ratioTotalDist.interpolate(method="linear")
         ratioTotalDist.fillna(0, inplace=True)
-
         # For totalSum, reindex to the same uniform scale but do not interpolate:
         # Instead of interpolating, we simply fill missing increments with 0.
         totalSum = rawTotalSum.reindex(newIndex, fill_value=0)
-
+        
         # Now create interSum by interpolating totalSum
         interSum = totalSum.interpolate(method="linear")
         interSum.fillna(0, inplace=True)
 
         return ratioTotalDist, totalSum, interSum
 
-    def checkConfidenceMerge(self, newRatioDist, totalSum, interSum):
+    def checkConfidenceMerge(
+        self,
+        newRatioDist: pd.Series,
+        totalSum: pd.Series,
+        interSum: pd.Series
+        ) -> pd.DataFrame:
         """
-Merge the computed distributions with a base confidence file if available.
-Now we have totalSum and interSum to include in the output DataFrame.
-"""
+        Merge the computed distributions with a base confidence file if available.
+
+        Args:
+            newRatioDist (pd.Series): ratio of True/(True+False) over the uniform increments.
+            totalSum (pd.Series): raw cumulative counts of (True + False) at each increment.
+            interSum (pd.Series): interpolated cumulative counts over the uniform increments.
+
+        Returns:
+            pd.DataFrame: DataFrame containing:
+                - confidence: merged or new confidence scores per increment
+                - weight: combined weight of prior and current data
+                - totalSum: updated raw cumulative counts
+                - interSum: updated interpolated cumulative counts
+                - cur_sum: total sample count across both True and False
+        """
         # currentWeight is total number of sequences processed
         currentWeight = (
             self.trueRunningCrosstab.values.sum()
@@ -285,7 +341,7 @@ Now we have totalSum and interSum to include in the output DataFrame.
 
         if self.confidenceData and len(self.confidenceData) == 1:
             priorConf = pd.read_csv(
-                self.confidenceData[0], indexCol="Difference"
+                self.confidenceData[0], index_col="Difference"
             )
             print(f"Prior Confidence Data:\n{priorConf}")
 
@@ -339,69 +395,42 @@ Now we have totalSum and interSum to include in the output DataFrame.
         updatedData.fillna(0, inplace=True)
         return updatedData
 
-    def saveResults(
-        self,
-        ratioTotalDist,
-        outputPath,
-    ):
-        """
-Saves the computed results to specified paths.
-
-Args:
-    ratioTotalDist (Series): Ratio distribution to be saved.
-    outputPath (str): Path to save the ratio distribution.
-
-"""
-        ratioTotalDist.to_csv(outputPath)
-        return
-
-    def executeAll(self):
-        """
-Executes all functions in order.
-
-This method does the following:
-
-1. Processes each input file by reading, transforming, and storing intermediate variables.
-2. After processing all files, generates a global crosstab to summarize the data.
-3. Calculates distributions for True and False predictions. If base confidence files are provided,
-it merges the calculated distributions with the base ones.
-4. Computes a ratio distribution based on the True and False total distributions.
-5. Finally, writes the ratio distribution and global crosstab to csv.
-"""
-        self.generateInputs()
-        ratioCrosstab = self.generateGlobalCrosstab()
-        trueDist, falseDist = self.calculateDistributions()
-        ratioDist, totalSum, interSum = self.computeRatioDistribution(
-            trueDist, falseDist
-        )
-        globalConfidence = self.checkConfidenceMerge(
-            ratioDist, totalSum, interSum
-        )
-        self.saveResults(globalConfidence, self.outputGlob)
-
     def generateDiffDataframe(
-        self, twoKeyVals, predictions, deltas, result, tf, known
-    ):
+        self,
+        twoKeyVals: Mapping[str, Sequence[Any]],
+        predictions: Sequence[Optional[str]],
+        deltas: Sequence[Optional[float]],
+        result: Sequence[str],
+        tf: Sequence[str],
+        known: Sequence[str]
+        ) -> pd.DataFrame:
         """
-Generates a dataframe showing the differences and other metrics.
+        Generates a dataframe showing the differences and other metrics.
 
-Args:
-    twoKeyVals (array-like): Two Key stored values, this can be top two scores, or top score and threshold, etc
-    predictions (Series): Predictions made by the selection method.
-    deltas (Series): Delta values calculated by the selection method.
-    result (list): Actual labels.
-    tf (list): List of "True/False" labels.
-    known (list): List of "Known/Unknown" labels.
+        Args:
+            twoKeyVals (Mapping[str, Sequence[Any]]): 
+                Two-key stored values (e.g., top two scores or top score and threshold),
+                with keys "keyValueOne" and "keyValueTwo".
+            predictions (Sequence[Optional[str]]): Predictions made by the selection method.
+            deltas (Sequence[Optional[float]]): Delta values calculated by the selection method.
+            result (Sequence[str]): Actual labels.
+            tf (Sequence[str]): List of "T"/"F" labels.
+            known (Sequence[str]): List of "Known"/"Unknown" labels.
 
-Returns:
-    DataFrame: Constructed dataframe with computed differences and other metrics.
-"""
-        # roundedDeltas = [ round(num, 2) for num in deltas ]
+        Returns:
+            pd.DataFrame: Constructed dataframe with columns:
+                - Top: first key value
+                - Second: second key value
+                - Difference: rounded delta values
+                - Prediction: predicted label
+                - Actual: actual label
+                - T/F: correctness flag
+                - Known/Unknown: knownness flag
+        """
         roundedDeltas = [
             round(num, 2) if num is not None else 0 for num in deltas
         ]
 
-        # print(f"twoKeyVals in generateDiffDataframe:\n {twoKeyVals}")
         diffDataframe = pd.DataFrame(
             {
                 "Top": twoKeyVals["keyValueOne"],
@@ -420,12 +449,29 @@ Returns:
         return diffDataframe
 
     def applySelectionMethod(
-        self, seqAnnScores, selectionMethod, thresholdType
-    ):
+        self,
+        seqAnnScores: pd.DataFrame,
+        selectionMethod: str,
+        thresholdType: Optional[str]
+    ) -> Tuple[List[Optional[str]], List[float], pd.DataFrame]:
+        """
+        Apply the chosen selection method to sequence annotation scores.
 
+        Args:
+            seqAnnScores (pd.DataFrame): DataFrame of annotation scores, indexed by sequence ID.
+            selectionMethod (str): Which method to use (e.g., "top_hit").
+            thresholdType (Optional[str]): Name of the threshold column, or None.
+
+        Returns:
+            Tuple containing:
+            - predictions (List[Optional[str]]): One predicted label per sequence.
+            - deltas (List[float]): Difference between top two scores per sequence.
+            - topTwo (pd.DataFrame): DataFrame with columns "keyValueOne" and "keyValueTwo" of the top two scores.
+        """
+            
         if selectionMethod == "top_hit" and thresholdType is None:
 
-            def getTopTwo(row):
+            def getTopTwo(row: pd.Series) -> pd.Series:
                 top2 = row.nlargest(2)
                 return pd.Series(
                     {
@@ -451,11 +497,9 @@ Returns:
             ).tolist()
             topTwo = keyValsDf[["keyValueOne", "keyValueTwo"]]
 
-            return predictions, deltas, topTwo
-
         elif selectionMethod == "top_hit" and thresholdType is not None:
 
-            def getTopTwo(row):
+            def getTopTwo(row: pd.Series) -> pd.Series:
                 # Filter values based on threshold, keeping only values above the threshold
                 thresholds = row.index.map(
                     self.thresholdDict
@@ -481,8 +525,6 @@ Returns:
                     }
                 )
 
-                # Apply the function to each row of seqAnnScores
-
             keyValsDf = seqAnnScores.apply(getTopTwo, axis=1)
 
             # Extracting the predictions and deltas for output
@@ -491,9 +533,8 @@ Returns:
                 keyValsDf["keyValueOne"] - keyValsDf["keyValueTwo"]
             ).tolist()
             topTwo = keyValsDf[["keyValueOne", "keyValueTwo"]]
-            return predictions, deltas, topTwo
 
-            # The top two values compared here are: Greatest dist from threshold and Second greatest dist from Threshold
+        # The top two values compared here are: Greatest dist from threshold and Second greatest dist from Threshold
         elif selectionMethod == "greatest_distance":
             thresholds = seqAnnScores.columns.to_series().map(
                 self.thresholdDict
@@ -568,11 +609,7 @@ Returns:
             predictions = keyValsDf["keyValueOneHeader"].tolist()
             topTwo = keyValsDf[["keyValueOne", "keyValueTwo"]]
 
-            return predictions, deltas, topTwo
-
         elif selectionMethod == "combined_distance":
-            # Method 4: Combined method with dynamic delta calculation
-            # Set weights
             weightTop = config["learnapp"].get("weight_top", 0.5)
             weightDistance = config["learnapp"].get("weight_distance", 0.5)
             thresholds = seqAnnScores.columns.to_series().map(
@@ -624,34 +661,27 @@ Returns:
                 topFamilyMethodThree = topFamiliesMethodThree.iloc[idx]
 
                 if predFamily == topFamilyMethod1:
-                    # Use delta from method 1/2: difference between top two scores
                     delta = (
                         topScoresMethodOne.iloc[idx]
                         - secondScoresMethodOne.iloc[idx]
                     )
-                    # For topTwo, use top two scores from method 1
                     topTwo = [
                         topScoresMethodOne.iloc[idx],
                         secondScoresMethodOne.iloc[idx],
                     ]
                 elif predFamily == topFamilyMethodThree:
-                    # Use delta from method 3: difference between top score and threshold
                     originalScore = seqAnnScores.loc[
                         seqAnnScores.index[idx], predFamily
                     ]
                     threshold = thresholds[predFamily]
                     delta = originalScore - threshold
-                    # For topTwo, use original score and threshold
                     topTwo = [originalScore, threshold]
                 else:
-                    # Use delta from combined scores: difference between top two combined scores
                     rowCombinedScores = combinedScores.iloc[idx]
-                    # Exclude the top prediction to find the second highest combined score
                     secondCombinedScore = rowCombinedScores.drop(
                         predFamily
                     ).max()
                     delta = topCombinedScores.iloc[idx] - secondCombinedScore
-                    # For topTwo, use top two combined scores
                     topTwo = [topCombinedScores.iloc[idx], secondCombinedScore]
 
                 deltas.append(delta)
@@ -664,13 +694,52 @@ Returns:
 
             # Convert predictions to list
             predictions = predictions.tolist()
-
-            return predictions, deltas, topTwo
-
         else:
             raise ValueError(f"Invalid selection method: {selectionMethod}")
+        
+        return predictions, deltas, topTwo
 
+    def saveResults(
+        self,
+        ratioTotalDist: pd.Series,
+        outputPath: str
+        ) -> None:
+        """
+        Saves the computed ratio distribution to a CSV file.
 
+        Args:
+            ratioTotalDist (pd.Series): Ratio distribution indexed by 'Difference'.
+            outputPath (str): File path where the CSV will be written.
+
+        Returns:
+            None
+        """
+        ratioTotalDist.to_csv(outputPath)
+
+    def executeAll(self) -> None:
+        """
+        Executes all functions in order.
+
+        This method does the following:
+
+        1. Processes each input file by reading, transforming, and storing intermediate variables.
+        2. After processing all files, generates a global crosstab to summarize the data.
+        3. Calculates distributions for True and False predictions. If base confidence files are provided,
+        it merges the calculated distributions with the base ones.
+        4. Computes a ratio distribution based on the True and False total distributions.
+        5. Finally, writes the ratio distribution and global crosstab to csv.
+        """
+        self.generateInputs()
+        ratioCrosstab = self.generateGlobalCrosstab()
+        trueDist, falseDist = self.calculateDistributions()
+        ratioDist, totalSum, interSum = self.computeRatioDistribution(
+            trueDist, falseDist
+        )
+        globalConfidence = self.checkConfidenceMerge(
+            ratioDist, totalSum, interSum
+        )
+        self.saveResults(globalConfidence, self.outputGlob)
+        
 evaluator = Evaluator(
     snakemake.input.evalApplyData,
     snakemake.output.evalGlob,

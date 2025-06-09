@@ -7,7 +7,6 @@ import sys
 import re
 import gzip
 import itertools
-
 import numpy as np
 import pandas as pd
 import snekmer as skm
@@ -22,8 +21,6 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 config = snakemake.config
 
-# change matplotlib backend to non-interactive
-plt.switch_backend("Agg")
 
 # ---------------------------------------------------------
 # Run script
@@ -32,27 +29,37 @@ plt.switch_backend("Agg")
 
 class KmerCompare:
     """
-Initializes the KmerCompare object.
+    Initializes the KmerCompare object.
 
-This object is designed to compare kmer counts with provided annotations.
+    This object is designed to compare kmer counts with provided annotations.
 
-Attributes:
-compareAssociations (str): Path to a CSV file containing kmer counts totals matrix.
-annotationFiles (list): List of paths to files containing sequence annotations.
-inputData (str): Path to input data for kmer analysis.
-outputPath (str): Path to save the result.
-annotation (list): List of dataframes loaded from annotationFiles.
-kmerCountTotals (DataFrame or None): DataFrame of kmer count totals from compareAssociations.
-seqAnnot (dict): Dictionary mapping sequence IDs to annotations.
-kmerList (list): List of unique kmers found in input data.
-seqKmerdict (dict): Dictionary mapping sequence IDs to their kmer counts.
-totalSeqs (int): Total number of sequences processed.
-kmerTotals (list): Total counts for each kmer across all sequences.
-"""
-
+    Attributes:
+    compareAssociations (str): Path to a CSV file containing kmer counts totals matrix.
+    annotationFiles (list): List of paths to files containing sequence annotations.
+    inputData (str): Path to input data for kmer analysis.
+    outputPath (str): Path to save the result.
+    annotation (list): List of dataframes loaded from annotationFiles.
+    kmerCountTotals (DataFrame or None): DataFrame of kmer count totals from compareAssociations.
+    seqAnnot (dict): Dictionary mapping sequence IDs to annotations.
+    kmerList (list): List of unique kmers found in input data.
+    seqKmerdict (dict): Dictionary mapping sequence IDs to their kmer counts.
+    totalSeqs (int): Total number of sequences processed.
+    kmerTotals (list): Total counts for each kmer across all sequences.
+    """
+    compareAssociations: str 
+    annotationFiles: list
+    inputData: str
+    outputPath: str
+    annotation: list
+    kmerCountTotals: pd.DataFrame
+    seqAnnot: dict
+    kmerList: list
+    seqKmerdict: dict
+    totalSeqs: int
+    kmerTotals: list
+    
     def __init__(
-        self, compareAssociations, annotationFiles, inputData, outputPath
-    ):
+        self, compareAssociations: str, annotationFiles: list, inputData: str, outputPath: str) -> None:
         self.compareAssociations = compareAssociations
         self.annotationFiles = annotationFiles
         self.inputData = inputData
@@ -65,12 +72,12 @@ kmerTotals (list): Total counts for each kmer across all sequences.
         self.totalSeqs = 0
         self.kmerTotals = []
 
-    def generateInputs(self):
+    def generateInputs(self) -> None:
         """
-Generates the necessary inputs for comparison.
+        Generates the necessary inputs for comparison.
 
-Loads kmer counts and annotations into appropriate data structures.
-"""
+        Loads kmer counts and annotations into appropriate data structures.
+        """
         self.kmerCountTotals = pd.read_csv(
             str(self.compareAssociations),
             index_col="__index_level_0__",
@@ -85,12 +92,12 @@ Loads kmer counts and annotations into appropriate data structures.
         for i, seqid in enumerate(seqs):
             self.seqAnnot[seqid] = anns[i]
 
-    def generateKmerCounts(self):
+    def generateKmerCounts(self) -> None:
         """
-Generates a dictionary of kmer counts for each sequence.
+        Generates a dictionary of kmer counts for each sequence.
 
-Processes the input data to count the occurrence of each kmer in each sequence.
-"""
+        Processes the input data to count the occurrence of each kmer in each sequence.
+        """
         kmerList, df = skm.io.load_npz(self.inputData)
         self.kmerList = kmerList[0]
         seqIDs = df["sequence_id"]
@@ -115,13 +122,13 @@ Processes the input data to count the occurrence of each kmer in each sequence.
                     self.kmerTotals[i] += kCounts[item]
             self.seqKmerdict[seq] = store
 
-    def addKnownTag(self):
+    def addKnownTag(self) -> None:
         """
-Modifies sequence IDs to include a known or unknown tag based on annotation.
+        Modifies sequence IDs to include a known or unknown tag based on annotation.
 
-Uses annotations to determine whether a sequence is known or unknown.
-Appends a tag to the sequence ID accordingly.
-"""
+        Uses annotations to determine whether a sequence is known or unknown.
+        Appends a tag to the sequence ID accordingly.
+        """
         seqs = set(self.annotation[0]["id"].tolist())
         count = 0
         for seqid in list(self.seqKmerdict):
@@ -137,14 +144,14 @@ Appends a tag to the sequence ID accordingly.
             count += 1
         self.totalSeqs = len(self.seqKmerdict)
 
-    def constructKmerCountsDataframe(self):
+    def constructKmerCountsDataframe(self) -> None:
         """
-Constructs a pandas DataFrame of kmer counts for each sequence.
+        Constructs a pandas DataFrame of kmer counts for each sequence.
 
-Returns:
-    DataFrame: A DataFrame where rows represent sequences (and a total row),
-            and columns represent kmers.
-"""
+        Returns:
+            DataFrame: A DataFrame where rows represent sequences (and a total row),
+                    and columns represent kmers.
+        """
         kmerCounts = pd.DataFrame(self.seqKmerdict.values())
         kmerCounts.insert(0, "Annotations", 1, True)
         self.kmerTotals.insert(0, self.totalSeqs)
@@ -155,17 +162,17 @@ Returns:
         kmerCounts.index = ["Totals"] + list(self.seqKmerdict.keys())
         return kmerCounts
 
-    def matchkmerCountsFormat(self, kmerCounts):
+    def matchkmerCountsFormat(self, kmerCounts: pd.DataFrame) -> None:
         """
-Matches the format of the provided kmer counts DataFrame to the format of the
-comparison data. Ensures columns align correctly.
+        Matches the format of the provided kmer counts DataFrame to the format of the
+        comparison data. Ensures columns align correctly.
 
-Args:
-    kmerCounts (DataFrame): DataFrame of kmer counts to format.
+        Args:
+            kmerCounts (DataFrame): DataFrame of kmer counts to format.
 
-Returns:
-    DataFrame: Formatted kmer counts DataFrame.
-"""
+        Returns:
+            DataFrame: Formatted kmer counts DataFrame.
+        """
         if len(str(kmerCounts.columns.values[10])) == len(
             str(self.kmerCountTotals.columns.values[10])
         ):
@@ -212,17 +219,17 @@ Returns:
 
         return kmerCounts
 
-    def calculateCosineSimilarity(self, kmerCounts):
+    def calculateCosineSimilarity(self, kmerCounts: pd.DataFrame) -> None:
         """
-Calculates the cosine similarity between the input kmer counts and comparison data.
+        Calculates the cosine similarity between the input kmer counts and comparison data.
 
-Args:
-    kmerCounts (DataFrame): DataFrame of kmer counts for comparison.
+        Args:
+            kmerCounts (DataFrame): DataFrame of kmer counts for comparison.
 
-Returns:
-    DataFrame: A DataFrame of cosine similarity scores.
-"""
-        cosineDataframe = sklearn.metrics.pairwise.cosine_similarity(
+        Returns:
+            DataFrame: A DataFrame of cosine similarity scores.
+        """
+        cosineDataframe = cosine_similarity(
             self.kmerCountTotals, kmerCounts
         ).T
         finalMatrixWithScores = pd.DataFrame(
@@ -232,16 +239,16 @@ Returns:
         )
         return finalMatrixWithScores
 
-    def filterTopTwoValues(self, finalMatrixWithScores):
+    def filterTopTwoValues(self, finalMatrixWithScores: pd.DataFrame) -> None:
         """
-Filters the similarity scores to keep only the top two values for each row.
+        Filters the similarity scores to keep only the top two values for each row.
 
-Args:
-    finalMatrixWithScores (DataFrame): DataFrame of similarity scores.
+        Args:
+            finalMatrixWithScores (DataFrame): DataFrame of similarity scores.
 
-Returns:
-    DataFrame: DataFrame with all but the top two scores set to NaN.
-"""
+        Returns:
+            DataFrame: DataFrame with all but the top two scores set to NaN.
+        """
         topTwoIndices = np.argsort(-finalMatrixWithScores.values, axis=1)[:, :2]
         mask = np.zeros_like(finalMatrixWithScores.values, dtype=bool)
         for i, (indexOne, indexTwo) in enumerate(topTwoIndices):
@@ -250,16 +257,16 @@ Returns:
         finalMatrixWithScores.values[~mask] = np.nan
         return finalMatrixWithScores
 
-    def filterTopOneValue(self, finalMatrixWithScores):
+    def filterTopOneValue(self, finalMatrixWithScores: pd.DataFrame) -> None:
         """
-Filters the similarity scores to keep only the top one value for each row.
+        Filters the similarity scores to keep only the top one value for each row.
 
-Args:
-    finalMatrixWithScores (DataFrame): DataFrame of similarity scores.
+        Args:
+            finalMatrixWithScores (DataFrame): DataFrame of similarity scores.
 
-Returns:
-    DataFrame: DataFrame with all but the top single score set to NaN.
-"""
+        Returns:
+            DataFrame: DataFrame with all but the top single score set to NaN.
+        """
         topOneIndices = np.argsort(-finalMatrixWithScores.values, axis=1)[:, :1]
         mask = np.zeros_like(finalMatrixWithScores.values, dtype=bool)
 
@@ -269,31 +276,31 @@ Returns:
         finalMatrixWithScores.values[~mask] = np.nan
         return finalMatrixWithScores
 
-    def writeOutput(self, finalMatrixWithScores):
+    def writeOutput(self, finalMatrixWithScores: pd.DataFrame) -> None:
         """
-Writes the provided DataFrame to a CSV file at the specified output path.
+        Writes the provided DataFrame to a CSV file at the specified output path.
 
-Args:
-    finalMatrixWithScores (DataFrame): DataFrame to write to CSV.
-"""
+        Args:
+            finalMatrixWithScores (DataFrame): DataFrame to write to CSV.
+        """
         finalMatrixWithScoresWrite = pa.Table.from_pandas(finalMatrixWithScores)
         with gzip.open(self.outputPath, "wb") as gzippedFile:
             csv.write_csv(finalMatrixWithScoresWrite, gzippedFile)
 
-    def executeAll(self, config):
+    def executeAll(self, config: str) -> None:
         """
-Executes all the comparison steps in sequence.
+        Executes all the comparison steps in sequence.
 
-This includes:
-    1. Loading inputs.
-    2. Generating kmer counts.
-    # 3. Adding known/unknown tags.
-    4. Constructing a k-mer counts dataframe.
-    5. Matching format with comparison data.
-    6. Calculating cosine similarity.
-    7. Filtering to keep top two values (if applicable).
-    8. Writing results to output.
-"""
+        This includes:
+            1. Loading inputs.
+            2. Generating kmer counts.
+            3. Adding known/unknown tags.
+            4. Constructing a k-mer counts dataframe.
+            5. Matching format with comparison data.
+            6. Calculating cosine similarity.
+            7. Filtering to keep top two values (if applicable).
+            8. Writing results to output.
+        """
         self.generateInputs()
         self.generateKmerCounts()
         self.addKnownTag()
@@ -305,7 +312,6 @@ This includes:
                 finalMatrixWithScores
             )
         self.writeOutput(finalMatrixWithScores)
-
 
 analysis = KmerCompare(
     snakemake.input.compareAssociations, snakemake.input.annotation, snakemake.input.data, snakemake.output.apply

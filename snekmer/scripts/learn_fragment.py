@@ -3,6 +3,7 @@
 # ---------------------------------------------------------
 
 import random
+from typing import List
 from Bio import SeqIO
 import snekmer as skm
 
@@ -19,19 +20,26 @@ config = snakemake.config
 
 random.seed(params.seed)  # setting the seed for randomness
 
-def fragment(sequence, version, length, location, minLength):
+
+def fragment(
+    sequence: str,
+    version: str,
+    length: int,
+    location: str,
+    minLength: int
+    ) -> List[str]:
     """
     Fragment a given sequence.
 
-    Parameters:
-    - sequence (str): the sequence to fragment.
-    - version (str): fragmentation method, either "absolute" or "percent".
-    - length (int): length for fragmentation. If version is "percent", this is treated as a percentage.
-    - location (str): where the fragmentation happens - "start", "end", or "random".
-    - minLength (int): minimum length a fragment should be to be retained.
+    Args:
+        sequence (str): the sequence to fragment.
+        version (str): fragmentation method, either "absolute" or "percent".
+        length (int): length for fragmentation. If version is "percent", this is treated as a percentage.
+        location (str): where the fragmentation happens - "start", "end", or "random".
+        min_length (int): minimum length a fragment should be to be retained.
 
     Returns:
-    - list of fragments.
+        List[str]: the retained fragment(s).
     """
     frags = []
     if version == "absolute":
@@ -43,7 +51,7 @@ def fragment(sequence, version, length, location, minLength):
         for i in range(0, len(sequence) - actualLength + 1):
             frags.append(sequence[i : i + actualLength])
 
-            # Filter fragments based on minLength
+    # Filter fragments based on minLength
     frags = [frag for frag in frags if len(frag) >= minLength]
 
     # Retention logic based on the location parameter

@@ -4,8 +4,9 @@
 
 import sys
 import itertools
-
+from typing import Optional
 import pandas as pd
+import numpy as np
 import snekmer as skm
 import pyarrow as pa
 import pyarrow.csv as csv
@@ -27,32 +28,44 @@ outDir = skm.io.define_output_dir(
 
 
 class KmerCompare:
+    """
+    Initialize KmerCompare with necessary file paths.
+
+    Args:
+        compareAssociations (str): Path to compare associations file.
+        data (str): Path to data file.
+        confidenceAssociations (str): Path to confidence associations file.
+        decoyStats (str): Path to decoy stats file.
+        annotation (str): Path to annotation file.
+        outputSeqAnn (str): Path to output sequence annotation file.
+        outputKmerSummary (str): Path to output kmer summary file.
+        selectionType (str): Method selection based on config.
+        thresholdType (str): Threshold type from config.
+    """
+    compareAssociations: str
+    data: str
+    confidenceAssociations: str
+    decoyStats: str
+    annotation: str
+    outputSeqAnn: str
+    outputKmerSummary: str
+    selectionType: str
+    thresholdType: str
+    df: Optional[pd.DataFrame]
+    
     def __init__(
         self,
-        compareAssociations,
-        data,
-        confidenceAssociations,
-        decoyStats,
-        annotation,
-        outputSeqAnn,
-        outputKmerSummary,
-        selectionType,
-        thresholdType,
-    ):
-        """
-Initialize KmerCompare with necessary file paths.
+        compareAssociations: str,
+        data: str,
+        confidenceAssociations: str,
+        decoyStats: str,
+        annotation: str,
+        outputSeqAnn: str,
+        outputKmerSummary: str,
+        selectionType: str,
+        thresholdType: str,
+    )  -> None:
 
-Args:
-    compareAssociations (str): Path to compare associations file.
-    data (str): Path to data file.
-    confidenceAssociations (str): Path to confidence associations file.
-    decoyStats (str): Path to decoy stats file.
-    annotation (str): Path to annotation file.
-    outputSeqAnn (str): Path to output sequence annotation file.
-    outputKmerSummary (str): Path to output kmer summary file.
-    selectionType (str): Method selection based on config.
-    thresholdType (str): Threshold type from config.
-"""
         self.compareAssociations = compareAssociations
         self.data = data
         self.confidenceAssociations = confidenceAssociations
@@ -64,10 +77,10 @@ Args:
         self.thresholdType = thresholdType
         self.df = None
 
-    def loadData(self):
+    def loadData(self) -> None:
         """
-Load kmer counts and sequence data from provided files.
-"""
+        Load kmer counts and sequence data from provided files.
+        """
         self.kmerCountTotals = pd.read_csv(
             str(self.compareAssociations),
             index_col="__index_level_0__",
@@ -79,10 +92,10 @@ Load kmer counts and sequence data from provided files.
         self.seqIDs = df["sequence_id"]
         self.df = df
 
-    def generateKmerCounts(self):
+    def generateKmerCounts(self) -> None:
         """
-Generate k-mer counts for sequences present in the data.
-"""
+        Generate k-mer counts for sequences present in the data.
+        """
         self.kmerTotals = [0 for _ in self.kmerList]
         kmerLen = len(self.kmerList[0])
         self.seqKmerDict = {}
@@ -99,10 +112,10 @@ Generate k-mer counts for sequences present in the data.
                 self.kmerTotals[i] += kmerCounts.get(item, 0)
             self.seqKmerDict[seq] = store
 
-    def constructKmerCountsDataframe(self):
+    def constructKmerCountsDataframe(self) -> None:
         """
-Construct a DataFrame to represent k-mer counts across sequences.
-"""
+        Construct a DataFrame to represent k-mer counts across sequences.
+        """
         totalSeqs = len(self.seqKmerDict)
         self.kmerCounts = pd.DataFrame(self.seqKmerDict.values())
         self.kmerCounts.insert(0, "Annotations", 1, True)
@@ -115,10 +128,10 @@ Construct a DataFrame to represent k-mer counts across sequences.
         self.kmerCounts.columns = ["Sequence count"] + list(self.kmerList)
         self.kmerCounts.index = ["Totals"] + list(self.seqKmerDict.keys())
 
-    def matchKmerCountsFormat(self):
+    def matchKmerCountsFormat(self) -> None:
         """
-Ensure that the format of the k-mer counts DataFrame matches the expected format.
-"""
+        Ensure that the format of the k-mer counts DataFrame matches the expected format.
+        """
         if len(str(self.kmerCounts.columns.values[10])) == len(
             str(self.kmerCountTotals.columns.values[10])
         ):
@@ -169,11 +182,11 @@ Ensure that the format of the k-mer counts DataFrame matches the expected format
             columns=columnOrder, fillValue=0
         )
 
-    def cosineSimilarity(self):
+    def cosineSimilarity(self) -> None:
         """
-Compute cosine similarity between kmer counts of sequences.
-"""
-        cosineDataframe = sklearn.metrics.pairwise.cosineSimilarity(
+        Compute cosine similarity between kmer counts of sequences.
+        """
+        cosineDataframe = cosine_similarity(
             self.kmerCountTotals, self.kmerCounts
         ).T
         self.kmerCountTotals = pd.DataFrame(
@@ -184,7 +197,10 @@ Compute cosine similarity between kmer counts of sequences.
 
         # Method 0: Hit Hit No Threshold
 
-    def selectTopNoThreshold(self):
+    def selectTopNoThreshold(self) -> None:
+        """
+        Select the top hit with no family specific threshold specified
+        """
         self.selectedValues = {}
         for rowID, row in self.kmerCountTotals.iterrows():
             if not row.empty:
@@ -202,7 +218,10 @@ Compute cosine similarity between kmer counts of sequences.
 
                 # Method 1: Top Hit Above Threshold
 
-    def selectTopAboveThreshold(self):
+    def selectTopAboveThreshold(self) -> None:
+        """
+        Select the top hit while using the family specific threshold cutoffs.
+        """
         self.decoyDataframe = pd.read_csv(
             str(self.decoyStats),
             header=0,
@@ -235,11 +254,11 @@ Compute cosine similarity between kmer counts of sequences.
                 self.selectedValues[rowID] = (None, None, None)
                 filteredOutCount += 1
 
-                # Method 2: Greatest Distance
-                # Note, Delta is calculated different from Top Two Hit method - and as such, is not comparable in the same way.
-                # Note, Score is also maybe calculated differently.  Actually I think it might still be cosine score.  CONFIRM THIS.
-
-    def selectByGreatestDistance(self):
+    # Method 2: Greatest Distance
+    def selectByGreatestDistance(self) -> None:
+        """
+        Select the protein annotation by choosing the option that has the greatest distance from its family specific threshold.
+        """
         self.decoyDataframe = pd.read_csv(
             str(self.decoyStats),
             header=0,
@@ -269,11 +288,13 @@ Compute cosine similarity between kmer counts of sequences.
                 self.selectedValues[rowID] = (None, None, None)
                 filteredOutCount += 1
 
-                # Method 3: Balanced Distance
-                # Note, Delta is calculated different from Top Two Hit method - and as such, is not comparable in the same way.
-                # Note, Score is also now calculated differently. It is not the Cosine Similarity Score, it is weighted
-
-    def selectByBalancedDistance(self, weightTop=0.5, weightDistance=0.5):
+    
+    # Method 3: Balanced Distance
+    def selectByBalancedDistance(self, weightTop: float = 0.5, weightDistance: float = 0.5) -> None:
+        """
+        This method combines the previous two. In a weighted manner, choose the top protein annotation.
+        Takes a combination of highest cosine similarity (top) and distance from family specific threshold.
+        """
         self.decoyDataframe = pd.read_csv(
             str(self.decoyStats),
             header=0,
@@ -333,7 +354,10 @@ Compute cosine similarity between kmer counts of sequences.
                 self.selectedValues[rowID] = (None, None, None)
                 filteredOutCount += 1
 
-    def formatAndWriteOutput(self):
+    def formatAndWriteOutput(self) -> None:
+        """
+        Format and write the final output from Apply.
+        """
         if config["learnapp"]["save_apply_associations"]:
             kmerCountTotals_write = pa.Table.from_pandas(
                 self.kmerCountTotals
@@ -377,7 +401,10 @@ Compute cosine similarity between kmer counts of sequences.
         resultsWrite = pa.Table.from_pandas(results)
         csv.write_csv(resultsWrite, self.outputKmerSummary)
 
-    def execute_all(self):
+    def execute_all(self) -> None:
+        """
+        Run all previously defined functions in sequence.
+        """
         self.loadData()
         self.generateKmerCounts()
         self.constructKmerCountsDataframe()
