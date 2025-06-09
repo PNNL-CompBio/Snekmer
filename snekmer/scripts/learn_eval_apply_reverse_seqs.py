@@ -2,45 +2,23 @@
 # Imports
 # ---------------------------------------------------------
 
-import pickle
-from datetime import datetime
-from os import makedirs
-from os.path import exists, join
-
-import numpy as np
-import matplotlib.pyplot as plt
-import pandas as pd
-import snekmer as skm
-from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import train_test_split, StratifiedKFold
-from sklearn.preprocessing import LabelEncoder
-
-import numpy as np
-import pandas as pd
-import pyarrow as pa
-import pyarrow.csv as csv
-import seaborn as sns
-import sklearn
-from Bio import SeqIO
-from scipy.interpolate import interp1d
-from scipy.stats import rankdata
-import random
-import snekmer as skm
-from scipy.ndimage import gaussian_filter1d
-import sklearn.metrics.pairwise
-import itertools
-import os
-import shutil
 import sys
 import gzip
+import itertools
+
+import numpy as np
+import pandas as pd
+import snekmer as skm
+import pyarrow as pa
+import pyarrow.csv as csv
+from sklearn.metrics.pairwise import cosine_similarity
+
+
 # ---------------------------------------------------------
 # Files and Parameters
 # ---------------------------------------------------------
 
 config = snakemake.config
-
-# change matplotlib backend to non-interactive
-plt.switch_backend("Agg")
 
 # ---------------------------------------------------------
 # Run script
@@ -101,7 +79,7 @@ Loads kmer counts and annotations into appropriate data structures.
         for i, seqid in enumerate(seqs):
             self.seqAnnot[seqid] = anns[i]
 
-    def generate_reverse_kmerCounts(self):
+    def generateReverseKmerCounts(self):
         """
 Generates a dictionary of kmer counts for each sequence.
 
@@ -111,15 +89,15 @@ Processes the input data to count the occurrence of each kmer in each sequence.
         self.kmerList = kmerList[0]
         seqids = df["sequence_id"]
         self.kmerTotals = [0] * len(self.kmerList)
-        k_len = len(self.kmerList[0])
+        kmerLen = len(self.kmerList[0])
 
         for i, seq in enumerate(seqids):
             v = df["sequence"][i]
             v = v[::-1]
             kCounts = {}
             items = [
-                v[item : (item + k_len)]
-                for item in range(0, (len((v)) - k_len + 1))
+                v[item : (item + kmerLen)]
+                for item in range(0, (len((v)) - kmerLen + 1))
             ]
             for j in items:
                 kCounts[j] = kCounts.get(j, 0) + 1
@@ -169,17 +147,17 @@ Returns:
             compareCheck = False
 
         if compareCheck:
-            check_1 = len(kmerCounts.columns.values)
+            check = len(kmerCounts.columns.values)
             alphabetInitial = set(
                 itertools.chain(
-                    *[list(x) for x in kmerCounts.columns.values[10:check_1]]
+                    *[list(x) for x in kmerCounts.columns.values[10:check]]
                 )
             )
             alphabetCompare = set(
                 itertools.chain(
                     *[
                         list(x)
-                        for x in self.kmerCountTotals.columns.values[10:check_1]
+                        for x in self.kmerCountTotals.columns.values[10:check]
                     ]
                 )
             )
@@ -217,11 +195,11 @@ Args:
 Returns:
     DataFrame: A DataFrame of cosine similarity scores.
 """
-        cosine_df = sklearn.metrics.pairwise.cosine_similarity(
+        cosineDataframe = sklearn.metrics.pairwise.cosine_similarity(
             self.kmerCountTotals, kmerCounts
         ).T
         finalMatrixWithScores = pd.DataFrame(
-            cosine_df,
+            cosineDataframe,
             columns=self.kmerCountTotals.index,
             index=kmerCounts.index,
         )
@@ -238,8 +216,8 @@ Args:
     finalMatrixWithScores (DataFrame): DataFrame to write to CSV.
 """
         finalMatrixWithScoresWrite = pa.Table.from_pandas(finalMatrixWithScores)
-        with gzip.open(self.outputPath, "wb") as gzipped_file:
-            csv.write_csv(finalMatrixWithScoresWrite, gzipped_file)
+        with gzip.open(self.outputPath, "wb") as gzippedFile:
+            csv.write_csv(finalMatrixWithScoresWrite, gzippedFile)
 
     def executeAll(self, config):
         """
@@ -256,7 +234,7 @@ This includes:
     8. Writing results to output.
 """
         self.generateInputs()
-        self.generate_reverse_kmerCounts()
+        self.generateReverseKmerCounts()
         kmerCounts = self.constructKmerCountsDataframe()
         kmerCounts = self.matchkmerCountsFormat(kmerCounts)
         finalMatrixWithScores = self.calculateCosineSimilarity(kmerCounts)

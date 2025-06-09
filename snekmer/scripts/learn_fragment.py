@@ -2,44 +2,16 @@
 # Imports
 # ---------------------------------------------------------
 
-import pickle
-from datetime import datetime
-from os import makedirs
-from os.path import exists, join
-
-import numpy as np
-import matplotlib.pyplot as plt
-import pandas as pd
-import snekmer as skm
-from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import train_test_split, StratifiedKFold
-from sklearn.preprocessing import LabelEncoder
-
-import numpy as np
-import pandas as pd
-import pyarrow as pa
-import pyarrow.csv as csv
-import seaborn as sns
-import sklearn
-from Bio import SeqIO
-from scipy.interpolate import interp1d
-from scipy.stats import rankdata
 import random
+from Bio import SeqIO
 import snekmer as skm
-from scipy.ndimage import gaussian_filter1d
-import sklearn.metrics.pairwise
-import itertools
-import os
-import shutil
-import sys
-# ---------------------------------------------------------
+
+
+# -----------------------------------------------------------
 # Files and Parameters
 # ---------------------------------------------------------
 
 config = snakemake.config
-
-# change matplotlib backend to non-interactive
-plt.switch_backend("Agg")
 
 # ---------------------------------------------------------
 # Run script
@@ -47,7 +19,7 @@ plt.switch_backend("Agg")
 
 random.seed(params.seed)  # setting the seed for randomness
 
-def fragment(sequence, version, length, location, min_length):
+def fragment(sequence, version, length, location, minLength):
     """
     Fragment a given sequence.
 
@@ -56,7 +28,7 @@ def fragment(sequence, version, length, location, min_length):
     - version (str): fragmentation method, either "absolute" or "percent".
     - length (int): length for fragmentation. If version is "percent", this is treated as a percentage.
     - location (str): where the fragmentation happens - "start", "end", or "random".
-    - min_length (int): minimum length a fragment should be to be retained.
+    - minLength (int): minimum length a fragment should be to be retained.
 
     Returns:
     - list of fragments.
@@ -67,12 +39,12 @@ def fragment(sequence, version, length, location, min_length):
             frags.append(sequence[i : i + length])
 
     elif version == "percent":
-        actual_length = int(len(sequence) * (length / 100))
-        for i in range(0, len(sequence) - actual_length + 1):
-            frags.append(sequence[i : i + actual_length])
+        actualLength = int(len(sequence) * (length / 100))
+        for i in range(0, len(sequence) - actualLength + 1):
+            frags.append(sequence[i : i + actualLength])
 
-            # Filter fragments based on min_length
-    frags = [frag for frag in frags if len(frag) >= min_length]
+            # Filter fragments based on minLength
+    frags = [frag for frag in frags if len(frag) >= minLength]
 
     # Retention logic based on the location parameter
     if location == "start":
@@ -91,20 +63,20 @@ def fragment(sequence, version, length, location, min_length):
 with open(input.fasta, "r") as f:
     fastaSequences = SeqIO.parse(f, "fasta")
 
-    with open(output.fasta_out, "w") as the_file:
+    with open(output.fasta_out, "w") as file:
         for fasta in fastaSequences:
-            title_line, sequence = fasta.description, str(fasta.seq)
+            titleLine, sequence = fasta.description, str(fasta.seq)
 
             fragments = fragment(
                 sequence,
                 params.version,
-                params.frag_length,
+                params.fragLength,
                 params.location,
-                params.min_length,
+                params.minLength,
             )
 
             for i, frag in enumerate(fragments):
-                the_file.write(
-                    ">" + title_line + " Fragment=" + str(i) + "\n"
+                file.write(
+                    ">" + titleLine + " Fragment=" + str(i) + "\n"
                 )
-                the_file.write(frag + "\n")
+                file.write(frag + "\n")

@@ -2,45 +2,19 @@
 # Imports
 # ---------------------------------------------------------
 
-import pickle
-from datetime import datetime
-from os import makedirs
-from os.path import exists, join
-
-import numpy as np
-import matplotlib.pyplot as plt
-import pandas as pd
-import snekmer as skm
-from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import train_test_split, StratifiedKFold
-from sklearn.preprocessing import LabelEncoder
-
-import numpy as np
-import pandas as pd
-import pyarrow as pa
-import pyarrow.csv as csv
-import seaborn as sns
-import sklearn
-from Bio import SeqIO
-from scipy.interpolate import interp1d
-from scipy.stats import rankdata
-import random
-import snekmer as skm
-from scipy.ndimage import gaussian_filter1d
-import sklearn.metrics.pairwise
-import itertools
-import os
-import shutil
-import sys
 import re
+from os.path import join
+
+import numpy as np
+import pandas as pd
+import snekmer as skm
+
 # ---------------------------------------------------------
 # Files and Parameters
 # ---------------------------------------------------------
 
 config = snakemake.config
 
-# change matplotlib backend to non-interactive
-plt.switch_backend("Agg")
 
 outDir = skm.io.define_output_dir(
     config["alphabet"], config["k"], nested=config["nested_output"]
@@ -80,14 +54,14 @@ totalSeqs (int): The total number of sequences after filtering.
         self.annotationCounts = {}
         self.totalSeqs = 0
 
-    def loadAnnotations(self, input_annotation):
+    def loadAnnotations(self, inputAnnotation):
         """
 Load annotations from a list of provided input files.
 
 Args:
-    input_annotation (list): List of file paths containing annotations.
+    inputAnnotation (list): List of file paths containing annotations.
 """
-        for f in input_annotation:
+        for f in inputAnnotation:
             self.annotation.append(pd.read_table(f))
         annotations = pd.concat(self.annotation)
         seqs = annotations["id"].tolist()
@@ -115,10 +89,10 @@ Args:
         """
 Generate kmer counts for sequences present in the data.
 """
-        k_len = len(self.kmerList[0])
+        kmerLen = len(self.kmerList[0])
         for i, seq in enumerate(self.seqids):
             v = self.df["sequence"][i]
-            kCounts = self._computeKmerCountsForSequence(v, k_len)
+            kCounts = self._computeKmerCountsForSequence(v, kmerLen)
             self.seqKmerdict[seq] = kCounts
 
     def filterAndConstruct(self):
@@ -161,25 +135,25 @@ Args:
         newIndex = ["Totals"] + list(self.annotationCounts.keys())
         kmerCounts.index = newIndex
         kmerCounts.replace(0, "", inplace=True)
-        out_name = join(
+        outName = join(
             outDir, "learn", "kmer-counts-" + str(inputData)[14:-4] + ".csv"
         )
         kmerCounts.index.name = "__index_level_0__"
-        kmerCounts.to_csv(out_name, index=True)
+        kmerCounts.to_csv(outName, index=True)
 
-    def _computeKmerCountsForSequence(self, v, k_len):
+    def _computeKmerCountsForSequence(self, v, kmerLen):
         """
 Computes k-mer counts for a given sequence.
 
 Args:
     v (str): The sequence.
-    k_len (int): Length of the k-mer.
+    kmerLen (int): Length of the k-mer.
 
 Returns:
     list: List of k-mer counts for the sequence.
 """
         items = [
-            v[item : item + k_len] for item in range(0, len(v) - k_len + 1)
+            v[item : item + kmerLen] for item in range(0, len(v) - kmerLen + 1)
         ]
         kCounts = {}
         for j in items:
@@ -204,27 +178,27 @@ Args:
         if self.seqAnnot[x] not in self.seqKmerdict:
             self.seqKmerdict[self.seqAnnot[x]] = self.seqKmerdict.pop(seqid)
         else:
-            zipped_lists = zip(
+            zippedLists = zip(
                 self.seqKmerdict.pop(seqid),
                 self.seqKmerdict[self.seqAnnot[x]],
             )
             self.seqKmerdict[self.seqAnnot[x]] = [
-                sum(pair) for pair in zipped_lists
+                sum(pair) for pair in zippedLists
             ]
         if self.seqAnnot[x] not in self.annotationCounts:
             self.annotationCounts[self.seqAnnot[x]] = 1
         else:
             self.annotationCounts[self.seqAnnot[x]] += 1
 
-    def executeAll(self, input_annotation, inputData):
+    def executeAll(self, inputAnnotation, inputData):
         """
 Execute the entire sequence of operations in the Library process.
 
 Args:
-    input_annotation (list): List of file paths containing annotations.
+    inputAnnotation (list): List of file paths containing annotations.
     inputData (str): Path to the data file.
 """
-        self.loadAnnotations(input_annotation)
+        self.loadAnnotations(inputAnnotation)
         self.loadData(inputData)
         self.generateKmerCounts()
         self.filterAndConstruct()

@@ -2,44 +2,18 @@
 # Imports
 # ---------------------------------------------------------
 
-import pickle
-from datetime import datetime
-from os import makedirs
-from os.path import exists, join
-
-import numpy as np
-import matplotlib.pyplot as plt
-import pandas as pd
-import snekmer as skm
-from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import train_test_split, StratifiedKFold
-from sklearn.preprocessing import LabelEncoder
-
-import numpy as np
+import itertools
 import pandas as pd
 import pyarrow as pa
 import pyarrow.csv as csv
-import seaborn as sns
-import sklearn
-from Bio import SeqIO
-from scipy.interpolate import interp1d
-from scipy.stats import rankdata
-import random
-import snekmer as skm
-from scipy.ndimage import gaussian_filter1d
-import sklearn.metrics.pairwise
-import itertools
-import os
-import shutil
-import sys
+
+
 # ---------------------------------------------------------
 # Files and Parameters
 # ---------------------------------------------------------
 
 config = snakemake.config
 
-# change matplotlib backend to non-interactive
-plt.switch_backend("Agg")
 
 # ---------------------------------------------------------
 # Run script
@@ -136,24 +110,24 @@ If any inconsistency is found, the baseCheck flag is set to False.
             )
             print("\nBase Database: \n")
             print(self.baseKmerCounts)
-            check_1 = len(self.runningMerge.columns.values)
+            check = len(self.runningMerge.columns.values)
             alphabetInitial = set(
                 itertools.chain(
                     *[
                         list(x)
-                        for x in self.runningMerge.columns.values[3:check_1]
+                        for x in self.runningMerge.columns.values[3:check]
                     ]
                 )
             )
-            alphabet_base = set(
+            alphabetBase = set(
                 itertools.chain(
                     *[
                         list(x)
-                        for x in self.baseKmerCounts.columns.values[3:check_1]
+                        for x in self.baseKmerCounts.columns.values[3:check]
                     ]
                 )
             )
-            if alphabet_base != alphabetInitial:
+            if alphabetBase != alphabetInitial:
                 self.baseCheck = False
                 print("Different Alphabets Detected. Base File not merged.")
             if len(str(self.runningMerge.columns.values[1])) != len(
@@ -171,14 +145,14 @@ If the flag is False, only the running merged dataframe is saved to output.
 """
         if self.baseCheck:
             print("\nMerged Database \n")
-            xy = (
+            data = (
                 pd.concat([self.baseKmerCounts, self.runningMerge])
                 .reset_index()
                 .groupby("__index_level_0__", sort=False)
                 .sum(min_count=1)
             ).fillna(0)
-            xy_out = pa.Table.from_pandas(xy, preserve_index=True)
-            csv.write_csv(xy_out, self.outputPath)
+            fileOut = pa.Table.from_pandas(data, preserve_index=True)
+            csv.write_csv(fileOut, self.outputPath)
         else:
             print("\nDatabase Merged. Not merged with base file.\n")
             runningMergeOut = pa.Table.from_pandas(

@@ -1,44 +1,21 @@
 # ---------------------------------------------------------
 # Imports
 # ---------------------------------------------------------
-import pickle
-from datetime import datetime
-from os import makedirs
-from os.path import exists, join
 
-import numpy as np
-import matplotlib.pyplot as plt
+import sys
+import itertools
+
 import pandas as pd
 import snekmer as skm
-from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import train_test_split, StratifiedKFold
-from sklearn.preprocessing import LabelEncoder
-
-import numpy as np
-import pandas as pd
 import pyarrow as pa
 import pyarrow.csv as csv
-import seaborn as sns
-import sklearn
-from Bio import SeqIO
-from scipy.interpolate import interp1d
-from scipy.stats import rankdata
-import random
-import snekmer as skm
-from scipy.ndimage import gaussian_filter1d
-import sklearn.metrics.pairwise
-import itertools
-import os
-import shutil
-import sys
-import re
+from sklearn.metrics.pairwise import cosine_similarity
+
 # ---------------------------------------------------------
 # Files and Parameters
 # ---------------------------------------------------------
 config = snakemake.config
 
-# change matplotlib backend to non-interactive
-plt.switch_backend("Agg")
 
 outDir = skm.io.define_output_dir(
     config["alphabet"], config["k"], nested=config["nested_output"]
@@ -52,386 +29,386 @@ outDir = skm.io.define_output_dir(
 class KmerCompare:
     def __init__(
         self,
-        compare_associations,
+        compareAssociations,
         data,
-        confidence_associations,
-        decoy_stats,
+        confidenceAssociations,
+        decoyStats,
         annotation,
-        output_seq_ann,
-        output_kmer_summary,
-        selection_type,
-        threshold_type,
+        outputSeqAnn,
+        outputKmerSummary,
+        selectionType,
+        thresholdType,
     ):
         """
 Initialize KmerCompare with necessary file paths.
 
 Args:
-    compare_associations (str): Path to compare associations file.
+    compareAssociations (str): Path to compare associations file.
     data (str): Path to data file.
-    confidence_associations (str): Path to confidence associations file.
-    decoy_stats (str): Path to decoy stats file.
+    confidenceAssociations (str): Path to confidence associations file.
+    decoyStats (str): Path to decoy stats file.
     annotation (str): Path to annotation file.
-    output_seq_ann (str): Path to output sequence annotation file.
-    output_kmer_summary (str): Path to output kmer summary file.
-    selection_type (str): Method selection based on config.
-    threshold_type (str): Threshold type from config.
+    outputSeqAnn (str): Path to output sequence annotation file.
+    outputKmerSummary (str): Path to output kmer summary file.
+    selectionType (str): Method selection based on config.
+    thresholdType (str): Threshold type from config.
 """
-        self.compare_associations = compare_associations
+        self.compareAssociations = compareAssociations
         self.data = data
-        self.confidence_associations = confidence_associations
+        self.confidenceAssociations = confidenceAssociations
         self.annotation = annotation
-        self.decoy_stats = decoy_stats
-        self.output_seq_ann = output_seq_ann
-        self.output_kmer_summary = output_kmer_summary
-        self.selection_type = selection_type
-        self.threshold_type = threshold_type
+        self.decoyStats = decoyStats
+        self.outputSeqAnn = outputSeqAnn
+        self.outputKmerSummary = outputKmerSummary
+        self.selectionType = selectionType
+        self.thresholdType = thresholdType
         self.df = None
 
-    def load_data(self):
+    def loadData(self):
         """
 Load kmer counts and sequence data from provided files.
 """
-        self.kmer_count_totals = pd.read_csv(
-            str(self.compare_associations),
+        self.kmerCountTotals = pd.read_csv(
+            str(self.compareAssociations),
             index_col="__index_level_0__",
             header=0,
             engine="c",
         )
-        kmerlist, df = skm.io.load_npz(self.data)
-        self.kmerlist = kmerlist[0]
-        self.seqids = df["sequence_id"]
+        kmerList, df = skm.io.load_npz(self.data)
+        self.kmerList = kmerList[0]
+        self.seqIDs = df["sequence_id"]
         self.df = df
 
-    def generate_kmer_counts(self):
+    def generateKmerCounts(self):
         """
 Generate k-mer counts for sequences present in the data.
 """
-        self.kmer_totals = [0 for _ in self.kmerlist]
-        k_len = len(self.kmerlist[0])
-        self.seq_kmer_dict = {}
-        for i, seq in enumerate(self.seqids):
+        self.kmerTotals = [0 for _ in self.kmerList]
+        kmerLen = len(self.kmerList[0])
+        self.seqKmerDict = {}
+        for i, seq in enumerate(self.seqIDs):
             v = self.df["sequence"][i]
-            kmer_counts = dict()
+            kmerCounts = dict()
             items = [
-                v[item : item + k_len] for item in range(0, len(v) - k_len + 1)
+                v[item : item + kmerLen] for item in range(0, len(v) - kmerLen + 1)
             ]
             for j in items:
-                kmer_counts[j] = kmer_counts.get(j, 0) + 1
-            store = [kmer_counts.get(item, 0) for item in self.kmerlist]
-            for i, item in enumerate(self.kmerlist):
-                self.kmer_totals[i] += kmer_counts.get(item, 0)
-            self.seq_kmer_dict[seq] = store
+                kmerCounts[j] = kmerCounts.get(j, 0) + 1
+            store = [kmerCounts.get(item, 0) for item in self.kmerList]
+            for i, item in enumerate(self.kmerList):
+                self.kmerTotals[i] += kmerCounts.get(item, 0)
+            self.seqKmerDict[seq] = store
 
-    def construct_kmer_counts_dataframe(self):
+    def constructKmerCountsDataframe(self):
         """
 Construct a DataFrame to represent k-mer counts across sequences.
 """
-        total_seqs = len(self.seq_kmer_dict)
-        self.kmer_counts = pd.DataFrame(self.seq_kmer_dict.values())
-        self.kmer_counts.insert(0, "Annotations", 1, True)
-        self.kmer_totals.insert(0, total_seqs)
-        self.kmer_counts = pd.DataFrame(
+        totalSeqs = len(self.seqKmerDict)
+        self.kmerCounts = pd.DataFrame(self.seqKmerDict.values())
+        self.kmerCounts.insert(0, "Annotations", 1, True)
+        self.kmerTotals.insert(0, totalSeqs)
+        self.kmerCounts = pd.DataFrame(
             np.insert(
-                self.kmer_counts.values, 0, values=self.kmer_totals, axis=0
+                self.kmerCounts.values, 0, values=self.kmerTotals, axis=0
             )
         )
-        self.kmer_counts.columns = ["Sequence count"] + list(self.kmerlist)
-        self.kmer_counts.index = ["Totals"] + list(self.seq_kmer_dict.keys())
+        self.kmerCounts.columns = ["Sequence count"] + list(self.kmerList)
+        self.kmerCounts.index = ["Totals"] + list(self.seqKmerDict.keys())
 
-    def match_kmer_counts_format(self):
+    def matchKmerCountsFormat(self):
         """
 Ensure that the format of the k-mer counts DataFrame matches the expected format.
 """
-        if len(str(self.kmer_counts.columns.values[10])) == len(
-            str(self.kmer_count_totals.columns.values[10])
+        if len(str(self.kmerCounts.columns.values[10])) == len(
+            str(self.kmerCountTotals.columns.values[10])
         ):
-            compare_check = True
+            compareCheck = True
         else:
-            compare_check = False
+            compareCheck = False
 
-        if compare_check:
-            check_1 = len(self.kmer_counts.columns.values)
-            alphabet_initial = set(
+        if compareCheck:
+            check = len(self.kmerCounts.columns.values)
+            alphabetInitial = set(
                 itertools.chain(
                     *[
                         list(x)
-                        for x in self.kmer_counts.columns.values[10:check_1]
+                        for x in self.kmerCounts.columns.values[10:check]
                     ]
                 )
             )
-            alphabet_compare = set(
+            alphabetCompare = set(
                 itertools.chain(
                     *[
                         list(x)
-                        for x in self.kmer_count_totals.columns.values[
-                            10:check_1
+                        for x in self.kmerCountTotals.columns.values[
+                            10:check
                         ]
                     ]
                 )
             )
-            if alphabet_compare != alphabet_initial:
-                compare_check = False
+            if alphabetCompare != alphabetInitial:
+                compareCheck = False
 
-        if not compare_check:
+        if not compareCheck:
             print("Compare Check Failed. ")
             sys.exit()
 
-        self.kmer_counts.drop("Totals", axis=0, inplace=True)
-        self.kmer_counts.drop("Sequence count", axis=1, inplace=True)
-        self.kmer_count_totals.drop("Totals", axis=0, inplace=True)
-        self.kmer_count_totals.drop("Kmer Count", axis=1, inplace=True)
-        self.kmer_count_totals.drop("Sequence count", axis=1, inplace=True)
+        self.kmerCounts.drop("Totals", axis=0, inplace=True)
+        self.kmerCounts.drop("Sequence count", axis=1, inplace=True)
+        self.kmerCountTotals.drop("Totals", axis=0, inplace=True)
+        self.kmerCountTotals.drop("Kmer Count", axis=1, inplace=True)
+        self.kmerCountTotals.drop("Sequence count", axis=1, inplace=True)
 
-        column_order = list(
-            set(self.kmer_counts.columns) | set(self.kmer_count_totals.columns)
+        columnOrder = list(
+            set(self.kmerCounts.columns) | set(self.kmerCountTotals.columns)
         )
-        self.kmer_counts = self.kmer_counts.reindex(
-            columns=column_order, fill_value=0
+        self.kmerCounts = self.kmerCounts.reindex(
+            columns=columnOrder, fillValue=0
         )
-        self.kmer_count_totals = self.kmer_count_totals.reindex(
-            columns=column_order, fill_value=0
+        self.kmerCountTotals = self.kmerCountTotals.reindex(
+            columns=columnOrder, fillValue=0
         )
 
-    def cosine_similarity(self):
+    def cosineSimilarity(self):
         """
 Compute cosine similarity between kmer counts of sequences.
 """
-        cosine_df = sklearn.metrics.pairwise.cosine_similarity(
-            self.kmer_count_totals, self.kmer_counts
+        cosineDataframe = sklearn.metrics.pairwise.cosineSimilarity(
+            self.kmerCountTotals, self.kmerCounts
         ).T
-        self.kmer_count_totals = pd.DataFrame(
-            cosine_df,
-            columns=self.kmer_count_totals.index,
-            index=self.kmer_counts.index,
+        self.kmerCountTotals = pd.DataFrame(
+            cosineDataframe,
+            columns=self.kmerCountTotals.index,
+            index=self.kmerCounts.index,
         )
 
         # Method 0: Hit Hit No Threshold
 
-    def select_top_no_threshold(self):
-        self.selected_values = {}
-        for row_id, row in self.kmer_count_totals.iterrows():
+    def selectTopNoThreshold(self):
+        self.selectedValues = {}
+        for rowID, row in self.kmerCountTotals.iterrows():
             if not row.empty:
-                sorted_row = row.sort_values(ascending=False)
-                top_value = sorted_row.iloc[0]
-                top_family = sorted_row.index[0]
-                if len(sorted_row) > 1:
-                    second_value = sorted_row.iloc[1]
-                    delta = top_value - second_value
+                sortedRow = row.sort_values(ascending=False)
+                topValue = sortedRow.iloc[0]
+                topFamily = sortedRow.index[0]
+                if len(sortedRow) > 1:
+                    secondValue = sortedRow.iloc[1]
+                    delta = topValue - secondValue
                 else:
-                    delta = top_value
-                self.selected_values[row_id] = (top_family, top_value, delta)
+                    delta = topValue
+                self.selectedValues[rowID] = (topFamily, topValue, delta)
             else:
-                self.selected_values[row_id] = (None, None, None)
+                self.selectedValues[rowID] = (None, None, None)
 
                 # Method 1: Top Hit Above Threshold
 
-    def select_top_above_threshold(self):
-        self.decoy_df = pd.read_csv(
-            str(self.decoy_stats),
+    def selectTopAboveThreshold(self):
+        self.decoyDataframe = pd.read_csv(
+            str(self.decoyStats),
             header=0,
             engine="c",
         )
-        threshold_dict = dict(
-            zip(self.decoy_df.Family, self.decoy_df[self.threshold_type])
+        thresholdDict = dict(
+            zip(self.decoyDataframe.Family, self.decoyDataframe[self.thresholdType])
         )
 
-        self.selected_values = {}
-        filtered_out_count = 0
+        self.selectedValues = {}
+        filteredOutCount = 0
 
-        for row_id, row in self.kmer_count_totals.iterrows():
-            threshold_values = row.index.map(threshold_dict.get)
-            threshold_series = pd.Series(threshold_values, index=row.index)
+        for rowID, row in self.kmerCountTotals.iterrows():
+            thresholdValues = row.index.map(thresholdDict.get)
+            thresholdSeries = pd.Series(thresholdValues, index=row.index)
 
-            row_values = row[row > threshold_series]
+            rowValues = row[row > thresholdSeries]
 
-            if not row_values.empty:
-                sorted_row = row_values.sort_values(ascending=False)
-                top_value = sorted_row.iloc[0]
-                top_family = sorted_row.index[0]
-                if len(sorted_row) > 1:
-                    second_value = sorted_row.iloc[1]
-                    delta = top_value - second_value
+            if not rowValues.empty:
+                sortedRow = rowValues.sort_values(ascending=False)
+                topValue = sortedRow.iloc[0]
+                topFamily = sortedRow.index[0]
+                if len(sortedRow) > 1:
+                    secondValue = sortedRow.iloc[1]
+                    delta = topValue - secondValue
                 else:
-                    delta = top_value - threshold_dict.get(top_family, 0)
-                self.selected_values[row_id] = (top_family, top_value, delta)
+                    delta = topValue - thresholdDict.get(topFamily, 0)
+                self.selectedValues[rowID] = (topFamily, topValue, delta)
             else:
-                self.selected_values[row_id] = (None, None, None)
-                filtered_out_count += 1
+                self.selectedValues[rowID] = (None, None, None)
+                filteredOutCount += 1
 
                 # Method 2: Greatest Distance
                 # Note, Delta is calculated different from Top Two Hit method - and as such, is not comparable in the same way.
                 # Note, Score is also maybe calculated differently.  Actually I think it might still be cosine score.  CONFIRM THIS.
 
-    def select_by_greatest_distance(self):
-        self.decoy_df = pd.read_csv(
-            str(self.decoy_stats),
+    def selectByGreatestDistance(self):
+        self.decoyDataframe = pd.read_csv(
+            str(self.decoyStats),
             header=0,
             engine="c",
         )
-        threshold_dict = dict(
-            zip(self.decoy_df.Family, self.decoy_df[self.threshold_type])
+        thresholdDict = dict(
+            zip(self.decoyDataframe.Family, self.decoyDataframe[self.thresholdType])
         )
 
-        self.selected_values = {}
-        filtered_out_count = 0
+        self.selectedValues = {}
+        filteredOutCount = 0
 
-        for row_id, row in self.kmer_count_totals.iterrows():
-            distances = row - row.index.map(threshold_dict.get)
-            positive_distances = distances[distances > 0]
+        for rowID, row in self.kmerCountTotals.iterrows():
+            distances = row - row.index.map(thresholdDict.get)
+            positiveDistances = distances[distances > 0]
 
-            if not positive_distances.empty:
-                greatest_distance_family = positive_distances.idxmax()
-                greatest_distance_value = row[greatest_distance_family]
-                delta = positive_distances.max()
-                self.selected_values[row_id] = (
-                    greatest_distance_family,
-                    greatest_distance_value,
+            if not positiveDistances.empty:
+                greatestDistanceFamily = positiveDistances.idxmax()
+                greatestDistanceValue = row[greatestDistanceFamily]
+                delta = positiveDistances.max()
+                self.selectedValues[rowID] = (
+                    greatestDistanceFamily,
+                    greatestDistanceValue,
                     delta,
                 )
             else:
-                self.selected_values[row_id] = (None, None, None)
-                filtered_out_count += 1
+                self.selectedValues[rowID] = (None, None, None)
+                filteredOutCount += 1
 
                 # Method 3: Balanced Distance
                 # Note, Delta is calculated different from Top Two Hit method - and as such, is not comparable in the same way.
                 # Note, Score is also now calculated differently. It is not the Cosine Similarity Score, it is weighted
 
-    def select_by_balanced_distance(self, weight_top=0.5, weight_distance=0.5):
-        self.decoy_df = pd.read_csv(
-            str(self.decoy_stats),
+    def selectByBalancedDistance(self, weightTop=0.5, weightDistance=0.5):
+        self.decoyDataframe = pd.read_csv(
+            str(self.decoyStats),
             header=0,
             engine="c",
         )
-        threshold_dict = dict(
-            zip(self.decoy_df.Family, self.decoy_df[self.threshold_type])
+        thresholdDict = dict(
+            zip(self.decoyDataframe.Family, self.decoyDataframe[self.thresholdType])
         )
 
-        self.selected_values = {}
-        filtered_out_count = 0
+        self.selectedValues = {}
+        filteredOutCount = 0
 
-        for row_id, row in self.kmer_count_totals.iterrows():
-            threshold_values = row.index.map(threshold_dict.get)
-            threshold_series = pd.Series(threshold_values, index=row.index)
+        for rowID, row in self.kmerCountTotals.iterrows():
+            thresholdValues = row.index.map(thresholdDict.get)
+            thresholdSeries = pd.Series(thresholdValues, index=row.index)
 
-            row_values_above_threshold = row[row > threshold_series]
-            distances = row - threshold_series
-            positive_distances = distances[distances > 0]
+            rowValuesAboveThreshold = row[row > thresholdSeries]
+            distances = row - thresholdSeries
+            positiveDistances = distances[distances > 0]
 
             candidates = {}
 
-            if not row_values_above_threshold.empty:
-                top_value = row_values_above_threshold.max()
-                top_family = row_values_above_threshold.idxmax()
-                top_threshold = threshold_dict.get(top_family, 0)
-                candidates[top_family] = {
-                    "value": top_value,
-                    "delta": top_value - top_threshold,
-                    "score": (top_value * weight_top)
-                    + ((top_value - top_threshold) * weight_distance),
+            if not rowValuesAboveThreshold.empty:
+                topValue = rowValuesAboveThreshold.max()
+                topFamily = rowValuesAboveThreshold.idxmax()
+                top_threshold = thresholdDict.get(topFamily, 0)
+                candidates[topFamily] = {
+                    "value": topValue,
+                    "delta": topValue - top_threshold,
+                    "score": (topValue * weightTop)
+                    + ((topValue - top_threshold) * weightDistance),
                 }
 
-            if not positive_distances.empty:
-                greatest_distance_family = positive_distances.idxmax()
-                greatest_distance_value = row[greatest_distance_family]
-                greatest_distance_threshold = threshold_dict.get(
-                    greatest_distance_family, 0
+            if not positiveDistances.empty:
+                greatestDistanceFamily = positiveDistances.idxmax()
+                greatestDistanceValue = row[greatestDistanceFamily]
+                greatestDistanceThreshold = thresholdDict.get(
+                    greatestDistanceFamily, 0
                 )
-                candidates[greatest_distance_family] = {
-                    "value": greatest_distance_value,
-                    "delta": positive_distances.max(),
-                    "score": (greatest_distance_value * weight_top)
-                    + (positive_distances.max() * weight_distance),
+                candidates[greatestDistanceFamily] = {
+                    "value": greatestDistanceValue,
+                    "delta": positiveDistances.max(),
+                    "score": (greatestDistanceValue * weightTop)
+                    + (positiveDistances.max() * weightDistance),
                 }
 
             if candidates:
-                best_candidate = max(
+                bestCandidate = max(
                     candidates.items(), key=lambda x: x[1]["score"]
                 )
-                self.selected_values[row_id] = (
-                    best_candidate[0],
-                    best_candidate[1]["value"],
-                    best_candidate[1]["delta"],
+                self.selectedValues[rowID] = (
+                    bestCandidate[0],
+                    bestCandidate[1]["value"],
+                    bestCandidate[1]["delta"],
                 )
             else:
-                self.selected_values[row_id] = (None, None, None)
-                filtered_out_count += 1
+                self.selectedValues[rowID] = (None, None, None)
+                filteredOutCount += 1
 
-    def format_and_write_output(self):
+    def formatAndWriteOutput(self):
         if config["learnapp"]["save_apply_associations"]:
-            kmer_count_totals_write = pa.Table.from_pandas(
-                self.kmer_count_totals
+            kmerCountTotals_write = pa.Table.from_pandas(
+                self.kmerCountTotals
             )
-            csv.write_csv(kmer_count_totals_write, self.output_seq_ann)
+            csv.write_csv(kmerCountTotals_write, self.outputSeqAnn)
 
-        global_confidence_scores = pd.read_csv(
-            str(self.confidence_associations)
+        globalConfidenceScores = pd.read_csv(
+            str(self.confidenceAssociations)
         )
-        global_confidence_scores.index = global_confidence_scores[
-            global_confidence_scores.columns[0]
+        globalConfidenceScores.index = globalConfidenceScores[
+            globalConfidenceScores.columns[0]
         ]
-        global_confidence_scores = global_confidence_scores.iloc[:, 1:]
-        global_confidence_scores = global_confidence_scores[
-            global_confidence_scores.columns[0]
+        globalConfidenceScores = globalConfidenceScores.iloc[:, 1:]
+        globalConfidenceScores = globalConfidenceScores[
+            globalConfidenceScores.columns[0]
         ].squeeze()
 
-        results_list = []
-        for row_id in self.kmer_count_totals.index:
-            if row_id in self.selected_values:
-                prediction, score, delta = self.selected_values[row_id]
+        resultsList = []
+        for rowID in self.kmerCountTotals.index:
+            if rowID in self.selectedValues:
+                prediction, score, delta = self.selectedValues[rowID]
                 if delta is None:
                     delta = 0
             else:
                 prediction, score, delta = None, None, 0
-            results_list.append(
+            resultsList.append(
                 {
-                    "Sequence": row_id,
+                    "Sequence": rowID,
                     "Prediction": prediction,
                     "Score": score,
                     "delta": round(delta, 2),
                 }
             )
 
-        results = pd.DataFrame(results_list)
+        results = pd.DataFrame(resultsList)
         results.set_index("Sequence", inplace=True)
 
-        results["Confidence"] = results["delta"].map(global_confidence_scores)
+        results["Confidence"] = results["delta"].map(globalConfidenceScores)
 
         results.reset_index(inplace=True)
-        results_write = pa.Table.from_pandas(results)
-        csv.write_csv(results_write, self.output_kmer_summary)
+        resultsWrite = pa.Table.from_pandas(results)
+        csv.write_csv(resultsWrite, self.outputKmerSummary)
 
     def execute_all(self):
-        self.load_data()
-        self.generate_kmer_counts()
-        self.construct_kmer_counts_dataframe()
-        self.match_kmer_counts_format()
-        self.cosine_similarity()
-        # Select method based on selection_type
-        if self.selection_type == "top_hit":
-            if self.threshold_type is None:
-                self.select_top_no_threshold()
+        self.loadData()
+        self.generateKmerCounts()
+        self.constructKmerCountsDataframe()
+        self.matchKmerCountsFormat()
+        self.cosineSimilarity()
+        # Select method based on selectionType
+        if self.selectionType == "top_hit":
+            if self.thresholdType is None:
+                self.selectTopNoThreshold()
             else:
-                self.select_top_above_threshold()
-        elif self.selection_type == "greatest_distance":
-            self.select_by_greatest_distance()
-        elif self.selection_type == "combined_distance":
-            weight_top = config["learnapp"].get("weight_top", 0.5)
-            weight_distance = config["learnapp"].get("weight_distance", 0.5)
-            self.select_by_balanced_distance(weight_top, weight_distance)
+                self.selectTopAboveThreshold()
+        elif self.selectionType == "greatest_distance":
+            self.selectByGreatestDistance()
+        elif self.selectionType == "combined_distance":
+            weightTop = config["learnapp"].get("weight_top", 0.5)
+            weightDistance = config["learnapp"].get("weight_distance", 0.5)
+            self.selectByBalancedDistance(weightTop, weightDistance)
         else:
-            raise ValueError(f"Invalid selection_type: {self.selection_type}")
-        self.format_and_write_output()
+            raise ValueError(f"Invalid selectionType: {self.selectionType}")
+        self.formatAndWriteOutput()
 
 
 apply = KmerCompare(
-    snakemake.input.compare_associations,
+    snakemake.input.compareAssociations,
     snakemake.input.data,
-    snakemake.input.confidence_associations,
-    snakemake.input.decoy_stats,
+    snakemake.input.confidenceAssociations,
+    snakemake.input.decoyStats,
     snakemake.input.annotation,
-    snakemake.output.seq_ann,
-    snakemake.output.kmer_summary,
-    snakemake.params.selection_type,
-    snakemake.params.threshold_type,
+    snakemake.output.seqAnn,
+    snakemake.output.kmerSummary,
+    snakemake.params.selectionType,
+    snakemake.params.thresholdType,
 )
 apply.execute_all()

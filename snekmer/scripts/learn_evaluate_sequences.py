@@ -2,44 +2,16 @@
 # Imports
 # ---------------------------------------------------------
 
-import pickle
-from datetime import datetime
-from os import makedirs
-from os.path import exists, join
-
-import numpy as np
-import matplotlib.pyplot as plt
-import pandas as pd
-import snekmer as skm
-from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import train_test_split, StratifiedKFold
-from sklearn.preprocessing import LabelEncoder
-
 import numpy as np
 import pandas as pd
-import pyarrow as pa
-import pyarrow.csv as csv
-import seaborn as sns
-import sklearn
-from Bio import SeqIO
-from scipy.interpolate import interp1d
-from scipy.stats import rankdata
-import random
-import snekmer as skm
-from scipy.ndimage import gaussian_filter1d
-import sklearn.metrics.pairwise
 import itertools
-import os
-import shutil
-import sys
+
+
 # ---------------------------------------------------------
 # Files and Parameters
 # ---------------------------------------------------------
 
 config = snakemake.config
-
-# change matplotlib backend to non-interactive
-plt.switch_backend("Agg")
 
 # ---------------------------------------------------------
 # Run script
@@ -73,49 +45,49 @@ class Evaluator:
         self.trueRunningCrosstab = None
         self.falseRunningCrosstab = None
 
-    def readAndTransformInputData(self, file_path):
+    def readAndTransformInputData(self, filePath):
         """
 Reads and transforms input data from a given CSV file, applying thresholds if necessary.
 
 Args:
-    file_path (str): Path to the input CSV file.
+    filePath (str): Path to the input CSV file.
 
 Returns:
     tuple: Parsed and transformed values from the input data.
 """
         seqAnnScores = pd.read_csv(
-            file_path,
-            index_col="__index_level_0__",
+            filePath,
+            indexCol="__index_level_0__",
             header=0,
             engine="c",
         )
 
         # Load thresholds
 
-        thresholds_df = pd.read_csv(
+        thresholdsDataframe = pd.read_csv(
             self.reverseDecoyStats,
             header=0,
             engine="c",
         )
 
-        threshold_type = config["learnapp"]["threshold"]
+        thresholdType = config["learnapp"]["threshold"]
         selectionMethod = config["learnapp"]["selection"]
 
-        if threshold_type == "None":
-            threshold_type = None
-        if threshold_type is not None:
-            threshold_dict = dict(
+        if thresholdType == "None":
+            thresholdType = None
+        if thresholdType is not None:
+            thresholdDict = dict(
                 zip(
-                    thresholds_df.Family.astype(str),
-                    thresholds_df[threshold_type],
+                    thresholdsDataframe.Family.astype(str),
+                    thresholdsDataframe[thresholdType],
                 )
             )
 
-            self.threshold_dict = threshold_dict  # Store for later use
+            self.thresholdDict = thresholdDict  # Store for later use
 
             # Apply the selection method
-        predictions, deltas, topTwo = self.apply_selectionMethod(
-            seqAnnScores, selectionMethod, threshold_type
+        predictions, deltas, topTwo = self.applySelectionMethod(
+            seqAnnScores, selectionMethod, thresholdType
         )
 
         result = seqAnnScores.index.tolist()
@@ -136,13 +108,13 @@ Returns:
                 known.append("Known")
 
                 # Retrieve top scores based on predictions
-        top_scores = []
+        topScores = []
         for idx, pred in zip(seqAnnScores.index, predictions):
             if pred is not None and isinstance(pred, str):
-                top_score = seqAnnScores.at[idx, pred]
+                topScore = seqAnnScores.at[idx, pred]
             else:
-                top_score = np.nan
-            top_scores.append(top_score)
+                topScore = np.nan
+            topScores.append(topScore)
 
         return topTwo, predictions, deltas, result, tf, known
 
@@ -157,24 +129,24 @@ Returns:
     tuple: Crosstabs for True and False predictions.
 """
         # Filter out rows where Prediction is None
-        valid_predictions = diffDataframe.dropna(subset=["Prediction"])
+        validPredictions = diffDataframe.dropna(subset=["Prediction"])
 
-        known_true_diffDataframe = valid_predictions[
-            (valid_predictions["Known/Unknown"] == "Known")
-            & (valid_predictions["T/F"] == "T")
+        knownTrueDiffDataframe = validPredictions[
+            (validPredictions["Known/Unknown"] == "Known")
+            & (validPredictions["T/F"] == "T")
         ]
-        known_false_diffDataframe = valid_predictions[
-            (valid_predictions["Known/Unknown"] == "Known")
-            & (valid_predictions["T/F"] == "F")
+        knownFalseDiffDataframe = validPredictions[
+            (validPredictions["Known/Unknown"] == "Known")
+            & (validPredictions["T/F"] == "F")
         ]
 
         trueCrosstab = pd.crosstab(
-            known_true_diffDataframe.Prediction,
-            known_true_diffDataframe.Difference,
+            knownTrueDiffDataframe.Prediction,
+            knownTrueDiffDataframe.Difference,
         )
         falseCrosstab = pd.crosstab(
-            known_false_diffDataframe.Prediction,
-            known_false_diffDataframe.Difference,
+            knownFalseDiffDataframe.Prediction,
+            knownFalseDiffDataframe.Difference,
         )
         return trueCrosstab, falseCrosstab
 
@@ -214,7 +186,7 @@ Args:
     def generateInputs(self):
         for j, f in enumerate(self.inputData):
             (
-                two_key_vals,
+                twoKeyVals,
                 predictions,
                 deltas,
                 result,
@@ -223,7 +195,7 @@ Args:
             ) = self.readAndTransformInputData(f)
 
             diffDataframe = self.generateDiffDataframe(
-                two_key_vals, predictions, deltas, result, tf, known
+                twoKeyVals, predictions, deltas, result, tf, known
             )
             trueCrosstab, falseCrosstab = self.createTrueFalseCrosstabs(
                 diffDataframe
@@ -250,26 +222,26 @@ Returns:
     tuple: Total distributions for True and False predictions.
 """
         trueTotalDist = self.trueRunningCrosstab.sum(numeric_only=True, axis=0)
-        false_total_dist = self.falseRunningCrosstab.sum(
+        falseTotalDist = self.falseRunningCrosstab.sum(
             numeric_only=True, axis=0
         )
 
-        return trueTotalDist, false_total_dist
+        return trueTotalDist, falseTotalDist
 
-    def computeRatioDistribution(self, trueTotalDist, false_total_dist):
+    def computeRatioDistribution(self, trueTotalDist, falseTotalDist):
         """
-Computes ratioDist, total_sum, and inter_sum.
+Computes ratioDist, totalSum, and interSum.
 
 - ratioDist: as before, a ratio of True/(True+False), interpolated over 0.0 to 1.0 increments.
-- total_sum: the raw cumulative sum of (True + False) counts at each increment, without interpolation.
+- totalSum: the raw cumulative sum of (True + False) counts at each increment, without interpolation.
             For increments not originally present, we set 0 to indicate no data (no interpolation).
-- inter_sum: an interpolated version of total_sum over the same increments, filling in gaps smoothly.
+- interSum: an interpolated version of totalSum over the same increments, filling in gaps smoothly.
 """
         # Calculate ratio (as before)
-        ratioTotalDist = trueTotalDist / (trueTotalDist + false_total_dist)
+        ratioTotalDist = trueTotalDist / (trueTotalDist + falseTotalDist)
 
         # This is the raw total cumulative sum of samples at each increment
-        raw_total_sum = (trueTotalDist + false_total_dist).copy()
+        rawTotalSum = (trueTotalDist + falseTotalDist).copy()
 
         # Define a uniform index from 0.0 to 1.0 with 0.01 increments
         newIndex = pd.Index(
@@ -282,20 +254,20 @@ Computes ratioDist, total_sum, and inter_sum.
         ratioTotalDist = ratioTotalDist.interpolate(method="linear")
         ratioTotalDist.fillna(0, inplace=True)
 
-        # For total_sum, reindex to the same uniform scale but do not interpolate:
+        # For totalSum, reindex to the same uniform scale but do not interpolate:
         # Instead of interpolating, we simply fill missing increments with 0.
-        total_sum = raw_total_sum.reindex(newIndex, fill_value=0)
+        totalSum = rawTotalSum.reindex(newIndex, fill_value=0)
 
-        # Now create inter_sum by interpolating total_sum
-        inter_sum = total_sum.interpolate(method="linear")
-        inter_sum.fillna(0, inplace=True)
+        # Now create interSum by interpolating totalSum
+        interSum = totalSum.interpolate(method="linear")
+        interSum.fillna(0, inplace=True)
 
-        return ratioTotalDist, total_sum, inter_sum
+        return ratioTotalDist, totalSum, interSum
 
-    def checkConfidenceMerge(self, newRatioDist, total_sum, inter_sum):
+    def checkConfidenceMerge(self, newRatioDist, totalSum, interSum):
         """
 Merge the computed distributions with a base confidence file if available.
-Now we have total_sum and inter_sum to include in the output DataFrame.
+Now we have totalSum and interSum to include in the output DataFrame.
 """
         # currentWeight is total number of sequences processed
         currentWeight = (
@@ -306,14 +278,14 @@ Now we have total_sum and inter_sum to include in the output DataFrame.
         # Prepare the updatedData DataFrame with the new columns
         updatedData = pd.DataFrame(newRatioDist, columns=["confidence"])
         updatedData["weight"] = currentWeight
-        updatedData["total_sum"] = (
-            total_sum  # no interpolation, raw cumulative counts
+        updatedData["totalSum"] = (
+            totalSum  # no interpolation, raw cumulative counts
         )
-        updatedData["inter_sum"] = inter_sum  # interpolated cumulative counts
+        updatedData["interSum"] = interSum  # interpolated cumulative counts
 
         if self.confidenceData and len(self.confidenceData) == 1:
             priorConf = pd.read_csv(
-                self.confidenceData[0], index_col="Difference"
+                self.confidenceData[0], indexCol="Difference"
             )
             print(f"Prior Confidence Data:\n{priorConf}")
 
@@ -325,18 +297,18 @@ Now we have total_sum and inter_sum to include in the output DataFrame.
             weightedCurrent = kFactor * currentWeight
             totalWeight = totalWeightPrior + weightedCurrent
             priorWeightedScore = priorConf["confidence"] * priorConf["weight"]
-            currentWeighted_score = updatedData["confidence"] * weightedCurrent
+            currentWeightedScore = updatedData["confidence"] * weightedCurrent
 
             updatedConfidence = (
-                priorWeightedScore + currentWeighted_score
+                priorWeightedScore + currentWeightedScore
             ) / totalWeight
             updatedData["confidence"] = updatedConfidence
 
-            # Merge total_sum and inter_sum with prior if they exist:
-            if "total_sum" in priorConf.columns:
-                updatedData["total_sum"] += priorConf["total_sum"]
-            if "inter_sum" in priorConf.columns:
-                updatedData["inter_sum"] += priorConf["inter_sum"]
+            # Merge totalSum and interSum with prior if they exist:
+            if "totalSum" in priorConf.columns:
+                updatedData["totalSum"] += priorConf["totalSum"]
+            if "interSum" in priorConf.columns:
+                updatedData["interSum"] += priorConf["interSum"]
 
                 # Update weights and sums if "cur_sum" column is used
             if "cur_sum" in priorConf.columns:
@@ -399,22 +371,22 @@ it merges the calculated distributions with the base ones.
         self.generateInputs()
         ratioCrosstab = self.generateGlobalCrosstab()
         trueDist, falseDist = self.calculateDistributions()
-        ratioDist, total_sum, inter_sum = self.computeRatioDistribution(
+        ratioDist, totalSum, interSum = self.computeRatioDistribution(
             trueDist, falseDist
         )
         globalConfidence = self.checkConfidenceMerge(
-            ratioDist, total_sum, inter_sum
+            ratioDist, totalSum, interSum
         )
         self.saveResults(globalConfidence, self.outputGlob)
 
     def generateDiffDataframe(
-        self, two_key_vals, predictions, deltas, result, tf, known
+        self, twoKeyVals, predictions, deltas, result, tf, known
     ):
         """
 Generates a dataframe showing the differences and other metrics.
 
 Args:
-    two_key_vals (array-like): Two Key stored values, this can be top two scores, or top score and threshold, etc
+    twoKeyVals (array-like): Two Key stored values, this can be top two scores, or top score and threshold, etc
     predictions (Series): Predictions made by the selection method.
     deltas (Series): Delta values calculated by the selection method.
     result (list): Actual labels.
@@ -424,17 +396,17 @@ Args:
 Returns:
     DataFrame: Constructed dataframe with computed differences and other metrics.
 """
-        # rounded_deltas = [ round(num, 2) for num in deltas ]
-        rounded_deltas = [
+        # roundedDeltas = [ round(num, 2) for num in deltas ]
+        roundedDeltas = [
             round(num, 2) if num is not None else 0 for num in deltas
         ]
 
-        # print(f"two_key_vals in generateDiffDataframe:\n {two_key_vals}")
+        # print(f"twoKeyVals in generateDiffDataframe:\n {twoKeyVals}")
         diffDataframe = pd.DataFrame(
             {
-                "Top": two_key_vals["keyValueOne"],
-                "Second": two_key_vals["keyValueTwo"],
-                "Difference": rounded_deltas,
+                "Top": twoKeyVals["keyValueOne"],
+                "Second": twoKeyVals["keyValueTwo"],
+                "Difference": roundedDeltas,
                 "Prediction": predictions,
                 "Actual": result,
                 "T/F": tf,
@@ -447,13 +419,13 @@ Returns:
 
         return diffDataframe
 
-    def apply_selectionMethod(
-        self, seqAnnScores, selectionMethod, threshold_type
+    def applySelectionMethod(
+        self, seqAnnScores, selectionMethod, thresholdType
     ):
 
-        if selectionMethod == "top_hit" and threshold_type is None:
+        if selectionMethod == "top_hit" and thresholdType is None:
 
-            def get_topTwo(row):
+            def getTopTwo(row):
                 top2 = row.nlargest(2)
                 return pd.Series(
                     {
@@ -472,7 +444,7 @@ Returns:
                     }
                 )
 
-            keyValsDf = seqAnnScores.apply(get_topTwo, axis=1)
+            keyValsDf = seqAnnScores.apply(getTopTwo, axis=1)
             predictions = keyValsDf["keyValueOneHeader"].tolist()
             deltas = (
                 keyValsDf["keyValueOne"] - keyValsDf["keyValueTwo"]
@@ -481,17 +453,17 @@ Returns:
 
             return predictions, deltas, topTwo
 
-        elif selectionMethod == "top_hit" and threshold_type is not None:
+        elif selectionMethod == "top_hit" and thresholdType is not None:
 
-            def get_topTwo(row):
+            def getTopTwo(row):
                 # Filter values based on threshold, keeping only values above the threshold
                 thresholds = row.index.map(
-                    self.threshold_dict
+                    self.thresholdDict
                 ).to_numpy()  # Map thresholds to each family (column) for this row
-                filtered_row = row.where(row >= thresholds, np.nan)
+                filteredRow = row.where(row >= thresholds, np.nan)
 
                 # Get the top two values and their column headers, handling cases with fewer than two valid entries
-                top2 = filtered_row.nlargest(2)
+                top2 = filteredRow.nlargest(2)
                 return pd.Series(
                     {
                         "keyValueOne": (
@@ -511,7 +483,7 @@ Returns:
 
                 # Apply the function to each row of seqAnnScores
 
-            keyValsDf = seqAnnScores.apply(get_topTwo, axis=1)
+            keyValsDf = seqAnnScores.apply(getTopTwo, axis=1)
 
             # Extracting the predictions and deltas for output
             predictions = keyValsDf["keyValueOneHeader"].tolist()
@@ -524,33 +496,33 @@ Returns:
             # The top two values compared here are: Greatest dist from threshold and Second greatest dist from Threshold
         elif selectionMethod == "greatest_distance":
             thresholds = seqAnnScores.columns.to_series().map(
-                self.threshold_dict
+                self.thresholdDict
             )
             distances = seqAnnScores.subtract(thresholds, axis=1)
-            filtered_distances = distances.where(distances >= 0, np.nan)
+            filteredDistances = distances.where(distances >= 0, np.nan)
             partitioned_distances = np.partition(
-                np.nan_to_num(filtered_distances.values, nan=-np.inf),
+                np.nan_to_num(filteredDistances.values, nan=-np.inf),
                 -2,
                 axis=1,
             )
 
             topTwoIdx = np.argpartition(
-                np.nan_to_num(filtered_distances.values, nan=-np.inf),
+                np.nan_to_num(filteredDistances.values, nan=-np.inf),
                 -2,
                 axis=1,
             )[:, -2:]
 
             sortedTopTwoIdx = np.argsort(
-                filtered_distances.values[
-                    np.arange(filtered_distances.shape[0])[:, None], topTwoIdx
+                filteredDistances.values[
+                    np.arange(filteredDistances.shape[0])[:, None], topTwoIdx
                 ],
                 axis=1,
             )[:, ::-1]
 
             topTwoDistances = np.take_along_axis(
-                filtered_distances.values,
+                filteredDistances.values,
                 topTwoIdx[
-                    np.arange(filtered_distances.shape[0])[:, None],
+                    np.arange(filteredDistances.shape[0])[:, None],
                     sortedTopTwoIdx,
                 ],
                 axis=1,
@@ -559,22 +531,22 @@ Returns:
             topTwoScores = np.take_along_axis(
                 seqAnnScores.values,
                 topTwoIdx[
-                    np.arange(filtered_distances.shape[0])[:, None],
+                    np.arange(filteredDistances.shape[0])[:, None],
                     sortedTopTwoIdx,
                 ],
                 axis=1,
             )
 
-            topTwoHeaders = np.array(filtered_distances.columns)[
+            topTwoHeaders = np.array(filteredDistances.columns)[
                 topTwoIdx[
-                    np.arange(filtered_distances.shape[0])[:, None],
+                    np.arange(filteredDistances.shape[0])[:, None],
                     sortedTopTwoIdx,
                 ]
             ]
 
-            flattened_headers = topTwoHeaders.flatten()
-            flattened_thresholds = thresholds[flattened_headers].values
-            topTwoThresholds = flattened_thresholds.reshape(topTwoHeaders.shape)
+            flattenedHeaders = topTwoHeaders.flatten()
+            flattenedThresholds = thresholds[flattenedHeaders].values
+            topTwoThresholds = flattenedThresholds.reshape(topTwoHeaders.shape)
 
             keyValsDf = pd.DataFrame(
                 {
@@ -601,15 +573,15 @@ Returns:
         elif selectionMethod == "combined_distance":
             # Method 4: Combined method with dynamic delta calculation
             # Set weights
-            weight_top = config["learnapp"].get("weight_top", 0.5)
-            weight_distance = config["learnapp"].get("weight_distance", 0.5)
+            weightTop = config["learnapp"].get("weight_top", 0.5)
+            weightDistance = config["learnapp"].get("weight_distance", 0.5)
             thresholds = seqAnnScores.columns.to_series().map(
-                self.threshold_dict
+                self.thresholdDict
             )
             distances = seqAnnScores - thresholds
             positiveDistances = distances.where(distances >= 0, np.nan)
-            combinedScores = (seqAnnScores * weight_top) + (
-                distances * weight_distance
+            combinedScores = (seqAnnScores * weightTop) + (
+                distances * weightDistance
             )
             combinedScores = combinedScores.where(
                 positiveDistances.notna(), np.nan
@@ -625,58 +597,58 @@ Returns:
             filteredScores = seqAnnScores.where(
                 seqAnnScores >= thresholds, np.nan
             )
-            top_scores_method1 = filteredScores.max(axis=1)
-            top_families_method1 = filteredScores.idxmax(axis=1)
+            topScoresMethodOne = filteredScores.max(axis=1)
+            topFamiliesMethodOne = filteredScores.idxmax(axis=1)
 
             # Get second highest scores
-            temp_scores_method1 = filteredScores.apply(
+            tempScoresMethodOne = filteredScores.apply(
                 lambda row: row[row != row.max()], axis=1
             )
-            secondScoresMethod1 = temp_scores_method1.max(axis=1)
+            secondScoresMethodOne = tempScoresMethodOne.max(axis=1)
 
             ## Method 3: Greatest distance from threshold
-            positiveDistancesMethod3 = distances.where(distances >= 0, np.nan)
-            topDistancesMethod3 = positiveDistancesMethod3.max(axis=1)
-            topFamiliesMethod3 = positiveDistancesMethod3.idxmax(axis=1)
+            positiveDistancesMethodThree = distances.where(distances >= 0, np.nan)
+            topDistancesMethodThree = positiveDistancesMethodThree.max(axis=1)
+            topFamiliesMethodThree = positiveDistancesMethodThree.idxmax(axis=1)
 
             # Iterate over each sequence to compute delta and topTwo
             for idx in range(len(predictions)):
-                pred_family = predictions.iloc[idx]
-                if pred_family is None:
+                predFamily = predictions.iloc[idx]
+                if predFamily is None:
                     deltas.append(None)
                     topTwoList.append([np.nan, np.nan])
                     continue
 
                     # Get top families from other methods
-                topFamilyMethod1 = top_families_method1.iloc[idx]
-                topFamilyMethod3 = topFamiliesMethod3.iloc[idx]
+                topFamilyMethod1 = topFamiliesMethodOne.iloc[idx]
+                topFamilyMethodThree = topFamiliesMethodThree.iloc[idx]
 
-                if pred_family == topFamilyMethod1:
+                if predFamily == topFamilyMethod1:
                     # Use delta from method 1/2: difference between top two scores
                     delta = (
-                        top_scores_method1.iloc[idx]
-                        - secondScoresMethod1.iloc[idx]
+                        topScoresMethodOne.iloc[idx]
+                        - secondScoresMethodOne.iloc[idx]
                     )
                     # For topTwo, use top two scores from method 1
                     topTwo = [
-                        top_scores_method1.iloc[idx],
-                        secondScoresMethod1.iloc[idx],
+                        topScoresMethodOne.iloc[idx],
+                        secondScoresMethodOne.iloc[idx],
                     ]
-                elif pred_family == topFamilyMethod3:
+                elif predFamily == topFamilyMethodThree:
                     # Use delta from method 3: difference between top score and threshold
-                    original_score = seqAnnScores.loc[
-                        seqAnnScores.index[idx], pred_family
+                    originalScore = seqAnnScores.loc[
+                        seqAnnScores.index[idx], predFamily
                     ]
-                    threshold = thresholds[pred_family]
-                    delta = original_score - threshold
+                    threshold = thresholds[predFamily]
+                    delta = originalScore - threshold
                     # For topTwo, use original score and threshold
-                    topTwo = [original_score, threshold]
+                    topTwo = [originalScore, threshold]
                 else:
                     # Use delta from combined scores: difference between top two combined scores
-                    row_combinedScores = combinedScores.iloc[idx]
+                    rowCombinedScores = combinedScores.iloc[idx]
                     # Exclude the top prediction to find the second highest combined score
-                    secondCombinedScore = row_combinedScores.drop(
-                        pred_family
+                    secondCombinedScore = rowCombinedScores.drop(
+                        predFamily
                     ).max()
                     delta = topCombinedScores.iloc[idx] - secondCombinedScore
                     # For topTwo, use top two combined scores

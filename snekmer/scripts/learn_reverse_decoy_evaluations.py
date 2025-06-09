@@ -47,21 +47,21 @@ plt.switch_backend("Agg")
 # ---------------------------------------------------------
 
 
-def load_existing_stats_from_csv(csv_file):
+def loadStatsFromCSV(CSV):
     """Load existing family statistics from a CSV checkpoint file.
 
     The CSV must contain the columns:
-    Family, count, sum, sumSqr, min, max, values_for_percentiles
-    (values_for_percentiles is a JSON-encoded list)
+    Family, count, sum, sumSqr, min, max, percentileValues
+    (percentileValues is a JSON-encoded list)
     """
-    csv_file = str(csv_file)
-    print(f"csv_file:{csv_file}")
-    print(f"csv_file type:{type(csv_file)}")
+    CSV = str(CSV)
+    print(f"CSV:{CSV}")
+    print(f"CSV type:{type(CSV)}")
 
-    if not csv_file:
+    if not CSV:
         return {}
 
-    df = pd.read_csv(csv_file)
+    df = pd.read_csv(CSV)
     combinedStats: dict[str, dict] = {}
 
     for _, row in df.iterrows():
@@ -72,13 +72,13 @@ def load_existing_stats_from_csv(csv_file):
             "sumSqr": float(row["sumSqr"]),
             "min": float(row["min"]),
             "max": float(row["max"]),
-            "values_for_percentiles": json.loads(row["values_for_percentiles"]),
+            "percentileValues": json.loads(row["percentileValues"]),
         }
 
     return combinedStats
 
 
-def save_stats_to_csv(combinedStats, csv_file):
+def saveStats(combinedStats, CSV):
 
     rows = []
     for family, stats in combinedStats.items():
@@ -89,25 +89,25 @@ def save_stats_to_csv(combinedStats, csv_file):
             "sumSqr": stats["sumSqr"],
             "min": stats["min"],
             "max": stats["max"],
-            # Encode values_for_percentiles as JSON string
-            "values_for_percentiles": json.dumps(
-                stats["values_for_percentiles"]
+            # Encode percentileValues as JSON string
+            "percentileValues": json.dumps(
+                stats["percentileValues"]
             ),
         }
         rows.append(row)
 
     df = pd.DataFrame(rows)
-    df.to_csv(csv_file, index=False)
+    df.to_csv(CSV, index=False)
 
 
 def collectFamilyStatistics(filename, existingStats=None):
-    chunk_size = 10000  # Adjust based on available memory
-    reservoir_size = 100000  # Size of the reservoir for percentiles
+    chunkSize = 10000 
+    reservoirSize = 100000
 
     if existingStats is None:
         existingStats = {}
 
-    for chunk in pd.read_csv(filename, chunksize=chunk_size, engine="c"):
+    for chunk in pd.read_csv(filename, chunkSize=chunkSize, engine="c"):
         families = chunk.columns[
             :-1
         ]  # Exclude the last column if it's the sequence name
@@ -121,7 +121,7 @@ def collectFamilyStatistics(filename, existingStats=None):
                     "sumSqr": 0.0,
                     "min": np.inf,
                     "max": -np.inf,
-                    "values_for_percentiles": [],
+                    "percentileValues": [],
                 }
 
             stats = existingStats[family]
@@ -141,14 +141,14 @@ def collectFamilyStatistics(filename, existingStats=None):
                 stats["count"] += 1  # Update total count
                 total_seen = stats["count"]
 
-                if len(stats["values_for_percentiles"]) < reservoir_size:
+                if len(stats["percentileValues"]) < reservoirSize:
                     # Fill the reservoir until it reaches the desired size
-                    stats["values_for_percentiles"].append(value)
+                    stats["percentileValues"].append(value)
                 else:
                     # Replace elements with decreasing probability
                     j = random.randint(0, total_seen - 1)
-                    if j < reservoir_size:
-                        stats["values_for_percentiles"][j] = value
+                    if j < reservoirSize:
+                        stats["percentileValues"][j] = value
 
         del chunk  # Free memory
 
@@ -181,13 +181,13 @@ def generateFamilyStatistics(combinedStats):
 
     for family, stats in combinedStats.items():
         n = stats["count"]
-        sum_ = stats["sum"]
+        curSum = stats["sum"]
         sumSqr = stats["sumSqr"]
-        mean = sum_ / n if n > 0 else 0.0
-        variance = (sumSqr - (sum_**2) / n) / (n - 1) if n > 1 else 0.0
-        std_dev = np.sqrt(variance)
+        mean = curSum / n if n > 0 else 0.0
+        variance = (sumSqr - (curSum**2) / n) / (n - 1) if n > 1 else 0.0
+        standardDeviation = np.sqrt(variance)
 
-        values = np.array(stats["values_for_percentiles"])
+        values = np.array(stats["percentileValues"])
         if len(values) > 0:
             percentiles = np.percentile(
                 values, [10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90]
@@ -198,7 +198,7 @@ def generateFamilyStatistics(combinedStats):
 
         statsData["Family"].append(family)
         statsData["Mean"].append(round(mean, 3))
-        statsData["Std Dev"].append(round(std_dev, 3))
+        statsData["Std Dev"].append(round(standardDeviation, 3))
         statsData["Min"].append(round(stats["min"], 3))
         statsData["10th Percentile"].append(round(percentiles[0], 3))
         statsData["20th Percentile"].append(round(percentiles[1], 3))
@@ -212,10 +212,10 @@ def generateFamilyStatistics(combinedStats):
         statsData["80th Percentile"].append(round(percentiles[9], 3))
         statsData["90th Percentile"].append(round(percentiles[10], 3))
         statsData["Max"].append(round(stats["max"], 3))
-        statsData["1 Std Dev Above"].append(round(mean + std_dev, 3))
-        statsData["1 Std Dev Below"].append(round(mean - std_dev, 3))
-        statsData["2 Std Dev Above"].append(round(mean + 2 * std_dev, 3))
-        statsData["2 Std Dev Below"].append(round(mean - 2 * std_dev, 3))
+        statsData["1 Std Dev Above"].append(round(mean + standardDeviation, 3))
+        statsData["1 Std Dev Below"].append(round(mean - standardDeviation, 3))
+        statsData["2 Std Dev Above"].append(round(mean + 2 * standardDeviation, 3))
+        statsData["2 Std Dev Below"].append(round(mean - 2 * standardDeviation, 3))
 
     return pd.DataFrame(statsData)
 
@@ -224,7 +224,7 @@ def generateFamilyStatistics(combinedStats):
 
 if snakemake.input.baseFamilyCheckpoint:
     print(f"input.baseFamilyCheckpoint is: {snakemake.input.baseFamilyCheckpoint}")
-    combinedStats = load_existing_stats_from_csv(snakemake.input.baseFamilyCheckpoint)
+    combinedStats = loadStatsFromCSV(snakemake.input.baseFamilyCheckpoint)
 else:
     combinedStats = None
 
@@ -239,4 +239,4 @@ familyStatisticsDf = generateFamilyStatistics(combinedStats)
 familyStatisticsDf.to_csv(snakemake.output.familyStats, index=False)
 
 # Save updated combinedStats to checkpoint CSV
-save_stats_to_csv(combinedStats, snakemake.output.checkpoint)
+saveStats(combinedStats, snakemake.output.checkpoint)
