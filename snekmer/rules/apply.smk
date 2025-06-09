@@ -119,6 +119,7 @@ rule all:
             )
         ],
         expand(join(out_dir, "apply", "kmer-summary-{nb}.csv"), nb=FAS),
+        join(out_dir, "Snekmer_Apply_Report.html"),
 
 
 use rule vectorize from kmerize with:
@@ -154,3 +155,21 @@ rule apply:
         join(out_dir, "apply", "log", "{nb}.log"),
     script:
         resource_filename("snekmer", join("scripts/apply.py"))
+
+
+rule apply_report:
+    input:
+        files=expand(join(out_dir, "apply", "kmer-summary-{f}.csv"), f=FAS),
+    output:
+        join(out_dir, "Snekmer_Apply_Report.html"),
+    run:
+        file_dir = dirname(dirname(input.files[0]))
+
+        # apply
+        apply_vars = dict(
+            page_title="Snekmer Apply Report",
+            title="Snekmer Apply Results",
+            text="See the below links to access Snekmer Apply results.",
+        )
+
+        skm.report.create_report_many_csvs(file_dir, apply_vars, "apply", output[0])

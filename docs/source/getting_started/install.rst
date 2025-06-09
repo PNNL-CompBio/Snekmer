@@ -100,47 +100,25 @@ using the included specifications:
 Install Snekmer via Docker
 --------------------------
 
-Snekmer has been installed into a  public docker image hosted on `Dockerhub <https://hub.docker.com/repository/docker/jjacobson95/snekmer_env>`_.
-Usage requires the of installation of `Docker Desktop <https://docs.docker.com/desktop/>`_.
-This container is intended to be used via an interactive shell. Here, we provide the simplest method of usage.
+Snekmer has been installed into a public docker image hosted on `Dockerhub <https://hub.docker.com/repository/docker/jjacobson95/snekmer_env>`_.
+Usage requires the installation of `Docker Desktop <https://docs.docker.com/desktop/>`_.
 
-To download and run a container:
+To download the image from Dockerhub:
 
 .. code-block:: bash
 
-  docker pull jjacobson95/snekmer_env:v1.0
-  docker run jjacobson95/snekmer_env:v1.0
+  docker pull jjacobson95/snekmer:latest
 
 
 To use the command line interface within the container:
 
 .. code-block:: bash
 
-  docker ps       # This will display <container ID>
-  docker exec -it <container ID> /bin/bash
+  docker run --rm   -v "$(pwd)":/data   -w /data   jjacobson95/snekmer:latest {mode} {args}    #Run Snekmer
 
 
-Additional ``docker`` commands can be used to copy data into the container or to mount it to a local directory.
+The Docker image accepts the same modes (cluster, model, search, learn, apply, and motif) and command line arguments as the Snekmer command line interface.
 
-The current version of the Docker image requires the ``--configfile`` flag
-to be called explicitly (see :ref:`getting_started-all_options`).
-
-**Note:** This container is designed to run indefinitely and should be stopped after use.
-
-Notes on Using Snekmer Docker Image with Apple Silicon (M1/M2 Mac) Systems
-``````````````````````````````````````````````````````````````````````````
-
-The current Docker image of Snekmer has not been built for compatibility with ARM64
-systems (e.g. Apple silicon systems with the Apple M1/M2 chip). To use the Docker image
-on an Apple silicon system, Rosetta 2 is required. See the
-`relevant Docker documentation page <https://docs.docker.com/desktop/install/mac-install/>`_
-for more information.
-
-Rosetta 2 can be installed on the command line using ``softwareupdate``:
-
-.. code-block:: bash
-
-  softwareupdate --install-rosetta
 
 
 (optional) Install GCC for BSF

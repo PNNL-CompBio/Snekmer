@@ -206,22 +206,32 @@ and directories in addition to the files described previously.
     │   │   ├── kmer-counts-A.csv    # Kmer Counts matrix for A seqs
     │   │   ├── kmer-counts-B.csv     # Kmer Counts matrix for B seqs
     │   │   └── kmer-counts-total.csv    # Kmer Counts matrix for merged (total) database.
-    │   ├── eval_apply/
-    │   │   ├── Seq-Annotation-Scores-A.model     # Self-assessed sequence-annotation cosine similarity scores for A seqs
-    │   │   ├── Seq-Annotation-Scores-B.model     # Self-assessed sequence-annotation cosine similarity scores for B seqs
+    │   ├── eval_apply_sequences/
+    │   │   ├── seq-annotation-scores-A.model     # Self-assessed sequence-annotation cosine similarity scores for A seqs
+    │   │   ├── seq-annotation-scores-B.model     # Self-assessed sequence-annotation cosine similarity scores for B seqs
     │   ├── eval_apply_frag/
-    │   │   ├── Seq-Annotation-Scores-A.model     # Conditional output for eval_apply when the fragmentation option is True.
-    │   │   ├── Seq-Annotation-Scores-B.model     # Conditional output for eval_apply when the fragmentation option is True.
+    │   │   ├── seq-annotation-scores-A.model     # Conditional output for eval_apply when the fragmentation option is True.
+    │   │   ├── seq-annotation-scores-B.model     # Conditional output for eval_apply when the fragmentation option is True.
     │   ├── eval_conf/
     │   │   ├── global-confidence-scores.csv     # Global confidence score distribution
     │   │   └── confidence_matrix.csv   # Confidence distribution Matrix for each annotation
-
+    │   │   ├── family_summary_stats.csv # Statistics of Apply results for all reversed sequences
+    │   │   └── family_stats_checkpoint.csv # Checkpoint file containing statistics of Apply results for reversed sequences, used to update thresholds when adding new sequences to a family model
+    │   ├── eval_apply_reversed/ 
+    │   │   ├── seq-annotation-scores-A.csv.gz # Self-assessed sequence-annotation cosine similarity scores for reversed A sequences
+    │   │   └── seq-annotation-scores-B.csv.gz # Self-assessed sequence-annotation cosine similarity scores for reversed B sequences
+    │   ├── apply_inputs/
+    │   │   ├── kmer-counts-total.csv 
+    │   │   ├── family_summary_stats.csv
+    │   │   └── global-confidence-scores.csv
 
 Snekmer Apply Output Files
 ::::::::::::::::::::::::::
 
 Snekmer's apply mode produces the following output files
 and directories in addition to the files described previously.
+Predictions are stored in the kmer-summary-x.csv files, which are 5-column CSV files that contain one line (and prediction) per sequence, along with the cosine similarity of each sequence to its predicted family, the difference between the top two scores for each sequence, and the confidence predicted from this difference.
+The (optional and potentially very large) Seq-Annotation-Scores-x.csv files contain all of the cosine similarity scores calculated, with one row per sequence and one column for each family.
 
 .. code-block:: console
 
