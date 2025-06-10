@@ -9,6 +9,8 @@ from typing import List, Dict, Optional
 import pandas as pd
 import snekmer as skm
 
+from snekmer.learn import generateKmerCounts
+
 # ---------------------------------------------------------
 # Files and Parameters
 # ---------------------------------------------------------
@@ -93,15 +95,15 @@ class Library:
         for item in self.kmerList:
             self.kmerTotals.append(0)
 
-    def generateKmerCounts(self) -> None:
-        """
-        Generate kmer counts for sequences present in the data.
-        """
-        kmerLen = len(self.kmerList[0])
-        for i, seq in enumerate(self.seqids):
-            v = self.df["sequence"][i]
-            kCounts = self.computeKmerCountsForSequence(v, kmerLen)
-            self.seqKmerdict[seq] = kCounts
+    # def generateKmerCounts(self) -> None:
+    #     """
+    #     Generate kmer counts for sequences present in the data.
+    #     """
+    #     kmerLen = len(self.kmerList[0])
+    #     for i, seq in enumerate(self.seqids):
+    #         v = self.df["sequence"][i]
+    #         kCounts = self.computeKmerCountsForSequence(v, kmerLen)
+    #         self.seqKmerdict[seq] = kCounts
 
     def filterAndConstruct(self) -> None:
         """
@@ -149,31 +151,31 @@ class Library:
         kmerCounts.index.name = "__index_level_0__"
         kmerCounts.to_csv(outName, index=True)
 
-    def computeKmerCountsForSequence(self, v: str, kmerLen: int) -> None:
-        """
-        Computes k-mer counts for a given sequence.
+    # def computeKmerCountsForSequence(self, v: str, kmerLen: int) -> None:
+    #     """
+    #     Computes k-mer counts for a given sequence.
 
-        Args:
-            v (str): The sequence.
-            kmerLen (int): Length of the k-mer.
+    #     Args:
+    #         v (str): The sequence.
+    #         kmerLen (int): Length of the k-mer.
 
-        Returns:
-            list: List of k-mer counts for the sequence.
-        """
-        items = [
-            v[item : item + kmerLen] for item in range(0, len(v) - kmerLen + 1)
-        ]
-        kCounts = {}
-        for j in items:
-            kCounts[j] = kCounts.get(j, 0) + 1
-        store = []
-        for i, item in enumerate(self.kmerList):
-            if item in kCounts:
-                store.append(kCounts[item])
-                self.kmerTotals[i] += kCounts[item]
-            else:
-                store.append(0)
-        return store
+    #     Returns:
+    #         list: List of k-mer counts for the sequence.
+    #     """
+    #     items = [
+    #         v[item : item + kmerLen] for item in range(0, len(v) - kmerLen + 1)
+    #     ]
+    #     kCounts = {}
+    #     for j in items:
+    #         kCounts[j] = kCounts.get(j, 0) + 1
+    #     store = []
+    #     for i, item in enumerate(self.kmerList):
+    #         if item in kCounts:
+    #             store.append(kCounts[item])
+    #             self.kmerTotals[i] += kCounts[item]
+    #         else:
+    #             store.append(0)
+    #     return store
 
     def processAnnotationCounts(self, seqid: str, x: str) -> None:
         """
@@ -215,7 +217,8 @@ class Library:
         """
         self.loadAnnotations(inputAnnotation)
         self.loadData(inputData)
-        self.generateKmerCounts()
+        # self.generateKmerCounts()
+        self.kmerList, self.kmerTotals, self.seqKmerdict = generateKmerCounts(inputData, self.kmerList, self.kmerTotals, self.seqKmerdict, False)
         self.filterAndConstruct()
         self.formatAndWriteOutput(inputData)
 

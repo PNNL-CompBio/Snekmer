@@ -13,6 +13,8 @@ import pyarrow as pa
 import pyarrow.csv as csv
 from sklearn.metrics.pairwise import cosine_similarity
 
+from snekmer.learn import generateKmerCounts, matchKmerCountsFormat
+
 
 # ---------------------------------------------------------
 # Files and Parameters
@@ -90,36 +92,36 @@ class KmerCompare:
         for i, seqid in enumerate(seqs):
             self.seqAnnot[seqid] = anns[i]
 
-    def generateReverseKmerCounts(self) -> None:
-        """
-        Generates a dictionary of kmer counts for each sequence.
+    # def generateReverseKmerCounts(self) -> None:
+    #     """
+    #     Generates a dictionary of kmer counts for each sequence.
 
-        Processes the input data to count the occurrence of each kmer in each sequence.
-        """
-        kmerList, df = skm.io.load_npz(self.inputData)
-        self.kmerList = kmerList[0]
-        seqids = df["sequence_id"]
-        self.kmerTotals = [0] * len(self.kmerList)
-        kmerLen = len(self.kmerList[0])
+    #     Processes the input data to count the occurrence of each kmer in each sequence.
+    #     """
+    #     kmerList, df = skm.io.load_npz(self.inputData)
+    #     self.kmerList = kmerList[0]
+    #     seqids = df["sequence_id"]
+    #     self.kmerTotals = [0] * len(self.kmerList)
+    #     kmerLen = len(self.kmerList[0])
 
-        for i, seq in enumerate(seqids):
-            v = df["sequence"][i]
-            v = v[::-1]
-            kCounts = {}
-            items = [
-                v[item : (item + kmerLen)]
-                for item in range(0, (len((v)) - kmerLen + 1))
-            ]
-            for j in items:
-                kCounts[j] = kCounts.get(j, 0) + 1
-            store = [
-                kCounts[item] if item in kCounts else 0
-                for item in self.kmerList
-            ]
-            for i, item in enumerate(self.kmerList):
-                if item in kCounts:
-                    self.kmerTotals[i] += kCounts[item]
-            self.seqKmerdict[seq] = store
+    #     for i, seq in enumerate(seqids):
+    #         v = df["sequence"][i]
+    #         v = v[::-1]
+    #         kCounts = {}
+    #         items = [
+    #             v[item : (item + kmerLen)]
+    #             for item in range(0, (len((v)) - kmerLen + 1))
+    #         ]
+    #         for j in items:
+    #             kCounts[j] = kCounts.get(j, 0) + 1
+    #         store = [
+    #             kCounts[item] if item in kCounts else 0
+    #             for item in self.kmerList
+    #         ]
+    #         for i, item in enumerate(self.kmerList):
+    #             if item in kCounts:
+    #                 self.kmerTotals[i] += kCounts[item]
+    #         self.seqKmerdict[seq] = store
 
     def constructKmerCountsDataframe(self) -> None:
         """
@@ -139,64 +141,64 @@ class KmerCompare:
         kmerCounts.index = ["Totals"] + list(self.seqKmerdict.keys())
         return kmerCounts
 
-    def matchkmerCountsFormat(self, kmerCounts: pd.DataFrame) -> None:
-        """
-        Matches the format of the provided kmer counts DataFrame to the format of the
-        comparison data. Ensures columns align correctly.
+    # def matchKmerCountsFormat(self, kmerCounts: pd.DataFrame) -> pd.DataFrame:
+    #     """
+    #     Matches the format of the provided kmer counts DataFrame to the format of the
+    #     comparison data. Ensures columns align correctly.
 
-        Args:
-            kmerCounts (DataFrame): DataFrame of kmer counts to format.
+    #     Args:
+    #         kmerCounts (DataFrame): DataFrame of kmer counts to format.
 
-        Returns:
-            DataFrame: Formatted kmer counts DataFrame.
-        """
-        if len(str(kmerCounts.columns.values[10])) == len(
-            str(self.kmerCountTotals.columns.values[10])
-        ):
-            compareCheck = True
-        else:
-            compareCheck = False
+    #     Returns:
+    #         DataFrame: Formatted kmer counts DataFrame.
+    #     """
+    #     if len(str(kmerCounts.columns.values[10])) == len(
+    #         str(self.kmerCountTotals.columns.values[10])
+    #     ):
+    #         compareCheck = True
+    #     else:
+    #         compareCheck = False
 
-        if compareCheck:
-            check = len(kmerCounts.columns.values)
-            alphabetInitial = set(
-                itertools.chain(
-                    *[list(x) for x in kmerCounts.columns.values[10:check]]
-                )
-            )
-            alphabetCompare = set(
-                itertools.chain(
-                    *[
-                        list(x)
-                        for x in self.kmerCountTotals.columns.values[10:check]
-                    ]
-                )
-            )
-            if alphabetCompare != alphabetInitial:
-                compareCheck = False
+    #     if compareCheck:
+    #         check = len(kmerCounts.columns.values)
+    #         alphabetInitial = set(
+    #             itertools.chain(
+    #                 *[list(x) for x in kmerCounts.columns.values[10:check]]
+    #             )
+    #         )
+    #         alphabetCompare = set(
+    #             itertools.chain(
+    #                 *[
+    #                     list(x)
+    #                     for x in self.kmerCountTotals.columns.values[10:check]
+    #                 ]
+    #             )
+    #         )
+    #         if alphabetCompare != alphabetInitial:
+    #             compareCheck = False
 
-        if not compareCheck:
-            print("Compare Check Failed. ")
-            sys.exit()
+    #     if not compareCheck:
+    #         print("Compare Check Failed. ")
+    #         sys.exit()
 
-        kmerCounts.drop("Totals", axis=0, inplace=True)
-        kmerCounts.drop("Sequence count", axis=1, inplace=True)
+    #     kmerCounts.drop("Totals", axis=0, inplace=True)
+    #     kmerCounts.drop("Sequence count", axis=1, inplace=True)
 
-        self.kmerCountTotals.drop("Totals", axis=0, inplace=True)
-        self.kmerCountTotals.drop("Kmer Count", axis=1, inplace=True)
-        self.kmerCountTotals.drop("Sequence count", axis=1, inplace=True)
+    #     self.kmerCountTotals.drop("Totals", axis=0, inplace=True)
+    #     self.kmerCountTotals.drop("Kmer Count", axis=1, inplace=True)
+    #     self.kmerCountTotals.drop("Sequence count", axis=1, inplace=True)
 
-        columnOrder = list(
-            set(kmerCounts.columns) | set(self.kmerCountTotals.columns)
-        )
-        kmerCounts = kmerCounts.reindex(columns=columnOrder, fill_value=0)
-        self.kmerCountTotals = self.kmerCountTotals.reindex(
-            columns=columnOrder, fill_value=0
-        )
+    #     columnOrder = list(
+    #         set(kmerCounts.columns) | set(self.kmerCountTotals.columns)
+    #     )
+    #     kmerCounts = kmerCounts.reindex(columns=columnOrder, fill_value=0)
+    #     self.kmerCountTotals = self.kmerCountTotals.reindex(
+    #         columns=columnOrder, fill_value=0
+    #     )
 
-        return kmerCounts
+    #     return kmerCounts
 
-    def calculateCosineSimilarity(self, kmerCounts: pd.DataFrame) -> None:
+    def calculateCosineSimilarity(self, kmerCounts: pd.DataFrame) -> pd.DataFrame:
         """
         Calculates the cosine similarity between the input kmer counts and comparison data.
 
@@ -245,9 +247,12 @@ class KmerCompare:
             8. Writing results to output.
         """
         self.generateInputs()
-        self.generateReverseKmerCounts()
+        # self.generateReverseKmerCounts()
+        self.kmerList, self.kmerTotals, self.seqKmerdict = generateKmerCounts(self.inputData, self.kmerList, self.kmerTotals, self.seqKmerdict, True)
+
         kmerCounts = self.constructKmerCountsDataframe()
-        kmerCounts = self.matchkmerCountsFormat(kmerCounts)
+        # kmerCounts = self.matchKmerCountsFormat(kmerCounts)
+        kmerCounts,self.kmerCountTotals = matchKmerCountsFormat(kmerCounts,self.kmerCountTotals)
         finalMatrixWithScores = self.calculateCosineSimilarity(kmerCounts)
         self.writeOutput(finalMatrixWithScores)
 

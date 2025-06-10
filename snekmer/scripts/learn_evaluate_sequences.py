@@ -8,6 +8,9 @@ import pandas as pd
 import itertools
 import snekmer as skm
 
+from snekmer.learn import matchKmerCountsFormat, applySelectionMethod
+
+
 
 # ---------------------------------------------------------
 # Files and Parameters
@@ -97,6 +100,8 @@ class Evaluator:
 
         thresholdType = config["learnapp"]["threshold"]
         selectionMethod = config["learnapp"]["selection"]
+        weightTop = config["learnapp"].get("weight_top", 0.5)
+        weightDistance = config["learnapp"].get("weight_distance", 0.5)
 
         if thresholdType == "None":
             thresholdType = None
@@ -111,9 +116,12 @@ class Evaluator:
             self.thresholdDict = thresholdDict  # Store for later use
 
         # Apply the selection method
-        predictions, deltas, topTwo = self.applySelectionMethod(
-            seqAnnScores, selectionMethod, thresholdType
-        )
+        predictions, deltas, topTwo = applySelectionMethod(seqAnnScores,
+                                                           selectionMethod,
+                                                           thresholdType,
+                                                           thresholdDict, 
+                                                           weightTop, 
+                                                           weightDistance)
 
         result = seqAnnScores.index.tolist()
 
@@ -448,256 +456,439 @@ class Evaluator:
 
         return diffDataframe
 
-    def applySelectionMethod(
-        self,
-        seqAnnScores: pd.DataFrame,
-        selectionMethod: str,
-        thresholdType: Optional[str]
-    ) -> Tuple[List[Optional[str]], List[float], pd.DataFrame]:
-        """
-        Apply the chosen selection method to sequence annotation scores.
+    # def applySelectionMethod(
+    #     self,
+    #     seqAnnScores: pd.DataFrame,
+    #     selectionMethod: str,
+    #     thresholdType: Optional[str]
+    # ) -> Tuple[List[Optional[str]], List[float], pd.DataFrame]:
+    #     """
+    #     Apply the chosen selection method to sequence annotation scores.
 
-        Args:
-            seqAnnScores (pd.DataFrame): DataFrame of annotation scores, indexed by sequence ID.
-            selectionMethod (str): Which method to use (e.g., "top_hit").
-            thresholdType (Optional[str]): Name of the threshold column, or None.
+    #     Args:
+    #         seqAnnScores (pd.DataFrame): DataFrame of annotation scores, indexed by sequence ID.
+    #         selectionMethod (str): Which method to use (e.g., "top_hit").
+    #         thresholdType (Optional[str]): Name of the threshold column, or None.
 
-        Returns:
-            Tuple containing:
-            - predictions (List[Optional[str]]): One predicted label per sequence.
-            - deltas (List[float]): Difference between top two scores per sequence.
-            - topTwo (pd.DataFrame): DataFrame with columns "keyValueOne" and "keyValueTwo" of the top two scores.
-        """
+    #     Returns:
+    #         Tuple containing:
+    #         - predictions (List[Optional[str]]): One predicted label per sequence.
+    #         - deltas (List[float]): Difference between top two scores per sequence.
+    #         - topTwo (pd.DataFrame): DataFrame with columns "keyValueOne" and "keyValueTwo" of the top two scores.
+    #     """
             
-        if selectionMethod == "top_hit" and thresholdType is None:
+    #     if selectionMethod == "top_hit" and thresholdType is None:
 
-            def getTopTwo(row: pd.Series) -> pd.Series:
-                top2 = row.nlargest(2)
-                return pd.Series(
-                    {
-                        "keyValueOne": (
-                            top2.iloc[0] if len(top2) > 0 else np.nan
-                        ),
-                        "keyValueOneHeader": (
-                            top2.index[0] if len(top2) > 0 else np.nan
-                        ),
-                        "keyValueTwo": (
-                            top2.iloc[1] if len(top2) > 1 else np.nan
-                        ),
-                        "keyValueTwoHeader": (
-                            top2.index[1] if len(top2) > 1 else np.nan
-                        ),
-                    }
-                )
+    #         def getTopTwo(row: pd.Series) -> pd.Series:
+    #             top2 = row.nlargest(2)
+    #             return pd.Series(
+    #                 {
+    #                     "keyValueOne": (
+    #                         top2.iloc[0] if len(top2) > 0 else np.nan
+    #                     ),
+    #                     "keyValueOneHeader": (
+    #                         top2.index[0] if len(top2) > 0 else np.nan
+    #                     ),
+    #                     "keyValueTwo": (
+    #                         top2.iloc[1] if len(top2) > 1 else np.nan
+    #                     ),
+    #                     "keyValueTwoHeader": (
+    #                         top2.index[1] if len(top2) > 1 else np.nan
+    #                     ),
+    #                 }
+    #             )
 
-            keyValsDf = seqAnnScores.apply(getTopTwo, axis=1)
-            predictions = keyValsDf["keyValueOneHeader"].tolist()
-            deltas = (
-                keyValsDf["keyValueOne"] - keyValsDf["keyValueTwo"]
-            ).tolist()
-            topTwo = keyValsDf[["keyValueOne", "keyValueTwo"]]
+    #         keyValsDf = seqAnnScores.apply(getTopTwo, axis=1)
+    #         predictions = keyValsDf["keyValueOneHeader"].tolist()
+    #         deltas = (
+    #             keyValsDf["keyValueOne"] - keyValsDf["keyValueTwo"]
+    #         ).tolist()
+    #         topTwo = keyValsDf[["keyValueOne", "keyValueTwo"]]
 
-        elif selectionMethod == "top_hit" and thresholdType is not None:
+    #     elif selectionMethod == "top_hit" and thresholdType is not None:
 
-            def getTopTwo(row: pd.Series) -> pd.Series:
-                # Filter values based on threshold, keeping only values above the threshold
-                thresholds = row.index.map(
-                    self.thresholdDict
-                ).to_numpy()  # Map thresholds to each family (column) for this row
-                filteredRow = row.where(row >= thresholds, np.nan)
+    #         def getTopTwo(row: pd.Series) -> pd.Series:
+    #             # Filter values based on threshold, keeping only values above the threshold
+    #             thresholds = row.index.map(
+    #                 self.thresholdDict
+    #             ).to_numpy()  # Map thresholds to each family (column) for this row
+    #             filteredRow = row.where(row >= thresholds, np.nan)
 
-                # Get the top two values and their column headers, handling cases with fewer than two valid entries
-                top2 = filteredRow.nlargest(2)
-                return pd.Series(
-                    {
-                        "keyValueOne": (
-                            top2.iloc[0] if len(top2) > 0 else np.nan
-                        ),
-                        "keyValueOneHeader": (
-                            top2.index[0] if len(top2) > 0 else np.nan
-                        ),
-                        "keyValueTwo": (
-                            top2.iloc[1] if len(top2) > 1 else np.nan
-                        ),
-                        "keyValueTwoHeader": (
-                            top2.index[1] if len(top2) > 1 else np.nan
-                        ),
-                    }
-                )
+    #             # Get the top two values and their column headers, handling cases with fewer than two valid entries
+    #             top2 = filteredRow.nlargest(2)
+    #             return pd.Series(
+    #                 {
+    #                     "keyValueOne": (
+    #                         top2.iloc[0] if len(top2) > 0 else np.nan
+    #                     ),
+    #                     "keyValueOneHeader": (
+    #                         top2.index[0] if len(top2) > 0 else np.nan
+    #                     ),
+    #                     "keyValueTwo": (
+    #                         top2.iloc[1] if len(top2) > 1 else np.nan
+    #                     ),
+    #                     "keyValueTwoHeader": (
+    #                         top2.index[1] if len(top2) > 1 else np.nan
+    #                     ),
+    #                 }
+    #             )
 
-            keyValsDf = seqAnnScores.apply(getTopTwo, axis=1)
+    #         keyValsDf = seqAnnScores.apply(getTopTwo, axis=1)
 
-            # Extracting the predictions and deltas for output
-            predictions = keyValsDf["keyValueOneHeader"].tolist()
-            deltas = (
-                keyValsDf["keyValueOne"] - keyValsDf["keyValueTwo"]
-            ).tolist()
-            topTwo = keyValsDf[["keyValueOne", "keyValueTwo"]]
+    #         # Extracting the predictions and deltas for output
+    #         predictions = keyValsDf["keyValueOneHeader"].tolist()
+    #         deltas = (
+    #             keyValsDf["keyValueOne"] - keyValsDf["keyValueTwo"]
+    #         ).tolist()
+    #         topTwo = keyValsDf[["keyValueOne", "keyValueTwo"]]
 
-        # The top two values compared here are: Greatest dist from threshold and Second greatest dist from Threshold
-        elif selectionMethod == "greatest_distance":
-            thresholds = seqAnnScores.columns.to_series().map(
-                self.thresholdDict
-            )
-            distances = seqAnnScores.subtract(thresholds, axis=1)
-            filteredDistances = distances.where(distances >= 0, np.nan)
-            partitioned_distances = np.partition(
-                np.nan_to_num(filteredDistances.values, nan=-np.inf),
-                -2,
-                axis=1,
-            )
+    #     # The top two values compared here are: Greatest dist from threshold and Second greatest dist from Threshold
+    #     elif selectionMethod == "greatest_distance":
+    #         thresholds = seqAnnScores.columns.to_series().map(
+    #             self.thresholdDict
+    #         )
+    #         distances = seqAnnScores.subtract(thresholds, axis=1)
+    #         filteredDistances = distances.where(distances >= 0, np.nan)
+    #         partitioned_distances = np.partition(
+    #             np.nan_to_num(filteredDistances.values, nan=-np.inf),
+    #             -2,
+    #             axis=1,
+    #         )
 
-            topTwoIdx = np.argpartition(
-                np.nan_to_num(filteredDistances.values, nan=-np.inf),
-                -2,
-                axis=1,
-            )[:, -2:]
+    #         topTwoIdx = np.argpartition(
+    #             np.nan_to_num(filteredDistances.values, nan=-np.inf),
+    #             -2,
+    #             axis=1,
+    #         )[:, -2:]
 
-            sortedTopTwoIdx = np.argsort(
-                filteredDistances.values[
-                    np.arange(filteredDistances.shape[0])[:, None], topTwoIdx
-                ],
-                axis=1,
-            )[:, ::-1]
+    #         sortedTopTwoIdx = np.argsort(
+    #             filteredDistances.values[
+    #                 np.arange(filteredDistances.shape[0])[:, None], topTwoIdx
+    #             ],
+    #             axis=1,
+    #         )[:, ::-1]
 
-            topTwoDistances = np.take_along_axis(
-                filteredDistances.values,
-                topTwoIdx[
-                    np.arange(filteredDistances.shape[0])[:, None],
-                    sortedTopTwoIdx,
-                ],
-                axis=1,
-            )
+    #         topTwoDistances = np.take_along_axis(
+    #             filteredDistances.values,
+    #             topTwoIdx[
+    #                 np.arange(filteredDistances.shape[0])[:, None],
+    #                 sortedTopTwoIdx,
+    #             ],
+    #             axis=1,
+    #         )
 
-            topTwoScores = np.take_along_axis(
-                seqAnnScores.values,
-                topTwoIdx[
-                    np.arange(filteredDistances.shape[0])[:, None],
-                    sortedTopTwoIdx,
-                ],
-                axis=1,
-            )
+    #         topTwoScores = np.take_along_axis(
+    #             seqAnnScores.values,
+    #             topTwoIdx[
+    #                 np.arange(filteredDistances.shape[0])[:, None],
+    #                 sortedTopTwoIdx,
+    #             ],
+    #             axis=1,
+    #         )
 
-            topTwoHeaders = np.array(filteredDistances.columns)[
-                topTwoIdx[
-                    np.arange(filteredDistances.shape[0])[:, None],
-                    sortedTopTwoIdx,
-                ]
-            ]
+    #         topTwoHeaders = np.array(filteredDistances.columns)[
+    #             topTwoIdx[
+    #                 np.arange(filteredDistances.shape[0])[:, None],
+    #                 sortedTopTwoIdx,
+    #             ]
+    #         ]
 
-            flattenedHeaders = topTwoHeaders.flatten()
-            flattenedThresholds = thresholds[flattenedHeaders].values
-            topTwoThresholds = flattenedThresholds.reshape(topTwoHeaders.shape)
+    #         flattenedHeaders = topTwoHeaders.flatten()
+    #         flattenedThresholds = thresholds[flattenedHeaders].values
+    #         topTwoThresholds = flattenedThresholds.reshape(topTwoHeaders.shape)
 
-            keyValsDf = pd.DataFrame(
-                {
-                    "keyValueOne": topTwoScores[:, 0],
-                    "keyValueOneHeader": topTwoHeaders[:, 0],
-                    "keyValueOneDistance": topTwoDistances[:, 0],
-                    "keyValueOneThreshold": topTwoThresholds[:, 0],
-                    "keyValueTwo": topTwoScores[:, 1],
-                    "keyValueTwoHeader": topTwoHeaders[:, 1],
-                    "keyValueTwoDistance": topTwoDistances[:, 1],
-                    "keyValueTwoThreshold": topTwoThresholds[:, 1],
-                }
-            )
+    #         keyValsDf = pd.DataFrame(
+    #             {
+    #                 "keyValueOne": topTwoScores[:, 0],
+    #                 "keyValueOneHeader": topTwoHeaders[:, 0],
+    #                 "keyValueOneDistance": topTwoDistances[:, 0],
+    #                 "keyValueOneThreshold": topTwoThresholds[:, 0],
+    #                 "keyValueTwo": topTwoScores[:, 1],
+    #                 "keyValueTwoHeader": topTwoHeaders[:, 1],
+    #                 "keyValueTwoDistance": topTwoDistances[:, 1],
+    #                 "keyValueTwoThreshold": topTwoThresholds[:, 1],
+    #             }
+    #         )
 
-            deltas = (
-                keyValsDf["keyValueOneDistance"]
-                - keyValsDf["keyValueTwoDistance"]
-            ).tolist()
-            predictions = keyValsDf["keyValueOneHeader"].tolist()
-            topTwo = keyValsDf[["keyValueOne", "keyValueTwo"]]
+    #         deltas = (
+    #             keyValsDf["keyValueOneDistance"]
+    #             - keyValsDf["keyValueTwoDistance"]
+    #         ).tolist()
+    #         predictions = keyValsDf["keyValueOneHeader"].tolist()
+    #         topTwo = keyValsDf[["keyValueOne", "keyValueTwo"]]
 
-        elif selectionMethod == "combined_distance":
-            weightTop = config["learnapp"].get("weight_top", 0.5)
-            weightDistance = config["learnapp"].get("weight_distance", 0.5)
-            thresholds = seqAnnScores.columns.to_series().map(
-                self.thresholdDict
-            )
-            distances = seqAnnScores - thresholds
-            positiveDistances = distances.where(distances >= 0, np.nan)
-            combinedScores = (seqAnnScores * weightTop) + (
-                distances * weightDistance
-            )
-            combinedScores = combinedScores.where(
-                positiveDistances.notna(), np.nan
-            )
-            topCombinedScores = combinedScores.max(axis=1)
-            predictions = combinedScores.idxmax(axis=1)
-            predictions = predictions.where(~topCombinedScores.isna(), None)
+    #     elif selectionMethod == "combined_distance":
+    #         weightTop = config["learnapp"].get("weight_top", 0.5)
+    #         weightDistance = config["learnapp"].get("weight_distance", 0.5)
+    #         thresholds = seqAnnScores.columns.to_series().map(
+    #             self.thresholdDict
+    #         )
+    #         distances = seqAnnScores - thresholds
+    #         positiveDistances = distances.where(distances >= 0, np.nan)
+    #         combinedScores = (seqAnnScores * weightTop) + (
+    #             distances * weightDistance
+    #         )
+    #         combinedScores = combinedScores.where(
+    #             positiveDistances.notna(), np.nan
+    #         )
+    #         topCombinedScores = combinedScores.max(axis=1)
+    #         predictions = combinedScores.idxmax(axis=1)
+    #         predictions = predictions.where(~topCombinedScores.isna(), None)
 
-            deltas = []
-            topTwoList = []
+    #         deltas = []
+    #         topTwoList = []
 
-            ## Method 1/2: Top hit with threshold
-            filteredScores = seqAnnScores.where(
-                seqAnnScores >= thresholds, np.nan
-            )
-            topScoresMethodOne = filteredScores.max(axis=1)
-            topFamiliesMethodOne = filteredScores.idxmax(axis=1)
+    #         ## Method 1/2: Top hit with threshold
+    #         filteredScores = seqAnnScores.where(
+    #             seqAnnScores >= thresholds, np.nan
+    #         )
+    #         topScoresMethodOne = filteredScores.max(axis=1)
+    #         topFamiliesMethodOne = filteredScores.idxmax(axis=1)
 
-            # Get second highest scores
-            tempScoresMethodOne = filteredScores.apply(
-                lambda row: row[row != row.max()], axis=1
-            )
-            secondScoresMethodOne = tempScoresMethodOne.max(axis=1)
+    #         # Get second highest scores
+    #         tempScoresMethodOne = filteredScores.apply(
+    #             lambda row: row[row != row.max()], axis=1
+    #         )
+    #         secondScoresMethodOne = tempScoresMethodOne.max(axis=1)
 
-            ## Method 3: Greatest distance from threshold
-            positiveDistancesMethodThree = distances.where(distances >= 0, np.nan)
-            topDistancesMethodThree = positiveDistancesMethodThree.max(axis=1)
-            topFamiliesMethodThree = positiveDistancesMethodThree.idxmax(axis=1)
+    #         ## Method 3: Greatest distance from threshold
+    #         positiveDistancesMethodThree = distances.where(distances >= 0, np.nan)
+    #         topDistancesMethodThree = positiveDistancesMethodThree.max(axis=1)
+    #         topFamiliesMethodThree = positiveDistancesMethodThree.idxmax(axis=1)
 
-            # Iterate over each sequence to compute delta and topTwo
-            for idx in range(len(predictions)):
-                predFamily = predictions.iloc[idx]
-                if predFamily is None:
-                    deltas.append(None)
-                    topTwoList.append([np.nan, np.nan])
-                    continue
+    #         # Iterate over each sequence to compute delta and topTwo
+    #         for idx in range(len(predictions)):
+    #             predFamily = predictions.iloc[idx]
+    #             if predFamily is None:
+    #                 deltas.append(None)
+    #                 topTwoList.append([np.nan, np.nan])
+    #                 continue
 
-                    # Get top families from other methods
-                topFamilyMethod1 = topFamiliesMethodOne.iloc[idx]
-                topFamilyMethodThree = topFamiliesMethodThree.iloc[idx]
+    #                 # Get top families from other methods
+    #             topFamilyMethod1 = topFamiliesMethodOne.iloc[idx]
+    #             topFamilyMethodThree = topFamiliesMethodThree.iloc[idx]
 
-                if predFamily == topFamilyMethod1:
-                    delta = (
-                        topScoresMethodOne.iloc[idx]
-                        - secondScoresMethodOne.iloc[idx]
-                    )
-                    topTwo = [
-                        topScoresMethodOne.iloc[idx],
-                        secondScoresMethodOne.iloc[idx],
-                    ]
-                elif predFamily == topFamilyMethodThree:
-                    originalScore = seqAnnScores.loc[
-                        seqAnnScores.index[idx], predFamily
-                    ]
-                    threshold = thresholds[predFamily]
-                    delta = originalScore - threshold
-                    topTwo = [originalScore, threshold]
-                else:
-                    rowCombinedScores = combinedScores.iloc[idx]
-                    secondCombinedScore = rowCombinedScores.drop(
-                        predFamily
-                    ).max()
-                    delta = topCombinedScores.iloc[idx] - secondCombinedScore
-                    topTwo = [topCombinedScores.iloc[idx], secondCombinedScore]
+    #             if predFamily == topFamilyMethod1:
+    #                 delta = (
+    #                     topScoresMethodOne.iloc[idx]
+    #                     - secondScoresMethodOne.iloc[idx]
+    #                 )
+    #                 topTwo = [
+    #                     topScoresMethodOne.iloc[idx],
+    #                     secondScoresMethodOne.iloc[idx],
+    #                 ]
+    #             elif predFamily == topFamilyMethodThree:
+    #                 originalScore = seqAnnScores.loc[
+    #                     seqAnnScores.index[idx], predFamily
+    #                 ]
+    #                 threshold = thresholds[predFamily]
+    #                 delta = originalScore - threshold
+    #                 topTwo = [originalScore, threshold]
+    #             else:
+    #                 rowCombinedScores = combinedScores.iloc[idx]
+    #                 secondCombinedScore = rowCombinedScores.drop(
+    #                     predFamily
+    #                 ).max()
+    #                 delta = topCombinedScores.iloc[idx] - secondCombinedScore
+    #                 topTwo = [topCombinedScores.iloc[idx], secondCombinedScore]
 
-                deltas.append(delta)
-                topTwoList.append(topTwo)
+    #             deltas.append(delta)
+    #             topTwoList.append(topTwo)
 
-                # Create a DataFrame for topTwo
-            topTwo = pd.DataFrame(
-                topTwoList, columns=["keyValueOne", "keyValueTwo"]
-            )
+    #             # Create a DataFrame for topTwo
+    #         topTwo = pd.DataFrame(
+    #             topTwoList, columns=["keyValueOne", "keyValueTwo"]
+    #         )
 
-            # Convert predictions to list
-            predictions = predictions.tolist()
-        else:
-            raise ValueError(f"Invalid selection method: {selectionMethod}")
+    #         # Convert predictions to list
+    #         predictions = predictions.tolist()
+    #     else:
+    #         raise ValueError(f"Invalid selection method: {selectionMethod}")
         
-        return predictions, deltas, topTwo
+    #     return predictions, deltas, topTwo
+
+
+    # def applySelectionMethod(
+    #     self,
+    #     seqAnnScores: pd.DataFrame,
+    #     selectionMethod: str,
+    #     thresholdType: Optional[str]
+    # ) -> Tuple[List[Optional[str]], List[float], pd.DataFrame]:
+    #     """
+    #     Apply the chosen selection method to sequence annotation scores.
+    #     """
+    #     if selectionMethod == "top_hit" and thresholdType is None:
+    #         return self._select_top_hit(seqAnnScores)
+    #     elif selectionMethod == "top_hit" and thresholdType is not None:
+    #         return self._select_top_hit_with_threshold(seqAnnScores)
+    #     elif selectionMethod == "greatest_distance":
+    #         return self._select_greatest_distance(seqAnnScores)
+    #     elif selectionMethod == "combined_distance":
+    #         return self._select_combined_distance(seqAnnScores)
+    #     else:
+    #         raise ValueError(f"Invalid selection method: {selectionMethod}")
+
+    # def _get_top_two(
+    #     self,
+    #     row: pd.Series,
+    #     thresholds: Optional[np.ndarray] = None
+    # ) -> pd.Series:
+    #     """
+    #     Generic helper to extract the top two values (and their headers) from a row,
+    #     optionally applying per-column thresholds before selection.
+    #     """
+    #     if thresholds is not None:
+    #         row = row.where(row >= thresholds, np.nan)
+    #     top2 = row.nlargest(2)
+    #     return pd.Series({
+    #         "keyValueOne": top2.iloc[0] if len(top2) > 0 else np.nan,
+    #         "keyValueOneHeader": top2.index[0] if len(top2) > 0 else np.nan,
+    #         "keyValueTwo": top2.iloc[1] if len(top2) > 1 else np.nan,
+    #         "keyValueTwoHeader": top2.index[1] if len(top2) > 1 else np.nan,
+    #     })
+
+    # def _select_top_hit(
+    #     self,
+    #     seqAnnScores: pd.DataFrame
+    # ) -> Tuple[List[Optional[str]], List[float], pd.DataFrame]:
+    #     keyValsDf = seqAnnScores.apply(
+    #         lambda row: self._get_top_two(row), axis=1
+    #     )
+    #     predictions = keyValsDf["keyValueOneHeader"].tolist()
+    #     deltas = (keyValsDf["keyValueOne"] - keyValsDf["keyValueTwo"]).tolist()
+    #     topTwo = keyValsDf[["keyValueOne", "keyValueTwo"]]
+    #     return predictions, deltas, topTwo
+
+    # def _select_top_hit_with_threshold(
+    #     self,
+    #     seqAnnScores: pd.DataFrame
+    # ) -> Tuple[List[Optional[str]], List[float], pd.DataFrame]:
+    #     thresholds = seqAnnScores.columns.to_series().map(
+    #         self.thresholdDict
+    #     ).to_numpy()
+    #     keyValsDf = seqAnnScores.apply(
+    #         lambda row: self._get_top_two(row, thresholds), axis=1
+    #     )
+    #     predictions = keyValsDf["keyValueOneHeader"].tolist()
+    #     deltas = (keyValsDf["keyValueOne"] - keyValsDf["keyValueTwo"]).tolist()
+    #     topTwo = keyValsDf[["keyValueOne", "keyValueTwo"]]
+    #     return predictions, deltas, topTwo
+
+    # def _select_greatest_distance(
+    #     self,
+    #     seqAnnScores: pd.DataFrame
+    # ) -> Tuple[List[Optional[str]], List[float], pd.DataFrame]:
+    #     thresholds = seqAnnScores.columns.to_series().map(self.thresholdDict)
+    #     distances = seqAnnScores.subtract(thresholds, axis=1)
+    #     filteredDistances = distances.where(distances >= 0, np.nan)
+
+    #     topTwoIdx = np.argpartition(
+    #         np.nan_to_num(filteredDistances.values, nan=-np.inf),
+    #         -2,
+    #         axis=1,
+    #     )[:, -2:]
+
+    #     sortedIdx = np.argsort(
+    #         filteredDistances.values[np.arange(filteredDistances.shape[0])[:, None], topTwoIdx],
+    #         axis=1
+    #     )[:, ::-1]
+
+    #     idx_mat = topTwoIdx[np.arange(filteredDistances.shape[0])[:, None], sortedIdx]
+    #     topTwoScores = np.take_along_axis(seqAnnScores.values, idx_mat, axis=1)
+    #     topTwoDistances = np.take_along_axis(filteredDistances.values, idx_mat, axis=1)
+    #     topTwoHeaders = np.array(filteredDistances.columns)[idx_mat]
+
+    #     flatHdrs = topTwoHeaders.flatten()
+    #     flatTh = thresholds[flatHdrs].values
+    #     topThresh = flatTh.reshape(topTwoHeaders.shape)
+
+    #     keyValsDf = pd.DataFrame({
+    #         "keyValueOne": topTwoScores[:, 0],
+    #         "keyValueOneHeader": topTwoHeaders[:, 0],
+    #         "keyValueOneDistance": topTwoDistances[:, 0],
+    #         "keyValueOneThreshold": topThresh[:, 0],
+    #         "keyValueTwo": topTwoScores[:, 1],
+    #         "keyValueTwoHeader": topTwoHeaders[:, 1],
+    #         "keyValueTwoDistance": topTwoDistances[:, 1],
+    #         "keyValueTwoThreshold": topThresh[:, 1],
+    #     })
+
+    #     deltas = (keyValsDf["keyValueOneDistance"] - keyValsDf["keyValueTwoDistance"]).tolist()
+    #     predictions = keyValsDf["keyValueOneHeader"].tolist()
+    #     topTwo = keyValsDf[["keyValueOne", "keyValueTwo"]]
+    #     return predictions, deltas, topTwo
+
+    # def _select_combined_distance(
+    #     self,
+    #     seqAnnScores: pd.DataFrame
+    # ) -> Tuple[List[Optional[str]], List[float], pd.DataFrame]:
+    #     weightTop = config["learnapp"].get("weight_top", 0.5)
+    #     weightDistance = config["learnapp"].get("weight_distance", 0.5)
+    #     thresholds = seqAnnScores.columns.to_series().map(self.thresholdDict)
+    #     distances = seqAnnScores - thresholds
+    #     positiveDistances = distances.where(distances >= 0, np.nan)
+    #     combinedScores = (seqAnnScores * weightTop) + (distances * weightDistance)
+    #     combinedScores = combinedScores.where(positiveDistances.notna(), np.nan)
+
+    #     topCombined = combinedScores.max(axis=1)
+    #     preds = combinedScores.idxmax(axis=1).where(~topCombined.isna(), None)
+
+    #     deltas = []
+    #     topTwoList = []
+
+    #     # Method 1/2: Top hit with threshold
+    #     filtered = seqAnnScores.where(seqAnnScores >= thresholds, np.nan)
+    #     top1 = filtered.max(axis=1)
+    #     fam1 = filtered.idxmax(axis=1)
+    #     temp = filtered.apply(lambda row: row[row != row.max()], axis=1)
+    #     second1 = temp.max(axis=1)
+
+    #     # Method 3: Greatest distance from threshold
+    #     posDist3 = distances.where(distances >= 0, np.nan)
+    #     topDist3 = posDist3.max(axis=1)
+    #     fam3 = posDist3.idxmax(axis=1)
+
+    #     for idx in range(len(preds)):
+    #         pred = preds.iloc[idx]
+    #         if pred is None:
+    #             deltas.append(None)
+    #             topTwoList.append([np.nan, np.nan])
+    #             continue
+
+    #         if pred == fam1.iloc[idx]:
+    #             delta = top1.iloc[idx] - second1.iloc[idx]
+    #             topTwoList.append([top1.iloc[idx], second1.iloc[idx]])
+    #         elif pred == fam3.iloc[idx]:
+    #             original = seqAnnScores.iat[idx, seqAnnScores.columns.get_loc(pred)]
+    #             thr = thresholds[pred]
+    #             delta = original - thr
+    #             topTwoList.append([original, thr])
+    #         else:
+    #             rowComb = combinedScores.iloc[idx]
+    #             secondComb = rowComb.drop(pred).max()
+    #             delta = topCombined.iloc[idx] - secondComb
+    #             topTwoList.append([topCombined.iloc[idx], secondComb])
+    #         deltas.append(delta)
+
+    #     topTwo = pd.DataFrame(topTwoList, columns=["keyValueOne", "keyValueTwo"])
+    #     return preds.tolist(), deltas, topTwo
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     def saveResults(
         self,
