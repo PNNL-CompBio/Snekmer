@@ -27,7 +27,8 @@ import os
 import shutil
 
 import snekmer as skm
-from importlib.resources import files, as_file
+from importlib.resources import files
+
 
 # collect all fasta-like files, unzipped filenames, and basenames
 input_dir = (
@@ -76,6 +77,14 @@ threshold_type = config["learnapp"]["threshold"]
 selection_type = config["learnapp"]["selection"]
 
 
+def resource_path(package: str, *parts) -> str:
+    """
+    Re-create pkg_resources.resource_filename()
+    but using importlib.resources.
+    """
+    return str(files(package).joinpath(*parts))
+
+
 wildcard_constraints:
     dataset=FAS,
     FAS=FAS,
@@ -105,8 +114,6 @@ use rule vectorize from kmerize with:
     output:
         data=join(out_dir, "vector", "{nb}.npz"),
         kmerobj=join(out_dir, "kmerize", "{nb}.kmers"),
-    log:
-        join(out_dir, "kmerize", "log", "{nb}.log"),
 
 
 rule apply:
@@ -126,10 +133,8 @@ rule apply:
             else []
         ),
         kmer_summary=join(out_dir, "apply", "kmer-summary-{nb}.csv"),
-    log:
-        join(out_dir, "apply", "log", "{nb}.log"),
     script:
-        lambda wildcards: str(as_file(files("snekmer").joinpath("scripts", "apply.py")))
+        resource_path("snekmer", "scripts", "apply.py")
 
 
 rule apply_report:

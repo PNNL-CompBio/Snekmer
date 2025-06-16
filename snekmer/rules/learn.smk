@@ -25,9 +25,8 @@ from os.path import basename, join
 import os
 import shutil
 
-# core library
 import snekmer as skm
-from pkg_resources import resource_filename
+from importlib.resources import files
 
 
 # collect all fasta-like files, unzipped filenames, and basenames
@@ -86,6 +85,14 @@ if (
     )
 
 
+def resource_path(package: str, *parts) -> str:
+    """
+    Re-create pkg_resources.resource_filename()
+    but using importlib.resources.
+    """
+    return str(files(package).joinpath(*parts))
+
+
 rule all:
     input:
         # Vector files
@@ -129,7 +136,7 @@ rule all:
         # Evaluation‐level summaries & confidence
         join(out_dir, "eval_conf", "family_summary_stats.csv"),
         join(out_dir, "eval_conf", "global-confidence-scores.csv"),
-        # Copy‐for‐apply inputs
+        # Apply Inputs Copy
         join(out_dir, "apply_inputs", "counts", "kmer-counts-total.csv"),
         join(out_dir, "apply_inputs", "stats", "family_summary_stats.csv"),
         join(out_dir, "apply_inputs", "confidence", "global-confidence-scores.csv"),
@@ -158,7 +165,7 @@ if config["learnapp"]["fragmentation"]:
             min_length=config["learnapp"]["min_length"],
             seed=config["learnapp"]["seed"],
         script:
-            resource_filename("snekmer", join("scripts/learn_fragment.py"))
+            resource_path("snekmer", "scripts", "learn_fragment.py")
 
 
 use rule vectorize from kmerize with:
@@ -185,7 +192,7 @@ rule learn:
     log:
         join(out_dir, "learn", "log", "learn-{nb}.log"),
     script:
-        resource_filename("snekmer", join("scripts/learn_learn.py"))
+        resource_path("snekmer", "scripts", "learn_learn.py")
 
 
 rule merge:
@@ -197,7 +204,7 @@ rule merge:
     log:
         join(out_dir, "learn", "log", "merge.log"),
     script:
-        resource_filename("snekmer", join("scripts/learn_merge.py"))
+        resource_path("snekmer", "scripts", "learn_merge.py")
 
 
 rule eval_apply_reverse_seqs:
@@ -220,7 +227,7 @@ rule eval_apply_reverse_seqs:
             "seq-annotation-scores-{nb}.csv.gz",
         ),
     script:
-        resource_filename("snekmer", join("scripts/learn_eval_apply_reverse_seqs.py"))
+        resource_path("snekmer", "scripts", "learn_eval_apply_reverse_seqs.py")
 
 
 rule reverse_decoy_evaluations:
@@ -242,7 +249,7 @@ rule reverse_decoy_evaluations:
         family_stats=join(out_dir, "eval_conf", "family_summary_stats.csv"),
         checkpoint=join(out_dir, "eval_conf", "family_stats_checkpoint.csv"),
     script:
-        resource_filename("snekmer", join("scripts/learn_reverse_decoy_evaluations.py"))
+        resource_path("snekmer", "scripts", "learn_reverse_decoy_evaluations.py")
 
 
 rule eval_apply_sequences:
@@ -265,7 +272,7 @@ rule eval_apply_sequences:
             "seq-annotation-scores-{nb}.csv.gz",
         ),
     script:
-        resource_filename("snekmer", join("scripts/learn_eval_apply_sequences.py"))
+        resource_path("snekmer", "scripts", "learn_eval_apply_sequences.py")
 
 
 rule evaluate:
@@ -291,7 +298,7 @@ rule evaluate:
     log:
         join(out_dir, "eval_conf", "log", "conf.log"),
     script:
-        resource_filename("snekmer", join("scripts/learn_evaluate_sequences.py"))
+        resource_path("snekmer", "scripts", "learn_evaluate_sequences.py")
 
 
 rule copy_results_for_apply:
