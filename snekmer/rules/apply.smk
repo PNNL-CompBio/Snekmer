@@ -19,41 +19,16 @@ module kmerize:
         config
 
 
-import copy
-import csv
-
-# built-in imports
-import gzip
-import itertools
-import json
-import pickle
-import struct
-import sys
-import time
-from datetime import datetime
 from glob import glob
-from itertools import islice, product, repeat
-from multiprocessing import Pool
-from os import makedirs
-from os.path import basename, dirname, exists, join, split, splitext
-from pathlib import Path
+from itertools import product
+from os.path import basename, dirname, join
 
-import numpy as np
-import pandas as pd
-import pyarrow as pa
-import pyarrow.csv as csv
-import seaborn as sns
-import sklearn
-from Bio import SeqIO
-from scipy import spatial
-from scipy.stats import rankdata
+import os
+import shutil
 
 import snekmer as skm
-from pkg_resources import resource_filename
+from importlib.resources import files, as_file
 
-
-# Note:
-# Pyarrow installed via "conda install -c conda-forge pyarrow"
 # collect all fasta-like files, unzipped filenames, and basenames
 input_dir = (
     "input"
@@ -73,23 +48,23 @@ compare_file = glob(join("counts", "*.csv"))
 confidence_file = glob(join("confidence", "*.csv"))
 decoy_stats_file = glob(join("stats", "*.csv"))
 # map extensions to basename (basename.ext.gz -> {basename: ext})
-UZ_MAP = {
+uz_map = {
     skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in zipped
 }
-FA_MAP = {
+fa_map = {
     skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in unzipped
 }
 # seq-annotation-scores
 # get unzipped filenames
-UZS = [f"{f}.{ext}" for f, ext in UZ_MAP.items()]
+UZS = [f"{f}.{ext}" for f, ext in uz_map.items()]
 # isolate basenames for all files
-FAS = list(FA_MAP.keys())
-FAV = list(FA_MAP.values())
+FAS = list(fa_map.keys())
+FAV = list(fa_map.values())
 # parse any background files
 bg_files = glob(join(input_dir, "background", "*"))
 if len(bg_files) > 0:
     bg_files = [skm.utils.split_file_ext(basename(f))[0] for f in bg_files]
-NON_BGS, BGS = [f for f in FAS if f not in bg_files], bg_files
+non_bgs, bgs = [f for f in FAS if f not in bg_files], bg_files
 # terminate with error if invalid alphabet specified
 skm.alphabet.check_valid(config["alphabet"])
 # define output directory (helpful for multiple runs)
@@ -125,7 +100,7 @@ rule all:
 use rule vectorize from kmerize with:
     input:
         fasta=lambda wildcards: join(
-            input_dir, f"{wildcards.nb}.{FA_MAP[wildcards.nb]}"
+            input_dir, f"{wildcards.nb}.{fa_map[wildcards.nb]}"
         ),
     output:
         data=join(out_dir, "vector", "{nb}.npz"),
@@ -154,7 +129,7 @@ rule apply:
     log:
         join(out_dir, "apply", "log", "{nb}.log"),
     script:
-        resource_filename("snekmer", join("scripts/apply.py"))
+        lambda wildcards: str(as_file(files("snekmer").joinpath("scripts", "apply.py")))
 
 
 rule apply_report:

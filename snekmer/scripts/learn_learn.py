@@ -4,12 +4,15 @@
 
 import re
 from os.path import join
-import numpy as np
-from typing import List, Dict, Optional
-import pandas as pd
-import snekmer as skm
 
-from snekmer.learn import generateKmerCounts
+import numpy as np
+import pandas as pd
+
+from typing import Dict, List, Optional
+
+import snekmer as skm
+from snekmer.learn import generate_kmer_counts
+
 
 # ---------------------------------------------------------
 # Files and Parameters
@@ -18,7 +21,7 @@ from snekmer.learn import generateKmerCounts
 config = snakemake.config
 
 
-outDir = skm.io.define_output_dir(
+out_dir = skm.io.define_output_dir(
     config["alphabet"], config["k"], nested=config["nested_output"]
 )
 
@@ -35,149 +38,113 @@ class Library:
 
     Attributes:
     annotation (list): A list to store annotations loaded from files.
-    seqAnnot (dict): A dictionary mapping sequence IDs to their annotations.
-    kmerList (list): A list of unique kmers present in the data.
+    seq_annot (dict): A dictionary mapping sequence IDs to their annotations.
+    kmer_list (list): A list of unique kmers present in the data.
     df (DataFrame or None): DataFrame containing kmer data.
-    seqids (list): A list of sequence IDs.
-    kmerTotals (list): A list to store total counts of each k-mer across all sequences.
-    seqKmerdict (dict): A dictionary mapping sequence IDs to their k-mer counts.
-    annotationCounts (dict): A dictionary mapping annotations to their counts.
-    totalSeqs (int): The total number of sequences after filtering.
+    seq_ids (list): A list of sequence IDs.
+    kmer_totals (list): A list to store total counts of each k-mer across all sequences.
+    seq_kmer_dict (dict): A dictionary mapping sequence IDs to their k-mer counts.
+    annotation_counts (dict): A dictionary mapping annotations to their counts.
+    total_seqs (int): The total number of sequences after filtering.
     """
     annotation: List[pd.DataFrame]
-    seqAnnot: Dict[str, str]
-    kmerList: List[str]
+    seq_annot: Dict[str, str]
+    kmer_list: List[str]
     df: Optional[pd.DataFrame]
-    seqids: Optional[pd.Series]
-    kmerTotals: List[int]
-    seqKmerdict: Dict[str, int]
-    annotationCounts: Dict[str, int]
-    totalSeqs: int
+    seq_ids: Optional[pd.Series]
+    kmer_totals: List[int]
+    seq_kmer_dict: Dict[str, int]
+    annotation_counts: Dict[str, int]
+    total_seqs: int
 
     def __init__(self):
         self.annotation = []
-        self.seqAnnot = {}
-        self.kmerList = []
+        self.seq_annot = {}
+        self.kmer_list = []
         self.df = None
-        self.seqids = []
-        self.kmerTotals = []
-        self.seqKmerdict = {}
-        self.annotationCounts = {}
-        self.totalSeqs = 0
+        self.seq_ids = []
+        self.kmer_totals = []
+        self.seq_kmer_dict = {}
+        self.annotation_counts = {}
+        self.total_seqs = 0
 
-    def loadAnnotations(self, inputAnnotation: List[str]) -> None:
+    def load_annotations(self, input_annotation: List[str]) -> None:
         """
         Load annotations from a list of provided input files.
 
         Args:
-            inputAnnotation (list): List of file paths containing annotations.
+            input_annotation (list): List of file paths containing annotations.
         """
-        for f in inputAnnotation:
+        for f in input_annotation:
             self.annotation.append(pd.read_table(f))
         annotations = pd.concat(self.annotation)
         seqs = annotations["id"].tolist()
         anns = [str(fam) for fam in annotations["Family"].tolist()]
 
         for i, seqid in enumerate(seqs):
-            self.seqAnnot[seqid] = anns[i]
+            self.seq_annot[seqid] = anns[i]
         self.seqs = set(seqs)
 
-    def loadData(self, inputData: str) -> None:
+    def load_data(self, input_data: str) -> None:
         """
         Load and format kmer data from the provided input.
 
         Args:
-            inputData (str): Path to the data file.
+            input_data (str): Path to the data file.
         """
-        self.kmerList, self.df = skm.io.load_npz(inputData)
-        self.kmerList = self.kmerList[0]
-        self.seqids = self.df["sequence_id"]
-        for item in self.kmerList:
-            self.kmerTotals.append(0)
+        self.kmer_list, self.df = skm.io.load_npz(input_data)
+        self.kmer_list = self.kmer_list[0]
+        self.seq_ids = self.df["sequence_id"]
+        for item in self.kmer_list:
+            self.kmer_totals.append(0)
 
-    # def generateKmerCounts(self) -> None:
-    #     """
-    #     Generate kmer counts for sequences present in the data.
-    #     """
-    #     kmerLen = len(self.kmerList[0])
-    #     for i, seq in enumerate(self.seqids):
-    #         v = self.df["sequence"][i]
-    #         kCounts = self.computeKmerCountsForSequence(v, kmerLen)
-    #         self.seqKmerdict[seq] = kCounts
-
-    def filterAndConstruct(self) -> None:
+    def filter_and_construct(self) -> None:
         """
         Filters sequences not present in annotations and constructs annotation counts.
         """
-        self.totalSeqs = len(self.seqKmerdict)
-        for i, seqid in enumerate(list(self.seqKmerdict)):
+        self.total_seqs = len(self.seq_kmer_dict)
+        for i, seqid in enumerate(list(self.seq_kmer_dict)):
             x = re.findall(r"\|(.*?)\|", seqid)[
                 0
             ]  # A Note, it could be useful to allow a user to define their own regex.
             if x not in self.seqs:
-                del self.seqKmerdict[seqid]
+                del self.seq_kmer_dict[seqid]
             else:
-                self.processAnnotationCounts(seqid, x)
+                self.process_annotation_counts(seqid, x)
 
-    def formatAndWriteOutput(self, inputData: str) -> None:
+    def format_and_write_output(self, input_data: str) -> None:
         """
         Writes processed kmer counts to an output CSV file.
 
         Args:
-            inputData (str): Path to the data file (used for naming the output file).
+            input_data (str): Path to the data file (used for naming the output file).
         """
-        kmerCounts = pd.DataFrame(self.seqKmerdict.values())
-        kmerCounts.insert(
-            0, "Annotations", self.annotationCounts.values(), True
+        kmer_counts = pd.DataFrame(self.seq_kmer_dict.values())
+        kmer_counts.insert(
+            0, "Annotations", self.annotation_counts.values(), True
         )
 
-        kmerCountsValues = (
-            kmerCounts[list(kmerCounts.columns[1:])].sum(axis=1).to_list()
+        kmer_counts_values = (
+            kmer_counts[list(kmer_counts.columns[1:])].sum(axis=1).to_list()
         )
-        kmerCounts.insert(1, "Kmer Count", kmerCountsValues, True)
+        kmer_counts.insert(1, "Kmer Count", kmer_counts_values, True)
 
-        self.kmerTotals[0:0] = [self.totalSeqs, sum(self.kmerTotals)]
-        colnames = ["Sequence count"] + ["Kmer Count"] + list(self.kmerList)
-        kmerCounts = pd.DataFrame(
-            np.insert(kmerCounts.values, 0, values=self.kmerTotals, axis=0)
+        self.kmer_totals[0:0] = [self.total_seqs, sum(self.kmer_totals)]
+        colnames = ["Sequence count"] + ["Kmer Count"] + list(self.kmer_list)
+        kmer_counts = pd.DataFrame(
+            np.insert(kmer_counts.values, 0, values=self.kmer_totals, axis=0)
         )
-        kmerCounts.columns = colnames
-        newIndex = ["Totals"] + list(self.annotationCounts.keys())
-        kmerCounts.index = newIndex
-        kmerCounts.replace(0, "", inplace=True)
-        outName = join(
-            outDir, "learn", "kmer-counts-" + str(inputData)[14:-4] + ".csv"
+        kmer_counts.columns = colnames
+        new_index = ["Totals"] + list(self.annotation_counts.keys())
+        kmer_counts.index = new_index
+        kmer_counts.replace(0, "", inplace=True)
+        out_name = join(
+            out_dir, "learn", "kmer-counts-" + str(input_data)[14:-4] + ".csv"
         )
-        kmerCounts.index.name = "__index_level_0__"
-        kmerCounts.to_csv(outName, index=True)
+        kmer_counts.index.name = "__index_level_0__"
+        kmer_counts.to_csv(out_name, index=True)
 
-    # def computeKmerCountsForSequence(self, v: str, kmerLen: int) -> None:
-    #     """
-    #     Computes k-mer counts for a given sequence.
-
-    #     Args:
-    #         v (str): The sequence.
-    #         kmerLen (int): Length of the k-mer.
-
-    #     Returns:
-    #         list: List of k-mer counts for the sequence.
-    #     """
-    #     items = [
-    #         v[item : item + kmerLen] for item in range(0, len(v) - kmerLen + 1)
-    #     ]
-    #     kCounts = {}
-    #     for j in items:
-    #         kCounts[j] = kCounts.get(j, 0) + 1
-    #     store = []
-    #     for i, item in enumerate(self.kmerList):
-    #         if item in kCounts:
-    #             store.append(kCounts[item])
-    #             self.kmerTotals[i] += kCounts[item]
-    #         else:
-    #             store.append(0)
-    #     return store
-
-    def processAnnotationCounts(self, seqid: str, x: str) -> None:
+    def process_annotation_counts(self, seqid: str, x: str) -> None:
         """
         Processes annotation counts by aggregating them based on annotation labels.
 
@@ -185,22 +152,22 @@ class Library:
             seqid (str): Sequence ID.
             x (str): Extracted annotation ID from seqid.
         """
-        if self.seqAnnot[x] not in self.seqKmerdict:
-            self.seqKmerdict[self.seqAnnot[x]] = self.seqKmerdict.pop(seqid)
+        if self.seq_annot[x] not in self.seq_kmer_dict:
+            self.seq_kmer_dict[self.seq_annot[x]] = self.seq_kmer_dict.pop(seqid)
         else:
-            zippedLists = zip(
-                self.seqKmerdict.pop(seqid),
-                self.seqKmerdict[self.seqAnnot[x]],
+            zipped_lists = zip(
+                self.seq_kmer_dict.pop(seqid),
+                self.seq_kmer_dict[self.seq_annot[x]],
             )
-            self.seqKmerdict[self.seqAnnot[x]] = [
-                sum(pair) for pair in zippedLists
+            self.seq_kmer_dict[self.seq_annot[x]] = [
+                sum(pair) for pair in zipped_lists
             ]
-        if self.seqAnnot[x] not in self.annotationCounts:
-            self.annotationCounts[self.seqAnnot[x]] = 1
+        if self.seq_annot[x] not in self.annotation_counts:
+            self.annotation_counts[self.seq_annot[x]] = 1
         else:
-            self.annotationCounts[self.seqAnnot[x]] += 1
+            self.annotation_counts[self.seq_annot[x]] += 1
 
-    def executeAll(self, inputAnnotation: List[str], inputData: str) -> None:
+    def execute_all(self, input_annotation: List[str], input_data: str) -> None:
         """
         Orchestrates the full k-mer counting and annotation workflow.
 
@@ -212,16 +179,15 @@ class Library:
           5. Formats the final k-mer count matrix and writes it to CSV.
 
         Args:
-            inputAnnotation (List[str]): Paths to one or more annotation files (TSV).
-            inputData (str): Path to the k-mer data file (e.g., NPZ).
+            input_annotation (List[str]): Paths to one or more annotation files (TSV).
+            input_data (str): Path to the k-mer data file (e.g., NPZ).
         """
-        self.loadAnnotations(inputAnnotation)
-        self.loadData(inputData)
-        # self.generateKmerCounts()
-        self.kmerList, self.kmerTotals, self.seqKmerdict = generateKmerCounts(inputData, self.kmerList, self.kmerTotals, self.seqKmerdict, False)
-        self.filterAndConstruct()
-        self.formatAndWriteOutput(inputData)
+        self.load_annotations(input_annotation)
+        self.load_data(input_data)
+        self.kmer_list, self.kmer_totals, self.seq_kmer_dict = generate_kmer_counts(input_data, self.kmer_list, self.kmer_totals, self.seq_kmer_dict, False)
+        self.filter_and_construct()
+        self.format_and_write_output(input_data)
 
 
 library = Library()
-library.executeAll(snakemake.input.annotation, snakemake.input.data)
+library.execute_all(snakemake.input.annotation, snakemake.input.data)

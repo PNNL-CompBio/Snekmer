@@ -19,88 +19,57 @@ module kmerize:
         config
 
 
-import copy
-import csv
-
-# built-in imports
-import gzip
-import itertools
-import json
-import pickle
-import struct
-import sys
-import time
-from datetime import datetime
 from glob import glob
-from itertools import product, repeat
-from multiprocessing import Pool
-from os import makedirs
-from os.path import basename, dirname, exists, join, split, splitext
-from pathlib import Path
-import matplotlib
-
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-
-import numpy as np
-import pandas as pd
-import pyarrow as pa
-import pyarrow.csv as csv
-import seaborn as sns
-import sklearn
-from Bio import SeqIO
-from scipy.interpolate import interp1d
-from scipy.stats import rankdata
-import random
-import snekmer as skm
-from scipy.ndimage import gaussian_filter1d
-import sklearn.metrics.pairwise
-import itertools
+from itertools import product
+from os.path import basename, join
 import os
 import shutil
+
+# core library
+import snekmer as skm
 from pkg_resources import resource_filename
 
 
-# Note:
-# Pyarrow installed via "conda install -c conda-forge pyarrow"
 # collect all fasta-like files, unzipped filenames, and basenames
-inputDir = (
+input_dir = (
     "input"
     if (("input_dir" not in config) or (str(config["input_dir"]) == "None"))
     else config["input_dir"]
 )
-inputFiles = glob(join(inputDir, "*"))
-# base_file = glob(join(inputDir,"base" "*"))
-zipped = [fa for fa in inputFiles if fa.endswith(".gz")]
+input_files = glob(join(input_dir, "*"))
+zipped = [fa for fa in input_files if fa.endswith(".gz")]
 unzipped = [
     fa.rstrip(".gz")
-    for fa, ext in product(inputFiles, config["input_file_exts"])
+    for fa, ext in product(input_files, config["input_file_exts"])
     if fa.rstrip(".gz").endswith(f".{ext}")
 ]
-annotFiles = glob(join("annotations", "*.ann"))
-baseCounts = glob(join("base", "counts", "*.csv"))
-baseConfidence = glob(join("base", "confidence", "*.csv"))
-baseFamilyCheckpoint = glob(join("base", "thresholds", "*.csv"))
+annot_files = glob(join("annotations", "*.ann"))
+base_counts = glob(join("base", "counts", "*.csv"))
+base_confidence = glob(join("base", "confidence", "*.csv"))
+base_family_checkpoint = glob(join("base", "thresholds", "*.csv"))
 
-uzMap = {skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in zipped}
-faMap = {
+uz_map = {
+    skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in zipped
+}
+fa_map = {
     skm.utils.split_file_ext(f)[0]: skm.utils.split_file_ext(f)[1] for f in unzipped
 }
 
 # get unzipped filenames
-UZS = [f"{f}.{ext}" for f, ext in uzMap.items()]
+UZS = [f"{f}.{ext}" for f, ext in uz_map.items()]
 # isolate basenames for all files
-FAS = list(faMap.keys())
+FAS = list(fa_map.keys())
 # parse any background files
-backgroundFiles = glob(join(inputDir, "background", "*"))
-if len(backgroundFiles) > 0:
-    backgroundFiles = [
-        skm.utils.split_file_ext(basename(f))[0] for f in backgroundFiles
+background_files = glob(join(input_dir, "background", "*"))
+if len(background_files) > 0:
+    background_files = [
+        skm.utils.split_file_ext(basename(f))[0] for f in background_files
     ]
+
 # terminate with error if invalid alphabet specified
 skm.alphabet.check_valid(config["alphabet"])
 # define output directory (helpful for multiple runs)
-outDir = skm.io.define_output_dir(
+out_dir = skm.io.define_output_dir(
     config["alphabet"], config["k"], nested=config["nested_output"]
 )
 
@@ -117,25 +86,24 @@ if (
     )
 
 
-# define output files to be created by snekmer
 rule all:
     input:
         # Vector files
-        expand(join(outDir, "vector", "{nb}.npz"), nb=FAS),
-        # Kmer counts files for learning
-        expand(join(outDir, "learn", "kmer-counts-{nb}.csv"), nb=FAS),
-        join(outDir, "learn", "kmer-counts-total.csv"),
+        expand(join(out_dir, "vector", "{nb}.npz"), nb=FAS),
+        # Kmer counts for learning
+        expand(join(out_dir, "learn", "kmer-counts-{nb}.csv"), nb=FAS),
+        join(out_dir, "learn", "kmer-counts-total.csv"),
         # Fragmentation outputs (only if enabled)
-        expand(join(outDir, "fragmented", "{nb}.fasta"), nb=FAS)
+        expand(join(out_dir, "fragmented", "{nb}.fasta"), nb=FAS)
         if config["learnapp"]["fragmentation"]
         else [],
-        expand(join(outDir, "vector_frag", "{nb}.npz"), nb=FAS)
+        expand(join(out_dir, "vector_frag", "{nb}.npz"), nb=FAS)
         if config["learnapp"]["fragmentation"]
         else [],
-        # Evaluation application sequences (or fragments if fragmentation is enabled)
+        # Forward evaluation scores
         expand(
             join(
-                outDir,
+                out_dir,
                 (
                     "eval_apply_sequences"
                     if not config["learnapp"]["fragmentation"]
@@ -145,20 +113,33 @@ rule all:
             ),
             nb=FAS,
         ),
-        # Evaluation configuration outputs
-        join("output", "eval_conf", "family_summary_stats.csv"),
-        join("output", "eval_conf", "global-confidence-scores.csv"),
-        # Duplicated some outputs for each of use on the user side.
-        join(outDir, "apply_inputs", "counts", "kmer-counts-total.csv"),
-        join(outDir, "apply_inputs", "stats", "family_summary_stats.csv"),
-        join(outDir, "apply_inputs", "confidence", "global-confidence-scores.csv"),
+        # Reverse evaluation scores
+        expand(
+            join(
+                out_dir,
+                (
+                    "eval_apply_reversed"
+                    if not config["learnapp"]["fragmentation"]
+                    else "eval_apply_reversed_frag"
+                ),
+                "seq-annotation-scores-{nb}.csv.gz",
+            ),
+            nb=FAS,
+        ),
+        # Evaluation‐level summaries & confidence
+        join(out_dir, "eval_conf", "family_summary_stats.csv"),
+        join(out_dir, "eval_conf", "global-confidence-scores.csv"),
+        # Copy‐for‐apply inputs
+        join(out_dir, "apply_inputs", "counts", "kmer-counts-total.csv"),
+        join(out_dir, "apply_inputs", "stats", "family_summary_stats.csv"),
+        join(out_dir, "apply_inputs", "confidence", "global-confidence-scores.csv"),
 
 
 # if any files are gzip zipped, unzip them
 use rule unzip from process with:
     output:
-        unzipped=join(inputDir, "{uz}"),
-        zipped=join(inputDir, "zipped", "{uz}.gz"),
+        unzipped=join(input_dir, "{uz}"),
+        zipped=join(input_dir, "zipped", "{uz}.gz"),
 
 
 if config["learnapp"]["fragmentation"]:
@@ -166,10 +147,10 @@ if config["learnapp"]["fragmentation"]:
     rule fragmentation:
         input:
             fasta=lambda wildcards: join(
-                inputDir, f"{wildcards.nb}.{faMap[wildcards.nb]}"
+                input_dir, f"{wildcards.nb}.{fa_map[wildcards.nb]}"
             ),
         output:
-            fasta_out=join(outDir, "fragmented", "{nb}.fasta"),
+            fasta_out=join(out_dir, "fragmented", "{nb}.fasta"),
         params:
             version=config["learnapp"]["version"],
             frag_length=config["learnapp"]["frag_length"],
@@ -183,38 +164,38 @@ if config["learnapp"]["fragmentation"]:
 use rule vectorize from kmerize with:
     input:
         fasta=lambda wildcards: join(
-            outDir if wildcards.prefix == "vector_frag" else inputDir,
+            out_dir if wildcards.prefix == "vector_frag" else input_dir,
             "fragmented" if wildcards.prefix == "vector_frag" else "",
-            f"{wildcards.nb}.{faMap[wildcards.nb]}",
+            f"{wildcards.nb}.{fa_map[wildcards.nb]}",
         ),
     output:
-        data=join(outDir, "{prefix}", "{nb}.npz"),
-        kmerobj=join(outDir, "kmerize_{prefix}", "{nb}.kmers"),
+        data=join(out_dir, "{prefix}", "{nb}.npz"),
+        kmerobj=join(out_dir, "kmerize_{prefix}", "{nb}.kmers"),
     log:
-        join(outDir, "{prefix}_kmerize", "log", "{nb}.log"),
+        join(out_dir, "{prefix}_kmerize", "log", "{nb}.log"),
 
 
 # WORKFLOW to learn kmer associations
 rule learn:
     input:
-        data=join(outDir, "vector", "{nb}.npz"),
-        annotation=expand("{an}", an=annotFiles),
+        data=join(out_dir, "vector", "{nb}.npz"),
+        annotation=expand("{an}", an=annot_files),
     output:
-        counts=join(outDir, "learn", "kmer-counts-{nb}.csv"),
+        counts=join(out_dir, "learn", "kmer-counts-{nb}.csv"),
     log:
-        join(outDir, "learn", "log", "learn-{nb}.log"),
+        join(out_dir, "learn", "log", "learn-{nb}.log"),
     script:
         resource_filename("snekmer", join("scripts/learn_learn.py"))
 
 
 rule merge:
     input:
-        counts=expand(join(outDir, "learn", "kmer-counts-{nb}.csv"), nb=FAS),
-        baseCounts=expand("{bf}", bf=baseCounts),
+        counts=expand(join(out_dir, "learn", "kmer-counts-{nb}.csv"), nb=FAS),
+        base_counts=expand("{bf}", bf=base_counts),
     output:
-        totals=join(outDir, "learn", "kmer-counts-total.csv"),
+        totals=join(out_dir, "learn", "kmer-counts-total.csv"),
     log:
-        join(outDir, "learn", "log", "merge.log"),
+        join(out_dir, "learn", "log", "merge.log"),
     script:
         resource_filename("snekmer", join("scripts/learn_merge.py"))
 
@@ -222,50 +203,44 @@ rule merge:
 rule eval_apply_reverse_seqs:
     input:
         data=join(
-            outDir,
-            (
-                "vector"
-                if config["learnapp"]["fragmentation"] == False
-                else "vector_frag"
-            ),
+            out_dir,
+            ("vector" if not config["learnapp"]["fragmentation"] else "vector_frag"),
             "{nb}.npz",
         ),
-        annotation=expand("{an}", an=annotFiles),
-        compareAssociations=join(outDir, "learn", "kmer-counts-total.csv"),
+        annotation=expand("{an}", an=annot_files),
+        compare_associations=join(out_dir, "learn", "kmer-counts-total.csv"),
     output:
         apply=join(
-            outDir,
+            out_dir,
             (
                 "eval_apply_reversed"
-                if config["learnapp"]["fragmentation"] == False
-                else "eval_apply_frag"
+                if not config["learnapp"]["fragmentation"]
+                else "eval_apply_reversed_frag"
             ),
             "seq-annotation-scores-{nb}.csv.gz",
         ),
-    log:
-        join(outDir, "eval_apply_reversed", "log", "{nb}.log"),
     script:
         resource_filename("snekmer", join("scripts/learn_eval_apply_reverse_seqs.py"))
 
 
-rule reverseDecoy_evaluations:
+rule reverse_decoy_evaluations:
     input:
-        evalApplyData=expand(
+        eval_apply_data=expand(
             join(
-                outDir,
+                out_dir,
                 (
                     "eval_apply_reversed"
-                    if config["learnapp"]["fragmentation"] == False
-                    else "eval_apply_frag"
+                    if not config["learnapp"]["fragmentation"]
+                    else "eval_apply_reversed_frag"
                 ),
                 "seq-annotation-scores-{nb}.csv.gz",
             ),
             nb=FAS,
         ),
-        baseFamilyCheckpoint=expand("{bc}", bc=baseFamilyCheckpoint),
+        base_family_checkpoint=expand("{bc}", bc=base_family_checkpoint),
     output:
-        familyStats=join(outDir, "eval_conf", "family_summary_stats.csv"),
-        checkpoint=join(outDir, "eval_conf", "family_stats_checkpoint.csv"),
+        family_stats=join(out_dir, "eval_conf", "family_summary_stats.csv"),
+        checkpoint=join(out_dir, "eval_conf", "family_stats_checkpoint.csv"),
     script:
         resource_filename("snekmer", join("scripts/learn_reverse_decoy_evaluations.py"))
 
@@ -273,73 +248,67 @@ rule reverseDecoy_evaluations:
 rule eval_apply_sequences:
     input:
         data=join(
-            outDir,
-            (
-                "vector"
-                if config["learnapp"]["fragmentation"] == False
-                else "vector_frag"
-            ),
+            out_dir,
+            ("vector" if not config["learnapp"]["fragmentation"] else "vector_frag"),
             "{nb}.npz",
         ),
-        annotation=expand("{an}", an=annotFiles),
-        compareAssociations=join(outDir, "learn", "kmer-counts-total.csv"),
+        annotation=expand("{an}", an=annot_files),
+        compare_associations=join(out_dir, "learn", "kmer-counts-total.csv"),
     output:
         apply=join(
-            outDir,
+            out_dir,
             (
                 "eval_apply_sequences"
-                if config["learnapp"]["fragmentation"] == False
+                if not config["learnapp"]["fragmentation"]
                 else "eval_apply_frag"
             ),
             "seq-annotation-scores-{nb}.csv.gz",
         ),
-    log:
-        join(outDir, "eval_apply_sequences", "log", "{nb}.log"),
     script:
         resource_filename("snekmer", join("scripts/learn_eval_apply_sequences.py"))
 
 
 rule evaluate:
     input:
-        evalApplyData=expand(
+        eval_apply_data=expand(
             join(
-                outDir,
+                out_dir,
                 (
                     "eval_apply_sequences"
-                    if config["learnapp"]["fragmentation"] == False
+                    if not config["learnapp"]["fragmentation"]
                     else "eval_apply_frag"
                 ),
                 "seq-annotation-scores-{nb}.csv.gz",
             ),
             nb=FAS,
         ),
-        baseConfidence=expand("{bc}", bc=baseConfidence),
-        reverseDecoyStats=join(outDir, "eval_conf", "family_summary_stats.csv"),
+        base_confidence=expand("{bc}", bc=base_confidence),
+        reverse_decoy_stats=join(out_dir, "eval_conf", "family_summary_stats.csv"),
     output:
-        evalGlob=join(outDir, "eval_conf", "global-confidence-scores.csv"),
+        eval_glob=join(out_dir, "eval_conf", "global-confidence-scores.csv"),
     params:
         modifier=config["learnapp"]["conf_weight_modifier"],
     log:
-        join(outDir, "eval_conf", "log", "conf.log"),
+        join(out_dir, "eval_conf", "log", "conf.log"),
     script:
         resource_filename("snekmer", join("scripts/learn_evaluate_sequences.py"))
 
 
 rule copy_results_for_apply:
     input:
-        kmer_counts_total=join(outDir, "learn", "kmer-counts-total.csv"),
-        family_stats=join(outDir, "eval_conf", "family_summary_stats.csv"),
-        global_conf_scores=join(outDir, "eval_conf", "global-confidence-scores.csv"),
+        kmer_counts_total=join(out_dir, "learn", "kmer-counts-total.csv"),
+        family_stats=join(out_dir, "eval_conf", "family_summary_stats.csv"),
+        global_conf_scores=join(out_dir, "eval_conf", "global-confidence-scores.csv"),
     output:
         kmer_counts_total=join(
-            outDir, "apply_inputs", "counts", "kmer-counts-total.csv"
+            out_dir, "apply_inputs", "counts", "kmer-counts-total.csv"
         ),
-        family_stats=join(outDir, "apply_inputs", "stats", "family_summary_stats.csv"),
+        family_stats=join(out_dir, "apply_inputs", "stats", "family_summary_stats.csv"),
         global_conf_scores=join(
-            outDir, "apply_inputs", "confidence", "global-confidence-scores.csv"
+            out_dir, "apply_inputs", "confidence", "global-confidence-scores.csv"
         ),
     run:
-        target_dir = os.path.join(outDir, "apply_inputs")
+        target_dir = os.path.join(out_dir, "apply_inputs")
         os.makedirs(target_dir, exist_ok=True)
         shutil.copy(input.kmer_counts_total, output.kmer_counts_total)
         shutil.copy(input.family_stats, output.family_stats)
