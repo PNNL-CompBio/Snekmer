@@ -76,6 +76,10 @@ out_dir = skm.io.define_output_dir(
 threshold_type = config["learnapp"]["threshold"]
 selection_type = config["learnapp"]["selection"]
 
+apply_cfg = config.get("learnapp", {})
+concat_results = apply_cfg.get("apply_output", "snekmer_results.csv")
+extra_all = [concat_results] if concat_results is not None else []
+
 
 def resource_path(package: str, *parts) -> str:
     """
@@ -102,6 +106,7 @@ rule all:
                 else []
             )
         ],
+        *extra_all,
         expand(join(out_dir, "apply", "kmer-summary-{nb}.csv"), nb=FAS),
         join(out_dir, "Snekmer_Apply_Report.html"),
 
@@ -114,6 +119,8 @@ use rule vectorize from kmerize with:
     output:
         data=join(out_dir, "vector", "{nb}.npz"),
         kmerobj=join(out_dir, "kmerize", "{nb}.kmers"),
+    message:
+        "Kmerizing and re-encoding Amino acids in {input.fasta}. Output written to {output.data}."
 
 
 rule apply:
@@ -133,8 +140,31 @@ rule apply:
             else []
         ),
         kmer_summary=join(out_dir, "apply", "kmer-summary-{nb}.csv"),
+    message:
+        "Running Snekmer Apply on {input.data}. Output written to {output.kmer_summary}."
     script:
         resource_path("snekmer", "scripts", "apply.py")
+
+
+if concat_results is not None:
+
+    rule concat_kmer_summary:
+        """NEW: concatenate all per-sample k-mer summaries into one CSV"""
+        input:
+            expand(join(out_dir, "apply", "kmer-summary-{nb}.csv"), nb=FAS),
+        output:
+            concat_results,
+        message:
+            "Writing consolidated k-mer summary to {output}"
+        shell:
+            """                                       
+            # write header from the first file
+            head -n 1 {input[0]} > {output}
+            # append rows from every remaining file (skip header lines)
+            for f in {input}; do
+                tail -n +2 "$f" >> {output}
+            done
+            """
 
 
 rule apply_report:
@@ -142,6 +172,8 @@ rule apply_report:
         files=expand(join(out_dir, "apply", "kmer-summary-{f}.csv"), f=FAS),
     output:
         join(out_dir, "Snekmer_Apply_Report.html"),
+    message:
+        "Basic HTML report written to {output}"
     run:
         file_dir = dirname(dirname(input.files[0]))
 

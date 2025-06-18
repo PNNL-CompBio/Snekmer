@@ -137,9 +137,9 @@ rule all:
         join(out_dir, "eval_conf", "family_summary_stats.csv"),
         join(out_dir, "eval_conf", "global-confidence-scores.csv"),
         # Apply Inputs Copy
-        join(out_dir, "apply_inputs", "counts", "kmer-counts-total.csv"),
-        join(out_dir, "apply_inputs", "stats", "family_summary_stats.csv"),
-        join(out_dir, "apply_inputs", "confidence", "global-confidence-scores.csv"),
+        join("apply_inputs", "counts", "kmer-counts-total.csv"),
+        join("apply_inputs", "stats", "family_summary_stats.csv"),
+        join("apply_inputs", "confidence", "global-confidence-scores.csv"),
 
 
 # if any files are gzip zipped, unzip them
@@ -158,6 +158,8 @@ if config["learnapp"]["fragmentation"]:
             ),
         output:
             fasta_out=join(out_dir, "fragmented", "{nb}.fasta"),
+        message:
+            "Fragmenting sequences in {input.fasta}. Output written to {output.fasta_out}."
         params:
             version=config["learnapp"]["version"],
             frag_length=config["learnapp"]["frag_length"],
@@ -180,6 +182,8 @@ use rule vectorize from kmerize with:
         kmerobj=join(out_dir, "kmerize_{prefix}", "{nb}.kmers"),
     log:
         join(out_dir, "{prefix}_kmerize", "log", "{nb}.log"),
+    message:
+        "Kmerizing and re-encoding amino acids in {input.fasta}. Output written to {output.data}."
 
 
 # WORKFLOW to learn kmer associations
@@ -189,6 +193,8 @@ rule learn:
         annotation=expand("{an}", an=annot_files),
     output:
         counts=join(out_dir, "learn", "kmer-counts-{nb}.csv"),
+    message:
+        "Building kmer-association matrix from {input.data}. Output written to {output.counts}."
     log:
         join(out_dir, "learn", "log", "learn-{nb}.log"),
     script:
@@ -201,6 +207,8 @@ rule merge:
         base_counts=expand("{bf}", bf=base_counts),
     output:
         totals=join(out_dir, "learn", "kmer-counts-total.csv"),
+    message:
+        "Merging individual k-mer association matrix files into consolidated {output.totals}."
     log:
         join(out_dir, "learn", "log", "merge.log"),
     script:
@@ -226,6 +234,8 @@ rule eval_apply_reverse_seqs:
             ),
             "seq-annotation-scores-{nb}.csv.gz",
         ),
+    message:
+        "Using Apply to test reversed (decoy) sequences in {input.data}. Output written to {output.apply}."
     script:
         resource_path("snekmer", "scripts", "learn_eval_apply_reverse_seqs.py")
 
@@ -248,6 +258,8 @@ rule reverse_decoy_evaluations:
     output:
         family_stats=join(out_dir, "eval_conf", "family_summary_stats.csv"),
         checkpoint=join(out_dir, "eval_conf", "family_stats_checkpoint.csv"),
+    message:
+        "Evaluating reverse decoy sequences and writing family stats to {output.family_stats}."
     script:
         resource_path("snekmer", "scripts", "learn_reverse_decoy_evaluations.py")
 
@@ -271,6 +283,8 @@ rule eval_apply_sequences:
             ),
             "seq-annotation-scores-{nb}.csv.gz",
         ),
+    message:
+        "Using Apply to test normal sequences in {input.data}. Output written to {output.apply}."
     script:
         resource_path("snekmer", "scripts", "learn_eval_apply_sequences.py")
 
@@ -293,6 +307,8 @@ rule evaluate:
         reverse_decoy_stats=join(out_dir, "eval_conf", "family_summary_stats.csv"),
     output:
         eval_glob=join(out_dir, "eval_conf", "global-confidence-scores.csv"),
+    message:
+        "Calculating global confidence scores based on Apply results. Output written to {output.eval_glob}."
     params:
         modifier=config["learnapp"]["conf_weight_modifier"],
     log:
@@ -307,15 +323,15 @@ rule copy_results_for_apply:
         family_stats=join(out_dir, "eval_conf", "family_summary_stats.csv"),
         global_conf_scores=join(out_dir, "eval_conf", "global-confidence-scores.csv"),
     output:
-        kmer_counts_total=join(
-            out_dir, "apply_inputs", "counts", "kmer-counts-total.csv"
-        ),
-        family_stats=join(out_dir, "apply_inputs", "stats", "family_summary_stats.csv"),
+        kmer_counts_total=join("apply_inputs", "counts", "kmer-counts-total.csv"),
+        family_stats=join("apply_inputs", "stats", "family_summary_stats.csv"),
         global_conf_scores=join(
-            out_dir, "apply_inputs", "confidence", "global-confidence-scores.csv"
+            "apply_inputs", "confidence", "global-confidence-scores.csv"
         ),
+    message:
+        "Copying files needed for downstream apply workflow to local apply_inputs directory."
     run:
-        target_dir = os.path.join(out_dir, "apply_inputs")
+        target_dir = os.path.join("apply_inputs")
         os.makedirs(target_dir, exist_ok=True)
         shutil.copy(input.kmer_counts_total, output.kmer_counts_total)
         shutil.copy(input.family_stats, output.family_stats)
