@@ -56,3 +56,4 @@ learnapp:
   threshold: 'Median'                  # Column name from family_summary_stats.csv or 'None'
   weight_top: 0.7                      # Used when 'selection' is 'combined_distance'
   weight_distance: 0.3                 # Used when 'selection' is 'combined_distance'
+  apply_output: snekmer_results.csv    # output name for apply single file results.
