@@ -10,10 +10,6 @@ from snekmer.apply import KmerCompare
 # ---------------------------------------------------------
 config = snakemake.config
 
-out_dir = skm.io.define_output_dir(
-    config["alphabet"], config["k"], nested=config["nested_output"]
-)
-
 # ---------------------------------------------------------
 # Run script
 # ---------------------------------------------------------
@@ -27,7 +23,6 @@ apply = KmerCompare(
     snakemake.input.data,
     snakemake.input.confidence_associations,
     snakemake.input.decoy_stats,
-    snakemake.input.annotation,
     snakemake.output.seq_ann,
     snakemake.output.kmer_summary,
     snakemake.params.selection_type,

@@ -104,7 +104,7 @@ jobs:
           export PATH="/usr/share/miniconda/bin:$PATH"
           source activate snekmer
           snekmer learn --configfile .test/config_learnapp.yaml -d .test --cores 1
-          mv .test/output/apply_inputs/* .test
+          mv .test/apply_inputs/* .test
           rm -rf .test/output
         
       # run Snekmer Learn against previously generated counts files

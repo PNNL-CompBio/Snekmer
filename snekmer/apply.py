@@ -31,7 +31,6 @@ class KmerCompare:
         data (str): Path to the NPZ file containing raw k-mer data and sequence IDs.
         confidence_associations (str): Path to CSV with global confidence scores.
         decoy_stats (str): Path to CSV with decoy stats for threshold building.
-        annotation (str): Path to annotation file (currently unused).
         output_seq_ann (str): Path to write formatted k-mer association output.
         output_kmer_summary (str): Path to write the final prediction summary CSV.
         selection_type (str): Name of the selection method to apply.
@@ -41,7 +40,6 @@ class KmerCompare:
     data: str
     confidence_associations: str
     decoy_stats: str
-    annotation: str
     output_seq_ann: str
     output_kmer_summary: str
     selection_type: str
@@ -55,7 +53,6 @@ class KmerCompare:
         data: str,
         confidence_associations: str,
         decoy_stats: str,
-        annotation: str,
         output_seq_ann: str,
         output_kmer_summary: str,
         selection_type: str,
@@ -65,7 +62,6 @@ class KmerCompare:
         self.compare_associations = compare_associations
         self.data = data
         self.confidence_associations = confidence_associations
-        self.annotation = annotation
         self.decoy_stats = decoy_stats
         self.output_seq_ann = output_seq_ann
         self.output_kmer_summary = output_kmer_summary

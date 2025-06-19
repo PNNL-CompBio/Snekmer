@@ -44,7 +44,6 @@ unzipped = [
     for fa, ext in product(input_files, config["input_file_exts"])
     if fa.rstrip(".gz").endswith(f".{ext}")
 ]
-annot_files = glob(join("annotations", "*.ann"))
 compare_file = glob(join("counts", "*.csv"))
 confidence_file = glob(join("confidence", "*.csv"))
 decoy_stats_file = glob(join("stats", "*.csv"))
@@ -126,7 +125,6 @@ use rule vectorize from kmerize with:
 rule apply:
     input:
         data=join(out_dir, "vector", "{nb}.npz"),
-        annotation=expand("{an}", an=annot_files),
         compare_associations=expand("{comp}", comp=compare_file),
         confidence_associations=expand("{conf}", conf=confidence_file),
         decoy_stats=expand("{decoy}", decoy=decoy_stats_file),
