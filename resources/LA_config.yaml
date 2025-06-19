@@ -44,11 +44,15 @@ score_dir: "/path/to/output/scoring/"
 
 # learnapp params 
 learnapp:
-  save_apply_associations: False
-  fragmentation: False
+  save_apply_associations: False       # Bool, use True if needing to extract more details. Increases storage requirements substantially.
+  fragmentation: True                  # Bool, fragments the data according to the variables below (version, frag_length, min_length, location, seed)
   version: absolute
   frag_length: 50
   min_length: 50
   location: random
   seed: 999
   conf_weight_modifier: 20
+  selection: 'top_hit'                 # Options: top_hit, greatest_distance, combined_distance
+  threshold: 'Median'                  # Column name from family_summary_stats.csv or 'None'
+  weight_top: 0.7                      # Used when 'selection' is 'combined_distance'
+  weight_distance: 0.3                 # Used when 'selection' is 'combined_distance'
