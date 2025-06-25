@@ -1,6 +1,6 @@
 # required params
-k: 14
-alphabet: 0 # choices 0-5 or names (see alphabet module), or None
+k: 3
+alphabet: 1 # choices 0-5 or names (see alphabet module), or None
 
 # input/output params
 #input_dir: None # defaults to 'input'
@@ -39,15 +39,10 @@ model:
   random_state: None
 
 # search params
-model_dir: "output/example-model/"
-basis_dir: "output/example-model/"
-score_dir: "output/example-model/"
-
-
-# learnapp params 
-learnapp:
-  save_apply_associations: False
+model_dir: "output/model/"
+basis_dir: "output/kmerize/"
+score_dir: "output/score/"
 
 # motif params
 motif:
-  n: 200
+  n: 2000 

@@ -15,7 +15,7 @@ to determine probabilistic annotations.
   <img align="center" src="resources/snekmer_workflow.svg">
 </p>
 
-There are 5 operation modes for Snekmer: `cluster`, `model`, `search`, `learn`, and `apply`.
+There are six operation modes for Snekmer: `cluster`, `model`, and `search`, `learn`, `apply`, and `motif`.
 
 **Cluster mode:** The user supplies files containing sequences in an appropriate format (e.g. FASTA).
 Snekmer applies the relevant workflow steps and outputs the resulting clustering results in tabular form (.CSV),
@@ -39,6 +39,10 @@ confidence levels. There are two outputs, a counts matrix, and a global confiden
 and the outputs received from Learn. Snekmer uses cosine distance to predict the annotation of each
 sequence from the kmer counts matrix. The output is a table for each file containing sequence annotation
 predictions with confidence levels.
+
+**Motif mode:** The user supplies files containing sequences in an appropriate format (e.g. FASTA)
+and the outputs received from Model. Snekmer performs a feature selection workflow to produce a 
+list of motifs ordered by degree of conservation and a classification model using the selected features (.model).
 
 ## How to Use Snekmer
 
