@@ -24,11 +24,12 @@ snekmer learn --configfile=../../../LA_config.yaml
 cd ..
 
 # make new directories required for apply input
-mkdir -p apply/counts apply/confidence
+mkdir -p apply/counts apply/confidence apply/stats
 
 # move learn model and confidence files to above directories
 cp learn/output/learn/kmer-counts-total.csv apply/counts
 cp learn/output/eval_conf/global-confidence-scores.csv apply/confidence
+cp learn/output/eval_conf/family_summary_stats.csv apply/stats
 
 # run snekmer model on examples using provided config.yaml and return to base dir
 cd apply
