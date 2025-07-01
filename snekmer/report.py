@@ -4,8 +4,9 @@ author: @abbyjerger, @christinehc
 
 """
 
-from jinja2 import Environment, PackageLoader
 import os
+
+from jinja2 import Environment, PackageLoader
 
 env = Environment(loader=PackageLoader("snekmer"), auto_reload=False)
 
