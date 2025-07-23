@@ -1,7 +1,7 @@
 .. _config-main:
 
-Setting up User Configuration
-=============================
+Setting up User Configuration (config.yaml)
+===========================================
 
 To run Snekmer, the user must specify parameters in a configuration
 file (.YAML). A template ``config.yaml`` file is included in the

@@ -46,10 +46,11 @@ Snekmer assumes that input files are stored in the ``input`` directory,
 and automatically creates an ``output`` directory to save all output
 files. Snekmer also assumes background files, if any, are stored in
 ``input/background``. An example of the assumed directory structure
-is shown below:
+is shown for each execution mode of Snekmer.
 
 
-Snekmer ``cluster``, ``model``, ``search``, and ``motif`` input
+Snekmer ``cluster``, ``model``, ``search``, and ``motif``
+`````````````````````````````````````````````````````````
 
 .. code-block:: console
 
@@ -68,7 +69,8 @@ Snekmer ``cluster``, ``model``, ``search``, and ``motif`` input
     │   └── ...
   
   
-Snekmer ``learn`` input
+Snekmer ``learn``
+`````````````````
 
 .. code-block:: console
 
@@ -87,7 +89,8 @@ Snekmer ``learn`` input
     │   └── ...
   
   
-Snekmer ``apply`` input
+Snekmer ``apply``
+`````````````````
 
 .. code-block:: console
 
