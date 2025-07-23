@@ -9,13 +9,6 @@ significantly slower than installation via Mamba. Mamba/Conda will
 both manage dependencies and versioning, which simplifies the
 process of installation.
 
-If you already have Conda but wish to use Mamba for installation,
-you can install Mamba by running the following:
-
-.. code-block:: bash
-
-  conda install -c conda-forge mamba
-
 Install Snekmer via Mamba/Conda
 -------------------------------
 
@@ -85,17 +78,11 @@ include only the minimal version of Snakemake:
 Install Snekmer via pip
 -----------------------
 
-**Warning:** Installation of Snekmer using ``pip`` is not recommended due to the complexity
-of dependencies associated with Snakemake. Mamba/Conda will handle these automatically,
-whereas ``pip`` will not.
-
 The ``pip`` implementation has not been fully tested, but users may attempt installation
-using the included specifications:
+directly from PyPI:
 
 .. code-block:: bash
-
-  pip install -r requirements.txt
-  pip install -e git+https://github.com/PNNL-CompBio/Snekmer#egg=snekmer
+  pip install snekmer
 
 Install Snekmer via Docker
 --------------------------
@@ -114,7 +101,7 @@ To use the command line interface within the container:
 
 .. code-block:: bash
 
-  docker run --rm   -v "$(pwd)":/data   -w /data   jjacobson95/snekmer:latest {mode} {args}    #Run Snekmer
+  docker run --rm   -v "$(pwd)":/data   -w /data   jjacobson95/snekmer:latest {mode} {args}    # Run Snekmer
 
 
 The Docker image accepts the same modes (cluster, model, search, learn, apply, and motif) and command line arguments as the Snekmer command line interface.
