@@ -21,6 +21,7 @@ config = snakemake.config
 # Run script
 # ---------------------------------------------------------
 
+
 class Evaluator:
     """
     The Evaluator class processes predictions and generates confidence metrics.
@@ -32,6 +33,7 @@ class Evaluator:
     modifier (float): Weight modifier for confidence merging.
     confidence_data (list, optional): List of paths to base confidence files. Defaults to None.
     """
+
     input_data: list
     output_glob: str
     reverse_decoy_stats: str
@@ -47,8 +49,7 @@ class Evaluator:
         reverse_decoy_stats: str,
         modifier: float,
         confidence_data: None,
-        ) -> None:
-        
+    ) -> None:
         self.input_data = input_data
         self.output_glob = output_glob_path
         self.reverse_decoy_stats = reverse_decoy_stats
@@ -57,15 +58,17 @@ class Evaluator:
         self.true_running_crosstab = None
         self.false_running_crosstab = None
 
-    def read_and_transform_input_data(self, file_path: str) -> Tuple[
+    def read_and_transform_input_data(
+        self, file_path: str
+    ) -> Tuple[
         List[Tuple[str, str]],
         List[Optional[str]],
         List[float],
         List[str],
         List[str],
         List[str],
-        List[float]
-        ]:
+        List[float],
+    ]:
         """
         Reads and transforms input data from a given CSV file, applying thresholds if necessary.
 
@@ -112,12 +115,14 @@ class Evaluator:
 
             self.threshold_dict = threshold_dict
 
-        predictions, deltas, top_two = apply_selection_method(seq_ann_scores,
-                                                           selection_method,
-                                                           threshold_type,
-                                                           threshold_dict, 
-                                                           weight_top, 
-                                                           weight_distance)
+        predictions, deltas, top_two = apply_selection_method(
+            seq_ann_scores,
+            selection_method,
+            threshold_type,
+            threshold_dict,
+            weight_top,
+            weight_distance,
+        )
 
         result = seq_ann_scores.index.tolist()
 
@@ -145,10 +150,9 @@ class Evaluator:
 
         return top_two, predictions, deltas, result, tf, known
 
-    def create_true_false_crosstabs(self, diff_dataframe: pd.DataFrame) -> Tuple[
-        pd.DataFrame, 
-        pd.DataFrame
-        ]:
+    def create_true_false_crosstabs(
+        self, diff_dataframe: pd.DataFrame
+    ) -> Tuple[pd.DataFrame, pd.DataFrame]:
         """
         Creates crosstabs for True and False predictions based on the given dataframe.
 
@@ -180,10 +184,9 @@ class Evaluator:
         )
         return true_crosstab, false_crosstab
 
-    def handle_running_crosstabs(self, 
-        true_crosstab: pd.DataFrame, 
-        false_crosstab: pd.DataFrame, 
-        iteration: int) -> None:
+    def handle_running_crosstabs(
+        self, true_crosstab: pd.DataFrame, false_crosstab: pd.DataFrame, iteration: int
+    ) -> None:
         """
         Handles and updates running crosstabs over iterations.
 
@@ -256,19 +259,13 @@ class Evaluator:
             tuple: Total distributions for True and False predictions.
         """
         true_total_dist = self.true_running_crosstab.sum(numeric_only=True, axis=0)
-        false_total_dist = self.false_running_crosstab.sum(
-            numeric_only=True, axis=0
-        )
+        false_total_dist = self.false_running_crosstab.sum(numeric_only=True, axis=0)
 
         return true_total_dist, false_total_dist
 
     def compute_ratio_distribution(
-        self,
-        true_total_dist: pd.Series,
-        false_total_dist: pd.Series
-        ) -> Tuple[pd.Series, 
-               pd.Series, 
-               pd.Series]:
+        self, true_total_dist: pd.Series, false_total_dist: pd.Series
+    ) -> Tuple[pd.Series, pd.Series, pd.Series]:
         """
         Computes ratio_dist, total_sum, and inter_sum.
 
@@ -285,7 +282,7 @@ class Evaluator:
         ratio_total_dist = true_total_dist / (true_total_dist + false_total_dist)
         raw_total_sum = (true_total_dist + false_total_dist).copy()
         new_index = pd.Index(
-            [round(i, 2) for i in pd.np.arange(0, 1.01, 0.01)],
+            [round(i, 2) for i in np.arange(0, 1.01, 0.01)],
             name="Difference",
         )
         ratio_total_dist = ratio_total_dist.reindex(new_index)
@@ -298,11 +295,8 @@ class Evaluator:
         return ratio_total_dist, total_sum, inter_sum
 
     def check_confidence_merge(
-        self,
-        new_ratio_dist: pd.Series,
-        total_sum: pd.Series,
-        inter_sum: pd.Series
-        ) -> pd.DataFrame:
+        self, new_ratio_dist: pd.Series, total_sum: pd.Series, inter_sum: pd.Series
+    ) -> pd.DataFrame:
         """
         Merge the computed distributions with a base confidence file if available.
 
@@ -328,15 +322,11 @@ class Evaluator:
         # Prepare the updated_data DataFrame with the new columns
         updated_data = pd.DataFrame(new_ratio_dist, columns=["confidence"])
         updated_data["weight"] = current_weight
-        updated_data["totalSum"] = (
-            total_sum  # no interpolation, raw cumulative counts
-        )
+        updated_data["totalSum"] = total_sum  # no interpolation, raw cumulative counts
         updated_data["interSum"] = inter_sum  # interpolated cumulative counts
 
         if self.confidence_data and len(self.confidence_data) == 1:
-            prior_conf = pd.read_csv(
-                self.confidence_data[0], index_col="Difference"
-            )
+            prior_conf = pd.read_csv(self.confidence_data[0], index_col="Difference")
             print(f"Prior Confidence Data:\n{prior_conf}")
 
             total_weight_prior = prior_conf["weight"]
@@ -365,14 +355,12 @@ class Evaluator:
                 # sum might represent cumulative distributions at increments.
                 # We can merge them similarly by adding or using another merging strategy:
                 updated_data["cur_sum"] = prior_conf["cur_sum"] + (
-                    self.true_running_crosstab.sum()
-                    + self.false_running_crosstab.sum()
+                    self.true_running_crosstab.sum() + self.false_running_crosstab.sum()
                 )
             else:
                 # If no prior sum, just create it now
                 updated_data["cur_sum"] = (
-                    self.true_running_crosstab.sum()
-                    + self.false_running_crosstab.sum()
+                    self.true_running_crosstab.sum() + self.false_running_crosstab.sum()
                 )
 
             updated_data["weight"] = out_weight
@@ -396,13 +384,13 @@ class Evaluator:
         deltas: Sequence[Optional[float]],
         result: Sequence[str],
         tf: Sequence[str],
-        known: Sequence[str]
-        ) -> pd.DataFrame:
+        known: Sequence[str],
+    ) -> pd.DataFrame:
         """
         Generates a dataframe showing the differences and other metrics.
 
         Args:
-            two_key_vals (Mapping[str, Sequence[Any]]): 
+            two_key_vals (Mapping[str, Sequence[Any]]):
                 Two-key stored values (e.g., top two scores or top score and threshold),
                 with keys "key_value_one" and "key_value_two".
             predictions (Sequence[Optional[str]]): Predictions made by the selection method.
@@ -421,9 +409,7 @@ class Evaluator:
                 - T/F: correctness flag
                 - Known/Unknown: knownness flag
         """
-        rounded_deltas = [
-            round(num, 2) if num is not None else 0 for num in deltas
-        ]
+        rounded_deltas = [round(num, 2) if num is not None else 0 for num in deltas]
 
         diff_dataframe = pd.DataFrame(
             {
@@ -465,7 +451,8 @@ class Evaluator:
             ratio_dist, total_sum, inter_sum
         )
         global_confidence.to_csv(self.output_glob)
-        
+
+
 evaluator = Evaluator(
     snakemake.input.eval_apply_data,
     snakemake.output.eval_glob,
