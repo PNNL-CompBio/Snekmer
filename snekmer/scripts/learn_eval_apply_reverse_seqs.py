@@ -87,7 +87,7 @@ class CompareReverseSeqs:
         for f in self.annotation_files:
             self.annotation.append(pd.read_table(f))
         seqs = self.annotation[0]["id"].tolist()
-        anns = self.annotation[0]["Family"].tolist()
+        anns = self.annotation[0]["family"].tolist()
         for i, seqid in enumerate(seqs):
             self.seq_annot[seqid] = anns[i]
 

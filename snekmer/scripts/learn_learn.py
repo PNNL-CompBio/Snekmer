@@ -79,7 +79,7 @@ class Library:
             self.annotation.append(pd.read_table(f))
         annotations = pd.concat(self.annotation)
         seqs = annotations["id"].tolist()
-        anns = [str(fam) for fam in annotations["Family"].tolist()]
+        anns = [str(fam) for fam in annotations["family"].tolist()]
 
         for i, seqid in enumerate(seqs):
             self.seq_annot[seqid] = anns[i]

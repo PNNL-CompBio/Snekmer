@@ -49,7 +49,7 @@ def load_stats_from_csv(csv: str) -> Dict[str, Dict[str, Any]]:
     combined_stats: dict[str, dict] = {}
 
     for _, row in df.iterrows():
-        family = row["Family"]
+        family = row["family"]
         combined_stats[family] = {
             "count": int(row["count"]),
             "sum": float(row["sum"]),
@@ -69,7 +69,7 @@ def save_stats(
     Save combined family statistics to a csv checkpoint file.
 
     The output csv will contain the following columns:
-      - Family (str): the family identifier
+      - family (str): the family identifier
       - count (int): number of observations
       - sum (float): sum of values
       - sumSqr (float): sum of squared values
@@ -85,7 +85,7 @@ def save_stats(
     rows = []
     for family, stats in combined_stats.items():
         row = {
-            "Family": family,
+            "family": family,
             "count": stats["count"],
             "sum": stats["sum"],
             "sumSqr": stats["sumSqr"],
@@ -205,7 +205,7 @@ def generate_family_statistics(
     """
     
     stats_data = {
-        "Family": [],
+        "family": [],
         "Mean": [],
         "Std Dev": [],
         "Min": [],
@@ -238,7 +238,7 @@ def generate_family_statistics(
             # If no values, fill with NaN
             percentiles = [np.nan] * 11
 
-        stats_data["Family"].append(family)
+        stats_data["family"].append(family)
         stats_data["Mean"].append(round(mean, 3))
         stats_data["Std Dev"].append(round(standard_deviation, 3))
         stats_data["Min"].append(round(stats["min"], 3))
