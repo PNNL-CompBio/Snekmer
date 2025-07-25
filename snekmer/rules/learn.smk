@@ -109,6 +109,7 @@ rule all:
         expand(
             join(
                 out_dir,
+                "evaluate",
                 (
                     "eval_apply_sequences"
                     if not config["learnapp"]["fragmentation"]
@@ -122,6 +123,7 @@ rule all:
         expand(
             join(
                 out_dir,
+                "evaluate",
                 (
                     "eval_apply_reversed"
                     if not config["learnapp"]["fragmentation"]
@@ -230,6 +232,7 @@ rule eval_apply_reverse_seqs:
     output:
         apply=join(
             out_dir,
+            "evaluate",
             (
                 "eval_apply_reversed"
                 if not config["learnapp"]["fragmentation"]
@@ -248,6 +251,7 @@ rule reverse_decoy_evaluations:
         eval_apply_data=expand(
             join(
                 out_dir,
+                "evaluate",
                 (
                     "eval_apply_reversed"
                     if not config["learnapp"]["fragmentation"]
@@ -280,6 +284,7 @@ rule eval_apply_sequences:
     output:
         apply=join(
             out_dir,
+            "evaluate",
             (
                 "eval_apply_sequences"
                 if not config["learnapp"]["fragmentation"]
@@ -298,6 +303,7 @@ rule evaluate:
         eval_apply_data=expand(
             join(
                 out_dir,
+                "evaluate",
                 (
                     "eval_apply_sequences"
                     if not config["learnapp"]["fragmentation"]
