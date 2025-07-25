@@ -224,7 +224,11 @@ rule eval_apply_reverse_seqs:
         data=join(
             out_dir,
             "vector",
-            ("vector" if not config["learn_apply"]["fragmentation"] else "vector_frag"),
+            (
+                "vector"
+                if not config["learn_apply"]["fragmentation"]
+                else "vector_frag"
+            ),
             "{nb}.npz",
         ),
         annotation=expand("{an}", an=annot_files),
@@ -276,7 +280,11 @@ rule eval_apply_sequences:
         data=join(
             out_dir,
             "vector",
-            ("vector" if not config["learn_apply"]["fragmentation"] else "vector_frag"),
+            (
+                "vector"
+                if not config["learn_apply"]["fragmentation"]
+                else "vector_frag"
+            ),
             "{nb}.npz",
         ),
         annotation=expand("{an}", an=annot_files),
