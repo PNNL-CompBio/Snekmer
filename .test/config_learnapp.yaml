@@ -43,7 +43,7 @@ basis_dir: "/path/to/output/kmerize/"
 score_dir: "/path/to/output/scoring/"
 
 
-learnapp:
+learn_apply:
   save_apply_associations: False
   fragmentation: False
   version: absolute

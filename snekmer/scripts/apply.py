@@ -14,9 +14,9 @@ config = snakemake.config
 # Run script
 # ---------------------------------------------------------
 
-weight_top = config["learnapp"].get("weight_top", 0.5)
-weight_distance = config["learnapp"].get("weight_distance", 0.5)
-save_apply_associations = config["learnapp"]["save_apply_associations"]
+weight_top = config["learn_apply"].get("weight_top", 0.5)
+weight_distance = config["learn_apply"].get("weight_distance", 0.5)
+save_apply_associations = config["learn_apply"]["save_apply_associations"]
         
 apply = KmerCompare(
     snakemake.input.compare_associations,

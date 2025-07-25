@@ -96,10 +96,10 @@ class Evaluator:
             header=0,
             engine="c",
         )
-        threshold_type = config["learnapp"]["threshold"]
-        selection_method = config["learnapp"]["selection"]
-        weight_top = config["learnapp"].get("weight_top", 0.5)
-        weight_distance = config["learnapp"].get("weight_distance", 0.5)
+        threshold_type = config["learn_apply"]["threshold"]
+        selection_method = config["learn_apply"]["selection"]
+        weight_top = config["learn_apply"].get("weight_top", 0.5)
+        weight_distance = config["learn_apply"].get("weight_distance", 0.5)
 
         if threshold_type == "None":
             threshold_type = None

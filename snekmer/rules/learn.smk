@@ -73,8 +73,8 @@ out_dir = skm.io.define_output_dir(
 )
 
 if (
-    config["learnapp"]["selection"] != "top_hit"
-    and config["learnapp"]["threshold"] == "None"
+    config["learn_apply"]["selection"] != "top_hit"
+    and config["learn_apply"]["threshold"] == "None"
 ):
     raise Exception(
         "The only selection method that allows for None is `top_hit`. Other methods inherently use a threshold"
@@ -99,11 +99,11 @@ rule all:
         join(out_dir, "learn", "kmer-counts-total.csv"),
         # Fragmentation outputs (only if enabled)
         expand(join(out_dir, "fragmented", "{nb}.fasta"), nb=FAS)
-        if config["learnapp"]["fragmentation"]
+        if config["learn_apply"]["fragmentation"]
         else [],
         # expand(join(out_dir, "vector_frag", "{nb}.npz"), nb=FAS)
         expand(join(out_dir, "vector", "vector_frag", "{nb}.npz"), nb=FAS)
-        if config["learnapp"]["fragmentation"]
+        if config["learn_apply"]["fragmentation"]
         else [],
         # Forward evaluation scores
         expand(
@@ -112,7 +112,7 @@ rule all:
                 "evaluate",
                 (
                     "eval_apply_sequences"
-                    if not config["learnapp"]["fragmentation"]
+                    if not config["learn_apply"]["fragmentation"]
                     else "eval_apply_frag"
                 ),
                 "seq-annotation-scores-{nb}.csv.gz",
@@ -126,7 +126,7 @@ rule all:
                 "evaluate",
                 (
                     "eval_apply_reversed"
-                    if not config["learnapp"]["fragmentation"]
+                    if not config["learn_apply"]["fragmentation"]
                     else "eval_apply_reversed_frag"
                 ),
                 "seq-annotation-scores-{nb}.csv.gz",
@@ -149,7 +149,7 @@ use rule unzip from process with:
         zipped=join(input_dir, "zipped", "{uz}.gz"),
 
 
-if config["learnapp"]["fragmentation"]:
+if config["learn_apply"]["fragmentation"]:
 
     rule fragmentation:
         input:
@@ -161,11 +161,11 @@ if config["learnapp"]["fragmentation"]:
         message:
             "Fragmenting sequences in {input.fasta}. Output written to {output.fasta_out}."
         params:
-            version=config["learnapp"]["version"],
-            frag_length=config["learnapp"]["frag_length"],
-            location=config["learnapp"]["location"],
-            min_length=config["learnapp"]["min_length"],
-            seed=config["learnapp"]["seed"],
+            version=config["learn_apply"]["version"],
+            frag_length=config["learn_apply"]["frag_length"],
+            location=config["learn_apply"]["location"],
+            min_length=config["learn_apply"]["min_length"],
+            seed=config["learn_apply"]["seed"],
         script:
             resource_path("snekmer", "scripts", "learn_fragment.py")
 
@@ -224,7 +224,7 @@ rule eval_apply_reverse_seqs:
         data=join(
             out_dir,
             "vector",
-            ("vector" if not config["learnapp"]["fragmentation"] else "vector_frag"),
+            ("vector" if not config["learn_apply"]["fragmentation"] else "vector_frag"),
             "{nb}.npz",
         ),
         annotation=expand("{an}", an=annot_files),
@@ -235,7 +235,7 @@ rule eval_apply_reverse_seqs:
             "evaluate",
             (
                 "eval_apply_reversed"
-                if not config["learnapp"]["fragmentation"]
+                if not config["learn_apply"]["fragmentation"]
                 else "eval_apply_reversed_frag"
             ),
             "seq-annotation-scores-{nb}.csv.gz",
@@ -254,7 +254,7 @@ rule reverse_decoy_evaluations:
                 "evaluate",
                 (
                     "eval_apply_reversed"
-                    if not config["learnapp"]["fragmentation"]
+                    if not config["learn_apply"]["fragmentation"]
                     else "eval_apply_reversed_frag"
                 ),
                 "seq-annotation-scores-{nb}.csv.gz",
@@ -276,7 +276,7 @@ rule eval_apply_sequences:
         data=join(
             out_dir,
             "vector",
-            ("vector" if not config["learnapp"]["fragmentation"] else "vector_frag"),
+            ("vector" if not config["learn_apply"]["fragmentation"] else "vector_frag"),
             "{nb}.npz",
         ),
         annotation=expand("{an}", an=annot_files),
@@ -287,7 +287,7 @@ rule eval_apply_sequences:
             "evaluate",
             (
                 "eval_apply_sequences"
-                if not config["learnapp"]["fragmentation"]
+                if not config["learn_apply"]["fragmentation"]
                 else "eval_apply_frag"
             ),
             "seq-annotation-scores-{nb}.csv.gz",
@@ -306,7 +306,7 @@ rule evaluate:
                 "evaluate",
                 (
                     "eval_apply_sequences"
-                    if not config["learnapp"]["fragmentation"]
+                    if not config["learn_apply"]["fragmentation"]
                     else "eval_apply_frag"
                 ),
                 "seq-annotation-scores-{nb}.csv.gz",
@@ -320,7 +320,7 @@ rule evaluate:
     message:
         "Calculating global confidence scores based on Apply results. Output written to {output.eval_glob}."
     params:
-        modifier=config["learnapp"]["conf_weight_modifier"],
+        modifier=config["learn_apply"]["conf_weight_modifier"],
     script:
         resource_path("snekmer", "scripts", "learn_evaluate_sequences.py")
 

@@ -238,7 +238,7 @@ class EvaluateSequences:
         kmer_counts = self.construct_kmer_counts_dataframe()
         kmer_counts, self.kmer_count_totals = match_kmer_counts_format(kmer_counts,self.kmer_count_totals)
         final_matrix_with_scores = self.calculate_cosine_similarity(kmer_counts)
-        if not config["learnapp"]["save_apply_associations"]:
+        if not config["learn_apply"]["save_apply_associations"]:
             final_matrix_with_scores = self.filter_top_two_values(
                 final_matrix_with_scores
             )

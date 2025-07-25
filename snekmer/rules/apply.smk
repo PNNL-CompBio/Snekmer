@@ -72,10 +72,10 @@ out_dir = skm.io.define_output_dir(
     config["alphabet"], config["k"], nested=config["nested_output"]
 )
 
-threshold_type = config["learnapp"]["threshold"]
-selection_type = config["learnapp"]["selection"]
+threshold_type = config["learn_apply"]["threshold"]
+selection_type = config["learn_apply"]["selection"]
 
-apply_cfg = config.get("learnapp", {})
+apply_cfg = config.get("learn_apply", {})
 concat_results = apply_cfg.get("apply_output", "snekmer_results.csv")
 extra_all = [concat_results] if concat_results is not None else []
 
@@ -101,7 +101,7 @@ rule all:
                 expand(
                     join(out_dir, "apply", "seq-annotation-scores-{nb}.csv"), nb=FAS
                 )
-                if config["learnapp"]["save_apply_associations"]
+                if config["learn_apply"]["save_apply_associations"]
                 else []
             )
         ],
@@ -129,12 +129,12 @@ rule apply:
         confidence_associations=expand("{conf}", conf=confidence_file),
         decoy_stats=expand("{decoy}", decoy=decoy_stats_file),
     params:
-        selection_type=config["learnapp"]["selection"],
-        threshold_type=config["learnapp"]["threshold"],
+        selection_type=config["learn_apply"]["selection"],
+        threshold_type=config["learn_apply"]["threshold"],
     output:
         seq_ann=(
             expand(join(out_dir, "apply", "seq-annotation-scores-{nb}.csv"), nb=FAS)
-            if config["learnapp"]["save_apply_associations"]
+            if config["learn_apply"]["save_apply_associations"]
             else []
         ),
         kmer_summary=join(out_dir, "apply", "kmer-summary-{nb}.csv"),
