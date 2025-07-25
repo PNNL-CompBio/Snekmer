@@ -72,9 +72,6 @@ out_dir = skm.io.define_output_dir(
     config["alphabet"], config["k"], nested=config["nested_output"]
 )
 
-output_prefixes = (
-    ["vector"] if not config["learnapp"]["fragmentation"] else ["vector", "vector_frag"]
-)
 
 if (
     config["learnapp"]["selection"] != "top_hit"
@@ -181,7 +178,7 @@ use rule vectorize from kmerize with:
         data=join(out_dir, "{prefix}", "{nb}.npz"),
         kmerobj=join(out_dir, "kmerize_{prefix}", "{nb}.kmers"),
     log:
-        join(out_dir, "{prefix}_kmerize", "log", "{nb}.log"),
+        join(out_dir, "kmerize_{prefix}", "log", "{nb}.log"),
     message:
         "Kmerizing and re-encoding amino acids in {input.fasta}. Output written to {output.data}."
 
