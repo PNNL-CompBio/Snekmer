@@ -3,7 +3,7 @@
 # ---------------------------------------------------------
 
 import re
-from os.path import join
+from os.path import basename, splitext, join
 
 import numpy as np
 import pandas as pd
@@ -138,9 +138,9 @@ class Library:
         new_index = ["Totals"] + list(self.annotation_counts.keys())
         kmer_counts.index = new_index
         kmer_counts.replace(0, "", inplace=True)
-        out_name = join(
-            out_dir, "learn", "kmer-counts-" + str(input_data)[14:-4] + ".csv"
-        )
+        base = basename(input_data)
+        name = splitext(base)[0]
+        out_name = join(out_dir, "learn", f"kmer-counts-{name}.csv")
         kmer_counts.index.name = "__index_level_0__"
         kmer_counts.to_csv(out_name, index=True)
 

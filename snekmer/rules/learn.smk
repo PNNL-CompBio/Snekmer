@@ -29,6 +29,7 @@ import snekmer as skm
 from importlib.resources import files
 
 
+
 # collect all fasta-like files, unzipped filenames, and basenames
 input_dir = (
     "input"
@@ -72,7 +73,6 @@ out_dir = skm.io.define_output_dir(
     config["alphabet"], config["k"], nested=config["nested_output"]
 )
 
-
 if (
     config["learnapp"]["selection"] != "top_hit"
     and config["learnapp"]["threshold"] == "None"
@@ -93,7 +93,8 @@ def resource_path(package: str, *parts) -> str:
 rule all:
     input:
         # Vector files
-        expand(join(out_dir, "vector", "{nb}.npz"), nb=FAS),
+        # expand(join(out_dir, "vector", "{nb}.npz"), nb=FAS),
+        expand(join(out_dir, "vector", "vector", "{nb}.npz"), nb=FAS),
         # Kmer counts for learning
         expand(join(out_dir, "learn", "kmer-counts-{nb}.csv"), nb=FAS),
         join(out_dir, "learn", "kmer-counts-total.csv"),
@@ -101,7 +102,8 @@ rule all:
         expand(join(out_dir, "fragmented", "{nb}.fasta"), nb=FAS)
         if config["learnapp"]["fragmentation"]
         else [],
-        expand(join(out_dir, "vector_frag", "{nb}.npz"), nb=FAS)
+        # expand(join(out_dir, "vector_frag", "{nb}.npz"), nb=FAS)
+        expand(join(out_dir, "vector", "vector_frag", "{nb}.npz"), nb=FAS)
         if config["learnapp"]["fragmentation"]
         else [],
         # Forward evaluation scores
@@ -167,33 +169,40 @@ if config["learnapp"]["fragmentation"]:
             resource_path("snekmer", "scripts", "learn_fragment.py")
 
 
-use rule vectorize from kmerize with:
+prefix="vector"
+use rule vectorize from kmerize as vectorize_vector with:
     input:
-        fasta=lambda wildcards: join(
-            out_dir if wildcards.prefix == "vector_frag" else input_dir,
-            "fragmented" if wildcards.prefix == "vector_frag" else "",
-            f"{wildcards.nb}.{fa_map[wildcards.nb]}",
-        ),
+        # original FASTA lives under input_dir
+        fasta=lambda wc: join(
+            input_dir,
+            f"{wc.nb}.{fa_map[wc.nb]}"
+        )
     output:
-        data=join(out_dir, "{prefix}", "{nb}.npz"),
-        kmerobj=join(out_dir, "kmerize_{prefix}", "{nb}.kmers"),
-    log:
-        join(out_dir, "kmerize_{prefix}", "log", "{nb}.log"),
-    message:
-        "Kmerizing and re-encoding amino acids in {input.fasta}. Output written to {output.data}."
+        data    = join(out_dir, "vector",      "vector",      "{nb}.npz"),
+        kmerobj = join(out_dir, "kmerize",     "kmer",        "{nb}.kmers"),
 
+prefix="vector_frag"
+use rule vectorize from kmerize as vectorize_frag with:
+    input:
+        # fragmented FASTA always ends in .fasta under out_dir/fragmented
+        fasta=lambda wc: join(
+            out_dir,
+            "fragmented",
+            f"{wc.nb}.fasta"
+        )
+    output:
+        data    = join(out_dir, "vector",      "vector_frag", "{nb}.npz"),
+        kmerobj = join(out_dir, "kmerize",     "kmer_frag",   "{nb}.kmers"),
 
 # WORKFLOW to learn kmer associations
 rule learn:
     input:
-        data=join(out_dir, "vector", "{nb}.npz"),
+        data=join(out_dir, "vector", "vector", "{nb}.npz"),
         annotation=expand("{an}", an=annot_files),
     output:
         counts=join(out_dir, "learn", "kmer-counts-{nb}.csv"),
     message:
         "Building kmer-association matrix from {input.data}. Output written to {output.counts}."
-    log:
-        join(out_dir, "learn", "log", "learn-{nb}.log"),
     script:
         resource_path("snekmer", "scripts", "learn_learn.py")
 
@@ -206,8 +215,6 @@ rule merge:
         totals=join(out_dir, "learn", "kmer-counts-total.csv"),
     message:
         "Merging individual k-mer association matrix files into consolidated {output.totals}."
-    log:
-        join(out_dir, "learn", "log", "merge.log"),
     script:
         resource_path("snekmer", "scripts", "learn_merge.py")
 
@@ -215,9 +222,11 @@ rule merge:
 rule eval_apply_reverse_seqs:
     input:
         data=join(
-            out_dir,
-            ("vector" if not config["learnapp"]["fragmentation"] else "vector_frag"),
-            "{nb}.npz",
+        out_dir,
+        "vector",
+        ("vector" if not config["learnapp"]["fragmentation"] 
+                  else "vector_frag"),
+        "{nb}.npz",
         ),
         annotation=expand("{an}", an=annot_files),
         compare_associations=join(out_dir, "learn", "kmer-counts-total.csv"),
@@ -264,9 +273,11 @@ rule reverse_decoy_evaluations:
 rule eval_apply_sequences:
     input:
         data=join(
-            out_dir,
-            ("vector" if not config["learnapp"]["fragmentation"] else "vector_frag"),
-            "{nb}.npz",
+        out_dir,
+        "vector",
+        ("vector" if not config["learnapp"]["fragmentation"] 
+                  else "vector_frag"),
+        "{nb}.npz",
         ),
         annotation=expand("{an}", an=annot_files),
         compare_associations=join(out_dir, "learn", "kmer-counts-total.csv"),
@@ -308,8 +319,6 @@ rule evaluate:
         "Calculating global confidence scores based on Apply results. Output written to {output.eval_glob}."
     params:
         modifier=config["learnapp"]["conf_weight_modifier"],
-    log:
-        join(out_dir, "eval_conf", "log", "conf.log"),
     script:
         resource_path("snekmer", "scripts", "learn_evaluate_sequences.py")
 
