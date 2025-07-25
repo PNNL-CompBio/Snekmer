@@ -106,7 +106,7 @@ class Evaluator:
         if threshold_type is not None:
             threshold_dict = dict(
                 zip(
-                    thresholds_dataframe.Family.astype(str),
+                    thresholds_dataframe.family.astype(str),
                     thresholds_dataframe[threshold_type],
                 )
             )

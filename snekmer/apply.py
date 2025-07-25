@@ -188,7 +188,7 @@ class KmerCompare:
             self.threshold_dict = {}
         else:
             df = pd.read_csv(str(self.decoy_stats), engine="c")
-            self.threshold_dict = dict(zip(df.Family.astype(str),
+            self.threshold_dict = dict(zip(df.family.astype(str),
                                         df[self.threshold_type]))
             
                         

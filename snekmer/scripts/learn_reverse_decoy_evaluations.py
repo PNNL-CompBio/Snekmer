@@ -27,7 +27,7 @@ def load_stats_from_csv(csv: str) -> Dict[str, Dict[str, Any]]:
     Load existing family statistics from a csv checkpoint file.
 
     The csv must contain the following columns:
-      - Family (str): family identifier
+      - family (str): family identifier
       - count (int): number of observations
       - sum (float): sum of values
       - sumSqr (float): sum of squared values
