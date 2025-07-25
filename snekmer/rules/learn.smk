@@ -29,7 +29,6 @@ import snekmer as skm
 from importlib.resources import files
 
 
-
 # collect all fasta-like files, unzipped filenames, and basenames
 input_dir = (
     "input"
@@ -169,30 +168,29 @@ if config["learnapp"]["fragmentation"]:
             resource_path("snekmer", "scripts", "learn_fragment.py")
 
 
-prefix="vector"
+prefix = "vector"
+
+
 use rule vectorize from kmerize as vectorize_vector with:
     input:
         # original FASTA lives under input_dir
-        fasta=lambda wc: join(
-            input_dir,
-            f"{wc.nb}.{fa_map[wc.nb]}"
-        )
+        fasta=lambda wc: join(input_dir, f"{wc.nb}.{fa_map[wc.nb]}"),
     output:
-        data    = join(out_dir, "vector",      "vector",      "{nb}.npz"),
-        kmerobj = join(out_dir, "kmerize",     "kmer",        "{nb}.kmers"),
+        data=join(out_dir, "vector", "vector", "{nb}.npz"),
+        kmerobj=join(out_dir, "kmerize", "kmer", "{nb}.kmers"),
 
-prefix="vector_frag"
+
+prefix = "vector_frag"
+
+
 use rule vectorize from kmerize as vectorize_frag with:
     input:
         # fragmented FASTA always ends in .fasta under out_dir/fragmented
-        fasta=lambda wc: join(
-            out_dir,
-            "fragmented",
-            f"{wc.nb}.fasta"
-        )
+        fasta=lambda wc: join(out_dir, "fragmented", f"{wc.nb}.fasta"),
     output:
-        data    = join(out_dir, "vector",      "vector_frag", "{nb}.npz"),
-        kmerobj = join(out_dir, "kmerize",     "kmer_frag",   "{nb}.kmers"),
+        data=join(out_dir, "vector", "vector_frag", "{nb}.npz"),
+        kmerobj=join(out_dir, "kmerize", "kmer_frag", "{nb}.kmers"),
+
 
 # WORKFLOW to learn kmer associations
 rule learn:
@@ -222,11 +220,10 @@ rule merge:
 rule eval_apply_reverse_seqs:
     input:
         data=join(
-        out_dir,
-        "vector",
-        ("vector" if not config["learnapp"]["fragmentation"] 
-                  else "vector_frag"),
-        "{nb}.npz",
+            out_dir,
+            "vector",
+            ("vector" if not config["learnapp"]["fragmentation"] else "vector_frag"),
+            "{nb}.npz",
         ),
         annotation=expand("{an}", an=annot_files),
         compare_associations=join(out_dir, "learn", "kmer-counts-total.csv"),
@@ -273,11 +270,10 @@ rule reverse_decoy_evaluations:
 rule eval_apply_sequences:
     input:
         data=join(
-        out_dir,
-        "vector",
-        ("vector" if not config["learnapp"]["fragmentation"] 
-                  else "vector_frag"),
-        "{nb}.npz",
+            out_dir,
+            "vector",
+            ("vector" if not config["learnapp"]["fragmentation"] else "vector_frag"),
+            "{nb}.npz",
         ),
         annotation=expand("{an}", an=annot_files),
         compare_associations=join(out_dir, "learn", "kmer-counts-total.csv"),
