@@ -92,7 +92,6 @@ def resource_path(package: str, *parts) -> str:
 rule all:
     input:
         # Vector files
-        # expand(join(out_dir, "vector", "{nb}.npz"), nb=FAS),
         expand(join(out_dir, "vector", "vector", "{nb}.npz"), nb=FAS),
         # Kmer counts for learning
         expand(join(out_dir, "learn", "kmer-counts-{nb}.csv"), nb=FAS),
@@ -101,7 +100,6 @@ rule all:
         expand(join(out_dir, "fragmented", "{nb}.fasta"), nb=FAS)
         if config["learn_apply"]["fragmentation"]
         else [],
-        # expand(join(out_dir, "vector_frag", "{nb}.npz"), nb=FAS)
         expand(join(out_dir, "vector", "vector_frag", "{nb}.npz"), nb=FAS)
         if config["learn_apply"]["fragmentation"]
         else [],
@@ -175,7 +173,6 @@ prefix = "vector"
 
 use rule vectorize from kmerize as vectorize_vector with:
     input:
-        # original FASTA lives under input_dir
         fasta=lambda wc: join(input_dir, f"{wc.nb}.{fa_map[wc.nb]}"),
     output:
         data=join(out_dir, "vector", "vector", "{nb}.npz"),
@@ -187,14 +184,12 @@ prefix = "vector_frag"
 
 use rule vectorize from kmerize as vectorize_frag with:
     input:
-        # fragmented FASTA always ends in .fasta under out_dir/fragmented
         fasta=lambda wc: join(out_dir, "fragmented", f"{wc.nb}.fasta"),
     output:
         data=join(out_dir, "vector", "vector_frag", "{nb}.npz"),
         kmerobj=join(out_dir, "kmerize", "kmer_frag", "{nb}.kmers"),
 
 
-# WORKFLOW to learn kmer associations
 rule learn:
     input:
         data=join(out_dir, "vector", "vector", "{nb}.npz"),
