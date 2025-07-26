@@ -109,7 +109,7 @@ rule all:
                 out_dir,
                 "evaluate",
                 (
-                    "eval_apply_sequences"
+                "eval_apply_sequences"
                     if not config["learn_apply"]["fragmentation"]
                     else "eval_apply_frag"
                 ),
@@ -123,7 +123,7 @@ rule all:
                 out_dir,
                 "evaluate",
                 (
-                    "eval_apply_reversed"
+                "eval_apply_reversed"
                     if not config["learn_apply"]["fragmentation"]
                     else "eval_apply_reversed_frag"
                 ),
@@ -140,7 +140,6 @@ rule all:
         join("apply_inputs", "confidence", "global-confidence-scores.csv"),
 
 
-# if any files are gzip zipped, unzip them
 use rule unzip from process with:
     output:
         unzipped=join(input_dir, "{uz}"),
@@ -220,7 +219,7 @@ rule eval_apply_reverse_seqs:
             out_dir,
             "vector",
             (
-                "vector"
+            "vector"
                 if not config["learn_apply"]["fragmentation"]
                 else "vector_frag"
             ),
@@ -233,7 +232,7 @@ rule eval_apply_reverse_seqs:
             out_dir,
             "evaluate",
             (
-                "eval_apply_reversed"
+            "eval_apply_reversed"
                 if not config["learn_apply"]["fragmentation"]
                 else "eval_apply_reversed_frag"
             ),
@@ -252,7 +251,7 @@ rule reverse_decoy_evaluations:
                 out_dir,
                 "evaluate",
                 (
-                    "eval_apply_reversed"
+                "eval_apply_reversed"
                     if not config["learn_apply"]["fragmentation"]
                     else "eval_apply_reversed_frag"
                 ),
@@ -276,7 +275,7 @@ rule eval_apply_sequences:
             out_dir,
             "vector",
             (
-                "vector"
+            "vector"
                 if not config["learn_apply"]["fragmentation"]
                 else "vector_frag"
             ),
@@ -289,7 +288,7 @@ rule eval_apply_sequences:
             out_dir,
             "evaluate",
             (
-                "eval_apply_sequences"
+            "eval_apply_sequences"
                 if not config["learn_apply"]["fragmentation"]
                 else "eval_apply_frag"
             ),
@@ -308,7 +307,7 @@ rule evaluate:
                 out_dir,
                 "evaluate",
                 (
-                    "eval_apply_sequences"
+                "eval_apply_sequences"
                     if not config["learn_apply"]["fragmentation"]
                     else "eval_apply_frag"
                 ),
