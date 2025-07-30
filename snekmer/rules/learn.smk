@@ -109,7 +109,7 @@ rule all:
                 out_dir,
                 "evaluate",
                 (
-                "eval_apply_sequences"
+                    "eval_apply_sequences"
                     if not config["learn_apply"]["fragmentation"]
                     else "eval_apply_frag"
                 ),
@@ -123,7 +123,7 @@ rule all:
                 out_dir,
                 "evaluate",
                 (
-                "eval_apply_reversed"
+                    "eval_apply_reversed"
                     if not config["learn_apply"]["fragmentation"]
                     else "eval_apply_reversed_frag"
                 ),
@@ -221,7 +221,7 @@ rule eval_apply_reverse_seqs:
             out_dir,
             "vector",
             (
-            "vector"
+                "vector"
                 if not config["learn_apply"]["fragmentation"]
                 else "vector_frag"
             ),
@@ -234,7 +234,7 @@ rule eval_apply_reverse_seqs:
             out_dir,
             "evaluate",
             (
-            "eval_apply_reversed"
+                "eval_apply_reversed"
                 if not config["learn_apply"]["fragmentation"]
                 else "eval_apply_reversed_frag"
             ),
@@ -253,7 +253,7 @@ rule reverse_decoy_evaluations:
                 out_dir,
                 "evaluate",
                 (
-                "eval_apply_reversed"
+                    "eval_apply_reversed"
                     if not config["learn_apply"]["fragmentation"]
                     else "eval_apply_reversed_frag"
                 ),
@@ -277,7 +277,7 @@ rule eval_apply_sequences:
             out_dir,
             "vector",
             (
-            "vector"
+                "vector"
                 if not config["learn_apply"]["fragmentation"]
                 else "vector_frag"
             ),
@@ -290,7 +290,7 @@ rule eval_apply_sequences:
             out_dir,
             "evaluate",
             (
-            "eval_apply_sequences"
+                "eval_apply_sequences"
                 if not config["learn_apply"]["fragmentation"]
                 else "eval_apply_frag"
             ),
@@ -309,7 +309,7 @@ rule evaluate:
                 out_dir,
                 "evaluate",
                 (
-                "eval_apply_sequences"
+                    "eval_apply_sequences"
                     if not config["learn_apply"]["fragmentation"]
                     else "eval_apply_frag"
                 ),
@@ -352,15 +352,15 @@ rule copy_results_for_apply:
 
 rule learn_report:
     input:
-        per_sample        = expand(join(out_dir, "learn", "kmer_counts_{nb}.csv"), nb=FAS),
-        total_counts      = join(out_dir, "learn", "kmer_counts_total.csv"),
-        family_stats      = join(out_dir, "eval_conf", "family_summary_stats.csv"),
-        family_checkpoint = join(out_dir, "eval_conf", "family_stats_checkpoint.csv"),
-        global_conf       = join(out_dir, "eval_conf", "global_confidence_scores.csv"),
+        per_sample=expand(join(out_dir, "learn", "kmer_counts_{nb}.csv"), nb=FAS),
+        total_counts=join(out_dir, "learn", "kmer_counts_total.csv"),
+        family_stats=join(out_dir, "eval_conf", "family_summary_stats.csv"),
+        family_checkpoint=join(out_dir, "eval_conf", "family_stats_checkpoint.csv"),
+        global_conf=join(out_dir, "eval_conf", "global_confidence_scores.csv"),
     output:
-        report = join(out_dir, "Snekmer_Learn_Report.html"),
+        report=join(out_dir, "Snekmer_Learn_Report.html"),
     message:
-        "Generating full Snekmer Learn Report at {output.report}",
+        "Generating full Snekmer Learn Report at {output.report}"
     params:
         fragmentation=config["learn_apply"]["fragmentation"],
     run:
@@ -369,55 +369,83 @@ rule learn_report:
         from datetime import datetime
 
         frag_enabled = params.fragmentation
-        report_src   = dirname(dirname(input.total_counts))
+        report_src = dirname(dirname(input.total_counts))
 
-        vector_files = sorted([
-            relpath(p, report_src).replace(os.sep, "/")
-            for p in glob.glob(join(report_src, "vector", "vector", "*.npz"))
-        ])
-        learn_files = sorted([
-            relpath(p, report_src).replace(os.sep, "/")
-            for p in glob.glob(join(report_src, "learn", "*.csv"))
-        ])
-        eval_seq = sorted([
-            relpath(p, report_src).replace(os.sep, "/")
-            for p in glob.glob(join(report_src, "evaluate", "eval_apply_sequences", "*.csv.gz"))
-        ])
-        eval_rev = sorted([
-            relpath(p, report_src).replace(os.sep, "/")
-            for p in glob.glob(join(report_src, "evaluate", "eval_apply_reversed", "*.csv.gz"))
-        ])
+        vector_files = sorted(
+            [
+                relpath(p, report_src).replace(os.sep, "/")
+                for p in glob.glob(join(report_src, "vector", "vector", "*.npz"))
+            ]
+        )
+        learn_files = sorted(
+            [
+                relpath(p, report_src).replace(os.sep, "/")
+                for p in glob.glob(join(report_src, "learn", "*.csv"))
+            ]
+        )
+        eval_seq = sorted(
+            [
+                relpath(p, report_src).replace(os.sep, "/")
+                for p in glob.glob(
+                    join(report_src, "evaluate", "eval_apply_sequences", "*.csv.gz")
+                )
+            ]
+        )
+        eval_rev = sorted(
+            [
+                relpath(p, report_src).replace(os.sep, "/")
+                for p in glob.glob(
+                    join(report_src, "evaluate", "eval_apply_reversed", "*.csv.gz")
+                )
+            ]
+        )
 
-        fam_stats      = relpath(input.family_stats, report_src).replace(os.sep, "/")
-        glob_conf      = relpath(input.global_conf, report_src).replace(os.sep, "/")
-        fam_checkpoint = relpath(input.family_checkpoint, report_src).replace(os.sep, "/")
+        fam_stats = relpath(input.family_stats, report_src).replace(os.sep, "/")
+        glob_conf = relpath(input.global_conf, report_src).replace(os.sep, "/")
+        fam_checkpoint = relpath(input.family_checkpoint, report_src).replace(
+            os.sep, "/"
+        )
 
-        kmer_obj = sorted([
-            relpath(p, report_src).replace(os.sep, "/")
-            for p in glob.glob(join(report_src, "kmerize", "kmer", "*.kmers"))
-        ])
+        kmer_obj = sorted(
+            [
+                relpath(p, report_src).replace(os.sep, "/")
+                for p in glob.glob(join(report_src, "kmerize", "kmer", "*.kmers"))
+            ]
+        )
 
-        apply_files = sorted([
-            relpath(p, report_src).replace(os.sep, "/")
-            for p in glob.glob("apply_inputs/**/*.csv", recursive=True)
-        ])
+        apply_files = sorted(
+            [
+                relpath(p, report_src).replace(os.sep, "/")
+                for p in glob.glob("apply_inputs/**/*.csv", recursive=True)
+            ]
+        )
 
         frag_fastas = []
         vector_frag = []
-        kmer_frag   = []
+        kmer_frag = []
         if frag_enabled:
-            frag_fastas = sorted([
-                relpath(p, report_src).replace(os.sep, "/")
-                for p in glob.glob(join(report_src, "fragmented", "*.fasta"))
-            ])
-            vector_frag = sorted([
-                relpath(p, report_src).replace(os.sep, "/")
-                for p in glob.glob(join(report_src, "vector", "vector_frag", "*.npz"))
-            ])
-            kmer_frag = sorted([
-                relpath(p, report_src).replace(os.sep, "/")
-                for p in glob.glob(join(report_src, "kmerize", "kmer_frag", "*.kmers"))
-            ])
+            frag_fastas = sorted(
+                [
+                    relpath(p, report_src).replace(os.sep, "/")
+                    for p in glob.glob(join(report_src, "fragmented", "*.fasta"))
+                ]
+            )
+            vector_frag = sorted(
+                [
+                    relpath(p, report_src).replace(os.sep, "/")
+                    for p in glob.glob(
+                        join(report_src, "vector", "vector_frag", "*.npz")
+                    )
+                ]
+            )
+            kmer_frag = sorted(
+                [
+                    relpath(p, report_src).replace(os.sep, "/")
+                    for p in glob.glob(
+                        join(report_src, "kmerize", "kmer_frag", "*.kmers")
+                    )
+                ]
+            )
 
         all_file_lists = [
             vector_files,
@@ -439,8 +467,9 @@ rule learn_report:
                 else:
                     full = join(report_src, relp)
                 size = round(os.path.getsize(full) / 1024, 1)
-                mtime = datetime.fromtimestamp(os.path.getmtime(full))\
-                               .strftime("%Y-%m-%d %H:%M")
+                mtime = datetime.fromtimestamp(os.path.getmtime(full)).strftime(
+                    "%Y-%m-%d %H:%M"
+                )
                 file_info[relp] = {"size": size, "mtime": mtime}
 
         overview = (
@@ -520,32 +549,29 @@ rule learn_report:
         }
 
         learn_counts = [f for f in learn_files if "total" not in f]
-        learn_total  = [f for f in learn_files if "total" in f]
+        learn_total = [f for f in learn_files if "total" in f]
 
         learn_vars = dict(
-            page_title     = "Snekmer Learn Report",
-            title          = "Snekmer Learn Pipeline Results",
-            overview_text  = overview,
-            section_desc   = desc,
-            vector_files   = vector_files,
-            frag_fastas    = frag_fastas,
-            vector_frag    = vector_frag,
-            kmer_frag      = kmer_frag,
-            learn_counts   = learn_counts,
-            learn_total    = learn_total,
-            eval_seq       = eval_seq,
-            eval_rev       = eval_rev,
-            fam_stats      = fam_stats,
-            fam_checkpoint = fam_checkpoint,
-            glob_conf      = glob_conf,
-            kmer_obj       = kmer_obj,
-            apply_inputs   = apply_files,
-            file_info      = file_info,
+            page_title="Snekmer Learn Report",
+            title="Snekmer Learn Pipeline Results",
+            overview_text=overview,
+            section_desc=desc,
+            vector_files=vector_files,
+            frag_fastas=frag_fastas,
+            vector_frag=vector_frag,
+            kmer_frag=kmer_frag,
+            learn_counts=learn_counts,
+            learn_total=learn_total,
+            eval_seq=eval_seq,
+            eval_rev=eval_rev,
+            fam_stats=fam_stats,
+            fam_checkpoint=fam_checkpoint,
+            glob_conf=glob_conf,
+            kmer_obj=kmer_obj,
+            apply_inputs=apply_files,
+            file_info=file_info,
         )
 
         skm.report.create_report_many_csvs(
-            report_src,
-            learn_vars,
-            "learn",
-            output.report
+            report_src, learn_vars, "learn", output.report
         )
