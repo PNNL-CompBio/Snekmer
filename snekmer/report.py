@@ -16,6 +16,7 @@ TEMPLATES = {
     "search": "search_template.html",
     "motif": "motif_template.html",
     "apply": "apply_template.html",
+    "learn": "learn_template.html",
 }
 
 

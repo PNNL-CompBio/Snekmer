@@ -140,7 +140,7 @@ class Library:
         kmer_counts.replace(0, "", inplace=True)
         base = basename(input_data)
         name = splitext(base)[0]
-        out_name = join(out_dir, "learn", f"kmer-counts-{name}.csv")
+        out_name = join(out_dir, "learn", f"kmer_counts_{name}.csv")
         kmer_counts.index.name = "__index_level_0__"
         kmer_counts.to_csv(out_name, index=True)
 

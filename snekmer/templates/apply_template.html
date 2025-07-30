@@ -1,20 +1,165 @@
+<!DOCTYPE html>
 <html>
-    <head>
-        <title>{{page_title}}</title>
-    </head>
-    <body>
-            <h1>{{title}}</h1>
-            <p>{{text}}</p>
-            {% for name in ordered %}
-                {% if name in dirs_list %}
-                    <p>Apply: {{name}}</p>
-                {% else %}
-                    <p>
-                    <a href={{name}}>
-                       {{name}}
-                    </a>
-                    </p>
-                {% endif %}
+  <head>
+    <meta charset="utf-8"/>
+    <title>{{ page_title }}</title>
+    <style>
+      body { font-family: sans-serif; max-width: 900px; margin: auto; padding: 1rem; }
+      h1 { border-bottom: 2px solid #333; padding-bottom: 0.2em; }
+      h2 { margin-top: 2rem; color: #225588; }
+      p.overview { font-size: 1.1em; line-height: 1.5em; }
+      .file-list { margin-left: 1.5em; }
+      .file-list a { display: block; margin: 0.2em 0; padding: 0.2em; text-decoration: none; color: #115577; }
+      .file-list a:nth-child(odd) { background: #f9f9f9; }
+      .file-list a:hover { text-decoration: underline; }
+      .meta { font-size: 0.9em; color: #555; margin-left: 0.5em; }
+      button.toggle {
+        background: none; border: none; color: #115577; font-size: 0.9em;
+        cursor: pointer; padding: 0.2em 0; margin: 0.5em 0;
+      }
+      hr { margin: 2rem 0; border: 0; border-top: 1px solid #ccc; }
+    </style>
+  </head>
+  <body>
+    <h1>{{ title }}</h1>
+    <p class="overview">{{ overview_text }}</p>
+    <hr/>
+
+    <!-- 1) K-mer Objects -->
+    {% if kmerize_rel %}
+      <h2>K‑mer Objects</h2>
+      <p>{{ section_desc.kmerize | safe }}</p>
+      <div class="file-list">
+        {% set first = kmerize_rel[:5] %}
+        {% set rest  = kmerize_rel[5:] %}
+        {% for f in first %}
+          <a href="{{ f }}">
+            <strong>{{ f.rsplit('/',1)[1] }}</strong>
+            <span class="meta">{{ file_info[f].size }} KB · {{ file_info[f].mtime }}</span>
+          </a>
+        {% endfor %}
+        {% if rest %}
+          <div id="more-kmers" style="display:none;">
+            {% for f in rest %}
+              <a href="{{ f }}">
+                <strong>{{ f.rsplit('/',1)[1] }}</strong>
+                <span class="meta">{{ file_info[f].size }} KB · {{ file_info[f].mtime }}</span>
+              </a>
             {% endfor %}
-    </body>
+          </div>
+          <button class="toggle" onclick="toggleFiles('more-kmers', this)">Show more</button>
+        {% endif %}
+      </div>
+      <hr/>
+    {% endif %}
+
+    <!-- 2) Sequence Vectors -->
+    {% if vector_rel %}
+      <h2>Sequence Vectors</h2>
+      <p>{{ section_desc.vector | safe }}</p>
+      <div class="file-list">
+        {% set first = vector_rel[:5] %}
+        {% set rest  = vector_rel[5:] %}
+        {% for f in first %}
+          <a href="{{ f }}">
+            <strong>{{ f.rsplit('/',1)[1] }}</strong>
+            <span class="meta">{{ file_info[f].size }} KB · {{ file_info[f].mtime }}</span>
+          </a>
+        {% endfor %}
+        {% if rest %}
+          <div id="more-vectors" style="display:none;">
+            {% for f in rest %}
+              <a href="{{ f }}">
+                <strong>{{ f.rsplit('/',1)[1] }}</strong>
+                <span class="meta">{{ file_info[f].size }} KB · {{ file_info[f].mtime }}</span>
+              </a>
+            {% endfor %}
+          </div>
+          <button class="toggle" onclick="toggleFiles('more-vectors', this)">Show more</button>
+        {% endif %}
+      </div>
+      <hr/>
+    {% endif %}
+
+    <!-- 3) Annotation Scores -->
+    {% if seq_scores_rel %}
+      <h2>Annotation Scores</h2>
+      <p>{{ section_desc.scores | safe }}</p>
+      <div class="file-list">
+        {% set first = seq_scores_rel[:5] %}
+        {% set rest  = seq_scores_rel[5:] %}
+        {% for f in first %}
+          <a href="{{ f }}">
+            <strong>{{ f.rsplit('/',1)[1] }}</strong>
+            <span class="meta">{{ file_info[f].size }} KB · {{ file_info[f].mtime }}</span>
+          </a>
+        {% endfor %}
+        {% if rest %}
+          <div id="more-scores" style="display:none;">
+            {% for f in rest %}
+              <a href="{{ f }}">
+                <strong>{{ f.rsplit('/',1)[1] }}</strong>
+                <span class="meta">{{ file_info[f].size }} KB · {{ file_info[f].mtime }}</span>
+              </a>
+            {% endfor %}
+          </div>
+          <button class="toggle" onclick="toggleFiles('more-scores', this)">Show more</button>
+        {% endif %}
+      </div>
+      <hr/>
+    {% endif %}
+
+    <!-- 4) K‑mer Summaries -->
+    {% if kmer_sum_rel %}
+      <h2>K‑mer Summaries</h2>
+      <p>{{ section_desc.summary | safe }}</p>
+      <div class="file-list">
+        {% set first = kmer_sum_rel[:5] %}
+        {% set rest  = kmer_sum_rel[5:] %}
+        {% for f in first %}
+          <a href="{{ f }}">
+            <strong>{{ f.rsplit('/',1)[1] }}</strong>
+            <span class="meta">{{ file_info[f].size }} KB · {{ file_info[f].mtime }}</span>
+          </a>
+        {% endfor %}
+        {% if rest %}
+          <div id="more-summaries" style="display:none;">
+            {% for f in rest %}
+              <a href="{{ f }}">
+                <strong>{{ f.rsplit('/',1)[1] }}</strong>
+                <span class="meta">{{ file_info[f].size }} KB · {{ file_info[f].mtime }}</span>
+              </a>
+            {% endfor %}
+          </div>
+          <button class="toggle" onclick="toggleFiles('more-summaries', this)">Show more</button>
+        {% endif %}
+      </div>
+      <hr/>
+    {% endif %}
+
+    <!-- 5) Consolidated Table -->
+    {% if concat_rel %}
+      <h2>Consolidated Summary</h2>
+      <p>{{ section_desc.concat | safe }}</p>
+      <div class="file-list">
+        <a href="{{ concat_rel }}">
+          <strong>{{ concat_rel.rsplit('/',1)[1] }}</strong>
+          <span class="meta">{{ file_info[concat_rel].size }} KB · {{ file_info[concat_rel].mtime }}</span>
+        </a>
+      </div>
+    {% endif %}
+
+    <script>
+      function toggleFiles(id, btn) {
+        const el = document.getElementById(id);
+        if(el.style.display === "none") {
+          el.style.display = "block";
+          btn.textContent = "Show less";
+        } else {
+          el.style.display = "none";
+          btn.textContent = "Show more";
+        }
+      }
+    </script>
+  </body>
 </html>
