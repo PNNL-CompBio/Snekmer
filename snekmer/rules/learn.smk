@@ -483,21 +483,21 @@ rule learn_report:
         )
         desc = {
             "kmerize": (
-                "<p><strong>K-mer Extraction:</strong> "
+            "<p><strong>K-mer Extraction:</strong> "
                 "Parse each FASTA to enumerate all unique k-mers and save them as .kmers objects.</p>"
                 "<ul>"
                 "<li><strong>K-mer objects:</strong> <code>kmerize/kmer/*.kmers</code> store the k-mer definitions.</li>"
                 "</ul>"
             ),
             "vector": (
-                "<p><strong>Vectorization:</strong> "
+            "<p><strong>Vectorization:</strong> "
                 "Convert each sequence into a binary k-mer presence/absence vector (.npz) for downstream processing.</p>"
                 "<ul>"
                 "<li><strong>Sequence vectors (.npz):</strong> Binary k-mer presence/absence for each FASTA.</li>"
                 "</ul>"
             ),
             "fragmentation": (
-                "<p><strong>Fragmentation:</strong> "
+            "<p><strong>Fragmentation:</strong> "
                 "When enabled, each input FASTA is broken into fragments per your "
                 "<code>version</code>, <code>frag_length</code>, <code>location</code>, and <code>seed</code> settings.</p>"
                 "<ul>"
@@ -505,7 +505,7 @@ rule learn_report:
                 "</ul>"
             ),
             "vector_frag": (
-                "<p><strong>Vectorization of Fragments:</strong> "
+            "<p><strong>Vectorization of Fragments:</strong> "
                 "Convert each fragment into a binary k-mer presence/absence vector (.npz).</p>"
                 "<ul>"
                 "<li><strong>Fragment Vectors:</strong> <code>vector/vector_frag/{nb}.npz</code></li>"
@@ -513,7 +513,7 @@ rule learn_report:
                 "</ul>"
             ),
             "learn": (
-                "<p><strong>Learn (Count & Merge):</strong> "
+            "<p><strong>Learn (Count & Merge):</strong> "
                 "Count k-mer occurrences per sequence, then consolidate into a global k-mer association matrix.</p>"
                 "<ul>"
                 "<li><strong>K-mer Counts:</strong> One CSV per fasta file produced by <code>generate_kmer_counts()</code>.</li>"
@@ -521,7 +521,7 @@ rule learn_report:
                 "</ul>"
             ),
             "evaluate": (
-                "<p><strong>Evaluation:</strong> "
+            "<p><strong>Evaluation:</strong> "
                 "Compute cosine similarities between sequence k-mer counts and the learned matrix for both original and reversed inputs.</p>"
                 "<ul>"
                 "<li><strong>Apply on decoys:</strong> <code>evaluate/eval_apply_reversed/</code> holds reversed (decoy) scores.</li>"
@@ -529,7 +529,7 @@ rule learn_report:
                 "</ul>"
             ),
             "eval_conf": (
-                "<p><strong>Thresholding & Confidence:</strong> "
+            "<p><strong>Thresholding & Confidence:</strong> "
                 "Use reversed (decoy) scores to derive per-family noise thresholds, then compute a global confidence mapping based on cosine similarity scores.</p>"
                 "<ul>"
                 "<li><strong>Family Thresholds:</strong> <code>eval_conf/family_summary_stats.csv</code> with count, sum, sumSqr, min/max, and percentiles (reservoir-sampled).</li>"
@@ -538,7 +538,7 @@ rule learn_report:
                 "</ul>"
             ),
             "apply_inputs": (
-                "<p><strong>Staged Outputs:</strong> "
+            "<p><strong>Staged Outputs:</strong> "
                 "Key files are copied here for the downstream “apply” pipeline.</p>"
                 "<ul>"
                 "<li><strong>Counts:</strong> <code>apply_inputs/counts/kmer_counts_total.csv</code></li>"
