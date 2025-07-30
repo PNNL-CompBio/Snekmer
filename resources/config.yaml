@@ -1,9 +1,9 @@
 # required params
-k: 14
-alphabet: 0 # choices 0-5 or names (see alphabet module), or None
+k: 8
+alphabet: 2 # choices 0-5 or names (see alphabet module), or None
 
 # input/output params
-#input_dir: None # defaults to 'input'
+input_dir: input # defaults to 'input'
 input_file_exts: ["fasta", "fna", "faa", "fa"] # specify valid input file extensions
 input_file_regex: ".*" # regex to parse family from filename
 nested_output: False # if True, saves into {save_dir}/{alphabet name}/{k}
@@ -30,7 +30,7 @@ cluster:
   # clustering distance matrix params
   min_rep:
   max_rep:
-  save_matrix: True
+  save_matrix: False
   dist_thresh: 100
 
 # model params
@@ -39,10 +39,26 @@ model:
   random_state: None
 
 # search params
-model_dir: "output/model/"
-basis_dir: "output/kmerize/"
-score_dir: "output/score/"
+model_dir: "/path/to/output/model/"
+basis_dir: "/path/to/output/kmerize/"
+score_dir: "/path/to/output/scoring/"
 
 # motif params
 motif:
   n: 2000 
+
+# learn_apply params 
+learn_apply:
+  save_apply_associations: False       # Bool, use True if needing to extract more details. Increases storage requirements substantially.
+  fragmentation: True                  # Bool, fragments the data according to the variables below (version, frag_length, min_length, location, seed)
+  version: absolute
+  frag_length: 50
+  min_length: 50
+  location: random
+  seed: 999
+  conf_weight_modifier: 20
+  selection: 'top_hit'                 # Options: top_hit, greatest_distance, combined_distance
+  threshold: 'Median'                  # Column name from family_summary_stats.csv or 'None'
+  weight_top: 0.7                      # Used when 'selection' is 'combined_distance'
+  weight_distance: 0.3                 # Used when 'selection' is 'combined_distance'
+  apply_output: snekmer_results.csv    # output name for apply single file results.
