@@ -109,7 +109,7 @@ rule all:
                 out_dir,
                 "evaluate",
                 (
-                    "eval_apply_sequences"
+                "eval_apply_sequences"
                     if not config["learn_apply"]["fragmentation"]
                     else "eval_apply_frag"
                 ),
@@ -123,7 +123,7 @@ rule all:
                 out_dir,
                 "evaluate",
                 (
-                    "eval_apply_reversed"
+                "eval_apply_reversed"
                     if not config["learn_apply"]["fragmentation"]
                     else "eval_apply_reversed_frag"
                 ),
@@ -131,14 +131,14 @@ rule all:
             ),
             nb=FAS,
         ),
-        # Evaluation‐level summaries & confidence
+        # Evaluation-level summaries & confidence
         join(out_dir, "eval_conf", "family_summary_stats.csv"),
         join(out_dir, "eval_conf", "global_confidence_scores.csv"),
         # Apply Inputs Copy
         join("apply_inputs", "counts", "kmer_counts_total.csv"),
         join("apply_inputs", "stats", "family_summary_stats.csv"),
         join("apply_inputs", "confidence", "global_confidence_scores.csv"),
-        #Report
+        # Report
         join(out_dir, "Snekmer_Learn_Report.html"),
 
 
@@ -221,7 +221,7 @@ rule eval_apply_reverse_seqs:
             out_dir,
             "vector",
             (
-                "vector"
+            "vector"
                 if not config["learn_apply"]["fragmentation"]
                 else "vector_frag"
             ),
@@ -234,7 +234,7 @@ rule eval_apply_reverse_seqs:
             out_dir,
             "evaluate",
             (
-                "eval_apply_reversed"
+            "eval_apply_reversed"
                 if not config["learn_apply"]["fragmentation"]
                 else "eval_apply_reversed_frag"
             ),
@@ -253,7 +253,7 @@ rule reverse_decoy_evaluations:
                 out_dir,
                 "evaluate",
                 (
-                    "eval_apply_reversed"
+                "eval_apply_reversed"
                     if not config["learn_apply"]["fragmentation"]
                     else "eval_apply_reversed_frag"
                 ),
@@ -277,7 +277,7 @@ rule eval_apply_sequences:
             out_dir,
             "vector",
             (
-                "vector"
+            "vector"
                 if not config["learn_apply"]["fragmentation"]
                 else "vector_frag"
             ),
@@ -290,7 +290,7 @@ rule eval_apply_sequences:
             out_dir,
             "evaluate",
             (
-                "eval_apply_sequences"
+            "eval_apply_sequences"
                 if not config["learn_apply"]["fragmentation"]
                 else "eval_apply_frag"
             ),
@@ -309,7 +309,7 @@ rule evaluate:
                 out_dir,
                 "evaluate",
                 (
-                    "eval_apply_sequences"
+                "eval_apply_sequences"
                     if not config["learn_apply"]["fragmentation"]
                     else "eval_apply_frag"
                 ),
