@@ -486,7 +486,7 @@ rule learn_report:
             "<p><strong>K-mer Extraction:</strong> "
                 "Parse each FASTA to enumerate all unique k-mers and save them as .kmers objects.</p>"
                 "<ul>"
-                "<li><strong>K-mer objects:</strong> <code>kmerize/kmer/*.kmers</code> store the k-mer definitions.</li>"
+                "<li><strong>K-mer objects:</strong> <code>kmerize/kmer/*.kmers</code> store the k-mer files.</li>"
                 "</ul>"
             ),
             "vector": (
@@ -498,7 +498,7 @@ rule learn_report:
             ),
             "fragmentation": (
             "<p><strong>Fragmentation:</strong> "
-                "When enabled, each input FASTA is broken into fragments per your "
+                "When enabled, each input FASTA is broken into fragments based on config params including: "
                 "<code>version</code>, <code>frag_length</code>, <code>location</code>, and <code>seed</code> settings.</p>"
                 "<ul>"
                 "<li><strong>Fragments:</strong> <code>fragmented/{nb}.fasta</code> files.</li>"
