@@ -20,18 +20,18 @@ cp inputs/UP000319776_92403.fasta inputs/UP000319897_1715348.fasta inputs/UP0004
 
 # run snekmer cluster on examples using provided config.yaml and return to base dir
 cd learn
-snekmer learn --configfile=../../../LA_config.yaml
+snekmer learn --configfile=../../../config.yaml
 cd ..
 
 # make new directories required for apply input
 mkdir -p apply/counts apply/confidence apply/stats
 
 # move learn model and confidence files to above directories
-cp learn/output/learn/kmer-counts-total.csv apply/counts
-cp learn/output/eval_conf/global-confidence-scores.csv apply/confidence
+cp learn/output/learn/kmer_counts_total.csv apply/counts
+cp learn/output/eval_conf/global_confidence_scores.csv apply/confidence
 cp learn/output/eval_conf/family_summary_stats.csv apply/stats
 
 # run snekmer model on examples using provided config.yaml and return to base dir
 cd apply
-snekmer apply --configfile=../../../LA_config.yaml
+snekmer apply --configfile=../../../config.yaml
 cd ..
