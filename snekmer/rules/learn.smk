@@ -3,7 +3,6 @@ from snakemake.utils import min_version
 
 min_version("6.0")
 
-
 # load snakemake modules
 module process:
     snakefile:
@@ -170,8 +169,6 @@ if config["learn_apply"]["fragmentation"]:
 
 
 prefix = "vector"
-
-
 use rule vectorize from kmerize as vectorize_vector with:
     input:
         fasta=lambda wc: join(input_dir, f"{wc.nb}.{fa_map[wc.nb]}"),
@@ -181,8 +178,6 @@ use rule vectorize from kmerize as vectorize_vector with:
 
 
 prefix = "vector_frag"
-
-
 use rule vectorize from kmerize as vectorize_frag with:
     input:
         fasta=lambda wc: join(out_dir, "fragmented", f"{wc.nb}.fasta"),
