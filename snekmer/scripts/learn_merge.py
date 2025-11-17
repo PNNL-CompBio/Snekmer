@@ -10,14 +10,9 @@ import pyarrow.csv as csv
 
 import snekmer as skm
 
-# ---------------------------------------------------------
-# Files and Parameters
-# ---------------------------------------------------------
-
-config = snakemake.config
 
 # ---------------------------------------------------------
-# Run script
+# Core logic
 # ---------------------------------------------------------
 
 class Merge:
@@ -41,7 +36,7 @@ class Merge:
     running_merge: pd.DataFrame
     base_check: bool
     base_kmer_counts: None
-        
+
     def __init__(self, counts_files: list, base_counts_path: str, output_path: str) -> None:
         self.counts_files = counts_files
         self.base_counts_path = base_counts_path
@@ -182,5 +177,37 @@ class Merge:
         self.merge_with_base()
 
 
-merger = Merge(snakemake.input.counts, snakemake.input.base_counts, snakemake.output.totals)
-merger.execute_all()
+# ---------------------------------------------------------
+# Public helper for demos / external calls
+# ---------------------------------------------------------
+
+def run_merge(counts_files, base_counts_path, output_path) -> None:
+    """
+    Run the Merge step outside of Snakemake.
+
+    Parameters
+    ----------
+    counts_files : list[str]
+        Paths to k-mer count CSV files to be merged.
+    base_counts_path : str
+        Path to an existing base CSV (or empty string / dummy path if none).
+    output_path : str
+        Output CSV path for the merged totals.
+    """
+    merger = Merge(counts_files, base_counts_path, output_path)
+    merger.execute_all()
+
+
+# ---------------------------------------------------------
+# Snakemake entry point
+# ---------------------------------------------------------
+
+# Keep Snakemake behavior unchanged; only run this block when Snakemake injects
+# the global `snakemake` object.
+if "snakemake" in globals():
+    merger = Merge(
+        snakemake.input.counts,
+        snakemake.input.base_counts,
+        snakemake.output.totals,
+    )
+    merger.execute_all()
