@@ -8,7 +8,7 @@ from datetime import datetime
 import pandas as pd
 import snekmer as skm  # for skm.report.create_report_many_csvs
 
-# Use Snakemake's injected config
+# Use config
 config = snakemake.config
 
 
