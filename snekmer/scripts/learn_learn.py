@@ -87,8 +87,7 @@ class Library:
         self.kmer_list, self.df = skm.io.load_npz(input_data)
         self.kmer_list = self.kmer_list[0]
         self.seq_ids = self.df["sequence_id"]
-        for item in self.kmer_list:
-            self.kmer_totals.append(0)
+        self.kmer_totals = [0] * len(self.kmer_list)
 
     def filter_and_construct(self) -> None:
         """

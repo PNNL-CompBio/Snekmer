@@ -12,6 +12,8 @@ from numpy.typing import NDArray
 from ._version import __version__
 from .alphabet import FULL_ALPHABETS, get_alphabet, get_alphabet_keys
 from .utils import check_list
+from Bio import SeqIO
+import pickle
 
 
 # store kmer basis set and transform new vectors into fitted basis
@@ -255,39 +257,57 @@ class KmerVec:
         for n in range(0, len(sequence) - k + 1):
             yield sequence[n : n + k]
 
-    # generate kmer vectors with bag-of-words approach
+    # # generate kmer vectors with bag-of-words approach
+    # def vectorize(self, sequence: str) -> NDArray:
+    #     """Transform sequence into representative kmer vector.
+
+    #     Parameters
+    #     ----------
+    #     sequence : str
+    #         Input sequence.
+
+    #     Returns
+    #     -------
+    #     NDArray
+    #         Vector representation of sequence as kmer counts vector.
+
+    #     """
+    #     N = len(self.char_set) ** self.k
+
+    #     kmers = list(self._kmer_gen(sequence))
+    #     kmer2count = Counter(kmers)
+
+    #     # Convert to vector of counts
+    #     # vector = np.zeros(N)
+
+    #     # memfix change
+    #     vector = {}
+
+    #     for i, word in enumerate(self.kmer_set.kmers):
+    #         vector[i] += kmer2count[word]
+
+    #     # Convert to frequencies
+    #     # vector /= sum(kmer2count.values())
+
+    #     return vector
+    
     def vectorize(self, sequence: str) -> NDArray:
-        """Transform sequence into representative kmer vector.
-
-        Parameters
-        ----------
-        sequence : str
-            Input sequence.
-
-        Returns
-        -------
-        NDArray
-            Vector representation of sequence as kmer counts vector.
-
-        """
-        N = len(self.char_set) ** self.k
-
+        """Transform sequence into representative kmer vector."""
+        
+        # generate kmers in the sequence
         kmers = list(self._kmer_gen(sequence))
         kmer2count = Counter(kmers)
 
-        # Convert to vector of counts
-        # vector = np.zeros(N)
+        # allocate NUMPY VECTOR of correct size
+        basis = list(self.kmer_set.kmers)
+        vector = np.zeros(len(basis), dtype=int)
 
-        # memfix change
-        vector = {}
-
-        for i, word in enumerate(self.kmer_set.kmers):
-            vector[i] += kmer2count[word]
-
-        # Convert to frequencies
-        # vector /= sum(kmer2count.values())
+        # fill counts
+        for i, word in enumerate(basis):
+            vector[i] = kmer2count.get(word, 0)
 
         return vector
+
 
     def reduce_vectorize(self, sequence: str) -> NDArray:
         """Simplify and vectorize sequence into reduced kmer vector.
@@ -343,3 +363,51 @@ class KmerVec:
             _description_
         """
         return self.basis.transform(record, kmerlist)
+
+
+
+# ---------------------------------------------------------
+# PUBLIC helper for tutorials / notebooks
+# ---------------------------------------------------------
+
+def run_vectorize(fasta_path, alphabet, k, output_npz, output_kmerobj):
+    """
+    Public helper that replicates EXACT Snakemake vectorization behavior.
+    Produces a .npz file identical to pipeline output for the tutorial.
+    Parameters
+    ----------
+    fasta_path : str
+        Path to FASTA file.
+    alphabet : str or int
+        Alphabet identifier.
+    k : int
+        K-mer length.
+    output_npz : str
+        Path to write the vector .npz file.
+    output_kmerobj : str
+        Path to write the .kmers pickle.
+    """
+
+    kvec = KmerVec(alphabet=alphabet, k=k)
+
+    ids, seqs, vecs, lengths = [], [], [], []
+    for record in SeqIO.parse(fasta_path, "fasta"):
+        reduced = reduce(record.seq, alphabet=alphabet, mapping=FULL_ALPHABETS)
+        vec = kvec.reduce_vectorize(record.seq)
+
+        ids.append(record.id)
+        seqs.append(reduced)
+        vecs.append(vec)
+        lengths.append(len(record.seq))
+
+    np.savez_compressed(
+        output_npz,
+        ids=np.array(ids, dtype=object),
+        seqs=np.array(seqs, dtype=object),
+        vecs=np.array(vecs, dtype=object),
+        lengths=np.array(lengths),
+        kmerlist=np.empty(0),
+    )
+
+    with open(output_kmerobj, "wb") as f:
+        pickle.dump(kvec, f)
