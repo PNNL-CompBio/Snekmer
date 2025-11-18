@@ -256,40 +256,6 @@ class KmerVec:
         """Generator object for segment in string format"""
         for n in range(0, len(sequence) - k + 1):
             yield sequence[n : n + k]
-
-    # # generate kmer vectors with bag-of-words approach
-    # def vectorize(self, sequence: str) -> NDArray:
-    #     """Transform sequence into representative kmer vector.
-
-    #     Parameters
-    #     ----------
-    #     sequence : str
-    #         Input sequence.
-
-    #     Returns
-    #     -------
-    #     NDArray
-    #         Vector representation of sequence as kmer counts vector.
-
-    #     """
-    #     N = len(self.char_set) ** self.k
-
-    #     kmers = list(self._kmer_gen(sequence))
-    #     kmer2count = Counter(kmers)
-
-    #     # Convert to vector of counts
-    #     # vector = np.zeros(N)
-
-    #     # memfix change
-    #     vector = {}
-
-    #     for i, word in enumerate(self.kmer_set.kmers):
-    #         vector[i] += kmer2count[word]
-
-    #     # Convert to frequencies
-    #     # vector /= sum(kmer2count.values())
-
-    #     return vector
     
     def vectorize(self, sequence: str) -> NDArray:
         """Transform sequence into representative kmer vector."""
