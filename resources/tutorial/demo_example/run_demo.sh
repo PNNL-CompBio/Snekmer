@@ -18,6 +18,3 @@ mv output/scoring/*scorer output/example-model/
 
 # run snekmer search on examples using provided config.yaml
 snekmer search --configfile=../../config.yaml
-
-# run snekmer motif on examples using provided config.yaml
-snekmer motif --configfile=../../config.yaml
