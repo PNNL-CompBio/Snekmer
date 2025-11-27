@@ -7,6 +7,7 @@
 import itertools
 import sys
 
+import math
 import numpy as np
 import pandas as pd
 import pyarrow as pa
@@ -148,15 +149,20 @@ class KmerCompare:
         global_confidence_scores = global_confidence_scores[
             global_confidence_scores.columns[0]
         ].squeeze()
-
+        
         results_list = []
         for row_id in self.kmer_count_totals.index:
             if row_id in self.selected_values:
                 prediction, score, delta = self.selected_values[row_id]
-                if delta is None:
-                    delta = 0
             else:
-                prediction, score, delta = None, None, 0
+                prediction, score, delta = None, None, None
+
+            if (score is None) or (isinstance(score, float) and (np.isnan(score) or np.isinf(score))):
+                score = 0.0
+
+            if delta is None or (isinstance(delta, float) and (np.isnan(delta) or np.isinf(delta))):
+                delta = 0.0
+
             results_list.append(
                 {
                     "Sequence": row_id,
@@ -198,6 +204,8 @@ class KmerCompare:
 
         Loads data, generates k-mer counts, matches formats, computes similarities,
         builds thresholds, applies selection, and writes outputs.
+        
+        Every sequence will have a prediction. If the score is zero, it indicates no signal though.
 
         Args:
             weight_top (str): Weight parameter for the top-hit component of selection.
@@ -214,7 +222,20 @@ class KmerCompare:
         self.construct_kmer_counts_dataframe()
         self.kmer_counts, self.kmer_count_totals = match_kmer_counts_format(
             self.kmer_counts, self.kmer_count_totals)
+        
+        self.kmer_count_totals = self.kmer_count_totals.apply(pd.to_numeric, errors="coerce").fillna(0)
+        self.kmer_counts       = self.kmer_counts.apply(pd.to_numeric, errors="coerce").fillna(0)
+
         self.apply_cosine_similarity()
+        
+        mat = (
+            self.kmer_count_totals
+            .replace([np.inf, -np.inf], np.nan)
+            .fillna(0)
+        )
+        # no signal if the best similarity is 0
+        self.no_signal_idx = set(mat.index[mat.max(axis=1) <= 0].tolist())
+
         self.build_threshold_dict()
         
         preds, deltas, top_two = apply_selection_method(
@@ -225,14 +246,18 @@ class KmerCompare:
             weight_top,
             weight_distance)
         
-        
+            
         top_two.index = self.kmer_count_totals.index
         self.selected_values = {}
         for seq_id, pred, delta in zip(self.kmer_count_totals.index, preds, deltas):
+            if seq_id in self.no_signal_idx:
+                self.selected_values[seq_id] = (None, None, None)
+                continue
+
             if pred is None:
                 self.selected_values[seq_id] = (None, None, None)
             else:
                 top_val = float(top_two.loc[seq_id, "key_value_one"])
-                self.selected_values[seq_id] = (pred, top_val, float(delta))
-
+                self.selected_values[seq_id] = (pred, top_val, float(0 if delta is None else delta))
+                
         self.format_and_write_output(save_apply_associations)
