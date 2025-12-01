@@ -1,7 +1,6 @@
 # 1) Small base image with Python 3.10
 FROM python:3.10-slim
 
-# 2) Minimal hygiene + tools
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1
@@ -10,7 +9,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       git bash build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# 3) Get the repo and build inside a venv
 WORKDIR /opt
 
 # (Optional) let you switch branches at build time:
@@ -23,7 +21,6 @@ RUN git clone https://github.com/PNNL-CompBio/Snekmer.git \
  # create the venv
  && python3.10 -m venv /opt/snekmer_env \
  \
- # upgrade build tooling
  && /opt/snekmer_env/bin/pip install --upgrade pip setuptools wheel \
  \
  # install deps and the package
@@ -34,10 +31,8 @@ RUN git clone https://github.com/PNNL-CompBio/Snekmer.git \
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-# Make venv tools available on PATH for convenience (optional;
-# entrypoint also activates the venv)
 ENV PATH="/opt/snekmer_env/bin:${PATH}"
-
 WORKDIR /work
+
 ENTRYPOINT ["entrypoint.sh"]
 
