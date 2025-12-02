@@ -1,16 +1,16 @@
 Installation
 ============
 We recommend installing Snekmer using Python's `venv <https://docs.python.org/3/library/venv.html>`_ module. Before installing Snekmer, check that you have Python 3.9 or 3.10 installed using the command:
-.. codeblock:: bash:
+.. codeblock:: bash
   python --version
 
 The next step is to create and activate a new virtual environment that will contain Snekmer and its dependencies.
-.. codeblock:: bash:
+.. codeblock:: bash
   python3 -m venv ~/snekmer_env
   source ~/snekmer_env/bin/activate
 
 Once the virtual environment has been created and activated, clone and install Snekmer using the following commands.
-.. codeblock:: bash:
+.. codeblock:: bash
   git clone https://github.com/PNNL-CompBio/Snekmer.git
   cd Snekmer
   pip install -r requirements.txt
