@@ -1,7 +1,7 @@
-# force snakemake v6.0(required for modules)
+# require snakemake v9 (required for modules)
 from snakemake.utils import min_version
 
-min_version("6.0")
+min_version("9.0")
 
 # load snakemake modules
 module process:
@@ -37,9 +37,9 @@ input_dir = (
 input_files = glob(join(input_dir, "*"))
 zipped = [fa for fa in input_files if fa.endswith(".gz")]
 unzipped = [
-    fa.rstrip(".gz")
+    fa.removesuffix(".gz")
     for fa, ext in product(input_files, config["input_file_exts"])
-    if fa.rstrip(".gz").endswith(f".{ext}")
+    if fa.removesuffix(".gz").endswith(f".{ext}")
 ]
 annot_files = glob(join("annotations", "*.ann"))
 base_counts = glob(join("base", "counts", "*.csv"))
@@ -55,6 +55,7 @@ fa_map = {
 
 # get unzipped filenames
 UZS = [f"{f}.{ext}" for f, ext in uz_map.items()]
+
 # isolate basenames for all files
 FAS = list(fa_map.keys())
 # parse any background files
@@ -70,6 +71,7 @@ skm.alphabet.check_valid(config["alphabet"])
 out_dir = skm.io.define_output_dir(
     config["alphabet"], config["k"], nested=config["nested_output"]
 )
+out_dir = str(out_dir)
 
 if (
     config["learn_apply"]["selection"] != "top_hit"
@@ -142,6 +144,8 @@ rule all:
 
 
 use rule unzip from process with:
+    wildcard_constraints:
+        uz = r".*\.(?:fa|fna|faa|fasta)$"
     output:
         unzipped=join(input_dir, "{uz}"),
         zipped=join(input_dir, "zipped", "{uz}.gz"),
@@ -340,9 +344,9 @@ rule copy_results_for_apply:
     run:
         target_dir = os.path.join("apply_inputs")
         os.makedirs(target_dir, exist_ok=True)
-        shutil.copy(input.kmer_counts_total, output.kmer_counts_total)
-        shutil.copy(input.family_stats, output.family_stats)
-        shutil.copy(input.global_conf_scores, output.global_conf_scores)
+        shutil.copy(str(input.kmer_counts_total), str(output.kmer_counts_total))
+        shutil.copy(str(input.family_stats), str(output.family_stats))
+        shutil.copy(str(input.global_conf_scores), str(output.global_conf_scores))
 
 
 rule learn_report:

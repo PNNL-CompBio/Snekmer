@@ -39,7 +39,7 @@ plt.switch_backend("Agg")
 #        }
 #    )
 # print(lookup)
-with open(snakemake.input.matrix, "rb") as f:
+with open(str(snakemake.input.matrix), "rb") as f:
     data = pickle.load(f)
 
 # load all input data and encode rule-wide variables
@@ -49,13 +49,13 @@ with open(snakemake.input.matrix, "rb") as f:
 #    for seq_f, seq_id in zip(data["filename"], data["sequence_id"])
 # ]
 
-scores = pd.read_csv(snakemake.input.weights)
+scores = pd.read_csv(str(snakemake.input.weights))
 family = skm.utils.get_family(
     skm.utils.split_file_ext(snakemake.input.weights)[0],
     regex=config["input_file_regex"],
 )
 # get kmers for this particular set of sequences
-with open(snakemake.input.kmerobj, "rb") as f:
+with open(str(snakemake.input.kmerobj), "rb") as f:
     kmer = pickle.load(f)
 
 cv = config["model"]["cv"]
@@ -175,11 +175,11 @@ results["score"] += auc_rocs
 results["cv_split"] += [i + 1 for i in range(cv)]
 
 # save ROC-AUC figure
-if not exists(snakemake.output.figs):
-    makedirs(snakemake.output.figs)
+if not exists(str(snakemake.output.figs)):
+    makedirs(str(snakemake.output.figs))
 fig.savefig(
     join(
-        snakemake.output.figs,
+        str(snakemake.output.figs),
         (f"{family}_roc-auc-curve_{alphabet_name.lower()}" f"_k-{config['k']:02d}.png"),
     ),
     dpi=fig.dpi,
@@ -203,7 +203,7 @@ results["cv_split"] += [i + 1 for i in range(cv)]
 # save PR-AUC figure
 fig.savefig(
     join(
-        snakemake.output.figs,
+        str(snakemake.output.figs),
         (f"{family}_aupr-curve_{alphabet_name.lower()}" f"_k-{config['k']:02d}.png"),
     ),
     dpi=fig.dpi,
@@ -213,8 +213,8 @@ plt.close("all")
 
 # save model
 clf.fit(X_all, y_all)
-with open(snakemake.output.model, "wb") as save_model:
+with open(str(snakemake.output.model), "wb") as save_model:
     pickle.dump(clf, save_model)
 
 # save full results
-pd.DataFrame(results).to_csv(snakemake.output.results, index=False)
+pd.DataFrame(results).to_csv(str(snakemake.output.results), index=False)

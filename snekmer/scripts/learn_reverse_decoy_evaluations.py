@@ -188,29 +188,29 @@ def generate_family_statistics(
             A table with one row per family and the following columns:
             - Family: family identifier
             - Mean: arithmetic mean of the values
-            - Std Dev: sample standard deviation
+            - Std_Dev: sample standard deviation
             - Min: minimum observed value
-            - 10th Percentile, 25th Percentile, Median (50th), 75th Percentile, 90th Percentile
+            - 10th_Percentile, 25th_Percentile, Median (50th), 75th_Percentile, 90th_Percentile
             - Max: maximum observed value
-            - 1 Std Dev Above, 1 Std Dev Below: mean ± 1·std
-            - 2 Std Dev Above, 2 Std Dev Below: mean ± 2·std
+            - 1_Std_Dev_Above, 1_Std_Dev_Below: mean ± 1·std
+            - 2_Std_Dev_Above, 2_Std_Dev_Below: mean ± 2·std
     """
 
     stats_data = {
         "family": [],
         "Mean": [],
-        "Std Dev": [],
+        "Std_Dev": [],
         "Min": [],
-        "10th Percentile": [],
-        "25th Percentile": [],
+        "10th_Percentile": [],
+        "25th_Percentile": [],
         "Median": [],
-        "75th Percentile": [],
-        "90th Percentile": [],
+        "75th_Percentile": [],
+        "90th_Percentile": [],
         "Max": [],
-        "1 Std Dev Above": [],
-        "1 Std Dev Below": [],
-        "2 Std Dev Above": [],
-        "2 Std Dev Below": [],
+        "1_Std_Dev_Above": [],
+        "1_Std_Dev_Below": [],
+        "2_Std_Dev_Above": [],
+        "2_Std_Dev_Below": [],
     }
 
     for family, stats in combined_stats.items():
@@ -230,18 +230,18 @@ def generate_family_statistics(
 
         stats_data["family"].append(family)
         stats_data["Mean"].append(round(mean, 3))
-        stats_data["Std Dev"].append(round(standard_deviation, 3))
+        stats_data["Std_Dev"].append(round(standard_deviation, 3))
         stats_data["Min"].append(round(stats["min"], 3))
-        stats_data["10th Percentile"].append(round(percentiles[0], 3))
-        stats_data["25th Percentile"].append(round(percentiles[1], 3))
+        stats_data["10th_Percentile"].append(round(percentiles[0], 3))
+        stats_data["25th_Percentile"].append(round(percentiles[1], 3))
         stats_data["Median"].append(round(percentiles[2], 3))
-        stats_data["75th Percentile"].append(round(percentiles[3], 3))
-        stats_data["90th Percentile"].append(round(percentiles[4], 3))
+        stats_data["75th_Percentile"].append(round(percentiles[3], 3))
+        stats_data["90th_Percentile"].append(round(percentiles[4], 3))
         stats_data["Max"].append(round(stats["max"], 3))
-        stats_data["1 Std Dev Above"].append(round(mean + standard_deviation, 3))
-        stats_data["1 Std Dev Below"].append(round(mean - standard_deviation, 3))
-        stats_data["2 Std Dev Above"].append(round(mean + 2 * standard_deviation, 3))
-        stats_data["2 Std Dev Below"].append(round(mean - 2 * standard_deviation, 3))
+        stats_data["1_Std_Dev_Above"].append(round(mean + standard_deviation, 3))
+        stats_data["1_Std_Dev_Below"].append(round(mean - standard_deviation, 3))
+        stats_data["2_Std_Dev_Above"].append(round(mean + 2 * standard_deviation, 3))
+        stats_data["2_Std_Dev_Below"].append(round(mean - 2 * standard_deviation, 3))
 
     return pd.DataFrame(stats_data)
 

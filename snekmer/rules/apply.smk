@@ -1,7 +1,7 @@
-# force snakemake v6.0+ (required for modules)
+# require snakemake 9.0+ (required for modules)
 from snakemake.utils import min_version
 
-min_version("6.0")
+min_version("9.0")
 
 
 # load snakemake modules
@@ -40,9 +40,9 @@ input_files = glob(join(input_dir, "*"))
 # base_file = glob(join(input_dir,"base" "*"))xf
 zipped = [fa for fa in input_files if fa.endswith(".gz")]
 unzipped = [
-    fa.rstrip(".gz")
+    fa.removesuffix(".gz")
     for fa, ext in product(input_files, config["input_file_exts"])
-    if fa.rstrip(".gz").endswith(f".{ext}")
+    if fa.removesuffix(".gz").endswith(f".{ext}")
 ]
 compare_file = glob(join("counts", "*.csv"))
 confidence_file = glob(join("confidence", "*.csv"))
@@ -71,6 +71,7 @@ skm.alphabet.check_valid(config["alphabet"])
 out_dir = skm.io.define_output_dir(
     config["alphabet"], config["k"], nested=config["nested_output"]
 )
+out_dir = str(out_dir) 
 
 threshold_type = config["learn_apply"]["threshold"]
 selection_type = config["learn_apply"]["selection"]
@@ -88,9 +89,9 @@ def resource_path(package: str, *parts) -> str:
     return str(files(package).joinpath(*parts))
 
 
-wildcard_constraints:
-    dataset=FAS,
-    FAS=FAS,
+# wildcard_constraints:
+#     dataset=FAS,
+#     FAS=FAS,
 
 
 rule all:
@@ -132,11 +133,6 @@ rule apply:
         selection_type=config["learn_apply"]["selection"],
         threshold_type=config["learn_apply"]["threshold"],
     output:
-        # seq_ann=(
-        #     expand(join(out_dir, "apply", "seq_annotation_scores_{nb}.csv"), nb=FAS)
-        #     if config["learn_apply"]["save_apply_associations"]
-        #     else []
-        # ),
         seq_ann=join(out_dir, "apply", "seq_annotation_scores_{nb}.csv")
         if config["learn_apply"]["save_apply_associations"]
         else [],
@@ -176,7 +172,9 @@ rule apply_report:
             else []
         ),
         kmer_sum=expand(join(out_dir, "apply", "kmer_summary_{nb}.csv"), nb=FAS),
-        concat=config.get("learn_apply", {}).get("apply_output", None),
+        concat=[config["learn_apply"]["apply_output"]] 
+            if config.get("learn_apply", {}).get("apply_output") 
+            else [],
     output:
         report=join(out_dir, "Snekmer_Apply_Report.html"),
     message:

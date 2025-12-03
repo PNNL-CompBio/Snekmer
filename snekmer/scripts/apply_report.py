@@ -48,7 +48,15 @@ def main():
     concat_rel = None
     concat_input = getattr(snakemake.input, "concat", None)
     if concat_input:
-        concat_rel = relpath(concat_input, report_src).replace(os.sep, "/")
+        # Snakemake 9 passes a Namedlist; pick the first item if iterable
+        try:
+            concat_path = next(iter(concat_input))
+        except TypeError:
+            concat_path = concat_input
+
+        if concat_path:
+            concat_rel = relpath(str(concat_path), report_src).replace(os.sep, "/")
+
 
     vector_rel = sorted(
         [

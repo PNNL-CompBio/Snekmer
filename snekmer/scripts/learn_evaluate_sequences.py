@@ -298,8 +298,8 @@ class Evaluator:
         # Prepare the updated_data DataFrame with the new columns
         updated_data = pd.DataFrame(new_ratio_dist, columns=["confidence"])
         updated_data["weight"] = current_weight
-        updated_data["totalSum"] = total_sum  # raw cumulative counts
-        updated_data["interSum"] = inter_sum  # interpolated cumulative counts
+        updated_data["total_sum"] = total_sum  # raw cumulative counts
+        updated_data["inter_sum"] = inter_sum  # interpolated cumulative counts
 
         if self.confidence_data and len(self.confidence_data) == 1:
             prior_conf = pd.read_csv(self.confidence_data[0], index_col="Difference")
@@ -320,11 +320,11 @@ class Evaluator:
             ) / total_weight
             updated_data["confidence"] = updated_confidence
 
-            # Merge totalSum and interSum with prior if they exist:
-            if "totalSum" in prior_conf.columns:
-                updated_data["totalSum"] += prior_conf["totalSum"]
-            if "interSum" in prior_conf.columns:
-                updated_data["interSum"] += prior_conf["interSum"]
+            # Merge total_sum and inter_sum with prior if they exist:
+            if "total_sum" in prior_conf.columns:
+                updated_data["total_sum"] += prior_conf["total_sum"]
+            if "inter_sum" in prior_conf.columns:
+                updated_data["inter_sum"] += prior_conf["inter_sum"]
 
             # Update weights and sums if "cur_sum" column is used
             if "cur_sum" in prior_conf.columns:

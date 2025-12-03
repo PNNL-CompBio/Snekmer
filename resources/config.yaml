@@ -50,7 +50,7 @@ motif:
 # learn_apply params 
 learn_apply:
   save_apply_associations: False       # Bool, use True if needing to extract more details. Increases storage requirements substantially.
-  fragmentation: True                  # Bool, fragments the data according to the variables below (version, frag_length, min_length, location, seed)
+  fragmentation: False                  # Bool, fragments the data according to the variables below (version, frag_length, min_length, location, seed)
   version: absolute
   frag_length: 50
   min_length: 50
