@@ -14,7 +14,7 @@ to determine probabilistic annotations. A lightweight non-machine-learning appro
 method (1) records kmer counts from training sequences and (2) applies cosine distance calculations to new
 sequences to predict the nearest annotation and generate a confidence score.  
 
-.. image:: ../../resources/snekmer_workflow.svg
+.. image:: ../../resources/images/snekmer_workflow.svg
         :align: center
         :width: 700
         :alt: Snekmer workflow overview

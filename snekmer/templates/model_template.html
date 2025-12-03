@@ -1,26 +1,150 @@
+<!DOCTYPE html>
 <html>
-    <head>
-        <title>{{page_title}}</title>
-    </head>
-    <body>
-            <h1>{{title}}</h1>
-            <p>{{text}}</p>
-            <a href={{dir}}>
-                See Snekmer model CV results in file explorer: (<b>output/model/results/</b>)
-            </a>
-            <p>
-                Direct link to model results tables:
-                <br>
-                {% for tab in tables %}
-                    <a href={{tab}}>
-                        <b>{{tab}}</b>
-                    </a>
-                    <br>
-                {% endfor %}
-            </p>
-            <h2>Figures</h2>
-            {% for image in images %}
-                <img src="{{image}}" width="auto" height="350"/>
+  <head>
+    <meta charset="utf-8"/>
+    <title>{{ page_title }}</title>
+    <style>
+      :root {
+        --ink:#1b1f23; --muted:#556; --link:#115577; --link2:#225588; --line:#ddd; --chip:#f2f6fa;
+      }
+      * { box-sizing: border-box; }
+      body {
+        font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";
+        max-width: 1200px; /* slightly wider so tiles can grow */
+        margin: auto; padding: 1rem; color: var(--ink);
+      }
+      h1 { border-bottom: 2px solid #333; padding-bottom: .25em; margin-bottom: .5rem; }
+      h2 { margin-top: 2rem; color: var(--link2); }
+      p.overview { font-size: 1.05em; line-height: 1.55; }
+      a { color: var(--link); text-decoration: none; }
+      a:hover { text-decoration: underline; }
+
+      .chip {
+        display: inline-block; padding: .35em .6em; background: var(--chip); border-radius: 999px;
+        font-size: .9em; margin: .25em 0;
+      }
+
+      .file-list { margin-top: .75rem; }
+      .file-list .item { padding: .35em .5em; border-radius: .35rem; }
+      .file-list .item:nth-child(odd) { background: #f9f9f9; }
+      .meta { font-size: .9em; color: #555; margin-left: .5em; }
+
+      .section { margin-top: 1.5rem; border-top: 1px solid var(--line); padding-top: 1rem; }
+      .muted { color: #555; }
+
+      button.toggle {
+        background: none; border: none; color: var(--link); cursor: pointer;
+        font-size: .95em; padding: .25em 0; margin-top: .4rem;
+      }
+
+      /* Figures grid (larger tiles) */
+      .fig-grid {
+        display: grid; gap: 16px;
+        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); /* was 260px */
+        margin-top: .75rem;
+      }
+      figure {
+        margin: 0; padding: .6rem; border: 1px solid var(--line); border-radius: .6rem; background: #fff;
+      }
+      figure a.thumb { display: block; color: inherit; text-decoration: none; }
+      figure img {
+        width: 100%; height: auto; display: block;
+        transition: transform .12s ease-in-out;
+      }
+      figure a.thumb:hover img { transform: scale(1.01); }
+      figcaption { font-size: .95em; color: var(--muted); margin-top: .45rem; word-break: break-word; }
+
+      hr { margin: 2rem 0; border: 0; border-top: 1px solid var(--line); }
+      .small { font-size: .92em; }
+    </style>
+  </head>
+  <body>
+    <h1>{{ title }}</h1>
+    <p class="overview">{{ text }}</p>
+
+    <div class="section">
+      <h2>Results Directory</h2>
+      <p class="small">
+        <span class="chip">output/model/results/</span>
+        &nbsp;—&nbsp;
+        <a href="{{ dir }}">Open in file explorer</a>
+      </p>
+    </div>
+
+    <div class="section">
+      <h2>Model Results Tables</h2>
+      <p class="muted small">Direct links to per-model CSV/TSV outputs.</p>
+      {% set first_tabs = tables[:20] %}
+      {% set rest_tabs  = tables[20:] %}
+      <div class="file-list">
+        {% for tab in first_tabs %}
+          {% set base = tab.rsplit('/',1)[-1] %}
+          <div class="item">
+            <a href="{{ tab }}"><strong>{{ base }}</strong></a>
+            {% if file_info is defined and tab in file_info %}
+              <span class="meta">{{ file_info[tab].size }} KB · {{ file_info[tab].mtime }}</span>
+            {% endif %}
+          </div>
+        {% endfor %}
+        {% if rest_tabs %}
+          <div id="more-tables" style="display:none;">
+            {% for tab in rest_tabs %}
+              {% set base = tab.rsplit('/',1)[-1] %}
+              <div class="item">
+                <a href="{{ tab }}"><strong>{{ base }}</strong></a>
+                {% if file_info is defined and tab in file_info %}
+                  <span class="meta">{{ file_info[tab].size }} KB · {{ file_info[tab].mtime }}</span>
+                {% endif %}
+              </div>
             {% endfor %}
-    </body>
+          </div>
+          <button class="toggle" onclick="toggleBlock('more-tables', this)">Show&nbsp;more</button>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Figures</h2>
+      <p class="muted small">ROC/PR curves and other per-model diagnostics. Click a tile to open the full image.</p>
+      {% set first_imgs = images[:24] %}
+      {% set rest_imgs  = images[24:] %}
+      <div class="fig-grid">
+        {% for image in first_imgs %}
+          {% set base = image.rsplit('/',1)[-1] %}
+          <figure>
+            <a class="thumb" href="{{ image }}" target="_blank" rel="noopener">
+              <img src="{{ image }}" alt="{{ base }}"/>
+              <figcaption>{{ base }}</figcaption>
+            </a>
+          </figure>
+        {% endfor %}
+      </div>
+      {% if rest_imgs %}
+        <div id="more-figs" style="display:none;">
+          <div class="fig-grid">
+            {% for image in rest_imgs %}
+              {% set base = image.rsplit('/',1)[-1] %}
+              <figure>
+                <a class="thumb" href="{{ image }}" target="_blank" rel="noopener">
+                  <img src="{{ image }}" alt="{{ base }}"/>
+                  <figcaption>{{ base }}</figcaption>
+                </a>
+              </figure>
+            {% endfor %}
+          </div>
+        </div>
+        <button class="toggle" onclick="toggleBlock('more-figs', this)">Show&nbsp;more</button>
+      {% endif %}
+    </div>
+
+    <script>
+      function toggleBlock(id, btn){
+        const el = document.getElementById(id);
+        if(!el) return;
+        const hidden = el.style.display === "" || el.style.display === "none";
+        el.style.display = hidden ? "block" : "none";
+        btn.textContent = hidden ? "Show less" : "Show more";
+      }
+    </script>
+  </body>
 </html>

@@ -89,11 +89,6 @@ def resource_path(package: str, *parts) -> str:
     return str(files(package).joinpath(*parts))
 
 
-# wildcard_constraints:
-#     dataset=FAS,
-#     FAS=FAS,
-
-
 rule all:
     input:
         expand(join(input_dir, "{uz}"), uz=UZS),
@@ -109,6 +104,15 @@ rule all:
         *extra_all,
         expand(join(out_dir, "apply", "kmer_summary_{nb}.csv"), nb=FAS),
         join(out_dir, "Snekmer_Apply_Report.html"),
+
+
+
+use rule unzip from process with:
+    wildcard_constraints:
+        uz = r".*\.(?:fa|fna|faa|fasta)$"
+    output:
+        unzipped=join(input_dir, "{uz}"),
+        zipped=join(input_dir, "zipped", "{uz}.gz"),
 
 
 use rule vectorize from kmerize with:

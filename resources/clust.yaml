@@ -1,7 +1,0 @@
-__default__:
-  name: snekmer
-  account: sbd_sfa
-  time: "8:00:00"
-  partition:
-  nodes: 1
-  ntasks: 16

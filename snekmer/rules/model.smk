@@ -108,6 +108,8 @@ rule all:
 
 # if any files are gzip zipped, unzip them
 use rule unzip from process with:
+    wildcard_constraints:
+        uz = r".*\.(?:fa|fna|faa|fasta)$"
     output:
         unzipped=join("input", "{uz}"),
         zipped=join("input", "zipped", "{uz}.gz"),

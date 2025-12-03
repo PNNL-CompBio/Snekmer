@@ -114,6 +114,8 @@ rule all:
 if len(UZS) > 0:
 
     use rule unzip from process with:
+        wildcard_constraints:
+            uz = r".*\.(?:fa|fna|faa|fasta)$"
         output:
             join("input", "{uz}"),  # or join("input", "{uz}.{uzext}") ?
 
