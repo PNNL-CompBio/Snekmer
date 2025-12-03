@@ -93,14 +93,36 @@ class HDBSFClustering(BSFClustering):
 
 class BSFAgglomerative(BSFClustering):
     def __init__(self, **model_params):
-        model_params["affinity"] = "precomputed"
-        self.model_params = dict(model_params)
+        # scikit-learn >= 1.2: use metric instead of affinity
+        model_params = dict(model_params)
+        model_params.pop("affinity", None)              # remove deprecated key if present
+        model_params["metric"] = "precomputed"          # we pass a distance matrix
+        # Only 'average' or 'complete' are valid with metric='precomputed'
+        linkage = model_params.get("linkage", "average")
+        if linkage not in ("average", "complete"):
+            raise ValueError(
+                "AgglomerativeClustering with metric='precomputed' requires "
+                "linkage to be 'average' or 'complete' (not '%s')." % linkage
+            )
+        model_params["linkage"] = linkage
+
+        self.model_params = model_params
         self.labels_ = None
         self.method = AgglomerativeClustering(**model_params)
 
     def fit(self, X):
         self.method.fit(X)
         self.labels_ = self.method.labels_
+        
+        
+    
+
+        
+        
+        
+        
+        
+        
 
 # define allowed model types
 MODELS = {
