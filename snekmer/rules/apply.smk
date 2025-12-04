@@ -71,7 +71,7 @@ skm.alphabet.check_valid(config["alphabet"])
 out_dir = skm.io.define_output_dir(
     config["alphabet"], config["k"], nested=config["nested_output"]
 )
-out_dir = str(out_dir) 
+out_dir = str(out_dir)
 
 threshold_type = config["learn_apply"]["threshold"]
 selection_type = config["learn_apply"]["selection"]
@@ -106,10 +106,9 @@ rule all:
         join(out_dir, "Snekmer_Apply_Report.html"),
 
 
-
 use rule unzip from process with:
     wildcard_constraints:
-        uz = r".*\.(?:fa|fna|faa|fasta)$"
+        uz=r".*\.(?:fa|fna|faa|fasta)$",
     output:
         unzipped=join(input_dir, "{uz}"),
         zipped=join(input_dir, "zipped", "{uz}.gz"),
@@ -137,9 +136,11 @@ rule apply:
         selection_type=config["learn_apply"]["selection"],
         threshold_type=config["learn_apply"]["threshold"],
     output:
-        seq_ann=join(out_dir, "apply", "seq_annotation_scores_{nb}.csv")
-        if config["learn_apply"]["save_apply_associations"]
-        else [],
+        seq_ann=(
+            join(out_dir, "apply", "seq_annotation_scores_{nb}.csv")
+            if config["learn_apply"]["save_apply_associations"]
+            else []
+        ),
         kmer_summary=join(out_dir, "apply", "kmer_summary_{nb}.csv"),
     message:
         "Running Snekmer Apply on {input.data}. Output written to {output.kmer_summary}."
@@ -176,9 +177,11 @@ rule apply_report:
             else []
         ),
         kmer_sum=expand(join(out_dir, "apply", "kmer_summary_{nb}.csv"), nb=FAS),
-        concat=[config["learn_apply"]["apply_output"]] 
-            if config.get("learn_apply", {}).get("apply_output") 
-            else [],
+        concat=(
+            [config["learn_apply"]["apply_output"]]
+            if config.get("learn_apply", {}).get("apply_output")
+            else []
+        ),
     output:
         report=join(out_dir, "Snekmer_Apply_Report.html"),
     message:

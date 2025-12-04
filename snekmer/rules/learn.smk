@@ -3,6 +3,7 @@ from snakemake.utils import min_version
 
 min_version("9.0")
 
+
 # load snakemake modules
 module process:
     snakefile:
@@ -110,7 +111,7 @@ rule all:
                 out_dir,
                 "evaluate",
                 (
-                "eval_apply_sequences"
+                    "eval_apply_sequences"
                     if not config["learn_apply"]["fragmentation"]
                     else "eval_apply_frag"
                 ),
@@ -124,7 +125,7 @@ rule all:
                 out_dir,
                 "evaluate",
                 (
-                "eval_apply_reversed"
+                    "eval_apply_reversed"
                     if not config["learn_apply"]["fragmentation"]
                     else "eval_apply_reversed_frag"
                 ),
@@ -145,7 +146,7 @@ rule all:
 
 use rule unzip from process with:
     wildcard_constraints:
-        uz = r".*\.(?:fa|fna|faa|fasta)$"
+        uz=r".*\.(?:fa|fna|faa|fasta)$",
     output:
         unzipped=join(input_dir, "{uz}"),
         zipped=join(input_dir, "zipped", "{uz}.gz"),
@@ -173,6 +174,8 @@ if config["learn_apply"]["fragmentation"]:
 
 
 prefix = "vector"
+
+
 use rule vectorize from kmerize as vectorize_vector with:
     input:
         fasta=lambda wc: join(input_dir, f"{wc.nb}.{fa_map[wc.nb]}"),
@@ -182,6 +185,8 @@ use rule vectorize from kmerize as vectorize_vector with:
 
 
 prefix = "vector_frag"
+
+
 use rule vectorize from kmerize as vectorize_frag with:
     input:
         fasta=lambda wc: join(out_dir, "fragmented", f"{wc.nb}.fasta"),
@@ -220,7 +225,7 @@ rule eval_apply_reverse_seqs:
             out_dir,
             "vector",
             (
-            "vector"
+                "vector"
                 if not config["learn_apply"]["fragmentation"]
                 else "vector_frag"
             ),
@@ -233,7 +238,7 @@ rule eval_apply_reverse_seqs:
             out_dir,
             "evaluate",
             (
-            "eval_apply_reversed"
+                "eval_apply_reversed"
                 if not config["learn_apply"]["fragmentation"]
                 else "eval_apply_reversed_frag"
             ),
@@ -252,7 +257,7 @@ rule reverse_decoy_evaluations:
                 out_dir,
                 "evaluate",
                 (
-                "eval_apply_reversed"
+                    "eval_apply_reversed"
                     if not config["learn_apply"]["fragmentation"]
                     else "eval_apply_reversed_frag"
                 ),
@@ -276,7 +281,7 @@ rule eval_apply_sequences:
             out_dir,
             "vector",
             (
-            "vector"
+                "vector"
                 if not config["learn_apply"]["fragmentation"]
                 else "vector_frag"
             ),
@@ -289,7 +294,7 @@ rule eval_apply_sequences:
             out_dir,
             "evaluate",
             (
-            "eval_apply_sequences"
+                "eval_apply_sequences"
                 if not config["learn_apply"]["fragmentation"]
                 else "eval_apply_frag"
             ),
@@ -308,7 +313,7 @@ rule evaluate:
                 out_dir,
                 "evaluate",
                 (
-                "eval_apply_sequences"
+                    "eval_apply_sequences"
                     if not config["learn_apply"]["fragmentation"]
                     else "eval_apply_frag"
                 ),
@@ -364,4 +369,3 @@ rule learn_report:
         fragmentation=config["learn_apply"]["fragmentation"],
     script:
         resource_path("snekmer", "scripts", "learn_report.py")
-

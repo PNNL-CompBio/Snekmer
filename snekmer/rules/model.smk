@@ -3,8 +3,10 @@
 author: @christinehc
 
 """
+
 # snakemake config
 from snakemake.utils import min_version
+
 min_version("9.0")
 
 
@@ -88,6 +90,7 @@ out_dir = skm.io.define_output_dir(
     config["alphabet"], config["k"], nested=config["nested_output"]
 )
 
+
 def resource_path(package: str, *parts) -> str:
     """
     Re-create pkg_resources.resource_filename()
@@ -115,7 +118,7 @@ rule all:
 # if any files are gzip zipped, unzip them
 use rule unzip from process with:
     wildcard_constraints:
-        uz = r".*\.(?:fa|fna|faa|fasta)$"
+        uz=r".*\.(?:fa|fna|faa|fasta)$",
     output:
         unzipped=join("input", "{uz}"),
         zipped=join("input", "zipped", "{uz}.gz"),
