@@ -25,7 +25,7 @@ cluster:
       "distance_threshold": 0.92,
       "compute_full_tree": True,
     }
-  cluster_plots: True
+  cluster_plots: False
 
   # clustering distance matrix params
   min_rep:
