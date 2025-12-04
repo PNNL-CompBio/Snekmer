@@ -1,8 +1,5 @@
-# force snakemake v6.0+ (required for modules)
 from snakemake.utils import min_version
-
-min_version("6.0")
-
+min_version("9.0")
 
 # load snakemake modules
 module process:
@@ -23,7 +20,7 @@ module kmerize:
 from glob import glob
 from itertools import product
 from os.path import basename, dirname, join
-from pkg_resources import resource_filename
+from importlib.resources import files
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -75,6 +72,13 @@ out_dir = skm.io.define_output_dir(
     config["alphabet"], config["k"], nested=config["nested_output"]
 )
 
+def resource_path(package: str, *parts) -> str:
+    """
+    Re-create pkg_resources.resource_filename()
+    but using importlib.resources.
+    """
+    return str(files(package).joinpath(*parts))
+    
 
 # define output files to be created by snekmer
 rule all:
@@ -124,7 +128,7 @@ rule cluster:
     log:
         join(out_dir, "cluster", "log", "cluster.log"),
     script:
-        resource_filename("snekmer", join("scripts/cluster_cluster.py"))
+        resource_path("snekmer", join("scripts/cluster_cluster.py"))
 
 
 rule cluster_report:

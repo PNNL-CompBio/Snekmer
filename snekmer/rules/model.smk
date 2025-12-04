@@ -5,8 +5,7 @@ author: @christinehc
 """
 # snakemake config
 from snakemake.utils import min_version
-
-min_version("6.0")  # force snakemake v6.0+ (required for modules)
+min_version("9.0")
 
 
 # load modules
@@ -28,7 +27,7 @@ module kmerize:
 from glob import glob
 from itertools import product
 from os.path import basename, dirname, join, splitext
-from pkg_resources import resource_filename
+from importlib.resources import files
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -89,6 +88,13 @@ out_dir = skm.io.define_output_dir(
     config["alphabet"], config["k"], nested=config["nested_output"]
 )
 
+def resource_path(package: str, *parts) -> str:
+    """
+    Re-create pkg_resources.resource_filename()
+    but using importlib.resources.
+    """
+    return str(files(package).joinpath(*parts))
+
 
 # show warnings if files excluded
 onstart:
@@ -140,7 +146,7 @@ rule score:
     log:
         join(out_dir, "scoring", "log", "{nb}.log"),
     script:
-        resource_filename("snekmer", join("scripts/model_score.py"))
+        resource_path("snekmer", "scripts", "model_score.py")
 
 
 rule model:
@@ -155,7 +161,7 @@ rule model:
         results=join(out_dir, "model", "results", "{nb}.csv"),
         figs=directory(join(out_dir, "model", "figures", "{nb}")),
     script:
-        resource_filename("snekmer", join("scripts/model_model.py"))
+        resource_path("snekmer", "scripts", "model_model.py")
 
 
 rule model_report:

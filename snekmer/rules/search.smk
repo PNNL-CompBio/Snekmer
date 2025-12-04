@@ -6,7 +6,7 @@ author: @christinehc, @biodataganache
 # snakemake config
 from snakemake.utils import min_version
 
-min_version("6.0")  # force snakemake v6.0+ (required for modules)
+min_version("9.0")  # force snakemake v9.0+
 
 
 ruleorder: vectorize > search
