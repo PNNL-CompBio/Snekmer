@@ -9,19 +9,21 @@ on:
 
 jobs:
   # apply formating and linting
+  # I am deactivating snakefmt for now since it reformats snakemake rules in a way that breaks them.
+  # The snakefmt linter in super-linter is an unknown old version that does not support the latest snakemake/snakefmt syntax.
   Format:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
       - name: Apply snakefmt
-        uses: github/super-linter@v8.3.0
+        uses: github/super-linter@latest
         env:
           VALIDATE_ALL_CODEBASE: false
           DEFAULT_BRANCH: main
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
           LINTER_RULES_PATH: snekmer/rules/
-          VALIDATE_SNAKEMAKE_SNAKEFMT: true
+          VALIDATE_SNAKEMAKE_SNAKEFMT: false
 
   # run all tests
   Test:
