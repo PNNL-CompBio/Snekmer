@@ -28,8 +28,8 @@ jobs:
   # run all tests
   Test:
     runs-on: ubuntu-22.04
-    needs:
-      - Format
+    # needs:
+    #   - Format
 
     permissions:
      contents: 'read'
