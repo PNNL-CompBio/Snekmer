@@ -151,22 +151,15 @@ rule apply:
 if concat_results is not None:
 
     rule concat_kmer_summary:
-        """NEW: concatenate all sample k-mer summaries into one CSV"""
+        """Concatenate all sample kmer summaries into one CSV"""
         input:
             expand(join(out_dir, "apply", "kmer_summary_{nb}.csv"), nb=FAS),
         output:
             concat_results,
         message:
             "Writing consolidated k-mer summary to {output}"
-        shell:
-            """                                       
-            # write header from the first file
-            head -n 1 {input[0]} > {output}
-            # append rows from every remaining file (skip header lines)
-            for f in {input}; do
-                tail -n +2 "$f" >> {output}
-            done
-            """
+        script:
+            resource_path("snekmer", "scripts", "apply_concat.py")
 
 
 rule apply_report:

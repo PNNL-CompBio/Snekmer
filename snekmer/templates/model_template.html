@@ -82,7 +82,7 @@
           <div class="item">
             <a href="{{ tab }}"><strong>{{ base }}</strong></a>
             {% if file_info is defined and tab in file_info %}
-              <span class="meta">{{ file_info[tab].size }} KB · {{ file_info[tab].mtime }}</span>
+              <span class="meta">{{ file_info[tab].size }} KB . {{ file_info[tab].mtime }}</span>
             {% endif %}
           </div>
         {% endfor %}
@@ -93,7 +93,7 @@
               <div class="item">
                 <a href="{{ tab }}"><strong>{{ base }}</strong></a>
                 {% if file_info is defined and tab in file_info %}
-                  <span class="meta">{{ file_info[tab].size }} KB · {{ file_info[tab].mtime }}</span>
+                  <span class="meta">{{ file_info[tab].size }} KB . {{ file_info[tab].mtime }}</span>
                 {% endif %}
               </div>
             {% endfor %}

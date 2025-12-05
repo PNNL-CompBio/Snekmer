@@ -35,7 +35,7 @@
         {% for f in first %}
           <a href="{{ f }}">
             <strong>{{ f.rsplit('/',1)[1] }}</strong>
-            <span class="meta">{{ file_info[f].size }} KB · {{ file_info[f].mtime }}</span>
+            <span class="meta">{{ file_info[f].size }} KB . {{ file_info[f].mtime }}</span>
           </a>
         {% endfor %}
         {% if rest %}
@@ -43,7 +43,7 @@
             {% for f in rest %}
               <a href="{{ f }}">
                 <strong>{{ f.rsplit('/',1)[1] }}</strong>
-                <span class="meta">{{ file_info[f].size }} KB · {{ file_info[f].mtime }}</span>
+                <span class="meta">{{ file_info[f].size }} KB . {{ file_info[f].mtime }}</span>
               </a>
             {% endfor %}
           </div>
@@ -63,7 +63,7 @@
         {% for f in first %}
           <a href="{{ f }}">
             <strong>{{ f.rsplit('/',1)[1] }}</strong>
-            <span class="meta">{{ file_info[f].size }} KB · {{ file_info[f].mtime }}</span>
+            <span class="meta">{{ file_info[f].size }} KB . {{ file_info[f].mtime }}</span>
           </a>
         {% endfor %}
         {% if rest %}
@@ -71,7 +71,7 @@
             {% for f in rest %}
               <a href="{{ f }}">
                 <strong>{{ f.rsplit('/',1)[1] }}</strong>
-                <span class="meta">{{ file_info[f].size }} KB · {{ file_info[f].mtime }}</span>
+                <span class="meta">{{ file_info[f].size }} KB . {{ file_info[f].mtime }}</span>
               </a>
             {% endfor %}
           </div>
@@ -91,7 +91,7 @@
         {% for f in first %}
           <a href="{{ f }}">
             <strong>{{ f.rsplit('/',1)[1] }}</strong>
-            <span class="meta">{{ file_info[f].size }} KB · {{ file_info[f].mtime }}</span>
+            <span class="meta">{{ file_info[f].size }} KB . {{ file_info[f].mtime }}</span>
           </a>
         {% endfor %}
         {% if rest %}
@@ -99,7 +99,7 @@
             {% for f in rest %}
               <a href="{{ f }}">
                 <strong>{{ f.rsplit('/',1)[1] }}</strong>
-                <span class="meta">{{ file_info[f].size }} KB · {{ file_info[f].mtime }}</span>
+                <span class="meta">{{ file_info[f].size }} KB . {{ file_info[f].mtime }}</span>
               </a>
             {% endfor %}
           </div>
@@ -119,7 +119,7 @@
         {% for f in first %}
           <a href="{{ f }}">
             <strong>{{ f.rsplit('/',1)[1] }}</strong>
-            <span class="meta">{{ file_info[f].size }} KB · {{ file_info[f].mtime }}</span>
+            <span class="meta">{{ file_info[f].size }} KB . {{ file_info[f].mtime }}</span>
           </a>
         {% endfor %}
         {% if rest %}
@@ -127,7 +127,7 @@
             {% for f in rest %}
               <a href="{{ f }}">
                 <strong>{{ f.rsplit('/',1)[1] }}</strong>
-                <span class="meta">{{ file_info[f].size }} KB · {{ file_info[f].mtime }}</span>
+                <span class="meta">{{ file_info[f].size }} KB . {{ file_info[f].mtime }}</span>
               </a>
             {% endfor %}
           </div>
@@ -144,7 +144,7 @@
       <div class="file-list">
         <a href="{{ concat_rel }}">
           <strong>{{ concat_rel.rsplit('/',1)[1] }}</strong>
-          <span class="meta">{{ file_info[concat_rel].size }} KB · {{ file_info[concat_rel].mtime }}</span>
+          <span class="meta">{{ file_info[concat_rel].size }} KB . {{ file_info[concat_rel].mtime }}</span>
         </a>
       </div>
     {% endif %}

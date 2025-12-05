@@ -142,10 +142,10 @@ def main():
     desc["summary"] = (
         method_blurb + threshold_blurb + weight_blurb + "\n<ul>\n"
         "  <li><strong>Prediction:</strong> the family with the top cosine-similarity score.</li>\n"
-        "  <li><strong>Score Delta (Δ):</strong> the difference between the top-rank and second-rank scores "
-        "(Δ = top₁ - top₂), indicating how clear the best match was.</li>\n"
-        "  <li><strong>Confidence:</strong> a global confidence value for the corresponding Δ. "
-        "Computed by comparing true vs. decoy T/F rates across all samples and interpolating over Δ.</li>\n"
+        "  <li><strong>Score &Delta;:</strong> the difference between the top-rank and second-rank scores "
+        "(&Delta; = top<sub>1</sub> - top<sub>2</sub>), indicating how clear the best match was.</li>\n"
+        "  <li><strong>Confidence:</strong> a global confidence value for the corresponding &Delta;. "
+        "Computed by comparing true vs. decoy T/F rates across all samples and interpolating over &Delta;.</li>\n"
         "</ul>\n"
     )
 
