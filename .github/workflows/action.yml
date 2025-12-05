@@ -64,11 +64,7 @@ jobs:
       #test clustering step
       - name: Snekmer Cluster
         run: |
-          export PATH="/usr/share/miniconda/bin:$PATH"
-          conda info --envs
-          source activate snekmer
-          conda config --get channel_priority --json
-          snekmer cluster --configfile .test/config.yaml -d .test
+          ./snekmer_env/bin/snekmer cluster --configfile .test/config.yaml -d .test
           rm -rf .test/output
 
       #  --use-conda --conda-cleanup-pkgs cache --show-failed-logs --conda-frontend mamba
@@ -76,10 +72,8 @@ jobs:
       # run modeling step and move output files for search
       - name: Snekmer Model
         run: |
-          export PATH="/usr/share/miniconda/bin:$PATH"
-          source activate snekmer
-          snekmer model --configfile .test/config.yaml -d .test --cores 1
-          mkdir .test/output/example-model
+          ./snekmer_env/bin/snekmer model --configfile .test/config.yaml -d .test --cores 1
+          mkdir -p .test/output/example-model
           mv .test/output/model/*.model .test/output/example-model/
           mv .test/output/kmerize/*.kmers .test/output/example-model/
           mv .test/output/scoring/*.scorer .test/output/example-model/
@@ -87,26 +81,20 @@ jobs:
       # search against previously generated model files
       - name: Snekmer Search
         run: |
-          export PATH="/usr/share/miniconda/bin:$PATH"
-          source activate snekmer
           ls .test
           pwd
-          snekmer search --configfile .test/config.yaml -d .test --cores 1
+          ./snekmer_env/bin/snekmer search --configfile .test/config.yaml -d .test --cores 1
           rm -rf .test/output
           
       # run Snekmer Learn kmer counts and confidence creation
       - name: Snekmer Learn
         run: |
-          export PATH="/usr/share/miniconda/bin:$PATH"
-          source activate snekmer
-          snekmer learn --configfile .test/config_learnapp.yaml -d .test --cores 1
-          mv .test/apply_inputs/* .test
+          ./snekmer_env/bin/snekmer learn --configfile .test/config_learnapp.yaml -d .test --cores 1
+          mv .test/apply_inputs/* .test || true
           rm -rf .test/output
         
       # run Snekmer Learn against previously generated counts files
       - name: Snekmer Apply
         run: |
-          export PATH="/usr/share/miniconda/bin:$PATH"
-          source activate snekmer
-          snekmer apply --configfile .test/config_learnapp.yaml -d .test --cores 1
+          ./snekmer_env/bin/snekmer apply --configfile .test/config_learnapp.yaml -d .test --cores 1
           rm -rf .test/output
