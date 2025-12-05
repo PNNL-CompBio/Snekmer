@@ -118,10 +118,10 @@ html_theme = "sphinx_rtd_theme"
 html_static_path = ["../_static"]
 
 # set favicon
-html_favicon = "../../resources/favicon.svg"
+html_favicon = "../../resources/images/favicon.svg"
 
 # add logo
-html_logo = "../../resources/snekmer_logo.png"
+html_logo = "../../resources/images/snekmer_logo.png"
 html_theme_options = {
     "logo_only": True,
     "display_version": False,

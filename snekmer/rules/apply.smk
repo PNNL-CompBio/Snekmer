@@ -1,7 +1,7 @@
-# force snakemake v6.0+ (required for modules)
+# require snakemake 9.0+ (required for modules)
 from snakemake.utils import min_version
 
-min_version("6.0")
+min_version("9.0")
 
 
 # load snakemake modules
@@ -40,9 +40,9 @@ input_files = glob(join(input_dir, "*"))
 # base_file = glob(join(input_dir,"base" "*"))xf
 zipped = [fa for fa in input_files if fa.endswith(".gz")]
 unzipped = [
-    fa.rstrip(".gz")
+    fa.removesuffix(".gz")
     for fa, ext in product(input_files, config["input_file_exts"])
-    if fa.rstrip(".gz").endswith(f".{ext}")
+    if fa.removesuffix(".gz").endswith(f".{ext}")
 ]
 compare_file = glob(join("counts", "*.csv"))
 confidence_file = glob(join("confidence", "*.csv"))
@@ -71,6 +71,7 @@ skm.alphabet.check_valid(config["alphabet"])
 out_dir = skm.io.define_output_dir(
     config["alphabet"], config["k"], nested=config["nested_output"]
 )
+out_dir = str(out_dir)
 
 threshold_type = config["learn_apply"]["threshold"]
 selection_type = config["learn_apply"]["selection"]
@@ -88,11 +89,6 @@ def resource_path(package: str, *parts) -> str:
     return str(files(package).joinpath(*parts))
 
 
-wildcard_constraints:
-    dataset=FAS,
-    FAS=FAS,
-
-
 rule all:
     input:
         expand(join(input_dir, "{uz}"), uz=UZS),
@@ -108,6 +104,14 @@ rule all:
         *extra_all,
         expand(join(out_dir, "apply", "kmer_summary_{nb}.csv"), nb=FAS),
         join(out_dir, "Snekmer_Apply_Report.html"),
+
+
+use rule unzip from process with:
+    wildcard_constraints:
+        uz=r".*\.(?:fa|fna|faa|fasta)$",
+    output:
+        unzipped=join(input_dir, "{uz}"),
+        zipped=join(input_dir, "zipped", "{uz}.gz"),
 
 
 use rule vectorize from kmerize with:
@@ -132,14 +136,11 @@ rule apply:
         selection_type=config["learn_apply"]["selection"],
         threshold_type=config["learn_apply"]["threshold"],
     output:
-        # seq_ann=(
-        #     expand(join(out_dir, "apply", "seq_annotation_scores_{nb}.csv"), nb=FAS)
-        #     if config["learn_apply"]["save_apply_associations"]
-        #     else []
-        # ),
-        seq_ann=join(out_dir, "apply", "seq_annotation_scores_{nb}.csv")
-        if config["learn_apply"]["save_apply_associations"]
-        else [],
+        seq_ann=(
+            join(out_dir, "apply", "seq_annotation_scores_{nb}.csv")
+            if config["learn_apply"]["save_apply_associations"]
+            else []
+        ),
         kmer_summary=join(out_dir, "apply", "kmer_summary_{nb}.csv"),
     message:
         "Running Snekmer Apply on {input.data}. Output written to {output.kmer_summary}."
@@ -150,22 +151,15 @@ rule apply:
 if concat_results is not None:
 
     rule concat_kmer_summary:
-        """NEW: concatenate all sample k-mer summaries into one CSV"""
+        """Concatenate all sample kmer summaries into one CSV"""
         input:
             expand(join(out_dir, "apply", "kmer_summary_{nb}.csv"), nb=FAS),
         output:
             concat_results,
         message:
             "Writing consolidated k-mer summary to {output}"
-        shell:
-            """                                       
-            # write header from the first file
-            head -n 1 {input[0]} > {output}
-            # append rows from every remaining file (skip header lines)
-            for f in {input}; do
-                tail -n +2 "$f" >> {output}
-            done
-            """
+        script:
+            resource_path("snekmer", "scripts", "apply_concat.py")
 
 
 rule apply_report:
@@ -176,152 +170,14 @@ rule apply_report:
             else []
         ),
         kmer_sum=expand(join(out_dir, "apply", "kmer_summary_{nb}.csv"), nb=FAS),
-        concat=config.get("learn_apply", {}).get("apply_output", None),
+        concat=(
+            [config["learn_apply"]["apply_output"]]
+            if config.get("learn_apply", {}).get("apply_output")
+            else []
+        ),
     output:
         report=join(out_dir, "Snekmer_Apply_Report.html"),
     message:
-        "Generating full Snekmer Apply Report → {output.report}"
-    run:
-        import os, glob, pandas as pd
-        from os.path import dirname, relpath, join
-        from datetime import datetime
-
-        report_src = dirname(dirname(input.kmer_sum[0]))
-        seq_scores_rel = (
-            sorted(
-                [
-                    relpath(p, report_src).replace(os.sep, "/")
-                    for p in glob.glob(
-                        join(report_src, "apply", "seq_annotation_scores_*.csv")
-                    )
-                ]
-            )
-            if input.seq_scores
-            else []
-        )
-
-        kmer_sum_rel = sorted(
-            [
-                relpath(p, report_src).replace(os.sep, "/")
-                for p in glob.glob(join(report_src, "apply", "kmer_summary_*.csv"))
-            ]
-        )
-
-        concat_rel = None
-        if input.concat:
-            concat_rel = relpath(input.concat, report_src).replace(os.sep, "/")
-
-        vector_rel = sorted(
-            [
-                relpath(p, report_src).replace(os.sep, "/")
-                for p in glob.glob(join(report_src, "vector", "*.npz"))
-            ]
-        )
-
-        kmerize_rel = sorted(
-            [
-                relpath(p, report_src).replace(os.sep, "/")
-                for p in glob.glob(join(report_src, "kmerize", "*.kmers"))
-            ]
-        )
-
-        overview = (
-            "The Apply pipeline computes cosine similarities between the learned k-mer association matrix and each newly provided sequence, "
-            f"applies the <strong>{config['learn_apply']['selection']}</strong> selection method using family-specific thresholds "
-            "from <code>family_summary_stats.csv</code> and the global confidence mapping from <code>global-confidence-scores.csv</code>, "
-            f"and then writes <strong>{len(kmer_sum_rel)}</strong> summary CSV files under <code>apply/</code>."
-            + (
-                f" A consolidated results table is also available at <code>{concat_rel}</code>."
-                if concat_rel
-                else ""
-            )
-        )
-
-        desc = {
-            "kmerize": "<p><strong>K-mer Extraction:</strong> Each fasta file was parsed into a `.kmers` object.</p>",
-            "vector": "<p><strong>Vectorization:</strong> Each sequence encoded as a binary k-mer `.npz` vector.</p>",
-            "scores": (
-                "<p><strong>Annotation Scores:</strong> "
-                "For each fasta, cosine similarities against the learned k-mer matrix "
-                "were computed.  These CSVs include all raw score comparisons.</p>"
-            ),
-            "concat": "<p><strong>Consolidated Summary:</strong> All kmer summaries merged into one CSV.</p>",
-        }
-
-        selection_method = config["learn_apply"]["selection"]
-        threshold_type = config["learn_apply"]["threshold"]
-        weight_top = config["learn_apply"].get("weight_top")
-        weight_distance = config["learn_apply"].get("weight_distance")
-
-        threshold_blurb = (
-            f"<p><strong>Threshold:</strong> using <strong>{threshold_type}</strong> values from "
-            "<code>family_summary_stats.csv</code> as noise cutoffs.</p>"
-        )
-
-        weight_blurb = ""
-        if selection_method == "combined_distance":
-            weight_blurb = f"<p><strong>Weights:</strong> cosine similarity score x <strong>{weight_top}</strong> + distance from threshold x <strong>{weight_distance}</strong></p>"
-
-        sel_descriptions = {
-            "top_hit": (
-                "<p><strong>Selection Method: Top Hit</strong> selects the family with the highest cosine similarity. "
-                "</p>"
-            ),
-            "greatest_distance": (
-                "<p><strong>Selection Method: Greatest Distance</strong> computes (score - threshold) per family "
-                "and picks the one with the largest positive difference above its threshold, "
-                "favoring truly above-noise hits.</p>"
-            ),
-            "combined_distance": (
-                "<p><strong>Selection Method: Combined Distance</strong> computes a weighted sum of raw score and "
-                "(score - threshold), then picks the family maximizing that metric.</p>"
-            ),
-        }
-
-        method_blurb = sel_descriptions.get(
-            selection_method,
-            f"<p><strong>Selection: {selection_method}</strong> - custom method.</p>",
-        )
-
-        desc["summary"] = (
-            method_blurb + threshold_blurb + weight_blurb + "\n<ul>\n"
-            "  <li><strong>Prediction:</strong> the family with the top cosine-similarity score.</li>\n"
-            "  <li><strong>Score Delta (Δ):</strong> the difference between the top-rank and second-rank scores "
-            "(Δ = top₁ - top₂), indicating how clear the best match was.</li>\n"
-            "  <li><strong>Confidence:</strong> a global confidence value for that Δ, "
-            "computed by comparing true vs. decoy T/F rates across all samples and interpolating over Δ.</li>\n"
-            "</ul>\n"
-        )
-
-        file_info = {}
-        for group in [
-            kmerize_rel,
-            vector_rel,
-            seq_scores_rel,
-            kmer_sum_rel,
-            [concat_rel] if concat_rel else [],
-        ]:
-            for f in group:
-                full = join(report_src, f)
-                size = round(os.path.getsize(full) / 1024, 1)
-                mtime = datetime.fromtimestamp(os.path.getmtime(full)).strftime(
-                    "%Y-%m-%d %H:%M"
-                )
-                file_info[f] = {"size": size, "mtime": mtime}
-
-        apply_vars = dict(
-            page_title="Snekmer Apply Report",
-            title="Snekmer Apply Pipeline Results",
-            overview_text=overview,
-            section_desc=desc,
-            kmerize_rel=kmerize_rel,
-            vector_rel=vector_rel,
-            seq_scores_rel=seq_scores_rel,
-            kmer_sum_rel=kmer_sum_rel,
-            concat_rel=concat_rel,
-            file_info=file_info,
-        )
-
-        skm.report.create_report_many_csvs(
-            report_src, apply_vars, "apply", output.report
-        )
+        "Generating full Snekmer Apply Report at {output.report}"
+    script:
+        resource_path("snekmer", "scripts", "apply_report.py")

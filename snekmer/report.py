@@ -70,8 +70,11 @@ def create_report(template_vars, template: str, report_file_name: str):
     """
     # look in this file folder for the templates
     template = env.get_template(TEMPLATES[template])
+    # html = template.render(template_vars)
+    # with open(report_file_name, "w") as f:
+    #     f.write(html)
     html = template.render(template_vars)
-    with open(report_file_name, "w") as f:
+    with open(report_file_name, "w", encoding="utf-8", newline="") as f:
         f.write(html)
 
 

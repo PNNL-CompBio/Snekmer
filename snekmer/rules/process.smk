@@ -3,6 +3,7 @@
 author: @christinehc
 
 """
+
 # imports
 import gzip
 from datetime import datetime
@@ -16,6 +17,8 @@ from pandas import DataFrame
 
 # define rules
 rule unzip:
+    wildcard_constraints:
+        uz=r".*\.(?:fa|fna|faa|fasta)$",
     input:
         join("input", "{uz}.gz"),
     output:

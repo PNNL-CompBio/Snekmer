@@ -15,18 +15,7 @@ from snekmer.learn import generate_kmer_counts
 
 
 # ---------------------------------------------------------
-# Files and Parameters
-# ---------------------------------------------------------
-
-config = snakemake.config
-
-
-out_dir = skm.io.define_output_dir(
-    config["alphabet"], config["k"], nested=config["nested_output"]
-)
-
-# ---------------------------------------------------------
-# Run script
+# Run logic
 # ---------------------------------------------------------
 
 class Library:
@@ -46,6 +35,7 @@ class Library:
     seq_kmer_dict (dict): A dictionary mapping sequence IDs to their k-mer counts.
     annotation_counts (dict): A dictionary mapping annotations to their counts.
     total_seqs (int): The total number of sequences after filtering.
+    out_dir (str): Base output directory where 'learn/' subdir will be used.
     """
     annotation: List[pd.DataFrame]
     seq_annot: Dict[str, str]
@@ -56,8 +46,9 @@ class Library:
     seq_kmer_dict: Dict[str, int]
     annotation_counts: Dict[str, int]
     total_seqs: int
+    out_dir: Optional[str]
 
-    def __init__(self):
+    def __init__(self, out_dir: Optional[str] = None):
         self.annotation = []
         self.seq_annot = {}
         self.kmer_list = []
@@ -67,6 +58,7 @@ class Library:
         self.seq_kmer_dict = {}
         self.annotation_counts = {}
         self.total_seqs = 0
+        self.out_dir = out_dir
 
     def load_annotations(self, input_annotation: List[str]) -> None:
         """
@@ -95,8 +87,7 @@ class Library:
         self.kmer_list, self.df = skm.io.load_npz(input_data)
         self.kmer_list = self.kmer_list[0]
         self.seq_ids = self.df["sequence_id"]
-        for item in self.kmer_list:
-            self.kmer_totals.append(0)
+        self.kmer_totals = [0] * len(self.kmer_list)
 
     def filter_and_construct(self) -> None:
         """
@@ -106,7 +97,7 @@ class Library:
         for i, seqid in enumerate(list(self.seq_kmer_dict)):
             x = re.findall(r"\|(.*?)\|", seqid)[
                 0
-            ]  # A Note, it could be useful to allow a user to define their own regex.
+            ]  # Note: could be made user-configurable later.
             if x not in self.seqs:
                 del self.seq_kmer_dict[seqid]
             else:
@@ -119,6 +110,12 @@ class Library:
         Args:
             input_data (str): Path to the data file (used for naming the output file).
         """
+        if self.out_dir is None:
+            raise ValueError(
+                "Library.out_dir is not set. Please initialize Library(out_dir=...) "
+                "or use run_learn(...) which sets it for you."
+            )
+
         kmer_counts = pd.DataFrame(self.seq_kmer_dict.values())
         kmer_counts.insert(
             0, "Annotations", self.annotation_counts.values(), True
@@ -140,7 +137,7 @@ class Library:
         kmer_counts.replace(0, "", inplace=True)
         base = basename(input_data)
         name = splitext(base)[0]
-        out_name = join(out_dir, "learn", f"kmer_counts_{name}.csv")
+        out_name = join(self.out_dir, "learn", f"kmer_counts_{name}.csv")
         kmer_counts.index.name = "__index_level_0__"
         kmer_counts.to_csv(out_name, index=True)
 
@@ -184,10 +181,63 @@ class Library:
         """
         self.load_annotations(input_annotation)
         self.load_data(input_data)
-        self.kmer_list, self.kmer_totals, self.seq_kmer_dict = generate_kmer_counts(input_data, self.kmer_list, self.kmer_totals, self.seq_kmer_dict, False)
+        self.kmer_list, self.kmer_totals, self.seq_kmer_dict = generate_kmer_counts(
+            input_data,
+            self.kmer_list,
+            self.kmer_totals,
+            self.seq_kmer_dict,
+            False,
+        )
         self.filter_and_construct()
         self.format_and_write_output(input_data)
 
 
-library = Library()
-library.execute_all(snakemake.input.annotation, snakemake.input.data)
+# ---------------------------------------------------------
+# Public helper for demos / external calls
+# ---------------------------------------------------------
+
+def run_learn(
+    input_annotation: List[str],
+    input_data: str,
+    config: Dict,
+    out_dir: Optional[str] = None,
+) -> None:
+    """
+    Run the Learn step outside of Snakemake.
+
+    Parameters
+    ----------
+    input_annotation : list[str]
+        Annotation files (TSV) with at least columns 'id' and 'family'.
+    input_data : str
+        Path to the NPZ file containing k-merized sequences.
+    config : dict
+        Configuration dict with keys 'alphabet', 'k', and 'nested_output'
+        (same as Snakemake config["alphabet"], config["k"], config["nested_output"]).
+    out_dir : str, optional
+        Base output directory. If None, it will be computed via
+        `snekmer.io.define_output_dir(config["alphabet"], config["k"], nested=config["nested_output"])`.
+    """
+    if out_dir is None:
+        out_dir = skm.io.define_output_dir(
+            config["alphabet"], config["k"], nested=config["nested_output"]
+        )
+
+    library = Library(out_dir=out_dir)
+    library.execute_all(input_annotation, input_data)
+
+
+# ---------------------------------------------------------
+# Snakemake entry point
+# ---------------------------------------------------------
+
+# This block keeps the existing Snakemake behavior intact.
+# Snakemake injects a global `snakemake` object when using `script:`.
+if "snakemake" in globals():
+    config = snakemake.config
+    out_dir = skm.io.define_output_dir(
+        config["alphabet"], config["k"], nested=config["nested_output"]
+    )
+
+    library = Library(out_dir=out_dir)
+    library.execute_all(snakemake.input.annotation, snakemake.input.data)

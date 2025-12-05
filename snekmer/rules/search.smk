@@ -3,10 +3,11 @@
 author: @christinehc, @biodataganache
 
 """
+
 # snakemake config
 from snakemake.utils import min_version
 
-min_version("6.0")  # force snakemake v6.0+ (required for modules)
+min_version("9.0")  # force snakemake v9.0+
 
 
 ruleorder: vectorize > search
@@ -114,6 +115,8 @@ rule all:
 if len(UZS) > 0:
 
     use rule unzip from process with:
+        wildcard_constraints:
+            uz=r".*\.(?:fa|fna|faa|fasta)$",
         output:
             join("input", "{uz}"),  # or join("input", "{uz}.{uzext}") ?
 
@@ -135,7 +138,7 @@ rule common_basis:  # build kmer count vectors for each basis set
                 common_basis = list(set(common_basis))
             common_basis.extend(list(kmers.kmer_set.kmers))
 
-        # capture common basis set -- is faster than np.unique
+            # capture common basis set -- is faster than np.unique
         common_basis = set(common_basis)
         common_basis = sorted(list(common_basis))
 
@@ -143,9 +146,8 @@ rule common_basis:  # build kmer count vectors for each basis set
         with open(output.kmerbasis, "w") as f:
             for kmer in common_basis:
                 f.write(f"{kmer}\n")
-        # df = pd.DataFrame({'common': common_basis})
-        # df.to_csv(output.kmerbasis, index=False)
-
+                # df = pd.DataFrame({'common': common_basis})
+                # df.to_csv(output.kmerbasis, index=False)
 
 
 

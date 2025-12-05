@@ -4,25 +4,19 @@
 
 import json
 import random
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 import pandas as pd
 
-from typing import Any, Dict, List, Optional
-
 import snekmer as skm
 
-# ---------------------------------------------------------
-# Files and Parameters
-# ---------------------------------------------------------
-
-config = snakemake.config
 
 # ---------------------------------------------------------
-# Run script
+# Core functions
 # ---------------------------------------------------------
 
-def load_stats_from_csv(csv: str) -> Dict[str, Dict[str, Any]]:    
+def load_stats_from_csv(csv: str) -> Dict[str, Dict[str, Any]]:
     """
     Load existing family statistics from a csv checkpoint file.
 
@@ -39,14 +33,14 @@ def load_stats_from_csv(csv: str) -> Dict[str, Dict[str, Any]]:
         csv (str): Path to the csv file containing family statistics.
 
     Returns:
-        Dict[str, Dict[str, Any]]: 
+        Dict[str, Dict[str, Any]]:
     """
     csv = str(csv)
     if not csv:
         return {}
 
     df = pd.read_csv(csv)
-    combined_stats: dict[str, dict] = {}
+    combined_stats: Dict[str, Dict[str, Any]] = {}
 
     for _, row in df.iterrows():
         family = row["family"]
@@ -61,10 +55,11 @@ def load_stats_from_csv(csv: str) -> Dict[str, Dict[str, Any]]:
 
     return combined_stats
 
+
 def save_stats(
     combined_stats: Dict[str, Dict[str, Any]],
-    csv: str
-    ) -> None:
+    csv: str,
+) -> None:
     """
     Save combined family statistics to a csv checkpoint file.
 
@@ -91,9 +86,7 @@ def save_stats(
             "sumSqr": stats["sumSqr"],
             "min": stats["min"],
             "max": stats["max"],
-            "percentileValues": json.dumps(
-                stats["percentileValues"]
-            ),
+            "percentileValues": json.dumps(stats["percentileValues"]),
         }
         rows.append(row)
 
@@ -101,9 +94,10 @@ def save_stats(
     df.to_csv(csv, index=False)
 
 
-def collect_family_statistics(filename: str,
-    existing_stats: Optional[Dict[str, Dict[str, Any]]] = None
-    ) -> Dict[str, Dict[str, Any]]:
+def collect_family_statistics(
+    filename: str,
+    existing_stats: Optional[Dict[str, Dict[str, Any]]] = None,
+) -> Dict[str, Dict[str, Any]]:
     """
     Aggregate family-wise statistics from a CSV file using reservoir sampling for percentiles.
 
@@ -111,26 +105,24 @@ def collect_family_statistics(filename: str,
       - count: total number of values seen
       - sum: sum of all values
       - sumSqr: sum of squares of all values
-      - min: minimum observed value
-      - max: maximum observed value
+      - min: minimum value
+      - max: maximum value
       - percentileValues: a reservoir‐sampled list of values (for approximate percentiles)
 
     Args:
         filename (str): Path to the input CSV file.
-        existing_stats (Optional[Dict[str, Dict[str, Any]]]): 
+        existing_stats (Optional[Dict[str, Dict[str, Any]]]):
             Existing stats to update. If None, a fresh stats dict is created.
     """
-    
-    chunk_size = 10000 
+
+    chunk_size = 10000
     reservoir_size = 100000
 
     if existing_stats is None:
         existing_stats = {}
 
     for chunk in pd.read_csv(filename, chunksize=chunk_size, engine="c"):
-        families = chunk.columns[
-            :-1
-        ]  # Exclude the last column if it's the sequence name
+        families = chunk.columns[:-1]  # Exclude the last column if it's the sequence name
 
         for family in families:
             values = chunk[family].dropna().astype(float).values
@@ -150,7 +142,7 @@ def collect_family_statistics(filename: str,
             if n == 0:
                 continue
 
-                # Update count and sum statistics
+            # Update count and sum statistics
             stats["sum"] += values.sum()
             stats["sumSqr"] += np.dot(values, values)
             stats["min"] = min(stats["min"], values.min())
@@ -176,8 +168,8 @@ def collect_family_statistics(filename: str,
 
 
 def generate_family_statistics(
-        combined_stats: Dict[str, Dict[str, Any]]
-    ) -> pd.DataFrame:
+    combined_stats: Dict[str, Dict[str, Any]]
+) -> pd.DataFrame:
     """
     Generate a summary DataFrame of descriptive statistics for each family.
 
@@ -196,29 +188,29 @@ def generate_family_statistics(
             A table with one row per family and the following columns:
             - Family: family identifier
             - Mean: arithmetic mean of the values
-            - Std Dev: sample standard deviation
+            - Std_Dev: sample standard deviation
             - Min: minimum observed value
-            - 10th Percentile, 25th Percentile, Median (50th), 75th Percentile, 90th Percentile
+            - 10th_Percentile, 25th_Percentile, Median (50th), 75th_Percentile, 90th_Percentile
             - Max: maximum observed value
-            - 1 Std Dev Above, 1 Std Dev Below: mean ± 1·std
-            - 2 Std Dev Above, 2 Std Dev Below: mean ± 2·std
+            - 1_Std_Dev_Above, 1_Std_Dev_Below: mean ± 1·std
+            - 2_Std_Dev_Above, 2_Std_Dev_Below: mean ± 2·std
     """
-    
+
     stats_data = {
         "family": [],
         "Mean": [],
-        "Std Dev": [],
+        "Std_Dev": [],
         "Min": [],
-        "10th Percentile": [],
-        "25th Percentile": [],
+        "10th_Percentile": [],
+        "25th_Percentile": [],
         "Median": [],
-        "75th Percentile": [],
-        "90th Percentile": [],
+        "75th_Percentile": [],
+        "90th_Percentile": [],
         "Max": [],
-        "1 Std Dev Above": [],
-        "1 Std Dev Below": [],
-        "2 Std Dev Above": [],
-        "2 Std Dev Below": [],
+        "1_Std_Dev_Above": [],
+        "1_Std_Dev_Below": [],
+        "2_Std_Dev_Above": [],
+        "2_Std_Dev_Below": [],
     }
 
     for family, stats in combined_stats.items():
@@ -226,40 +218,39 @@ def generate_family_statistics(
         cur_sum = stats["sum"]
         sum_sqr = stats["sumSqr"]
         mean = cur_sum / n if n > 0 else 0.0
-        variance = (sum_sqr - (cur_sum**2) / n) / (n - 1) if n > 1 else 0.0
+        variance = (sum_sqr - (cur_sum ** 2) / n) / (n - 1) if n > 1 else 0.0
         standard_deviation = np.sqrt(variance)
 
         values = np.array(stats["percentileValues"])
         if len(values) > 0:
-            percentiles = np.percentile(
-                values, [10, 25, 50, 75, 90]
-            )
+            percentiles = np.percentile(values, [10, 25, 50, 75, 90])
         else:
             # If no values, fill with NaN
-            percentiles = [np.nan] * 11
+            percentiles = [np.nan] * 5
 
         stats_data["family"].append(family)
         stats_data["Mean"].append(round(mean, 3))
-        stats_data["Std Dev"].append(round(standard_deviation, 3))
+        stats_data["Std_Dev"].append(round(standard_deviation, 3))
         stats_data["Min"].append(round(stats["min"], 3))
-        stats_data["10th Percentile"].append(round(percentiles[0], 3))
-        stats_data["25th Percentile"].append(round(percentiles[1], 3))
+        stats_data["10th_Percentile"].append(round(percentiles[0], 3))
+        stats_data["25th_Percentile"].append(round(percentiles[1], 3))
         stats_data["Median"].append(round(percentiles[2], 3))
-        stats_data["75th Percentile"].append(round(percentiles[3], 3))
-        stats_data["90th Percentile"].append(round(percentiles[4], 3))
+        stats_data["75th_Percentile"].append(round(percentiles[3], 3))
+        stats_data["90th_Percentile"].append(round(percentiles[4], 3))
         stats_data["Max"].append(round(stats["max"], 3))
-        stats_data["1 Std Dev Above"].append(round(mean + standard_deviation, 3))
-        stats_data["1 Std Dev Below"].append(round(mean - standard_deviation, 3))
-        stats_data["2 Std Dev Above"].append(round(mean + 2 * standard_deviation, 3))
-        stats_data["2 Std Dev Below"].append(round(mean - 2 * standard_deviation, 3))
+        stats_data["1_Std_Dev_Above"].append(round(mean + standard_deviation, 3))
+        stats_data["1_Std_Dev_Below"].append(round(mean - standard_deviation, 3))
+        stats_data["2_Std_Dev_Above"].append(round(mean + 2 * standard_deviation, 3))
+        stats_data["2_Std_Dev_Below"].append(round(mean - 2 * standard_deviation, 3))
 
     return pd.DataFrame(stats_data)
+
 
 def execute_all(
     base_family_checkpoint: Optional[str],
     eval_apply_data: List[str],
     family_stats_output: str,
-    checkpoint_output: str
+    checkpoint_output: str,
 ) -> None:
     """
     Executes the family statistics pipeline, essentially gathering values for family specific thresholds.
@@ -276,18 +267,18 @@ def execute_all(
         eval_apply_data (List[str]): List of paths to data files to incorporate.
         family_stats_output (str): Path where the summary statistics CSV will be written.
         checkpoint_output (str): Path where the updated checkpoint CSV will be written.
-
-    Returns:
-        None
     """
     if base_family_checkpoint:
-        combined_stats: Dict[str, Dict[str, Any]] = load_stats_from_csv(base_family_checkpoint)
+        combined_stats: Dict[str, Dict[str, Any]] = load_stats_from_csv(
+            base_family_checkpoint
+        )
     else:
         combined_stats = {}
+
     for filename in eval_apply_data:
         combined_stats = collect_family_statistics(
             filename,
-            existing_stats=combined_stats
+            existing_stats=combined_stats,
         )
 
     family_statistics_df = generate_family_statistics(combined_stats)
@@ -295,7 +286,14 @@ def execute_all(
     save_stats(combined_stats, checkpoint_output)
 
 
-execute_all(snakemake.input.base_family_checkpoint,
-           snakemake.input.eval_apply_data,
-           snakemake.output.family_stats,
-           snakemake.output.checkpoint)
+# ---------------------------------------------------------
+# Snakemake entry point
+# ---------------------------------------------------------
+
+if "snakemake" in globals():
+    execute_all(
+        base_family_checkpoint=snakemake.input.base_family_checkpoint,
+        eval_apply_data=snakemake.input.eval_apply_data,
+        family_stats_output=snakemake.output.family_stats,
+        checkpoint_output=snakemake.output.checkpoint,
+    )

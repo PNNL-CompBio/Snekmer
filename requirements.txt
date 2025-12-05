@@ -6,9 +6,10 @@ pandas
 seaborn
 scipy
 scikit-learn
-snakemake == 7.0
+snakemake == 9.13
 scikit-learn
 tabulate == 0.8.10
 umap-learn
 hdbscan
+pulp == 2.7.0
 pyarrow

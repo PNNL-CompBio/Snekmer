@@ -35,7 +35,7 @@
         {% for f in first %}
           <a href="{{ f }}">
             <strong>{{ f.rsplit('/',1)[1] }}</strong>
-            <span class="meta">{{ file_info[f].size }} KB · {{ file_info[f].mtime }}</span>
+            <span class="meta">{{ file_info[f].size }} KB . {{ file_info[f].mtime }}</span>
           </a>
         {% endfor %}
         {% if rest %}
@@ -43,11 +43,11 @@
             {% for f in rest %}
               <a href="{{ f }}">
                 <strong>{{ f.rsplit('/',1)[1] }}</strong>
-                <span class="meta">{{ file_info[f].size }} KB · {{ file_info[f].mtime }}</span>
+                <span class="meta">{{ file_info[f].size }} KB . {{ file_info[f].mtime }}</span>
               </a>
             {% endfor %}
           </div>
-          <button class="toggle" onclick="toggleFiles('more-Fragmentation', this)">Show more</button>
+          <button class="toggle" onclick="toggleFiles('more-Fragmentation', this)">Show more</button>
         {% endif %}
       </div>
       <hr/>
@@ -64,7 +64,7 @@
         {% for f in first %}
           <a href="{{ f }}">
             <strong>{{ f.rsplit('/',1)[1] }}</strong>
-            <span class="meta">{{ file_info[f].size }} KB · {{ file_info[f].mtime }}</span>
+            <span class="meta">{{ file_info[f].size }} KB . {{ file_info[f].mtime }}</span>
           </a>
         {% endfor %}
         {% if rest %}
@@ -72,19 +72,19 @@
             {% for f in rest %}
               <a href="{{ f }}">
                 <strong>{{ f.rsplit('/',1)[1] }}</strong>
-                <span class="meta">{{ file_info[f].size }} KB · {{ file_info[f].mtime }}</span>
+                <span class="meta">{{ file_info[f].size }} KB . {{ file_info[f].mtime }}</span>
               </a>
             {% endfor %}
           </div>
-          <button class="toggle" onclick="toggleFiles('more-Kmerize', this)">Show more</button>
+          <button class="toggle" onclick="toggleFiles('more-Kmerize', this)">Show more</button>
         {% endif %}
       </div>
       <hr/>
     {% endif %}
 
-    <!-- 3) Fragmented K‑mers & Vectors -->
+    <!-- 3) Fragmented Kmers & Vectors -->
     {% if kmer_frag or vector_frag %}
-      <h2>Fragmented K‑mers & Vectors</h2>
+      <h2>Fragmented Kmers & Vectors</h2>
       <p>{{ section_desc.vector_frag | safe }}</p>
       <div class="file-list">
         <h3>KMERS for Fragments</h3>
@@ -93,7 +93,7 @@
         {% for f in first_kf %}
           <a href="{{ f }}">
             <strong>{{ f.rsplit('/',1)[1] }}</strong>
-            <span class="meta">{{ file_info[f].size }} KB · {{ file_info[f].mtime }}</span>
+            <span class="meta">{{ file_info[f].size }} KB . {{ file_info[f].mtime }}</span>
           </a>
         {% endfor %}
         {% if rest_kf %}
@@ -101,11 +101,11 @@
             {% for f in rest_kf %}
               <a href="{{ f }}">
                 <strong>{{ f.rsplit('/',1)[1] }}</strong>
-                <span class="meta">{{ file_info[f].size }} KB · {{ file_info[f].mtime }}</span>
+                <span class="meta">{{ file_info[f].size }} KB . {{ file_info[f].mtime }}</span>
               </a>
             {% endfor %}
           </div>
-          <button class="toggle" onclick="toggleFiles('more-KmerFrag', this)">Show more</button>
+          <button class="toggle" onclick="toggleFiles('more-KmerFrag', this)">Show more</button>
         {% endif %}
 
         <h3>Vectors for Fragments</h3>
@@ -114,7 +114,7 @@
         {% for f in first_vf %}
           <a href="{{ f }}">
             <strong>{{ f.rsplit('/',1)[1] }}</strong>
-            <span class="meta">{{ file_info[f].size }} KB · {{ file_info[f].mtime }}</span>
+            <span class="meta">{{ file_info[f].size }} KB . {{ file_info[f].mtime }}</span>
           </a>
         {% endfor %}
         {% if rest_vf %}
@@ -122,11 +122,11 @@
             {% for f in rest_vf %}
               <a href="{{ f }}">
                 <strong>{{ f.rsplit('/',1)[1] }}</strong>
-                <span class="meta">{{ file_info[f].size }} KB · {{ file_info[f].mtime }}</span>
+                <span class="meta">{{ file_info[f].size }} KB . {{ file_info[f].mtime }}</span>
               </a>
             {% endfor %}
           </div>
-          <button class="toggle" onclick="toggleFiles('more-VectorFrag', this)">Show more</button>
+          <button class="toggle" onclick="toggleFiles('more-VectorFrag', this)">Show more</button>
         {% endif %}
       </div>
       <hr/>
@@ -142,7 +142,7 @@
         {% for f in first %}
           <a href="{{ f }}">
             <strong>{{ f.rsplit('/',1)[1] }}</strong>
-            <span class="meta">{{ file_info[f].size }} KB · {{ file_info[f].mtime }}</span>
+            <span class="meta">{{ file_info[f].size }} KB . {{ file_info[f].mtime }}</span>
           </a>
         {% endfor %}
         {% if rest %}
@@ -150,11 +150,11 @@
             {% for f in rest %}
               <a href="{{ f }}">
                 <strong>{{ f.rsplit('/',1)[1] }}</strong>
-                <span class="meta">{{ file_info[f].size }} KB · {{ file_info[f].mtime }}</span>
+                <span class="meta">{{ file_info[f].size }} KB . {{ file_info[f].mtime }}</span>
               </a>
             {% endfor %}
           </div>
-          <button class="toggle" onclick="toggleFiles('more-Vector', this)">Show more</button>
+          <button class="toggle" onclick="toggleFiles('more-Vector', this)">Show more</button>
         {% endif %}
       </div>
       <hr/>
@@ -165,13 +165,13 @@
       <h2>Learn</h2>
       <p>{{ section_desc.learn | safe }}</p>
       <div class="file-list">
-        <h3>K-mer Counts Files</h3>
+        <h3>Kmer Counts Files</h3>
         {% set first = learn_counts[:5] %}
         {% set rest  = learn_counts[5:] %}
         {% for f in first %}
           <a href="{{ f }}">
             <strong>{{ f.rsplit('/',1)[1] }}</strong>
-            <span class="meta">{{ file_info[f].size }} KB · {{ file_info[f].mtime }}</span>
+            <span class="meta">{{ file_info[f].size }} KB . {{ file_info[f].mtime }}</span>
           </a>
         {% endfor %}
         {% if rest %}
@@ -179,18 +179,18 @@
             {% for f in rest %}
               <a href="{{ f }}">
                 <strong>{{ f.rsplit('/',1)[1] }}</strong>
-                <span class="meta">{{ file_info[f].size }} KB · {{ file_info[f].mtime }}</span>
+                <span class="meta">{{ file_info[f].size }} KB . {{ file_info[f].mtime }}</span>
               </a>
             {% endfor %}
           </div>
-          <button class="toggle" onclick="toggleFiles('more-LearnCounts', this)">Show more</button>
+          <button class="toggle" onclick="toggleFiles('more-LearnCounts', this)">Show more</button>
         {% endif %}
 
         <h3>Merged Matrix</h3>
         {% for f in learn_total %}
           <a href="{{ f }}">
             <strong>{{ f.rsplit('/',1)[1] }}</strong>
-            <span class="meta">{{ file_info[f].size }} KB · {{ file_info[f].mtime }}</span>
+            <span class="meta">{{ file_info[f].size }} KB . {{ file_info[f].mtime }}</span>
           </a>
         {% endfor %}
       </div>
@@ -208,7 +208,7 @@
         {% for f in first %}
           <a href="{{ f }}">
             <strong>{{ f.rsplit('/',1)[1] }}</strong>
-            <span class="meta">{{ file_info[f].size }} KB · {{ file_info[f].mtime }}</span>
+            <span class="meta">{{ file_info[f].size }} KB . {{ file_info[f].mtime }}</span>
           </a>
         {% endfor %}
         {% if rest %}
@@ -216,11 +216,11 @@
             {% for f in rest %}
               <a href="{{ f }}">
                 <strong>{{ f.rsplit('/',1)[1] }}</strong>
-                <span class="meta">{{ file_info[f].size }} KB · {{ file_info[f].mtime }}</span>
+                <span class="meta">{{ file_info[f].size }} KB . {{ file_info[f].mtime }}</span>
               </a>
             {% endfor %}
           </div>
-          <button class="toggle" onclick="toggleFiles('more-Decoy', this)">Show more</button>
+          <button class="toggle" onclick="toggleFiles('more-Decoy', this)">Show more</button>
         {% endif %}
 
         <h3>Original Sequences</h3>
@@ -229,7 +229,7 @@
         {% for f in first %}
           <a href="{{ f }}">
             <strong>{{ f.rsplit('/',1)[1] }}</strong>
-            <span class="meta">{{ file_info[f].size }} KB · {{ file_info[f].mtime }}</span>
+            <span class="meta">{{ file_info[f].size }} KB . {{ file_info[f].mtime }}</span>
           </a>
         {% endfor %}
         {% if rest %}
@@ -237,11 +237,11 @@
             {% for f in rest %}
               <a href="{{ f }}">
                 <strong>{{ f.rsplit('/',1)[1] }}</strong>
-                <span class="meta">{{ file_info[f].size }} KB · {{ file_info[f].mtime }}</span>
+                <span class="meta">{{ file_info[f].size }} KB . {{ file_info[f].mtime }}</span>
               </a>
             {% endfor %}
           </div>
-          <button class="toggle" onclick="toggleFiles('more-Original', this)">Show more</button>
+          <button class="toggle" onclick="toggleFiles('more-Original', this)">Show more</button>
         {% endif %}
       </div>
       <hr/>
@@ -254,15 +254,15 @@
       <div class="file-list">
         <a href="{{ fam_stats }}">
           <strong>{{ fam_stats.rsplit('/',1)[1] }}</strong>
-          <span class="meta">{{ file_info[fam_stats].size }} KB · {{ file_info[fam_stats].mtime }}</span>
+          <span class="meta">{{ file_info[fam_stats].size }} KB . {{ file_info[fam_stats].mtime }}</span>
         </a>
         <a href="{{ fam_checkpoint }}">
           <strong>{{ fam_checkpoint.rsplit('/',1)[1] }}</strong>
-          <span class="meta">{{ file_info[fam_checkpoint].size }} KB · {{ file_info[fam_checkpoint].mtime }}</span>
+          <span class="meta">{{ file_info[fam_checkpoint].size }} KB . {{ file_info[fam_checkpoint].mtime }}</span>
         </a>
         <a href="{{ glob_conf }}">
           <strong>{{ glob_conf.rsplit('/',1)[1] }}</strong>
-          <span class="meta">{{ file_info[glob_conf].size }} KB · {{ file_info[glob_conf].mtime }}</span>
+          <span class="meta">{{ file_info[glob_conf].size }} KB . {{ file_info[glob_conf].mtime }}</span>
         </a>
       </div>
       <hr/>
@@ -278,7 +278,7 @@
         {% for f in first %}
           <a href="{{ f }}">
             <strong>{{ f.rsplit('/',1)[1] }}</strong>
-            <span class="meta">{{ file_info[f].size }} KB · {{ file_info[f].mtime }}</span>
+            <span class="meta">{{ file_info[f].size }} KB . {{ file_info[f].mtime }}</span>
           </a>
         {% endfor %}
         {% if rest %}
@@ -286,11 +286,11 @@
             {% for f in rest %}
               <a href="{{ f }}">
                 <strong>{{ f.rsplit('/',1)[1] }}</strong>
-                <span class="meta">{{ file_info[f].size }} KB · {{ file_info[f].mtime }}</span>
+                <span class="meta">{{ file_info[f].size }} KB . {{ file_info[f].mtime }}</span>
               </a>
             {% endfor %}
           </div>
-          <button class="toggle" onclick="toggleFiles('more-Apply', this)">Show more</button>
+          <button class="toggle" onclick="toggleFiles('more-Apply', this)">Show more</button>
         {% endif %}
       </div>
     {% endif %}
@@ -300,10 +300,10 @@
         const el = document.getElementById(id);
         if(el.style.display === "none"){
           el.style.display = "block";
-          btn.textContent = "Show less";
+          btn.textContent = "Show less";
         } else {
           el.style.display = "none";
-          btn.textContent = "Show more";
+          btn.textContent = "Show more";
         }
       }
     </script>
