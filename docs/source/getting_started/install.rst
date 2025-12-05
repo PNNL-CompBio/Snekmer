@@ -1,6 +1,6 @@
 Installation
 ============
-We recommend installing Snekmer using Python's `venv <https://docs.python.org/3/library/venv.html>`_ module. Before installing Snekmer, check that you have Python 3.9 or 3.10 installed using the command:
+We recommend installing Snekmer using Python's `venv <https://docs.python.org/3/library/venv.html>`_ module. Before installing Snekmer, check that you have Python 3.11 or later installed using the command:
 
 .. code-block:: bash
 
