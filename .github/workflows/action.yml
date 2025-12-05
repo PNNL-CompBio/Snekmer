@@ -26,41 +26,35 @@ jobs:
   #         VALIDATE_SNAKEMAKE_SNAKEFMT: true
 
   # run all tests
+
   Test:
     runs-on: ubuntu-22.04
-    # needs:
-    #   - Format
 
     permissions:
-     contents: 'read'
-     id-token: 'write'
+      contents: 'read'
+      id-token: 'write'
 
     steps:
       - uses: actions/checkout@v3
 
-      - name: Build test environment
-        uses: conda-incubator/setup-miniconda@v2
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
         with:
-          mamba-version: "*"
-          channels: anaconda,conda-forge,bioconda,numba
-          auto-activate-base: false
-      - shell: bash -l {0}
+          python-version: '3.11'
+
+      - name: Create venv and install deps
         run: |
-          conda info
-          conda list
-          conda config --show
-          conda env list
-      - name: Create snekmer environment from YAML
-        shell: bash -l {0}
+          python3.11 -m venv snekmer_env
+          source snekmer_env/bin/activate
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install git+https://github.com/PNNL-CompBio/Snekmer@learn_decoy_implementation#egg=snekmer
+
+      - name: Show environment info
         run: |
-          mamba env create -n snekmer -f .test/test-env.yml --yes
-      - name: Show conda info
-        shell: bash -l {0}
-        run: |
-          conda activate snekmer
-          conda info
-          conda list | head
-          conda env list
+          ./snekmer_env/bin/python -V
+          ./snekmer_env/bin/pip freeze
+
 
       # - shell: bash -l {0}
       #   run: mamba env create -f .test/test-env.yml
