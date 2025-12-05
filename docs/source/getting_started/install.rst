@@ -1,16 +1,36 @@
 Installation
 ============
+We recommend installing Snekmer using Python's `venv <https://docs.python.org/3/library/venv.html>`_ module. Before installing Snekmer, check that you have Python 3.9 or 3.10 installed using the command:
 
-We recommend `Mamba <https://mamba.readthedocs.io/en/latest/installation.html>`_
+.. code-block:: bash
+
+	python --version
+
+The next step is to create and activate a new virtual environment that will contain Snekmer and its dependencies.
+
+.. code-block:: bash
+
+	python3 -m venv ~/snekmer_env
+	source ~/snekmer_env/bin/activate
+
+Once the virtual environment has been created and activated, clone and install Snekmer using the following commands.
+
+.. code-block:: bash
+
+	git clone https://github.com/PNNL-CompBio/Snekmer.git
+	cd Snekmer
+	pip install -r requirements.txt
+	pip install .     # this installs local snekmer
+
+Install Snekmer via Mamba/Conda
+-------------------------------
+It is also possible to use `Mamba <https://mamba.readthedocs.io/en/latest/installation.html>`_
 for installation handling. `Conda <https://www.anaconda.com/download/>`_ can be
 used as an alternative, but Conda can take a long time to resolve dependencies,
 thus rendering installation via Conda
 significantly slower than installation via Mamba. Mamba/Conda will
 both manage dependencies and versioning, which simplifies the
 process of installation.
-
-Install Snekmer via Mamba/Conda
--------------------------------
 
 The simplest method for installation is via the included YML file, which will create
 a new environment containing Snekmer and all of its dependencies. Users may either
@@ -20,6 +40,7 @@ directly, or clone/fork the repository to obtain a local copy of the repository 
 included files.
 
 .. code-block:: bash
+
 
 	mamba env create -f environment.yml
 
