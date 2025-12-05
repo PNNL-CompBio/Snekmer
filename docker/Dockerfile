@@ -1,5 +1,5 @@
-# 1) Small base image with Python 3.10
-FROM python:3.10-slim
+# 1) Small base image with Python 3.11
+FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -19,7 +19,7 @@ RUN git clone https://github.com/PNNL-CompBio/Snekmer.git \
  && git checkout ${SNEKMER_BRANCH} \
  \
  # create the venv
- && python3.10 -m venv /opt/snekmer_env \
+ && python3.11 -m venv /opt/snekmer_env \
  \
  && /opt/snekmer_env/bin/pip install --upgrade pip setuptools wheel \
  \
