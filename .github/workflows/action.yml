@@ -49,6 +49,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install git+https://github.com/PNNL-CompBio/Snekmer@learn_decoy_implementation#egg=snekmer
+          echo "VIRTUAL_ENV=$PWD/snekmer_env" >> $GITHUB_ENV
+          echo "$PWD/snekmer_env/bin" >> $GITHUB_PATH
 
       - name: Show environment info
         run: |
@@ -64,7 +66,7 @@ jobs:
       #test clustering step
       - name: Snekmer Cluster
         run: |
-          ./snekmer_env/bin/snekmer cluster --configfile .test/config.yaml -d .test
+          snekmer cluster --configfile .test/config.yaml -d .test
           rm -rf .test/output
 
       #  --use-conda --conda-cleanup-pkgs cache --show-failed-logs --conda-frontend mamba
@@ -72,7 +74,7 @@ jobs:
       # run modeling step and move output files for search
       - name: Snekmer Model
         run: |
-          ./snekmer_env/bin/snekmer model --configfile .test/config.yaml -d .test --cores 1
+          snekmer model --configfile .test/config.yaml -d .test --cores 1
           mkdir -p .test/output/example-model
           mv .test/output/model/*.model .test/output/example-model/
           mv .test/output/kmerize/*.kmers .test/output/example-model/
@@ -83,18 +85,18 @@ jobs:
         run: |
           ls .test
           pwd
-          ./snekmer_env/bin/snekmer search --configfile .test/config.yaml -d .test --cores 1
+          snekmer search --configfile .test/config.yaml -d .test --cores 1
           rm -rf .test/output
           
       # run Snekmer Learn kmer counts and confidence creation
       - name: Snekmer Learn
         run: |
-          ./snekmer_env/bin/snekmer learn --configfile .test/config_learnapp.yaml -d .test --cores 1
+          snekmer learn --configfile .test/config_learnapp.yaml -d .test --cores 1
           mv .test/apply_inputs/* .test || true
           rm -rf .test/output
         
       # run Snekmer Learn against previously generated counts files
       - name: Snekmer Apply
         run: |
-          ./snekmer_env/bin/snekmer apply --configfile .test/config_learnapp.yaml -d .test --cores 1
+          snekmer apply --configfile .test/config_learnapp.yaml -d .test --cores 1
           rm -rf .test/output
