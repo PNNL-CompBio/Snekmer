@@ -96,15 +96,6 @@ include only the minimal version of Snakemake:
 ..   # option 2: direct install (no repository download required)
 ..   pip install git+https://github.com/PNNL-CompBio/Snekmer
 
-Install Snekmer via pip
------------------------
-
-The ``pip`` implementation has not been fully tested, but users may attempt installation
-directly from PyPI:
-
-.. code-block:: bash
-  pip install snekmer
-
 Install Snekmer via Docker
 --------------------------
 
