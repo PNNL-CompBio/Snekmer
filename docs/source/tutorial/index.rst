@@ -25,7 +25,7 @@ To run an example set of fasta files use the following commands:
 
    conda activate snekmer
    cd resources/tutorial
-   jupyter notebook snekmer_learnapp_tutorial.ipynb
+   jupyter notebook snekmer_learn_apply_tutorial.ipynb
 
 
 
