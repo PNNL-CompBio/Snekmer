@@ -75,7 +75,7 @@ def load_npz(
         Tuple with list of data objects and tabulated .npz data.
 
     """
-    data = np.load(filename)
+    data = np.load(filename, allow_pickle=True)
 
     # fill in df based on desired output col names
     df = {"filename": splitext(basename(filename))[0]}

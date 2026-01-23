@@ -5,13 +5,17 @@ author: @christinehc
 """
 import itertools
 from collections import Counter
-from typing import Dict, Generator, Set, Union
-
+from typing import Dict, Generator, Set, Union, List
+import os
+    
 import numpy as np
 from numpy.typing import NDArray
 from ._version import __version__
 from .alphabet import FULL_ALPHABETS, get_alphabet, get_alphabet_keys
 from .utils import check_list
+from Bio import SeqIO
+import pickle
+
 
 
 # store kmer basis set and transform new vectors into fitted basis
@@ -254,40 +258,24 @@ class KmerVec:
         """Generator object for segment in string format"""
         for n in range(0, len(sequence) - k + 1):
             yield sequence[n : n + k]
-
-    # generate kmer vectors with bag-of-words approach
+    
     def vectorize(self, sequence: str) -> NDArray:
-        """Transform sequence into representative kmer vector.
-
-        Parameters
-        ----------
-        sequence : str
-            Input sequence.
-
-        Returns
-        -------
-        NDArray
-            Vector representation of sequence as kmer counts vector.
-
-        """
-        N = len(self.char_set) ** self.k
-
+        """Transform sequence into representative kmer vector."""
+        
+        # generate kmers in the sequence
         kmers = list(self._kmer_gen(sequence))
         kmer2count = Counter(kmers)
 
-        # Convert to vector of counts
-        # vector = np.zeros(N)
+        # allocate NUMPY VECTOR of correct size
+        basis = list(self.kmer_set.kmers)
+        vector = np.zeros(len(basis), dtype=int)
 
-        # memfix change
-        vector = {}
-
-        for i, word in enumerate(self.kmer_set.kmers):
-            vector[i] += kmer2count[word]
-
-        # Convert to frequencies
-        # vector /= sum(kmer2count.values())
+        # fill counts
+        for i, word in enumerate(basis):
+            vector[i] = kmer2count.get(word, 0)
 
         return vector
+
 
     def reduce_vectorize(self, sequence: str) -> NDArray:
         """Simplify and vectorize sequence into reduced kmer vector.
@@ -343,3 +331,99 @@ class KmerVec:
             _description_
         """
         return self.basis.transform(record, kmerlist)
+
+
+
+# ---------------------------------------------------------
+# PUBLIC helper for tutorials / notebooks
+# ---------------------------------------------------------
+
+def run_vectorize(
+    fasta_path: str,
+    alphabet: Union[str, int],
+    k: int,
+    output_npz: str,
+    output_kmerobj: str,
+    min_filter: int = 0,
+) -> None:
+    """
+    Public helper that replicates the Snakemake `vectorize` rule.
+
+    It:
+      1) Builds a k-mer basis (kmerbasis) by scanning the FASTA and
+         counting how often each reduced k-mer appears.
+      2) Filters kmers with total count <= min_filter.
+      3) Builds a binary feature matrix (sequences x kmers).
+      4) Saves an .npz with kmerlist, ids, seqs, vecs, lengths.
+      5) Saves the KmerVec object as a .kmers pickle.
+
+    This produces .npz files compatible with `learn_learn.Library`
+    and `generate_kmer_counts` (just like the Snakemake pipeline).
+    """
+
+    kmer = KmerVec(alphabet=alphabet, k=k)
+
+    # -----------------------------
+    # 1) Build k-mer basis
+    # -----------------------------
+    kmer_counts: Dict[str, int] = {}
+
+    # We also want the number of proteins (nprot) ahead of time
+    nprot = 0
+    for record in SeqIO.parse(fasta_path, "fasta"):
+        nprot += 1
+        # reduced alphabet sequence
+        reduced = reduce(record.seq, alphabet=alphabet, mapping=FULL_ALPHABETS)
+        # collect reduced kmers
+        kmers = list(kmer._kmer_gen(reduced))
+        for key in kmers:
+            kmer_counts[key] = kmer_counts.get(key, 0) + 1
+
+    if not kmer_counts:
+        # No kmers at all — save an empty structure but fail fast for Learn
+        kmerbasis = np.empty(0, dtype=object)
+    else:
+        all_kmers = np.array(list(kmer_counts.keys()), dtype=object)
+        all_counts = np.array(list(kmer_counts.values()))
+        kmerbasis = all_kmers[all_counts > min_filter]
+
+    # Set the basis on the KmerVec (so reduce_vectorize/harmonize are consistent)
+    kmer.set_kmer_set(list(kmerbasis))
+
+    # -----------------------------
+    # 2) Build binary feature matrix
+    # -----------------------------
+    vecs = np.zeros((nprot, len(kmerbasis)), dtype=int)
+    seqs: List[str] = []
+    ids: List[str] = []
+    lengths: List[int] = []
+
+    # Second pass over FASTA to fill matrix
+    idx = 0
+    for record in SeqIO.parse(fasta_path, "fasta"):
+        reduced = reduce(record.seq, alphabet=alphabet, mapping=FULL_ALPHABETS)
+        kmers = np.array(list(kmer._kmer_gen(reduced)), dtype=object)
+
+        # mark presence/absence of each kmer in kmerbasis
+        if len(kmerbasis) > 0 and len(kmers) > 0:
+            vecs[idx][np.isin(kmerbasis, kmers)] = 1
+
+        ids.append(record.id)
+        seqs.append(reduced)
+        lengths.append(len(record.seq))
+        idx += 1
+
+    # -----------------------------
+    # 3) Save NPZ and kmer object
+    # -----------------------------
+    np.savez_compressed(
+        output_npz,
+        kmerlist=kmerbasis,
+        ids=np.array(ids, dtype=object),
+        seqs=np.array(seqs, dtype=object),
+        vecs=vecs,
+        lengths=np.array(lengths),
+    )
+
+    with open(output_kmerobj, "wb") as f:
+        pickle.dump(kmer, f)

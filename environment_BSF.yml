@@ -5,7 +5,7 @@ channels:
   - numba
   - conda-forge
 dependencies:
-  - python >= 3.9
+  - python >= 3.11, <3.12  # asyncore deprecated in 3.12
   - biopython
   - pyarrow
   - jinja2
@@ -16,11 +16,11 @@ dependencies:
   - pandas
   - seaborn
   - scikit-learn
-  - snakemake == 7.0
+  - snakemake == 9.13
   - tabulate == 0.8.10
   - umap-learn
   - hdbscan
   - pip
   - pip:
-      - -e git+https://github.com/PNNL-CompBio/Snekmer#egg=snekmer
-      - -e git+https://github.com/PNNL-Compbio/bsf-jaccard-py#egg=bsf
+      - snekmer
+      - -e git+https://github.com/PNNL-Compbio/bsf-jaccard-py#egg=bsf  # deprecated!

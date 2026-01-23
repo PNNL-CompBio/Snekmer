@@ -1,7 +1,7 @@
 .. _config-main:
 
-Setting up User Configuration
-=============================
+Setting up User Configuration (config.yaml)
+===========================================
 
 To run Snekmer, the user must specify parameters in a configuration
 file (.YAML). A template ``config.yaml`` file is included in the
@@ -129,6 +129,11 @@ General parameters related to Snekmer's learn and apply mode (``snekmer learn``,
  ``min_length``                  ``int``               Minimum length of fragment that should be retained. Values less than this are discarded.
  ``location``                    ``str``               Choose 'start', 'end', or 'random'. This is where on a sequence a fragment is taken from.
  ``seed``                        ``int``               Choose any (random) seed for reproducible fragmentation.
+ ``selection``                   ``str``               The method for selecting an annotation: 'top_hit', 'greatest_distance', or 'combined_distance'.
+ ``threshold``                   ``str`` or ``None``             A family-specific threshold used for prediction filtering: None, 'Median', 'Mean', '90th Percentile', etc.
+ ``weight_top``                  ``float``             When selection method is 'combined_distance', this is the weight for the top_hit method.
+ ``weight_distance``             ``float``             When selection method is 'combined_distance', this is the weight for the greatest_distance method.
+ ``apply_output``                ``str`` or ``None``   The output name for the apply results in single file format.
 =============================  =====================  =========================================================================
 
 

@@ -1,23 +1,36 @@
 Installation
 ============
+We recommend installing Snekmer using Python's `venv <https://docs.python.org/3/library/venv.html>`_ module. Before installing Snekmer, check that you have Python 3.11 or later installed using the command:
 
-We recommend `Mamba <https://mamba.readthedocs.io/en/latest/installation.html>`_
+.. code-block:: bash
+
+	python --version
+
+The next step is to create and activate a new virtual environment that will contain Snekmer and its dependencies.
+
+.. code-block:: bash
+
+	python3 -m venv ~/snekmer_env
+	source ~/snekmer_env/bin/activate
+
+Once the virtual environment has been created and activated, clone and install Snekmer using the following commands.
+
+.. code-block:: bash
+
+	git clone https://github.com/PNNL-CompBio/Snekmer.git
+	cd Snekmer
+	pip install -r requirements.txt
+	pip install .     # this installs local snekmer
+
+Install Snekmer via Mamba/Conda
+-------------------------------
+It is also possible to use `Mamba <https://mamba.readthedocs.io/en/latest/installation.html>`_
 for installation handling. `Conda <https://www.anaconda.com/download/>`_ can be
 used as an alternative, but Conda can take a long time to resolve dependencies,
 thus rendering installation via Conda
 significantly slower than installation via Mamba. Mamba/Conda will
 both manage dependencies and versioning, which simplifies the
 process of installation.
-
-If you already have Conda but wish to use Mamba for installation,
-you can install Mamba by running the following:
-
-.. code-block:: bash
-
-  conda install -c conda-forge mamba
-
-Install Snekmer via Mamba/Conda
--------------------------------
 
 The simplest method for installation is via the included YML file, which will create
 a new environment containing Snekmer and all of its dependencies. Users may either
@@ -27,6 +40,7 @@ directly, or clone/fork the repository to obtain a local copy of the repository 
 included files.
 
 .. code-block:: bash
+
 
 	mamba env create -f environment.yml
 
@@ -82,65 +96,28 @@ include only the minimal version of Snakemake:
 ..   # option 2: direct install (no repository download required)
 ..   pip install git+https://github.com/PNNL-CompBio/Snekmer
 
-Install Snekmer via pip
------------------------
-
-**Warning:** Installation of Snekmer using ``pip`` is not recommended due to the complexity
-of dependencies associated with Snakemake. Mamba/Conda will handle these automatically,
-whereas ``pip`` will not.
-
-The ``pip`` implementation has not been fully tested, but users may attempt installation
-using the included specifications:
-
-.. code-block:: bash
-
-  pip install -r requirements.txt
-  pip install -e git+https://github.com/PNNL-CompBio/Snekmer#egg=snekmer
-
 Install Snekmer via Docker
 --------------------------
 
-Snekmer has been installed into a  public docker image hosted on `Dockerhub <https://hub.docker.com/repository/docker/jjacobson95/snekmer_env>`_.
-Usage requires the of installation of `Docker Desktop <https://docs.docker.com/desktop/>`_.
-This container is intended to be used via an interactive shell. Here, we provide the simplest method of usage.
+Snekmer has been installed into a public docker image hosted on `Dockerhub <https://hub.docker.com/repository/docker/jjacobson95/snekmer_env>`_.
+Usage requires the installation of `Docker Desktop <https://docs.docker.com/desktop/>`_.
 
-To download and run a container:
+To download the image from Dockerhub:
 
 .. code-block:: bash
 
-  docker pull jjacobson95/snekmer_env:v1.0
-  docker run jjacobson95/snekmer_env:v1.0
+  docker pull jjacobson95/snekmer:latest
 
 
 To use the command line interface within the container:
 
 .. code-block:: bash
 
-  docker ps       # This will display <container ID>
-  docker exec -it <container ID> /bin/bash
+  docker run --rm   -v "$(pwd)":/data   -w /data   jjacobson95/snekmer:latest {mode} {args}    # Run Snekmer
 
 
-Additional ``docker`` commands can be used to copy data into the container or to mount it to a local directory.
+The Docker image accepts the same modes (cluster, model, search, learn, apply, and motif) and command line arguments as the Snekmer command line interface.
 
-The current version of the Docker image requires the ``--configfile`` flag
-to be called explicitly (see :ref:`getting_started-all_options`).
-
-**Note:** This container is designed to run indefinitely and should be stopped after use.
-
-Notes on Using Snekmer Docker Image with Apple Silicon (M1/M2 Mac) Systems
-``````````````````````````````````````````````````````````````````````````
-
-The current Docker image of Snekmer has not been built for compatibility with ARM64
-systems (e.g. Apple silicon systems with the Apple M1/M2 chip). To use the Docker image
-on an Apple silicon system, Rosetta 2 is required. See the
-`relevant Docker documentation page <https://docs.docker.com/desktop/install/mac-install/>`_
-for more information.
-
-Rosetta 2 can be installed on the command line using ``softwareupdate``:
-
-.. code-block:: bash
-
-  softwareupdate --install-rosetta
 
 
 (optional) Install GCC for BSF

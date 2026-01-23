@@ -5,16 +5,16 @@ channels:
   - bioconda
   - numba
 dependencies:
-  - python=3.10
+  - python=3.11
   - biopython
   - jinja2
   - mamba
   - pyarrow
   - matplotlib
-  - numpy=1.22.3
+  - numpy>=1.22.3
   - numba>=0.56
   - scipy
-  - pandas=1.4.2
+  - pandas
   - seaborn
   - scikit-learn
   - snakemake=7.0
@@ -23,4 +23,4 @@ dependencies:
   - tabulate=0.8.10
   - pip
   - pip:
-      - git+https://github.com/PNNL-CompBio/Snekmer#egg=snekmer
+      - git+https://github.com/PNNL-CompBio/Snekmer@learn_decoy_implementation#egg=snekmer

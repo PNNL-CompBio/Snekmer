@@ -23,17 +23,17 @@ start_time = datetime.now()
 label = (
     config["score"]["lname"] if str(config["score"]["lname"]) != "None" else "label"
 )  # e.g. "family"
-with open(snakemake.log[0], "a") as f:
+with open(str(snakemake.log[0]), "a") as f:
     f.write(f"start time:\t{start_time}\n")
 
 # get kmers for this particular set of sequences
-kmers = skm.io.load_pickle(snakemake.input.kmerobj)
+kmers = skm.io.load_pickle(str(snakemake.input.kmerobj))
 
 # tabulate vectorized seq data
 data = list()
 kmer_sets = list()
 for f in snakemake.input.data:
-    kmerlist, df = skm.io.load_npz(f)
+    kmerlist, df = skm.io.load_npz(str(f))
     data.append(df)
     kmer_sets.append(kmerlist[0])
 
@@ -48,7 +48,7 @@ data = pd.concat(data, ignore_index=True)
 data["background"] = [f in snakemake.input.bg for f in data["filename"]]
 
 # log conversion step runtime
-skm.utils.log_runtime(snakemake.log[0], start_time, step="files_to_df")
+skm.utils.log_runtime(str(snakemake.log[0]), start_time, step="files_to_df")
 
 # parse family names and only add if some are valid
 families = [
@@ -102,11 +102,11 @@ class_probabilities = (
 )
 
 # log time to compute class probabilities
-skm.utils.log_runtime(snakemake.log[0], start_time, step="class_probabilities")
+skm.utils.log_runtime(str(snakemake.log[0]), start_time, step="class_probabilities")
 
 # this will be redundant with the output csv file - except that
 #      it will have the harmonized matrix included with it
-with open(snakemake.output.matrix, "wb") as f:
+with open(str(snakemake.output.matrix), "wb") as f:
     pickle.dump(data, f)
 
 # save all files to respective outputs
@@ -115,12 +115,12 @@ for col in delete_cols:
     if col in class_probabilities.columns:
         class_probabilities = class_probabilities.drop(columns=col)
 data.drop(columns="sequence_vector").to_csv(
-    snakemake.output.data, index=False, compression="gzip"
+    str(snakemake.output.data), index=False, compression="gzip"
 )
 
-class_probabilities.to_csv(snakemake.output.weights, index=False, compression="gzip")
-with open(snakemake.output.scorer, "wb") as f:
+class_probabilities.to_csv(str(snakemake.output.weights), index=False, compression="gzip")
+with open(str(snakemake.output.scorer), "wb") as f:
     pickle.dump(scorer, f)
 
 # record script endtime
-skm.utils.log_runtime(snakemake.log[0], start_time)
+skm.utils.log_runtime(str(snakemake.log[0]), start_time)

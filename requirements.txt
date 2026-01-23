@@ -1,14 +1,15 @@
 biopython
 matplotlib
-numpy == 1.22.3
+numpy >= 1.22.3
 numba >= 0.56
-pandas == 1.4.2
+pandas
 seaborn
 scipy
 scikit-learn
-snakemake == 7.0
+snakemake == 9.13
 scikit-learn
 tabulate == 0.8.10
 umap-learn
 hdbscan
+pulp == 2.7.0
 pyarrow

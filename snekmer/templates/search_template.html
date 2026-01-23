@@ -1,20 +1,78 @@
+<!DOCTYPE html>
 <html>
-    <head>
-        <title>{{page_title}}</title>
-    </head>
-    <body>
-            <h1>{{title}}</h1>
-            <p>{{text}}</p>
-            {% for name in ordered %}
-                {% if name in dirs_list %}
-                    <p>Model: {{name}}</p>
-                {% else %}
-                    <p>
-                    <a href={{name}}>
-                       {{name}}
-                    </a>
-                    </p>
+  <head>
+    <meta charset="utf-8"/>
+    <title>{{ page_title }}</title>
+    <style>
+      body { font-family: sans-serif; max-width: 900px; margin: auto; padding: 1rem; }
+      h1 { border-bottom: 2px solid #333; padding-bottom: 0.2em; }
+      h2 { margin-top: 2rem; color: #225588; }
+      p.overview { font-size: 1.1em; line-height: 1.5em; }
+      .list { margin-top: 1rem; }
+      .item { margin: 0.2em 0; padding: 0.3em 0.4em; }
+      .item:nth-child(odd) { background: #f9f9f9; }
+      .file a { text-decoration: none; color: #115577; }
+      .file a:hover { text-decoration: underline; }
+      .meta { font-size: 0.9em; color: #555; margin-left: 0.5em; }
+      .dir { color: #333; font-weight: 600; }
+      hr { margin: 2rem 0; border: 0; border-top: 1px solid #ccc; }
+      button.toggle {
+        background: none; border: none; color: #115577; font-size: 0.9em; cursor: pointer;
+        padding: 0.2em 0; margin-top: 0.5em;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>{{ title }}</h1>
+    <p class="overview">{{ text }}</p>
+    <hr/>
+
+    {% set first = ordered[:25] %}
+    {% set rest  = ordered[25:] %}
+
+    <div class="list">
+      {% for name in first %}
+        {% set base = name.rsplit('/', 1)[-1] %}
+        {% if name in dirs_list %}
+          <div class="item dir">Model: {{ base }}</div>
+        {% else %}
+          <div class="item file">
+            <a href="{{ name }}"><strong>{{ base }}</strong></a>
+            {% if file_info is defined and name in file_info %}
+              <span class="meta">{{ file_info[name].size }} KB . {{ file_info[name].mtime }}</span>
+            {% endif %}
+          </div>
+        {% endif %}
+      {% endfor %}
+
+      {% if rest %}
+        <div id="more-items" style="display:none;">
+          {% for name in rest %}
+            {% set base = name.rsplit('/', 1)[-1] %}
+            {% if name in dirs_list %}
+              <div class="item dir">Model: {{ base }}</div>
+            {% else %}
+              <div class="item file">
+                <a href="{{ name }}"><strong>{{ base }}</strong></a>
+                {% if file_info is defined and name in file_info %}
+                  <span class="meta">{{ file_info[name].size }} KB . {{ file_info[name].mtime }}</span>
                 {% endif %}
-            {% endfor %}
-    </body>
+              </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+        <button class="toggle" onclick="toggleFiles('more-items', this)">Show&nbsp;more</button>
+      {% endif %}
+    </div>
+
+    <script>
+      function toggleFiles(id, btn){
+        const el = document.getElementById(id);
+        if(!el) return;
+        const hidden = el.style.display === "" || el.style.display === "none";
+        el.style.display = hidden ? "block" : "none";
+        btn.textContent = hidden ? "Show less" : "Show more";
+      }
+    </script>
+  </body>
 </html>

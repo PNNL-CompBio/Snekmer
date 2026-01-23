@@ -3,8 +3,10 @@
 author: @abbyjerger, @christinehc
 
 """
-from jinja2 import Environment, PackageLoader
+
 import os
+
+from jinja2 import Environment, PackageLoader
 
 env = Environment(loader=PackageLoader("snekmer"), auto_reload=False)
 
@@ -13,6 +15,8 @@ TEMPLATES = {
     "model": "model_template.html",
     "search": "search_template.html",
     "motif": "motif_template.html",
+    "apply": "apply_template.html",
+    "learn": "learn_template.html",
 }
 
 
@@ -66,8 +70,11 @@ def create_report(template_vars, template: str, report_file_name: str):
     """
     # look in this file folder for the templates
     template = env.get_template(TEMPLATES[template])
+    # html = template.render(template_vars)
+    # with open(report_file_name, "w") as f:
+    #     f.write(html)
     html = template.render(template_vars)
-    with open(report_file_name, "w") as f:
+    with open(report_file_name, "w", encoding="utf-8", newline="") as f:
         f.write(html)
 
 

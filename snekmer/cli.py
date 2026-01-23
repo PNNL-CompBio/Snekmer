@@ -6,10 +6,13 @@ author: @christinehc, @biodataganache, @snakemake
 # imports
 import argparse
 import os
+import sys
+import json
+import shlex
+import subprocess
 
 from multiprocessing import cpu_count
-from pkg_resources import resource_filename
-from snakemake import snakemake, parse_config, get_profile_file
+from importlib.resources import files, as_file
 from snekmer import __version__
 
 # define options
@@ -280,34 +283,138 @@ def get_main_args():
     return parser["main"]
 
 
-def main():
-    parser = get_argument_parser()
+# ------------------------- Snakemake v9 bridge helpers -------------------------
+def _coerce_scalar(val: str):
+    """Best-effort cast of KEY=VALUE overrides (bool/int/float/json/str)."""
+    low = val.lower()
+    if low in {"true", "false"}:
+        return low == "true"
+    try:
+        return int(val)
+    except ValueError:
+        pass
+    try:
+        return float(val)
+    except ValueError:
+        pass
+    try:
+        return json.loads(val)
+    except Exception:
+        return val
 
-    # parse args
-    args = parser["main"].parse_args()
-    config = parse_config(args)
 
-    # start/stop config
+def _parse_config_overrides(args):
+    """Re-implement minimal parse_config behavior (Snakemake ≥8 removed API)."""
+    cfg = {}
+    if args.config:
+        for item in args.config:
+            if "=" not in item:
+                raise ValueError(f"--config expects KEY=VALUE, got: {item!r}")
+            k, v = item.split("=", 1)
+            cfg[k] = _coerce_scalar(v)
+    # start/stop config (preserve original semantics)
     if args.count is not None:
-        config = {
-            "start": args.countstart,
-            "stop": args.countstart + args.count,
-            **config,
-        }
-    else:
-        config = config
+        cfg = {"start": args.countstart, "stop": args.countstart + args.count, **cfg}
+    return cfg
 
-    # set quiet output options
-    if args.quiet is not None and len(args.quiet) == 0:
+
+def _quiet_cli(args):
+    """Map original quiet behavior to Snakemake CLI flags."""
+    if args.quiet is None:
+        return []
+    if len(args.quiet) == 0:
         # default case, set quiet to progress and rule
-        args.quiet = ["progress", "rules"]
+        return ["--quiet", "progress", "--quiet", "rules"]
+    out = []
+    for q in args.quiet:
+        out.extend(["--quiet", q])
+    return out
 
-    # cluster config
+
+def _resolve_rulefile(relpath):
+    """Resolve packaged rules/<name>.smk using importlib.resources (replaces resource_filename)."""
+    res = files("snekmer") / relpath
+    return as_file(res)  # context manager yielding filesystem path
+
+
+def _build_snakemake_cmd(rulefile_path, args, configfiles, config, keepgoing_override=None):
+    """Translate previous snakemake(...) call into a Snakemake v9 CLI invocation."""
+    cmd = ["snakemake", "-s", rulefile_path, "--cores", str(args.cores)]
+
+    # previous parameters → CLI flags
+    if args.dryrun:
+        cmd.append("--dry-run")
+    if args.touch:
+        cmd.append("--touch")
+    if args.unlock:
+        cmd.append("--unlock")
+    if args.list_code_changes:
+        cmd.append("--list-code-changes")
+    if args.list_params_changes:
+        cmd.append("--list-params-changes")
+    if args.forcerun:
+        cmd.extend(["--forcerun", *args.forcerun])
+    if args.until:
+        cmd.extend(["--until", *args.until])
+    if args.latency is not None:
+        cmd.extend(["--latency-wait", str(args.latency)])
+    if args.verbose:
+        cmd.append("--verbose")
+
+    # treat incomplete as needing re-run (force_incomplete=True)
+    cmd.append("--rerun-incomplete")
+
+    # keepgoing: allow per-mode override exactly like original code
+    if keepgoing_override is True or (keepgoing_override is None and args.keepgoing):
+        cmd.append("--keep-going")
+
+    # config files
+    for cf in configfiles:
+        cmd.extend(["--configfiles", cf])
+
+    # inline config pairs
+    if config:
+        pairs = []
+        for k, v in config.items():
+            if isinstance(v, (dict, list)):
+                pairs.append(f"{k}={json.dumps(v)}")
+            else:
+                pairs.append(f"{k}={v}")
+        cmd.extend(["--config", *pairs])
+
+    # jobs
+    if args.jobs is not None:
+        cmd.extend(["--jobs", str(args.jobs)])
+
+    # working directory (previously workdir=args.directory)
+    if args.directory:
+        cmd.extend(["--directory", os.path.abspath(args.directory)])
+
+    # quiet flags
+    cmd.extend(_quiet_cli(args))
+
+    # Original built a fixed sbatch template when --clust was provided.
     if args.clust is not None:
-        cluster = "sbatch -A {cluster.account} -N {cluster.nodes} -t {cluster.time} -J {cluster.name} --ntasks-per-node {cluster.ntasks} -p {cluster.partition}"
-    else:
-        cluster = None
+        cluster = (
+            "sbatch -A {cluster.account} -N {cluster.nodes} -t {cluster.time} "
+            "-J {cluster.name} --ntasks-per-node {cluster.ntasks} -p {cluster.partition}"
+        )
+        cmd.extend(
+            [
+                "--executor",
+                "cluster-generic",
+                "--cluster-generic-submit-cmd",
+                cluster,
+            ]
+        )
+        for cc in args.clust:
+            cmd.extend(["--cluster-config", cc])
 
+    return cmd
+
+
+def _run(rule_basename, args, keepgoing_override=None):
+    """Helper to mirror per-mode snakemake(...) calls with minimal changes."""
     # fix configfile path
     if args.configfile is None:
         configfile = ["config.yaml"]
@@ -315,159 +422,64 @@ def main():
         configfile = args.configfile
 
     if (args.directory is not None) and (args.configfile is None):
-        configfile = [os.path.join(args.directory, c) for c in configfile]
+        configfiles = [os.path.join(args.directory, c) for c in configfile]
     else:
-        configfile = list(map(os.path.abspath, configfile))
+        configfiles = list(map(os.path.abspath, configfile))
+
+    # config (replacement for parse_config + start/stop handling)
+    config = _parse_config_overrides(args)
+
+    # resolve rules/<mode>.smk and invoke Snakemake CLI
+    relpath = os.path.join("rules", f"{rule_basename}.smk")
+    with _resolve_rulefile(relpath) as rulefile_path:
+        cmd = _build_snakemake_cmd(
+            str(rulefile_path), args, configfiles, config, keepgoing_override=keepgoing_override
+        )
+        if args.verbose:
+            print(">> Running:", shlex.join(cmd), file=sys.stderr)
+        proc = subprocess.run(cmd)
+        return proc.returncode
+
+
+def main():
+    parser = get_argument_parser()
+
+    # parse args
+    args = parser["main"].parse_args()
+
+    # set quiet output options
+    if args.quiet is not None and len(args.quiet) == 0:
+        # default case, set quiet to progress and rule
+        args.quiet = ["progress", "rules"]
 
     # parse operation mode
     if args.mode == "cluster":
-        snakemake(
-            resource_filename("snekmer", os.path.join("rules", "cluster.smk")),
-            configfiles=configfile,
-            config=config,
-            cluster_config=args.clust,
-            cluster=cluster,
-            keepgoing=args.keepgoing,
-            force_incomplete=True,
-            forcerun=args.forcerun,
-            cores=args.cores,
-            nodes=args.jobs,
-            workdir=args.directory,
-            dryrun=args.dryrun,
-            unlock=args.unlock,
-            list_code_changes=args.list_code_changes,
-            list_params_changes=args.list_params_changes,
-            until=args.until,
-            touch=args.touch,
-            latency_wait=args.latency,
-            verbose=args.verbose,
-            quiet=args.quiet,
-        )
+        rc = _run("cluster", args, keepgoing_override=args.keepgoing)
 
     elif args.mode == "model":
-        snakemake(
-            resource_filename("snekmer", os.path.join("rules", "model.smk")),
-            configfiles=configfile,
-            config=config,
-            cluster_config=args.clust,
-            cluster=cluster,
-            keepgoing=args.keepgoing,
-            force_incomplete=True,
-            forcerun=args.forcerun,
-            cores=args.cores,
-            nodes=args.jobs,
-            workdir=args.directory,
-            dryrun=args.dryrun,
-            unlock=args.unlock,
-            list_code_changes=args.list_code_changes,
-            list_params_changes=args.list_params_changes,
-            until=args.until,
-            touch=args.touch,
-            latency_wait=args.latency,
-            verbose=args.verbose,
-            quiet=args.quiet,
-        )
+        rc = _run("model", args, keepgoing_override=args.keepgoing)
 
     elif args.mode == "search":
-        snakemake(
-            resource_filename("snekmer", os.path.join("rules", "search.smk")),
-            configfiles=configfile,
-            config=config,
-            cluster_config=args.clust,
-            cluster=cluster,
-            keepgoing=True,
-            force_incomplete=True,
-            forcerun=args.forcerun,
-            cores=args.cores,
-            nodes=args.jobs,
-            workdir=args.directory,
-            dryrun=args.dryrun,
-            unlock=args.unlock,
-            list_code_changes=args.list_code_changes,
-            list_params_changes=args.list_params_changes,
-            until=args.until,
-            touch=args.touch,
-            latency_wait=args.latency,
-            verbose=args.verbose,
-            quiet=args.quiet,
-        )
-        
+
+        rc = _run("search", args, keepgoing_override=True)
+
     elif args.mode == "motif":
-        snakemake(
-            resource_filename("snekmer", os.path.join("rules", "motif.smk")),
-            configfiles=configfile,
-            config=config,
-            cluster_config=args.clust,
-            cluster=cluster,
-            keepgoing=args.keepgoing,
-            force_incomplete=True,
-            forcerun=args.forcerun,
-            cores=args.cores,
-            nodes=args.jobs,
-            workdir=args.directory,
-            dryrun=args.dryrun,
-            unlock=args.unlock,
-            list_code_changes=args.list_code_changes,
-            list_params_changes=args.list_params_changes,
-            until=args.until,
-            touch=args.touch,
-            latency_wait=args.latency,
-            verbose=args.verbose,
-            quiet=args.quiet,
-        )
+        rc = _run("motif", args, keepgoing_override=args.keepgoing)
 
     elif args.mode == "learn":
-        snakemake(
-            resource_filename("snekmer", os.path.join("rules", "learn.smk")),
-            configfiles=configfile,
-            config=config,
-            cluster_config=args.clust,
-            cluster=cluster,
-            keepgoing=True,
-            force_incomplete=True,
-            forcerun=args.forcerun,
-            cores=args.cores,
-            nodes=args.jobs,
-            workdir=args.directory,
-            dryrun=args.dryrun,
-            unlock=args.unlock,
-            list_code_changes=args.list_code_changes,
-            list_params_changes=args.list_params_changes,
-            until=args.until,
-            touch=args.touch,
-            latency_wait=args.latency,
-            verbose=args.verbose,
-            quiet=args.quiet,
-        )
-        
+
+        rc = _run("learn", args, keepgoing_override=True)
+
     elif args.mode == "apply":
-        snakemake(
-            resource_filename("snekmer", os.path.join("rules", "apply.smk")),
-            configfiles=configfile,
-            config=config,
-            cluster_config=args.clust,
-            cluster=cluster,
-            keepgoing=True,
-            force_incomplete=True,
-            forcerun=args.forcerun,
-            cores=args.cores,
-            nodes=args.jobs,
-            workdir=args.directory,
-            dryrun=args.dryrun,
-            unlock=args.unlock,
-            list_code_changes=args.list_code_changes,
-            list_params_changes=args.list_params_changes,
-            until=args.until,
-            touch=args.touch,
-            latency_wait=args.latency,
-            verbose=args.verbose,
-            quiet=args.quiet,
-        )
+
+        rc = _run("apply", args, keepgoing_override=True)
 
     else:
         parser["main"].print_help()
+        rc = 2
+
+    sys.exit(rc)
 
 
 if __name__ == "__main__":
     main()
-

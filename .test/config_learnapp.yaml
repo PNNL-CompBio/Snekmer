@@ -43,7 +43,7 @@ basis_dir: "/path/to/output/kmerize/"
 score_dir: "/path/to/output/scoring/"
 
 
-learnapp:
+learn_apply:
   save_apply_associations: False
   fragmentation: False
   version: absolute
@@ -56,3 +56,4 @@ learnapp:
   threshold: 'Median'                  # Column name from family_summary_stats.csv
   weight_top: 0.7                      # For combined_distance selection method
   weight_distance: 0.3                 # For combined_distance selection method
+  apply_output: snekmer_results.csv    # output name for apply single file results.

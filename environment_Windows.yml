@@ -5,7 +5,7 @@ channels:
   - numba
   - conda-forge
 dependencies:
-  - python >= 3.9
+  - python >= 3.11
   - biopython
   - pyarrow
   - jinja2
@@ -16,10 +16,10 @@ dependencies:
   - pandas
   - seaborn
   - scikit-learn
-  - snakemake-minimal == 7.0
+  - snakemake-minimal == 9.13
   - tabulate == 0.8.10
   - umap-learn
   - hdbscan
   - pip
   - pip:
-      - -e git+https://github.com/PNNL-CompBio/Snekmer#egg=snekmer
+      - snekmer
