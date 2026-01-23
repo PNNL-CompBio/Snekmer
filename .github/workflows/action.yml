@@ -48,7 +48,7 @@ jobs:
           source snekmer_env/bin/activate
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install git+https://github.com/PNNL-CompBio/Snekmer@learn_decoy_implementation#egg=snekmer
+          pip install git+https://github.com/PNNL-CompBio/Snekmer#egg=snekmer
           echo "VIRTUAL_ENV=$PWD/snekmer_env" >> $GITHUB_ENV
           echo "$PWD/snekmer_env/bin" >> $GITHUB_PATH
 
@@ -61,7 +61,7 @@ jobs:
       # - shell: bash -l {0}
       #   run: mamba env create -f .test/test-env.yml
       # - shell: bash -l {0}
-      #   run: pip install -e git+https://github.com/PNNL-CompBio/Snekmer@learn_decoy_implementation#egg=snekmer
+      #   run: pip install -e git+https://github.com/PNNL-CompBio/Snekmer#egg=snekmer
 
       #test clustering step
       - name: Snekmer Cluster
