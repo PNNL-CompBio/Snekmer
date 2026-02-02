@@ -12,7 +12,7 @@ Snekmer subsequently (1) clusters sequences using various unsupervised clusterin
 to determine probabilistic annotations.
 
 <p align="center">
-  <img align="center" src="resources/snekmer_workflow.svg">
+  <img align="center" src="resources/images/snekmer_workflow.svg">
 </p>
 
 There are six operation modes for Snekmer: `cluster`, `model`, and `search`, `learn`, `apply`, and `motif`.
@@ -50,7 +50,7 @@ For installation instructions, documentation, and more, refer to
 the [official documentation](https://snekmer.readthedocs.io).
 
 To run the demonstration example, see 
-[resources/tutorial/demo_example](https://github.com/PNNL-CompBio/Snekmer/tree/main/resources/tutorial/demo_example).
+[resources/tutorial](https://github.com/PNNL-CompBio/Snekmer/tree/main/resources/tutorial).
 
 
 Snekmer was written and is maintained by the following PNNL development team: Christine Chang, Jeremy Jacobson, Abby Jerger, Tara Nitka, Bill Nelson, and Jason McDermott.
