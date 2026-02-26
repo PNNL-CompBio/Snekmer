@@ -10,7 +10,7 @@ The next step is to create and activate a new virtual environment that will cont
 
 .. code-block:: bash
 
-	python3 -m venv ~/snekmer_env
+	python -m venv ~/snekmer_env
 	source ~/snekmer_env/bin/activate
 
 Once the virtual environment has been created and activated, clone and install Snekmer using the following commands.

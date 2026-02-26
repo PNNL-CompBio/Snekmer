@@ -44,9 +44,33 @@ predictions with confidence levels.
 and the outputs received from Model. Snekmer performs a feature selection workflow to produce a 
 list of motifs ordered by degree of conservation and a classification model using the selected features (.model).
 
+## Quick Start
+
+To install Snekmer using [venv](https://docs.python.org/3/library/venv.html), first install [Python](https://www.python.org/downloads/) 3.11 or later. To check whether you have a compatible Python version installed, you can run:
+
+```
+python --version
+```
+
+Once a compatible Python version is present, create and activate the a virtual environment:
+
+```
+python -m venv ~/snekmer_env
+source ~/snekmer_env/bin/activate
+```
+
+Finally clone and install Snekmer using the following commands:
+
+```
+git clone https://github.com/PNNL-CompBio/Snekmer.git
+cd Snekmer
+pip install -r requirements.txt
+pip install .
+```
+
 ## How to Use Snekmer
 
-For installation instructions, documentation, and more, refer to
+For detailed installation instructions, documentation, and more, refer to
 the [official documentation](https://snekmer.readthedocs.io).
 
 To run the demonstration example, see 
