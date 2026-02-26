@@ -56,7 +56,12 @@ Once a compatible Python version is present, create and activate the a virtual e
 
 ```
 python -m venv ~/snekmer_env
-source ~/snekmer_env/bin/activate
+source ~/snekmer_env/bin/activate #bash or zsh only
+```
+
+If you are using csh, you can create the virtual environment the same way but must activate it using:
+```
+source ~/snekmer_env/bin/activate.csh
 ```
 
 Finally clone and install Snekmer using the following commands:
