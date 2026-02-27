@@ -4,7 +4,7 @@ Setting up User Configuration (config.yaml)
 ===========================================
 
 To run Snekmer, the user must specify parameters either in a configuration
-file (.YAML) or by specifying them on the command line using the -C or --config option. A template ``config.yaml`` file is included in the
+file (.YAML) or by specifying them as command line arguments using -C or --config. A template ``config.yaml`` file is included in the
 `resources directory <https://github.com/PNNL-CompBio/Snekmer/tree/main/resources>`_.
 
 The example YAML files included are:
@@ -15,7 +15,7 @@ The example YAML files included are:
 Parameter Descriptions for ``config.yaml``
 ------------------------------------------
 
-The base `config.yaml` file contains the parameters which are required in order to run `snekmer model` or `snekmer cluster`. These may alternatively be specified from the command line, and Snekmer supports specifying some parameters in a .yaml file (either config.yaml or specified using --configfile when invoking Snekmer) and others using the -C or --config option.
+The base `config.yaml` file contains the parameters which are required in order to run `snekmer model` or `snekmer cluster`. These may alternatively be specified using command line arguments, and Snekmer supports specifying some parameters in a .yaml file (either config.yaml or specified using --configfile when invoking Snekmer) and others using -C or --config arguments.
 
 Required Parameters
 ```````````````````
