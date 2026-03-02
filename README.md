@@ -15,7 +15,7 @@ to determine probabilistic annotations.
   <img align="center" src="resources/images/snekmer_workflow.svg">
 </p>
 
-There are six operation modes for Snekmer: `cluster`, `model`, and `search`, `learn`, `apply`, and `motif`.
+There are six operation modes for Snekmer: `cluster`, `model`, `search`, `learn`, `apply`, and `motif`.
 
 **Cluster mode:** The user supplies files containing sequences in an appropriate format (e.g. FASTA).
 Snekmer applies the relevant workflow steps and outputs the resulting clustering results in tabular form (.CSV),
@@ -40,56 +40,182 @@ and the outputs received from Learn. Snekmer uses cosine distance to predict the
 sequence from the kmer counts matrix. The output is a table for each file containing sequence annotation
 predictions with confidence levels.
 
-**Motif mode:** The user supplies files containing sequences in an appropriate format (e.g. FASTA)
-and the outputs received from Model. Snekmer performs a feature selection workflow to produce a 
+**Motif mode (In Development):** The user supplies files containing sequences in an appropriate format (e.g. FASTA)
+and the outputs received from Model. Snekmer performs a feature selection workflow to produce a
 list of motifs ordered by degree of conservation and a classification model using the selected features (.model).
 
-## Quick Start
+--------------------------------------------------------------------------------
+Installation
+--------------------------------------------------------------------------------
 
-To install Snekmer using [venv](https://docs.python.org/3/library/venv.html), first install [Python](https://www.python.org/downloads/) 3.11 or later. To check whether you have a compatible Python version installed, you can run:
+Requirements:
+- Python 3.11+
+- A working C/C++ toolchain may be required for some dependencies depending on your platform.
+- Snekmer orchestrates workflows via Snakemake (installed as a Python dependency).
 
-```
-python --version
-```
+Option A: Install from source (recommended for development)
+1) Create and activate a virtual environment:
 
-Once a compatible Python version is present, create and activate the a virtual environment:
+  python -m venv ~/snekmer_env
+  source ~/snekmer_env/bin/activate     # bash/zsh
+  # or:
+  source ~/snekmer_env/bin/activate.csh # csh
 
-```
-python -m venv ~/snekmer_env
-source ~/snekmer_env/bin/activate #bash or zsh only
-```
+2) Clone and install:
 
-If you are using csh, you can create the virtual environment the same way but must activate it using:
-```
-source ~/snekmer_env/bin/activate.csh
-```
+  git clone https://github.com/PNNL-CompBio/Snekmer.git
+  cd Snekmer
+  pip install -r requirements.txt
+  pip install .
 
-Finally clone and install Snekmer using the following commands:
+Verify installation:
+  snekmer -h
 
-```
-git clone https://github.com/PNNL-CompBio/Snekmer.git
-cd Snekmer
-pip install -r requirements.txt
-pip install .
-```
+--------------------------------------------------------------------------------
+Quick Start: Running Snekmer
+--------------------------------------------------------------------------------
 
-## How to Use Snekmer
+Snekmer workflows are run via the `snekmer` CLI. Most users will run using a YAML configuration file
+(`config.yaml`). Please view the documentation site for full instructions as these brief examples are not
+sufficient to run all workflows in all environments.
 
-For detailed installation instructions, documentation, and more, refer to
-the [official documentation](https://snekmer.readthedocs.io).
+Base working directory layout (recommended)
+-------------------------------------------
 
-To run the demonstration example, see 
-[resources/tutorial](https://github.com/PNNL-CompBio/Snekmer/tree/main/resources/tutorial).
+At minimum, most modes assume a working directory containing:
 
+  input/          (sequence files; FASTA/FAA/FNA/etc.)
+  config.yaml     (workflow parameters; use resources/config.yaml as a template)
 
-Snekmer was written and is maintained by the following PNNL development team: Christine Chang, Jeremy Jacobson, Abby Jerger, Tara Nitka, Bill Nelson, and Jason McDermott.
+For Learn/Apply, you will also use:
 
-## Citation Guidance
+  annotations/{file}.ann
 
-1. McDermott, Jason E., Chang, Christine H., Jerger, Abby, Nelson, William B., & Jacobson, Jeremy R. (2023). Snekmer: A scalable pipeline for protein sequence fingerprinting using amino acid recoding (AAR) (v1.0.3). Zenodo. [https://doi.org/10.5281/zenodo.7662597](https://doi.org/10.5281/zenodo.7662597)
-2. Christine H Chang, William C Nelson, Abby Jerger, Aaron T Wright, Robert G Egbert, Jason E McDermott, Snekmer: a scalable pipeline for protein sequence fingerprinting based on amino acid recoding, Bioinformatics Advances, Volume 3, Issue 1, 2023, vbad005, [https://doi.org/10.1093/bioadv/vbad005](https://doi.org/10.1093/bioadv/vbad005).
+Mode-specific required files and directories
+--------------------------------------------
 
-## License
+This section lists the typical required inputs beyond `config.yaml`, and the key handoff artifacts between modes.
+
+1) cluster
+- Required:
+  - input/                FASTA/FAA/FNA files to be clustered
+  - config.yaml           must include k, alphabet, and cluster parameters
+- Produces (typical):
+  - output/cluster/snekmer.csv
+  - output/cluster/figures/           (if cluster_plots enabled)
+  - output/cluster/log/              (logs)
+
+2) model
+- Required:
+  - input/                FASTA/FAA/FNA files for supervised model building
+  - config.yaml           must include k, alphabet, score.*, and model parameters
+- Produces (typical):
+  - output/model/         *.model
+  - output/scoring/       *.scorer
+  - output/kmerize/       *.kmers            (k-mer basis)
+  - output/model/*.csv and figures (cross-validation summaries)
+
+3) search
+- Required:
+  - input/                FASTA/FAA/FNA query files to score
+  - config.yaml           must include k, alphabet, score.*, and search paths
+  - model artifacts from a prior model run (or equivalent files produced elsewhere):
+      - model_dir/        directory containing one or more *.model files
+      - basis_dir/        directory containing one or more *.kmers files
+      - score_dir/        directory containing one or more *.scorer files
+    (These paths are configured in config.yaml as model_dir, basis_dir, score_dir.)
+- Produces (typical):
+  - output/search/        per-input results tables
+  - output/search/log/    (logs)
+
+4) learn
+- Required:
+  - input/                          training FASTA files (sequence IDs must encode the annotation label)
+  - annotations/                    annotation file(s) used to define/validate labels
+  - config.yaml                     must include k, alphabet, and learn_apply.* parameters
+- Produces the handoff files used by apply (typical locations shown from the demo):
+  - output/learn/kmer_counts_total.csv
+  - output/eval_conf/global_confidence_scores.csv
+  - output/eval_conf/family_summary_stats.csv
+
+5) apply
+- Required:
+  - input/                          FASTA/FAA/FNA query files to annotate
+  - annotations/                    (same annotation context as learn, if your workflow expects it)
+  - config.yaml                     must include k, alphabet, and learn_apply.* parameters
+  - Learn handoff files (REQUIRED):
+      - counts/kmer_counts_total.csv            (from learn: learn/output/learn/kmer_counts_total.csv)
+      - confidence/global_confidence_scores.csv     (from learn: learn/output/eval_conf/global_confidence_scores.csv)
+      - stats/family_summary_stats.csv         (from learn: learn/output/eval_conf/family_summary_stats.csv)
+
+  Your apply workflow expects these files to exist in the locations referenced by the rules/config.
+
+- Produces (typical):
+  - output/                          apply reports/tables (location depends on workflow)
+  - snekmer_results.csv              (when single-file results output is enabled; demo writes apply/snekmer_results.csv)
+
+Basic run commands (examples)
+-----------------------------
+
+  snekmer cluster --cores 2 --configfile ./config.yaml
+  snekmer model   --cores 2 --configfile ./config.yaml
+  snekmer search  --cores 2 --configfile ./config.yaml
+  snekmer learn   --cores 2 --configfile ./config.yaml
+  snekmer apply   --cores 2 --configfile ./config.yaml
+
+Help:
+  snekmer -h
+  snekmer <mode> -h
+
+Documentation:
+For detailed parameter definitions, installation notes, and usage guidance, see:
+  https://snekmer.readthedocs.io
+
+--------------------------------------------------------------------------------
+Demos and Tutorials
+--------------------------------------------------------------------------------
+
+Snekmer includes runnable demos and Jupyter tutorials under the `resources/` directory.
+
+Two end-to-end demos (each has a single entrypoint script named `run_demo.py`):
+1) Model -> Cluster -> Search demo:
+   resources/model_cluster_search_demo/run_demo.py
+
+2) Learn -> Apply demo:
+   resources/learn_apply_demo/run_demo.py
+
+Run a demo (example):
+  cd resources/model_cluster_search_demo
+  python run_demo.py
+
+Tutorial notebooks:
+- resources/tutorial/snekmer_demo.ipynb
+- resources/tutorial/snekmer_learn_apply_tutorial.ipynb
+
+See `resources/README.md` for a complete description of demos, tutorials, expected inputs, and outputs.
+
+--------------------------------------------------------------------------------
+Citation Guidance
+--------------------------------------------------------------------------------
+
+1. McDermott, Jason E., Chang, Christine H., Jerger, Abby, Nelson, William B., & Jacobson, Jeremy R. (2023).
+   Snekmer: A scalable pipeline for protein sequence fingerprinting using amino acid recoding (AAR) (v1.0.3).
+   Zenodo. https://doi.org/10.5281/zenodo.7662597
+
+2. Christine H Chang, William C Nelson, Abby Jerger, Aaron T Wright, Robert G Egbert, Jason E McDermott,
+   Snekmer: a scalable pipeline for protein sequence fingerprinting based on amino acid recoding,
+   Bioinformatics Advances, Volume 3, Issue 1, 2023, vbad005. https://doi.org/10.1093/bioadv/vbad005
+
+--------------------------------------------------------------------------------
+Maintainers
+--------------------------------------------------------------------------------
+
+Snekmer was written and is maintained by the following PNNL development team:
+Christine Chang, Jeremy Jacobson, Abby Jerger, Tara Nitka, Bill Nelson, and Jason McDermott.
+
+--------------------------------------------------------------------------------
+License
+--------------------------------------------------------------------------------
 
 BSD 3-Clause License
 
@@ -121,10 +247,21 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-## Disclaimers
+--------------------------------------------------------------------------------
+Disclaimers
+--------------------------------------------------------------------------------
 
-    This material was prepared as an account of work sponsored by an agency of the United States Government. Neither the United States Government nor the United States Department of Energy, nor Battelle, nor any of their employees, nor any jurisdiction or organization that has cooperated in the development of these materials, makes any warranty, express or implied, or assumes any legal liability or responsibility for the accuracy, completeness, or usefulness or any information, apparatus, product, software, or process disclosed, or represents that its use would not infringe privately owned rights.
+This material was prepared as an account of work sponsored by an agency of the United States Government.
+Neither the United States Government nor the United States Department of Energy, nor Battelle, nor any of
+their employees, nor any jurisdiction or organization that has cooperated in the development of these
+materials, makes any warranty, express or implied, or assumes any legal liability or responsibility for the
+accuracy, completeness, or usefulness or any information, apparatus, product, software, or process disclosed,
+or represents that its use would not infringe privately owned rights.
 
-    Reference herein to any specific commercial product, process, or service by trade name, trademark, manufacturer, or otherwise does not necessarily constitute or imply its endorsement, recommendation, or favoring by the United States Government or any agency thereof, or Battelle Memorial Institute. The views and opinions of authors expressed herein do not necessarily state or reflect those of the United States Government or any agency thereof.
+Reference herein to any specific commercial product, process, or service by trade name, trademark, manufacturer,
+or otherwise does not necessarily constitute or imply its endorsement, recommendation, or favoring by the
+United States Government or any agency thereof, or Battelle Memorial Institute. The views and opinions of authors
+expressed herein do not necessarily state or reflect those of the United States Government or any agency thereof.
 
-    PACIFIC NORTHWEST NATIONAL LABORATORY operated by BATTELLE for the UNITED STATES DEPARTMENT OF ENERGY under Contract DE-AC05-76RL01830
+PACIFIC NORTHWEST NATIONAL LABORATORY operated by BATTELLE for the UNITED STATES DEPARTMENT OF ENERGY under
+Contract DE-AC05-76RL01830

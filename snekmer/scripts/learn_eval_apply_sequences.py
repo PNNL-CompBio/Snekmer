@@ -169,7 +169,8 @@ class EvaluateSequences:
         for i, (index_one, index_two) in enumerate(top_two_indices):
             mask[i, index_one] = True
             mask[i, index_two] = True
-        final_matrix_with_scores.values[~mask] = np.nan
+        final_matrix_with_scores = final_matrix_with_scores.copy()
+        final_matrix_with_scores.values[~mask] = np.nan 
         return final_matrix_with_scores
 
     def write_output(self, final_matrix_with_scores: pd.DataFrame) -> None:
