@@ -33,6 +33,9 @@ To run an example set of fasta files use the following commands:
 Evaluating Results
 ------------------
 
+Apply writes a summary of results to ``output/Snekmer_Apply_Report.html``. Below is an example of a report file.
+
+.. image:: resources/images/apply_report_example.png 
+
 See the :ref:`Accessing Results <usage-results>` section for more details.
 
-*to be continued...*

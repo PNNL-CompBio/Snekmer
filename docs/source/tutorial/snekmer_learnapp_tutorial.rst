@@ -14,7 +14,7 @@ The basic process for running Snekmer Learn/Apply is as follows:
 1. Verify that your file directory structure is correct and that the ``config.yaml`` file is in the top-level directory.
 
    - A ``config.yaml`` template is included in the Snekmer codebase at
-     ``resources/learn_apply/config.yaml``.
+     ``resources/config.yaml``.
 
 2. Modify ``config.yaml`` with the desired parameters.
 
