@@ -4,15 +4,14 @@ Snekmer Learn/Apply Tutorial
 
 This tutorial walks through the process of running the **Snekmer Learn** and
 **Snekmer Apply** pipelines, from directory setup through vectorization and
-annotation prediction.
+annotation prediction. A detailed explanation of each step is available in ``resources/tutorial/snekmer_learn_apply_tutorial.ipynb``.
 
 Overview
 ========
 
 The basic process for running Snekmer Learn/Apply is as follows:
 
-1. Verify that your file directory structure is correct and that the top-level
-   directory contains a ``config.yaml`` file.
+1. Verify that your file directory structure is correct and that the ``config.yaml`` file is in the top-level directory.
 
    - A ``config.yaml`` template is included in the Snekmer codebase at
      ``resources/learn_apply/config.yaml``.
@@ -29,35 +28,10 @@ The basic process for running Snekmer Learn/Apply is as follows:
 Running the Snekmer Learn Pipeline
 ===================================
 
-Setup
------
-
-.. note::
-
-   This tutorial assumes you are working from the ``resources/tutorial/``
-   directory.
-
-To set up the workflow we initialize a configuration dictionary (equivalent to
-the YAML file used on the command line) and gather all input files.  Input files
-are detected with ``glob.glob``, exactly as Snekmer performs input-file
-detection.
-
-.. code-block:: python
-
-   # --- Standard library ---
-   import os, sys, shutil, gzip, pickle
-   from glob import glob
-   from pathlib import Path
-
-   # --- Third-party ---
-   # (additional imports as required by your environment)
-
-
 Configuration Parameters
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Below is an example configuration dictionary.  When using the command-line
-workflow these values live in ``config.yaml``.
+Below is an example configuration dictionary.  These values typicaly live in ``config.yaml``, but can also be specified from the command line.
 
 .. code-block:: python
 
@@ -89,93 +63,6 @@ workflow these values live in ``config.yaml``.
        # Output naming
        "apply_output": "snekmer_results.csv",
    }
-
-.. warning::
-
-   The ``fragmentation`` option and the ``conf_weight_modifier`` parameter
-   (intended for subsequent data additions) are **not** supported in the
-   notebook workflow.
-
-
-Rule 0 — Collect Input Files
------------------------------
-
-Gather all FASTA files from the input directory and define the output
-directory:
-
-.. code-block:: python
-
-   input_dir = "learn/input"
-
-   unzipped = []
-   for ext in ["fasta", "fa", "faa"]:
-       unzipped.extend(glob(os.path.join(input_dir, f"*.{ext}")))
-   print("unzipped files:\t", unzipped)
-
-   # Define output directory (create if missing)
-   output_dir = "learn/output"
-   os.makedirs(output_dir, exist_ok=True)
-
-
-Vectorize Helper Function
---------------------------
-
-The helper function below replicates the k-mer vectorization step normally
-performed inside the Snakemake workflow (``kmerize``, ``vectorize``).  Given a
-FASTA file it:
-
-* constructs (or loads) a k-mer basis,
-* reduces amino-acid sequences to the chosen alphabet,
-* generates a binary presence/absence matrix of k-mers for every protein, and
-* writes the results to the ``.npz`` and ``.kmers`` formats used by the full
-  Learn pipeline.
-
-.. code-block:: python
-
-   def run_vectorize_like_snakemake(
-       fasta_path: str,
-       alphabet,
-       k: int,
-       output_npz: str,
-       output_kmerobj: str,
-       basis_path: str = None,
-       min_filter: int = 0,
-   ):
-       """Notebook helper that replicates kmerize.smk::vectorize."""
-       kmer = KmerVec(alphabet=alphabet, k=k)
-       if basis_path is not None and os.path.exists(basis_path):
-           # ... load existing basis and vectorize ...
-           pass
-       # (full implementation omitted for brevity)
-
-
-Vectorize Input Files
----------------------
-
-Create the output directories and vectorize every FASTA file collected in
-**Rule 0**:
-
-.. code-block:: python
-
-   vector_dir = os.path.join(output_dir, "vector")
-   kmer_dir   = os.path.join(output_dir, "kmerize")
-   os.makedirs(vector_dir, exist_ok=True)
-   os.makedirs(kmer_dir,   exist_ok=True)
-
-   for fa in unzipped:
-       base    = os.path.basename(skm.utils.split_file_ext(fa)[0])
-       out_npz = os.path.join(vector_dir, f"{base}.npz")
-       # ... call run_vectorize_like_snakemake(...) ...
-
-Expected output:
-
-.. code-block:: text
-
-   Vectorized learn/input/training_sequences_1.fasta  → learn/output/vector/training_sequences_1.npz
-   Vectorized learn/input/training_sequences_2.fasta  → learn/output/vector/training_sequences_2.npz
-   ...
-   Vectorized learn/input/training_sequences_10.fasta → learn/output/vector/training_sequences_10.npz
-
 
 Visualising Prediction Results
 ==============================
