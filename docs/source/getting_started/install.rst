@@ -19,49 +19,9 @@ Once the virtual environment has been created and activated, clone and install S
 
 	git clone https://github.com/PNNL-CompBio/Snekmer.git
 	cd Snekmer
-	pip install -r requirements.txt
+	pip install --no-cache -r requirements.txt
 	pip install .     # this installs local snekmer
 
-Install Snekmer via Mamba/Conda
--------------------------------
-It is also possible to use `Mamba <https://mamba.readthedocs.io/en/latest/installation.html>`_
-for installation handling. `Conda <https://www.anaconda.com/download/>`_ can be
-used as an alternative, but Conda can take a long time to resolve dependencies,
-thus rendering installation via Conda
-significantly slower than installation via Mamba. Mamba/Conda will
-both manage dependencies and versioning, which simplifies the
-process of installation.
-
-The simplest method for installation is via the included YML file, which will create
-a new environment containing Snekmer and all of its dependencies. Users may either
-directly download the
-`YML file <https://github.com/PNNL-CompBio/Snekmer/blob/main/environment.yml>`_
-directly, or clone/fork the repository to obtain a local copy of the repository and all
-included files.
-
-.. code-block:: bash
-
-
-	mamba env create -f environment.yml
-
-Note that if you want to use the optional Blazing Signature Filter (BSF) to
-speed up clustering you must follow the BSF installation instructions below
-and then you can use the alternate conda environment.
-
-.. code-block:: bash
-
-  mamba env create -f environment_BSF.yml
-
-After the install completes activate the conda environment
-
-.. code-block:: bash
-
-  conda activate snekmer
-
-The package should now be ready to use!
-
-Note that the instructions above can be replicated, substituting ``mamba``
-for ``conda``, for users who wish to use Conda to manage installation.
 
 Troubleshooting Notes
 `````````````````````
