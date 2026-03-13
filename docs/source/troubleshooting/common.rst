@@ -32,6 +32,7 @@ print("numba:", numba.__version__)
 print("llvmlite:", llvmlite.__version__)
 PY
 
+.. _troubleshooting/ubuntu:
 Ubuntu Users
 ````````````
 
