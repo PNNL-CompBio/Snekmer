@@ -18,6 +18,20 @@ to install, or else the environment is not created successfully,
 the installation issues likely involve either venv or the
 user's individual configuration.
 
+Intel Macs
+``````````
+
+For older Macs with processors using the Intel x86-64 architecture, it is **highly** recommended to run python 3.11-3.13 and run the following commands while installing dependencies:
+::
+python -m pip uninstall -y numba llvmlite
+python -m pip install --upgrade pip setuptools wheel
+python -m pip install --no-cache-dir --only-binary=:all: "llvmlite==0.44.0" "numba==0.61.0"
+python - <<'PY'
+import numba, llvmlite
+print("numba:", numba.__version__)
+print("llvmlite:", llvmlite.__version__)
+PY
+
 Ubuntu Users
 ````````````
 
