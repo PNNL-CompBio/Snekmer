@@ -656,7 +656,25 @@ def get_argument_parser():
         action="store_true",
         help="List output files for which defined params changed in the Snakefile.",
     )
+    g_smk.add_argument(
+    "--scheduler",
+    choices=["greedy", "ilp"],
+    default=None,
+    help="Snakemake scheduler plugin to use.",
+    )
 
+    g_smk.add_argument(
+        "--scheduler-ilp-solver",
+        default=None,
+        help="MILP solver to use with the ILP scheduler.",
+    )
+
+    g_smk.add_argument(
+        "--scheduler-ilp-solver-path",
+        metavar="PATH",
+        default=None,
+        help="PATH to search for ILP scheduler solver binaries.",
+    )
     g_smk_cfg = parser["smk"].add_argument_group("Snekmer configfile behavior")
     g_smk_cfg.add_argument(
         "--no-default-configfile",
@@ -1000,6 +1018,17 @@ def _build_snakemake_cmd(
         cmd.extend(["--latency-wait", str(args.latency)])
     if args.verbose:
         cmd.append("--verbose")
+    
+    if getattr(args, "scheduler", None):
+        cmd.extend(["--scheduler", args.scheduler])
+
+    if getattr(args, "scheduler_ilp_solver", None):
+        cmd.extend(["--scheduler-ilp-solver", args.scheduler_ilp_solver])
+
+    if getattr(args, "scheduler_ilp_solver_path", None):
+        cmd.extend(
+            ["--scheduler-ilp-solver-path", args.scheduler_ilp_solver_path])
+        
 
     cmd.append("--rerun-incomplete")
 
