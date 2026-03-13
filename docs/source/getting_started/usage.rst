@@ -236,6 +236,7 @@ The (optional and potentially very large) Seq-Annotation-Scores-x.csv files cont
 .. code-block:: console
 
     .
+    ├── snekmer_results.csv # Compilation of predictions for all input sequences
     ├── output/
     │   ├── ...
     │   ├── apply/
