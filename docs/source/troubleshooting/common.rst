@@ -12,35 +12,24 @@ For errors encountered during the installation process,
 unless installation is successful for all packages but
 specifically fails during the installation of the Snekmer
 package itself, we recommend searching the
-`Conda troubleshooting page <https://conda.io/projects/conda/en/latest/user-guide/troubleshooting.html>`_
+`Python packaging user guide <https://packaging.python.org/en/latest/guides/installing-using-pip-and-virtual-environments/#create-and-use-virtual-environments>`_
 for the issue. If packages other than Snekmer are also failing
 to install, or else the environment is not created successfully,
-the installation issues likely involve either Conda or the
+the installation issues likely involve either venv or the
 user's individual configuration.
 
+Ubuntu Users
+````````````
 
-Why is the ``conda install`` command is taking a long time?
-```````````````````````````````````````````````````````````
+Ubuntu users need to run the following commands to build local extensions and hdbscan:
 
-Installation of ``snakemake`` via conda typically requires a fairly
-long compile time. To avoid this, you can install Snakemake via
-`Mamba <https://github.com/mamba-org/mamba>`_ (see the official
-`Snakemake installation instructions <https://snakemake.readthedocs.io/en/stable/getting_started/installation.html>`_
-for details).
-
-Why am I getting a ``CondaEnvException: Pip failed``? Does this mean my Snekmer installation failed?
-````````````````````````````````````````````````````````````````````````````````````````````````````
-
-This error appears when `BSF <https://github.com/PNNL-CompBio/bsf-jaccard-py>`_
-is unable to be installed on a user's system. However, conda still
-installs Snekmer and its dependencies without BSF, despite the error.
-Since BSF is optional for Snekmer, Snekmer should still run without
-any issues.
-
-To verify this, run ``conda activate <ENV_NAME>`` (i.e. ``conda activate snekmer``),
-followed by ``conda list``, to check that the environment was
-created successfully and that Snekmer was indeed installed.
-
+::
+sudo apt-get install python3.12-venv
+sudo apt install gcc g++
+sudo apt install -y python3.12-dev build-essential
+pip install --upgrade pip setuptools wheel
+pip install Cython numpy
+pip install --no-build-isolation hdbscan
 
 Troubleshooting Error Messages
 ------------------------------
@@ -106,6 +95,15 @@ specified correctly. To resolve this error, check that your config.yaml
 file is located in the same directory from which you are executing Snekmer.
 You can also specify the location of the config.yaml file,
 e.g. ``snekmer {mode} --configfile /path/to/config.yaml``, to fix the issue.
+
+OSError: [Errno 86] Bad CPU type in executable
+``````````````````````````````````````````````
+
+This occurs when Snekmer tries to run using an incorrect scheduler. This can be resolved by invoking Snekmer using the ``--scheduler greedy`` option.
+
+Example command:
+::
+snekmer learn --scheduler greedy --configfile=./config.yaml
 
 General Usage Questions
 -----------------------
