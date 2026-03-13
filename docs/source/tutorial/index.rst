@@ -35,7 +35,7 @@ Evaluating Results
 
 All Snekmer modes except Model and Learn summarize write an html summary of their results to ``output/Snekmer_<Mode>_Report.html``. Below is an example of the report output from Apply:
 
-.. image:: ../resources/images/apply_report_example.png 
+.. image:: /resources/images/apply_report_example.png 
 
 See the :ref:`Accessing Results <usage-results>` section for more details.
 

@@ -6,7 +6,7 @@ We recommend installing Snekmer using Python's `venv <https://docs.python.org/3/
 
 	python --version
 
-The next step is to create and activate a new virtual environment that will contain Snekmer and its dependencies.
+The next step is to create and activate a new virtual environment that will contain Snekmer and its dependencies. :ref:`Ubuntu users should install additional dependencies after creating the virtual environment <common>`
 
 .. code-block:: bash
 
