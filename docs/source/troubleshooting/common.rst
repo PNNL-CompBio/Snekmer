@@ -22,7 +22,7 @@ Intel Macs
 ``````````
 
 For older Macs with processors using the Intel x86-64 architecture, it is **highly** recommended to run python 3.11-3.13 and run the following commands while installing dependencies:
-::
+.. code-block:: bash
 python -m pip uninstall -y numba llvmlite
 python -m pip install --upgrade pip setuptools wheel
 python -m pip install --no-cache-dir --only-binary=:all: "llvmlite==0.44.0" "numba==0.61.0"
@@ -37,7 +37,7 @@ Ubuntu Users
 
 Ubuntu users need to run the following commands to build local extensions and hdbscan:
 
-::
+.. code-block:: bash
 sudo apt-get install python3.12-venv
 sudo apt install gcc g++
 sudo apt install -y python3.12-dev build-essential
