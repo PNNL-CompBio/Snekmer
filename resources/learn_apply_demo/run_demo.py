@@ -63,7 +63,7 @@ show_dir(APPLY / "input")
 # Step 3
 print("Step 3: Run learn")
 print("Running snekmer learn using 10 fasta files as training input...")
-subprocess.run(["snekmer", "learn", "--configfile=./config.yaml"], check=True, cwd=str(LEARN))
+subprocess.run(["snekmer", "learn", "--scheduler", "greedy", "--configfile=./config.yaml"], check=True, cwd=str(LEARN))
 
 show_dir(LEARN / "output")
 show_dir(LEARN / "output" / "learn")
@@ -86,7 +86,7 @@ show_dir(APPLY / "stats")
 # Step 5
 print("Step 5: Run apply")
 print("Running snekmer apply using 1 fasta files as test input...")
-subprocess.run(["snekmer", "apply", "--configfile=./config.yaml"], check=True, cwd=str(APPLY))
+subprocess.run(["snekmer", "apply", "--scheduler", "greedy", "--configfile=./config.yaml"], check=True, cwd=str(APPLY))
 
 show_dir(APPLY / "output")
 
