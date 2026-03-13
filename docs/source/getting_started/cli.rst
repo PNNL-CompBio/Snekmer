@@ -436,6 +436,15 @@ not Snekmer-specific:
 ``-j``, ``--jobs`` N
     Number of simultaneous jobs to submit to the scheduler (default: 1000).
 
+``--scheduler`` **[greedy|ilp]**
+    Specify whether Snakemake uses the greedy or ILP scheduler.
+
+``--scheduler-ilp-solver``**[SOLVER]**
+    Specify the MILP solver to be used when using the ILP scheduler.
+
+``--scheduler-ilp-solver-path``**[PATH]**
+    PATH to search for ILP scheduler solver binaries.
+
 
 .. _getting_started-all_options:
 
