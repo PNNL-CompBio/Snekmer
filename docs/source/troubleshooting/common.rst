@@ -11,9 +11,9 @@ Installation Questions
 For errors encountered during the installation process,
 unless installation is successful for all packages but
 specifically fails during the installation of the Snekmer
-package itself, we recommend searching the
-`Python packaging user guide <https://packaging.python.org/en/latest/guides/installing-using-pip-and-virtual-environments/#create-and-use-virtual-environments>`_
-for the issue. If packages other than Snekmer are also failing
+package itself, we recommend consulting the `venv documentation <https://docs.python.org/3/library/venv.html>`_ or searching the
+`Conda troubleshooting page <https://conda.io/projects/conda/en/latest/user-guide/troubleshooting.html>`_
+for the issue, depending on which installation method you are using. If packages other than Snekmer are also failing
 to install, or else the environment is not created successfully,
 the installation issues likely involve either venv or the
 user's individual configuration.

@@ -5,21 +5,21 @@ channels:
   - numba
   - conda-forge
 dependencies:
-  - python >= 3.9
+  - python >= 3.11
   - biopython
   - pyarrow
   - jinja2
   - matplotlib
-  - numpy == 1.22.3
+  - numpy >= 1.22.3
   - numba >= 0.56
   - scipy
-  - pandas == 1.4.2
+  - pandas 
   - seaborn
   - scikit-learn
-  - snakemake == 7.0
+  - snakemake == 9.13
   - tabulate == 0.8.10
   - umap-learn
-  - hdbscan
+  - hdbscan ==0.8.29
   - pip
   - pip:
       - snekmer

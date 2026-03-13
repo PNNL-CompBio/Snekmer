@@ -174,9 +174,7 @@ rule search:
     output:
         results=join(out_dir, "search", "{fam}", "{f}.csv"),
     run:
-        # simplify variable name
         family = wildcards.fam
-
         # get kmers for this particular set of sequences
         # print(f"starting {family}")
         kmer = skm.io.load_pickle(input.kmerobj)

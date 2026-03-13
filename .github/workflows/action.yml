@@ -9,69 +9,63 @@ on:
 
 jobs:
   # apply formating and linting
-  Format:
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v3
-      - name: Apply snakefmt
-        uses: github/super-linter@v4
-        env:
-          VALIDATE_ALL_CODEBASE: false
-          DEFAULT_BRANCH: main
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  # I am deactivating snakefmt for now since it reformats snakemake rules in a way that breaks them.
+  # The snakefmt linter in super-linter is an unknown old version that does not support the latest snakemake/snakefmt syntax.
+  # Format:
+  #   runs-on: ubuntu-22.04
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - name: Apply snakefmt
+  #       uses: github/super-linter@latest
+  #       env:
+  #         VALIDATE_ALL_CODEBASE: false
+  #         DEFAULT_BRANCH: main
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-          LINTER_RULES_PATH: snekmer/rules/
-          VALIDATE_SNAKEMAKE_SNAKEFMT: true
+  #         LINTER_RULES_PATH: snekmer/rules/
+  #         VALIDATE_SNAKEMAKE_SNAKEFMT: true
 
   # run all tests
+
   Test:
     runs-on: ubuntu-22.04
-    needs:
-      - Format
 
     permissions:
-     contents: 'read'
-     id-token: 'write'
+      contents: 'read'
+      id-token: 'write'
 
     steps:
       - uses: actions/checkout@v3
 
-      - name: Build test environment
-        uses: conda-incubator/setup-miniconda@v2
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
         with:
-          mamba-version: "*"
-          channels: anaconda,conda-forge,bioconda,numba
-          auto-activate-base: false
-      - shell: bash -l {0}
+          python-version: '3.11'
+
+      - name: Create venv and install deps
         run: |
-          conda info
-          conda list
-          conda config --show
-          conda env list
-      - name: Create snekmer environment from YAML
-        shell: bash -l {0}
+          python3.11 -m venv snekmer_env
+          source snekmer_env/bin/activate
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install git+https://github.com/PNNL-CompBio/Snekmer#egg=snekmer
+          echo "VIRTUAL_ENV=$PWD/snekmer_env" >> $GITHUB_ENV
+          echo "$PWD/snekmer_env/bin" >> $GITHUB_PATH
+
+      - name: Show environment info
         run: |
-          mamba env create -n snekmer -f .test/test-env.yml --yes
-      - name: Show conda info
-        shell: bash -l {0}
-        run: |
-          conda activate snekmer
-          conda info
-          conda list | head
-          conda env list
+          ./snekmer_env/bin/python -V
+          ./snekmer_env/bin/pip freeze
+
 
       # - shell: bash -l {0}
       #   run: mamba env create -f .test/test-env.yml
       # - shell: bash -l {0}
-      #   run: pip install -e git+https://github.com/PNNL-CompBio/Snekmer@learn_decoy_implementation#egg=snekmer
+      #   run: pip install -e git+https://github.com/PNNL-CompBio/Snekmer#egg=snekmer
 
       #test clustering step
       - name: Snekmer Cluster
         run: |
-          export PATH="/usr/share/miniconda/bin:$PATH"
-          conda info --envs
-          source activate snekmer
-          conda config --get channel_priority --json
           snekmer cluster --configfile .test/config.yaml -d .test
           rm -rf .test/output
 
@@ -80,10 +74,8 @@ jobs:
       # run modeling step and move output files for search
       - name: Snekmer Model
         run: |
-          export PATH="/usr/share/miniconda/bin:$PATH"
-          source activate snekmer
           snekmer model --configfile .test/config.yaml -d .test --cores 1
-          mkdir .test/output/example-model
+          mkdir -p .test/output/example-model
           mv .test/output/model/*.model .test/output/example-model/
           mv .test/output/kmerize/*.kmers .test/output/example-model/
           mv .test/output/scoring/*.scorer .test/output/example-model/
@@ -91,8 +83,6 @@ jobs:
       # search against previously generated model files
       - name: Snekmer Search
         run: |
-          export PATH="/usr/share/miniconda/bin:$PATH"
-          source activate snekmer
           ls .test
           pwd
           snekmer search --configfile .test/config.yaml -d .test --cores 1
@@ -101,16 +91,12 @@ jobs:
       # run Snekmer Learn kmer counts and confidence creation
       - name: Snekmer Learn
         run: |
-          export PATH="/usr/share/miniconda/bin:$PATH"
-          source activate snekmer
           snekmer learn --configfile .test/config_learnapp.yaml -d .test --cores 1
-          mv .test/apply_inputs/* .test
+          mv .test/apply_inputs/* .test || true
           rm -rf .test/output
         
       # run Snekmer Learn against previously generated counts files
       - name: Snekmer Apply
         run: |
-          export PATH="/usr/share/miniconda/bin:$PATH"
-          source activate snekmer
           snekmer apply --configfile .test/config_learnapp.yaml -d .test --cores 1
           rm -rf .test/output

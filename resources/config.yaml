@@ -39,12 +39,10 @@ model:
   random_state: None
 
 # search params
+
 model_dir: "output/model/"
 basis_dir: "output/example-model/"
 score_dir: "output/scoring/"
-# motif params
-motif:
-  n: 2000 
 
 # learn_apply params 
 learn_apply:
