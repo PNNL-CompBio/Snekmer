@@ -439,10 +439,10 @@ not Snekmer-specific:
 ``--scheduler`` **[greedy|ilp]**
     Specify whether Snakemake uses the greedy or ILP scheduler.
 
-``--scheduler-ilp-solver``**[SOLVER]**
+``--scheduler-ilp-solver`` **[SOLVER]**
     Specify the MILP solver to be used when using the ILP scheduler.
 
-``--scheduler-ilp-solver-path``**[PATH]**
+``--scheduler-ilp-solver-path`` **[PATH]**
     PATH to search for ILP scheduler solver binaries.
 
 
