@@ -67,6 +67,33 @@ class Evaluator:
         self.false_running_crosstab = None
         self.threshold_dict: Optional[Dict[str, Any]] = None
 
+        # --- Optimization: pre-read thresholds and config once ---
+        self._thresholds_dataframe = pd.read_csv(
+            self.reverse_decoy_stats,
+            header=0,
+            engine="c",
+        )
+
+        la_cfg = self.config.get("learn_apply", {})
+        self._threshold_type = la_cfg.get("threshold")
+        self._selection_method = la_cfg.get("selection")
+        self._weight_top = la_cfg.get("weight_top", 0.5)
+        self._weight_distance = la_cfg.get("weight_distance", 0.5)
+
+        # Normalize "None" → None
+        if self._threshold_type == "None":
+            self._threshold_type = None
+
+        if self._threshold_type is not None:
+            self.threshold_dict = dict(
+                zip(
+                    self._thresholds_dataframe.family.astype(str),
+                    self._thresholds_dataframe[self._threshold_type],
+                )
+            )
+        else:
+            self.threshold_dict = None
+
     # -----------------------------------------------------
     # Core helpers
     # -----------------------------------------------------
@@ -110,58 +137,37 @@ class Evaluator:
             header=0,
             engine="c",
         )
-        thresholds_dataframe = pd.read_csv(
-            self.reverse_decoy_stats,
-            header=0,
-            engine="c",
-        )
 
-        la_cfg = self.config.get("learn_apply", {})
-        threshold_type = la_cfg.get("threshold")
-        selection_method = la_cfg.get("selection")
-        weight_top = la_cfg.get("weight_top", 0.5)
-        weight_distance = la_cfg.get("weight_distance", 0.5)
-
-        # Normalize "None" → None
-        if threshold_type == "None":
-            threshold_type = None
-
-        if threshold_type is not None:
-            threshold_dict = dict(
-                zip(
-                    thresholds_dataframe.family.astype(str),
-                    thresholds_dataframe[threshold_type],
-                )
-            )
-        else:
-            threshold_dict = None
-
-        # Store for potential debugging / later use
-        self.threshold_dict = threshold_dict
-
+        # Use pre-computed threshold dict and config values from __init__
         predictions, deltas, top_two = apply_selection_method(
             seq_ann_scores,
-            selection_method,
-            threshold_type,
-            threshold_dict,
-            weight_top,
-            weight_distance,
+            self._selection_method,
+            self._threshold_type,
+            self.threshold_dict,
+            self._weight_top,
+            self._weight_distance,
         )
 
         result = seq_ann_scores.index.tolist()
 
-        tf: List[str] = []
-        known: List[str] = []
-        for i, pred in enumerate(predictions):
-            actual = result[i]
-            if isinstance(pred, str) and pred in actual:
-                tf.append("T")
-            else:
-                tf.append("F")
-            if "unknown" in actual:
-                known.append("Unknown")
-            else:
-                known.append("Known")
+        # --- Optimization: vectorized T/F and Known/Unknown ---
+        predictions_s = pd.Series(predictions, dtype="object")
+        result_s = pd.Series(result, dtype="object")
+
+        # Known/Unknown is straightforward to vectorize
+        known = np.where(
+            result_s.str.contains("unknown", case=False, na=False),
+            "Unknown",
+            "Known",
+        ).tolist()
+
+        # T/F: check if prediction string is contained in the actual ID
+        # Use a list comprehension for the pred-in-actual check since
+        # Series.str.contains with a Series pattern has edge cases
+        tf = [
+            "T" if (isinstance(p, str) and p in a) else "F"
+            for p, a in zip(predictions, result)
+        ]
 
         return top_two, predictions, deltas, result, tf, known
 
@@ -203,25 +209,13 @@ class Evaluator:
             self.true_running_crosstab = true_crosstab
             self.false_running_crosstab = false_crosstab
         else:
-            self.true_running_crosstab = (
-                pd.concat([self.true_running_crosstab, true_crosstab])
-                .groupby("Prediction", sort=False)
-                .sum(min_count=1)
-            ).fillna(0)
-            self.false_running_crosstab = (
-                pd.concat([self.false_running_crosstab, false_crosstab])
-                .groupby("Prediction", sort=False)
-                .sum(min_count=1)
-            ).fillna(0)
-
-        # Align columns (difference bins)
-        self.true_running_crosstab, self.false_running_crosstab = (
-            self.true_running_crosstab.align(
-                self.false_running_crosstab, join="outer", axis=1, fill_value=0
+            # --- Optimization: use .add() instead of concat+groupby ---
+            self.true_running_crosstab = self.true_running_crosstab.add(
+                true_crosstab, fill_value=0
             )
-        )
-        self.true_running_crosstab.fillna(0, inplace=True)
-        self.false_running_crosstab.fillna(0, inplace=True)
+            self.false_running_crosstab = self.false_running_crosstab.add(
+                false_crosstab, fill_value=0
+            )
 
     def generate_inputs(self) -> None:
         """
@@ -244,6 +238,16 @@ class Evaluator:
                 diff_dataframe
             )
             self.handle_running_crosstabs(true_crosstab, false_crosstab, j)
+
+        # --- Optimization: align columns once after the loop instead of every iteration ---
+        if self.true_running_crosstab is not None and self.false_running_crosstab is not None:
+            self.true_running_crosstab, self.false_running_crosstab = (
+                self.true_running_crosstab.align(
+                    self.false_running_crosstab, join="outer", axis=1, fill_value=0
+                )
+            )
+            self.true_running_crosstab.fillna(0, inplace=True)
+            self.false_running_crosstab.fillna(0, inplace=True)
 
     def generate_global_crosstab(self) -> pd.DataFrame:
         """

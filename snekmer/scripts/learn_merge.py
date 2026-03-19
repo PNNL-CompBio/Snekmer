@@ -71,7 +71,7 @@ class Merge:
                     .sum(min_count=1)
                 ).fillna(0)
             print(
-                f"Dataframes merged: {file_num} out of {len(self.counts_files)}"
+                f"Dataframes merged: {file_num + 1} out of {len(self.counts_files)}"
             )
 
     def check_for_base_file(self) -> None:

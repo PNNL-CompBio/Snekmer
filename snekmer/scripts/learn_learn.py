@@ -48,6 +48,9 @@ class Library:
     total_seqs: int
     out_dir: Optional[str]
 
+    # --- Optimization: compile regex once at class level ---
+    _SEQID_PATTERN = re.compile(r"\|(.*?)\|")
+
     def __init__(self, out_dir: Optional[str] = None):
         self.annotation = []
         self.seq_annot = {}
@@ -73,8 +76,7 @@ class Library:
         seqs = annotations["id"].tolist()
         anns = [str(fam) for fam in annotations["family"].tolist()]
 
-        for i, seqid in enumerate(seqs):
-            self.seq_annot[seqid] = anns[i]
+        self.seq_annot = dict(zip(seqs, anns))
         self.seqs = set(seqs)
 
     def load_data(self, input_data: str) -> None:
@@ -94,14 +96,30 @@ class Library:
         Filters sequences not present in annotations and constructs annotation counts.
         """
         self.total_seqs = len(self.seq_kmer_dict)
-        for i, seqid in enumerate(list(self.seq_kmer_dict)):
-            x = re.findall(r"\|(.*?)\|", seqid)[
-                0
-            ]  # Note: could be made user-configurable later.
+        pattern = self._SEQID_PATTERN
+
+        # --- Optimization: convert values to numpy arrays for fast aggregation,
+        #     build result dict directly instead of repeated pop/reassign ---
+        aggregated: Dict[str, np.ndarray] = {}
+        self.annotation_counts = {}
+
+        for seqid, kmer_vals in self.seq_kmer_dict.items():
+            x = pattern.findall(seqid)[0]
             if x not in self.seqs:
-                del self.seq_kmer_dict[seqid]
+                continue
+
+            ann = self.seq_annot[x]
+            arr = np.asarray(kmer_vals)
+
+            if ann not in aggregated:
+                aggregated[ann] = arr
+                self.annotation_counts[ann] = 1
             else:
-                self.process_annotation_counts(seqid, x)
+                aggregated[ann] += arr
+                self.annotation_counts[ann] += 1
+
+        # Convert back to lists to preserve downstream DataFrame construction behavior
+        self.seq_kmer_dict = {k: v.tolist() for k, v in aggregated.items()}
 
     def format_and_write_output(self, input_data: str) -> None:
         """
@@ -140,29 +158,6 @@ class Library:
         out_name = join(self.out_dir, "learn", f"kmer_counts_{name}.csv")
         kmer_counts.index.name = "__index_level_0__"
         kmer_counts.to_csv(out_name, index=True)
-
-    def process_annotation_counts(self, seqid: str, x: str) -> None:
-        """
-        Processes annotation counts by aggregating them based on annotation labels.
-
-        Args:
-            seqid (str): Sequence ID.
-            x (str): Extracted annotation ID from seqid.
-        """
-        if self.seq_annot[x] not in self.seq_kmer_dict:
-            self.seq_kmer_dict[self.seq_annot[x]] = self.seq_kmer_dict.pop(seqid)
-        else:
-            zipped_lists = zip(
-                self.seq_kmer_dict.pop(seqid),
-                self.seq_kmer_dict[self.seq_annot[x]],
-            )
-            self.seq_kmer_dict[self.seq_annot[x]] = [
-                sum(pair) for pair in zipped_lists
-            ]
-        if self.seq_annot[x] not in self.annotation_counts:
-            self.annotation_counts[self.seq_annot[x]] = 1
-        else:
-            self.annotation_counts[self.seq_annot[x]] += 1
 
     def execute_all(self, input_annotation: List[str], input_data: str) -> None:
         """

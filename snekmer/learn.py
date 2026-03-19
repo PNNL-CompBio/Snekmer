@@ -7,6 +7,7 @@
 import itertools
 import random
 import sys
+from collections import Counter
 
 import numpy as np
 import pandas as pd
@@ -42,25 +43,33 @@ def generate_kmer_counts(input_data, kmer_list: list, kmer_totals: list, seq_kme
     kmer_totals = [0] * len(kmer_list)
     kmer_len = len(kmer_list[0])
 
+    # --- Optimization: pre-build kmer→index lookup for O(1) position access ---
+    kmer_index = {km: idx for idx, km in enumerate(kmer_list)}
+    num_kmers = len(kmer_list)
+
     for i, seq in enumerate(seq_ids):
         v = df["sequence"][i]
         if reverse:
             v = v[::-1]
-        k_counts = {}
-        items = [
-            v[item : (item + kmer_len)]
-            for item in range(0, (len((v)) - kmer_len + 1))
-        ]
-        for j in items:
-            k_counts[j] = k_counts.get(j, 0) + 1
-        store = [
-            k_counts[item] if item in k_counts else 0
-            for item in kmer_list
-        ]
-        for i, item in enumerate(kmer_list):
-            if item in k_counts:
-                kmer_totals[i] += k_counts[item]
+
+        # Count kmers using Counter (marginally faster than manual .get loop)
+        items = (
+            v[pos : pos + kmer_len]
+            for pos in range(len(v) - kmer_len + 1)
+        )
+        k_counts = Counter(items)
+
+        # --- Optimization: build store array and update totals in one pass
+        #     over observed kmers only (typically much smaller than kmer_list) ---
+        store = [0] * num_kmers
+        for kmer, count in k_counts.items():
+            idx = kmer_index.get(kmer)
+            if idx is not None:
+                store[idx] = count
+                kmer_totals[idx] += count
+
         seq_kmer_dict[seq] = store
+
     return kmer_list, kmer_totals, seq_kmer_dict
 
 def match_kmer_counts_format(kmer_counts: pd.DataFrame, kmer_count_totals: pd.DataFrame) -> Tuple[pd.DataFrame, 
@@ -152,23 +161,76 @@ def apply_selection_method(
     else:
         raise ValueError(f"Invalid selection method: {selection_method}")
 
-def _get_top_two(
-    row: pd.Series,
-    thresholds: Optional[np.ndarray] = None
-) -> pd.Series:
+
+def _vectorized_top_two(
+    values: np.ndarray,
+    columns: np.ndarray,
+    mask: Optional[np.ndarray] = None,
+) -> pd.DataFrame:
     """
-    Generic helper to extract the top two values (and their headers) from a row,
-    optionally applying per-column thresholds before selection.
+    Vectorized extraction of top-two values and their column headers from a 2D array.
+
+    Parameters
+    ----------
+    values : np.ndarray
+        2D array of scores (n_sequences x n_families).
+    columns : np.ndarray
+        1D array of column names corresponding to axis=1 of values.
+    mask : np.ndarray, optional
+        Boolean mask of same shape as values. Where False, values are excluded
+        from consideration (treated as -inf for ranking purposes).
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with columns: key_value_one, key_value_one_header,
+        key_value_two, key_value_two_header.
     """
-    if thresholds is not None:
-        row = row.where(row >= thresholds, np.nan)
-    top2 = row.nlargest(2)
-    return pd.Series({
-        "key_value_one": top2.iloc[0] if len(top2) > 0 else np.nan,
-        "key_value_one_header": top2.index[0] if len(top2) > 0 else np.nan,
-        "key_value_two": top2.iloc[1] if len(top2) > 1 else np.nan,
-        "key_value_two_header": top2.index[1] if len(top2) > 1 else np.nan,
+    work = values.copy().astype(float)
+    # NaN must be replaced with -inf so argpartition handles them correctly
+    # (nlargest in the original code skips NaN; argpartition does not)
+    nan_in_input = np.isnan(work)
+    work[nan_in_input] = -np.inf
+    if mask is not None:
+        work[~mask] = -np.inf
+
+    n_rows, n_cols = work.shape
+
+    if n_cols >= 2:
+        # argpartition is O(n) per row vs O(n log n) for full argsort
+        top2_idx = np.argpartition(-work, 2, axis=1)[:, :2]
+        # Sort the two candidates so index 0 is the largest
+        top2_vals = np.take_along_axis(work, top2_idx, axis=1)
+        order = np.argsort(-top2_vals, axis=1)
+        top2_idx = np.take_along_axis(top2_idx, order, axis=1)
+        top2_vals = np.take_along_axis(work, top2_idx, axis=1)
+    else:
+        # Edge case: 1 column
+        top2_idx = np.zeros((n_rows, 2), dtype=int)
+        top2_vals = np.full((n_rows, 2), -np.inf)
+        top2_vals[:, 0] = work[:, 0]
+
+    top2_headers = columns[top2_idx]
+
+    # Replace -inf sentinels with NaN for output
+    top2_vals[top2_vals == -np.inf] = np.nan
+
+    # If mask was applied, entries where top value is NaN mean no valid hit
+    result = pd.DataFrame({
+        "key_value_one": top2_vals[:, 0],
+        "key_value_one_header": top2_headers[:, 0],
+        "key_value_two": top2_vals[:, 1],
+        "key_value_two_header": top2_headers[:, 1],
     })
+
+    # Where the top value is NaN, set header to NaN too
+    nan_mask = np.isnan(top2_vals[:, 0])
+    result.loc[nan_mask, "key_value_one_header"] = np.nan
+    nan_mask2 = np.isnan(top2_vals[:, 1])
+    result.loc[nan_mask2, "key_value_two_header"] = np.nan
+
+    return result
+
 
 def _select_top_hit(
     seq_ann_scores: pd.DataFrame
@@ -177,7 +239,7 @@ def _select_top_hit(
     Select the top hit based on raw cosine similarity scores.
 
     Args:
-        seq_ann_scores (pd.DataFrame): DataFrame of cosine simialrity scores indexed by sequence.
+        seq_ann_scores (pd.DataFrame): DataFrame of cosine similarity scores indexed by sequence.
 
     Returns:
         Tuple[List[Optional[str]], List[float], pd.DataFrame]:
@@ -185,8 +247,10 @@ def _select_top_hit(
             - deltas: list of differences between top two scores,
             - top_two: DataFrame of the top two scores for each sequence.
     """
-    key_vals_df = seq_ann_scores.apply(
-        lambda row: _get_top_two(row), axis=1
+    # --- Optimization: vectorized top-two extraction instead of row-wise apply ---
+    key_vals_df = _vectorized_top_two(
+        seq_ann_scores.values,
+        np.array(seq_ann_scores.columns),
     )
     predictions = key_vals_df["key_value_one_header"].tolist()
     deltas = (key_vals_df["key_value_one"] - key_vals_df["key_value_two"]).tolist()
@@ -207,11 +271,18 @@ def _select_top_hit_with_threshold(
     Returns:
         Tuple[List[Optional[str]], List[float], pd.DataFrame]: predictions, deltas, and DataFrame of top two scores.
     """
+    # --- Optimization: vectorized top-two with threshold mask ---
     thresholds = seq_ann_scores.columns.to_series().map(
         threshold_dict
-    ).to_numpy()
-    key_vals_df = seq_ann_scores.apply(
-        lambda row: _get_top_two(row, thresholds), axis=1
+    ).to_numpy().astype(float)
+
+    # Build boolean mask: True where score >= threshold
+    mask = seq_ann_scores.values >= thresholds[np.newaxis, :]
+
+    key_vals_df = _vectorized_top_two(
+        seq_ann_scores.values,
+        np.array(seq_ann_scores.columns),
+        mask=mask,
     )
     predictions = key_vals_df["key_value_one_header"].tolist()
     deltas = (key_vals_df["key_value_one"] - key_vals_df["key_value_two"]).tolist()
@@ -299,48 +370,90 @@ def _select_combined_distance(
     combined_scores = (seq_ann_scores * weight_top) + (distances * weight_distance)
     combined_scores = combined_scores.where(positive_distances.notna(), np.nan)
 
-    top_combined = combined_scores.max(axis=1)
-    preds = combined_scores.idxmax(axis=1).where(~top_combined.isna(), None)
+    cols = np.array(combined_scores.columns)
+    comb_vals = combined_scores.values
+    scores_vals = seq_ann_scores.values
+    thresh_vals = thresholds.values.astype(float)
+    dist_vals = distances.values
 
-    deltas = []
-    top_two_list = []
+    n_rows = comb_vals.shape[0]
 
-    # Method 1/2: Top hit with threshold
-    filtered = seq_ann_scores.where(seq_ann_scores >= thresholds, np.nan)
-    top1 = filtered.max(axis=1)
-    fam1 = filtered.idxmax(axis=1)
-    temp = filtered.apply(lambda row: row[row != row.max()], axis=1)
-    second1 = temp.max(axis=1)
+    # --- Optimization: vectorized prediction via argmax on nan-safe array ---
+    comb_work = np.where(np.isnan(comb_vals), -np.inf, comb_vals)
+    top_comb_idx = np.argmax(comb_work, axis=1)
+    top_comb_val = comb_work[np.arange(n_rows), top_comb_idx]
 
-    # Method 3: Greatest distance from threshold
-    pos_dist_3 = distances.where(distances >= 0, np.nan)
-    top_dist_3 = pos_dist_3.max(axis=1)
-    fam3 = pos_dist_3.idxmax(axis=1)
+    # Where all values were NaN, prediction is None
+    all_nan = np.all(np.isnan(comb_vals), axis=1)
+    preds_arr = cols[top_comb_idx]
 
-    for idx in range(len(preds)):
-        pred = preds.iloc[idx]
-        if pred is None:
-            deltas.append(None)
-            top_two_list.append([np.nan, np.nan])
-            continue
+    # Method 1: Top hit with threshold (filtered scores)
+    filtered_vals = np.where(scores_vals >= thresh_vals[np.newaxis, :], scores_vals, -np.inf)
+    top1_idx = np.argmax(filtered_vals, axis=1)
+    top1_val = filtered_vals[np.arange(n_rows), top1_idx]
+    fam1 = cols[top1_idx]
 
-        if pred == fam1.iloc[idx]:
-            delta = top1.iloc[idx] - second1.iloc[idx]
-            top_two_list.append([top1.iloc[idx], second1.iloc[idx]])
-        elif pred == fam3.iloc[idx]:
-            original = seq_ann_scores.iat[idx, seq_ann_scores.columns.get_loc(pred)]
-            thr = thresholds[pred]
-            delta = original - thr
-            top_two_list.append([original, thr])
-        else:
-            row_comb = combined_scores.iloc[idx]
-            second_comb = row_comb.drop(pred).max()
-            delta = top_combined.iloc[idx] - second_comb
-            top_two_list.append([top_combined.iloc[idx], second_comb])
-        deltas.append(delta)
+    # Second-best filtered score: mask out ALL values tied at the max
+    # (original does row[row != row.max()].max() which excludes all ties)
+    filtered_second = filtered_vals.copy()
+    tied_at_max = (filtered_vals == top1_val[:, np.newaxis])
+    filtered_second[tied_at_max] = -np.inf
+    second1_val = np.max(filtered_second, axis=1)
 
-    top_two = pd.DataFrame(top_two_list, columns=["key_value_one", "key_value_two"])
-    return preds.tolist(), deltas, top_two
+    # Method 3: Greatest positive distance
+    pos_dist_vals = np.where(dist_vals >= 0, dist_vals, -np.inf)
+    top_dist_idx = np.argmax(pos_dist_vals, axis=1)
+    fam3 = cols[top_dist_idx]
+
+    # Compute deltas and top_two vectorized by case
+    is_fam1 = (preds_arr == fam1)
+    is_fam3 = (preds_arr == fam3) & ~is_fam1
+
+    # Case 1: pred matches top filtered hit
+    delta_case1 = top1_val - second1_val
+    tv1_one = top1_val
+    tv1_two = second1_val
+
+    # Case 3: pred matches greatest distance family
+    # Use dict lookup instead of searchsorted (columns are not sorted)
+    col_to_idx = {c: i for i, c in enumerate(cols)}
+    pred_col_idx = np.array([
+        col_to_idx.get(p, 0) for p in preds_arr
+    ])  # fallback index for None preds doesn't matter, will be masked
+    original_scores = scores_vals[np.arange(n_rows), pred_col_idx]
+    pred_thresholds = thresh_vals[pred_col_idx]
+    delta_case3 = original_scores - pred_thresholds
+    tv3_one = original_scores
+    tv3_two = pred_thresholds
+
+    # Case else: combined score difference
+    comb_second = comb_work.copy()
+    comb_second[np.arange(n_rows), top_comb_idx] = -np.inf
+    second_comb_val = np.max(comb_second, axis=1)
+    delta_else = top_comb_val - second_comb_val
+    tve_one = top_comb_val
+    tve_two = second_comb_val
+
+    # Assemble results
+    deltas_arr = np.where(is_fam1, delta_case1,
+                 np.where(is_fam3, delta_case3, delta_else))
+    tv_one = np.where(is_fam1, tv1_one,
+             np.where(is_fam3, tv3_one, tve_one))
+    tv_two = np.where(is_fam1, tv1_two,
+             np.where(is_fam3, tv3_two, tve_two))
+
+    # Handle None predictions
+    preds_list = [None if all_nan[i] else preds_arr[i] for i in range(n_rows)]
+    deltas_list = [None if all_nan[i] else float(deltas_arr[i]) for i in range(n_rows)]
+    tv_one = np.where(all_nan, np.nan, tv_one)
+    tv_two = np.where(all_nan, np.nan, tv_two)
+
+    # Replace -inf sentinels with NaN
+    tv_one = np.where(tv_one == -np.inf, np.nan, tv_one)
+    tv_two = np.where(tv_two == -np.inf, np.nan, tv_two)
+
+    top_two = pd.DataFrame({"key_value_one": tv_one, "key_value_two": tv_two})
+    return preds_list, deltas_list, top_two
 
 def fragment(
     sequence: str,
