@@ -90,12 +90,6 @@ workflow these values live in ``config.yaml``.
        "apply_output": "snekmer_results.csv",
    }
 
-.. warning::
-
-   The ``fragmentation`` option and the ``conf_weight_modifier`` parameter
-   (intended for subsequent data additions) are **not** supported in the
-   notebook workflow.
-
 
 Rule 0 — Collect Input Files
 -----------------------------
