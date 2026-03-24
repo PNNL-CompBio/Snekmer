@@ -22,6 +22,10 @@ Once the virtual environment has been created and activated, clone and install S
 	pip install --no-cache -r requirements.txt
 	pip install .     # this installs local snekmer
 
+Testing Installation
+====================
+
+To test that Snekmer has been successfully installed, we recommend :ref:`running either the Learn/Apply or Model/Search/Cluster tutorial <Tutorial>` 
 
 Troubleshooting Notes
 `````````````````````
