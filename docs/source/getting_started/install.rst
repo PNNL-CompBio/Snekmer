@@ -91,8 +91,7 @@ To use the command line interface within the container:
 
 .. code-block:: bash
 
-  docker run --rm   -v "$(pwd)":/data   -w /data   jjacobson95/snekmer:latest {mode} {args}    # Run Snekmer
-
+  docker run --rm -v "$(pwd)":/work jjacobson95/snekmer:latest {mode} {args}
 
 The Docker image accepts the same modes (cluster, model, search, learn, apply, and motif) and command line arguments as the Snekmer command line interface.
 
