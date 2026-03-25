@@ -25,7 +25,21 @@ Once the virtual environment has been created and activated, clone and install S
 Testing Installation
 ====================
 
-To test that Snekmer has been successfully installed, we recommend :ref:`running either the Learn/Apply or Model/Search/Cluster tutorial <Tutorial>` 
+A quick test of the installation can be performed by running the following commands:
+
+To test Model/Search/Cluster
+
+.. code-block:: bash
+
+	cd resources/model_cluster_search_demo
+	python3 run_demo.py
+
+To test Learn/Apply
+
+.. code-block:: bash
+
+	cd resources/learn_apply_demo
+	python3 run_demo.py
 
 Troubleshooting Notes
 `````````````````````
