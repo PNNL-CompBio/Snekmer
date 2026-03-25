@@ -5,7 +5,7 @@ sphinx-copybutton
 sphinxcontrib-bibtex
 mock
 nbsphinx
-nbconvert==7.2.1
+nbconvert
 mistune>=2
 biopython
 numpy >= 1.22.3
