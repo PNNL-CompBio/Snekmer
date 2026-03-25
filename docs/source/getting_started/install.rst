@@ -20,7 +20,7 @@ Once the virtual environment has been created and activated, clone and install S
 	git clone https://github.com/PNNL-CompBio/Snekmer.git
 	cd Snekmer
 	pip install --no-cache -r requirements.txt
-	pip install .     # this installs local snekmer
+	pip install .
 
 Testing Installation
 ====================
