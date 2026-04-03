@@ -29,8 +29,6 @@ There are 6 operation modes for Snekmer: ``cluster``, ``model``, ``search``, ``m
 The output is a table for each file containing sequence annotation predictions with confidence levels.
 
 
-The output is a table for each file containing sequence annotation predictions with confidence levels.
-
 **Cluster mode:** The user supplies files containing sequences in an appropriate format (e.g. FASTA).
 Snekmer applies the relevant workflow steps and outputs the resulting clustering results in tabular form (.CSV),
 as well as the cluster object itself (.cluster). Figures are also generated (e.g. t-SNE, UMAP) to help the user
