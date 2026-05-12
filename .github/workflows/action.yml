@@ -100,3 +100,15 @@ jobs:
         run: |
           snekmer apply --configfile .test/config_learnapp.yaml -d .test --cores 1
           rm -rf .test/output
+
+      # run easy-learn-apply end-to-end pipeline
+      - name: Snekmer easy-learn-apply
+        run: |
+          snekmer easy-learn-apply \
+            --train .test/input_learnapp/ \
+            --query .test/input/nirS.faa \
+            --ann   .test/annotations/TIGRFAMs_annotation.ann \
+            --output .test/easy_output \
+            --cores 1
+          test -f .test/easy_output/apply/snekmer_results.csv
+          rm -rf .test/easy_output

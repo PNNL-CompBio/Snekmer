@@ -2,45 +2,44 @@
 Tutorial
 ========
 
-Running the Tutorial
---------------------
+Learn/Apply Tutorials
+---------------------
 
-To run an example set of jobs use the following commands:
+.. list-table::
+   :header-rows: 1
+   :widths: 35 65
 
-.. code-block:: bash
+   * - Tutorial
+     - Description
+   * - :doc:`Quick Start (easy-learn-apply) <snekmer_easy_learn_apply_tutorial>`
+     - Recommended starting point. Single-command pipeline using the included demo data,
+       with output interpretation and filtering guidance.
+   * - :doc:`Full Pipeline Reference (learn / apply) <snekmer_learnapp_tutorial>`
+     - For advanced use: manual workspace setup, adding new training data, reusing
+       a trained model across multiple query sets.
 
-   source ~/snekmer_env/bin/activate
-   cd resources/tutorial
-   jupyter notebook snekmer_demo.ipynb
+Model / Cluster / Search Tutorial
+----------------------------------
 
-This will execute the snekmer model, search, and cluster modes in succession
-on a set of three input families and produce output files for each in output.
+.. list-table::
+   :header-rows: 1
+   :widths: 35 65
 
-
-Running the Learn/Apply Tutorial  
---------------------  
-
-To run an example set of fasta files use the following commands:  
-  
-.. code-block:: bash
-
-   source ~/snekmer_env/bin/activate
-   cd resources/tutorial
-   jupyter notebook snekmer_learn_apply_tutorial.ipynb
-
-
+   * - Tutorial
+     - Description
+   * - :doc:`Model / Cluster / Search <snekmer_demo>`
+     - Supervised ML modeling, unsupervised clustering, and sequence search using the
+       included demo data.
 
 
 Evaluating Results
 ------------------
 
-All Snekmer modes except Model and Learn summarize write an html summary of their results to ``output/Snekmer_<Mode>_Report.html``. Below is an example of the report output from Apply:
-
+Snekmer writes an HTML summary report to ``output/Snekmer_<Mode>_Report.html``
+for each completed run. Below is an example report from Apply:
 
 .. image:: ../../../resources/images/apply_report_example.png
         :align: center
-        :alt: Example Snekmer Apply html report 
+        :alt: Example Snekmer Apply html report
 
-
-See the :ref:`Accessing Results <usage-results>` section for more details.
-
+See the :ref:`Accessing Results <usage-results>` section for details on all output files.

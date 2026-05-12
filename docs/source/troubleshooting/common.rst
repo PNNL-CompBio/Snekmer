@@ -21,30 +21,37 @@ user's individual configuration.
 Intel Macs
 ``````````
 
-For older Macs with processors using the Intel x86-64 architecture, it is **highly** recommended to run python 3.11-3.13 and run the following commands while installing dependencies:
+For older Macs with processors using the Intel x86-64 architecture, it is **highly**
+recommended to use Python 3.11–3.13 and run the following commands after creating
+your virtual environment:
+
 .. code-block:: bash
-python -m pip uninstall -y numba llvmlite
-python -m pip install --upgrade pip setuptools wheel
-python -m pip install --no-cache-dir --only-binary=:all: "llvmlite==0.44.0" "numba==0.61.0"
-python - <<'PY'
-import numba, llvmlite
-print("numba:", numba.__version__)
-print("llvmlite:", llvmlite.__version__)
-PY
+
+   python -m pip uninstall -y numba llvmlite
+   python -m pip install --upgrade pip setuptools wheel
+   python -m pip install --no-cache-dir --only-binary=:all: "llvmlite==0.44.0" "numba==0.61.0"
+   python - <<'PY'
+   import numba, llvmlite
+   print("numba:", numba.__version__)
+   print("llvmlite:", llvmlite.__version__)
+   PY
 
 .. _troubleshooting/ubuntu:
+
 Ubuntu Users
 ````````````
 
-Ubuntu users need to run the following commands to build local extensions and hdbscan:
+Ubuntu users need to install additional system packages before installing Snekmer's
+dependencies. Run these commands **after** creating your virtual environment:
 
 .. code-block:: bash
-sudo apt-get install python3.12-venv
-sudo apt install gcc g++
-sudo apt install -y python3.12-dev build-essential
-pip install --upgrade pip setuptools wheel
-pip install Cython numpy
-pip install --no-build-isolation hdbscan
+
+   sudo apt-get install python3.12-venv
+   sudo apt install gcc g++
+   sudo apt install -y python3.12-dev build-essential
+   pip install --upgrade pip setuptools wheel
+   pip install Cython numpy
+   pip install --no-build-isolation hdbscan
 
 Troubleshooting Error Messages
 ------------------------------
@@ -89,9 +96,14 @@ to suit your individual system.
 /bin/sh: line 0: cd: {PATH}: No such file or directory
 ``````````````````````````````````````````````````````
 
-This is a `known issue with Snakemake v7.3.0+ <https://github.com/snakemake/snakemake/issues/1546>`_.
-Check your Snakemake version and reinstall a lower version if necessary
-(we recommend Snakemake v7.0).
+This is a `known Snakemake issue <https://github.com/snakemake/snakemake/issues/1546>`_ that
+can occur when the wrong Snakemake version is installed. Snekmer requires
+``snakemake==9.13``. Verify your version with ``snakemake --version`` and
+reinstall the correct version if necessary:
+
+.. code-block:: bash
+
+   pip install "snakemake==9.13"
 
 Error: Directory cannot be locked.
 ``````````````````````````````````
@@ -114,11 +126,12 @@ e.g. ``snekmer {mode} --configfile /path/to/config.yaml``, to fix the issue.
 OSError: [Errno 86] Bad CPU type in executable
 ``````````````````````````````````````````````
 
-This occurs when Snekmer tries to run using an incorrect scheduler. This can be resolved by invoking Snekmer using the ``--scheduler greedy`` option.
+This occurs when Snekmer tries to run using an incorrect scheduler. Resolve it by
+passing ``--scheduler greedy``:
 
-Example command:
-::
-snekmer learn --scheduler greedy --configfile=./config.yaml
+.. code-block:: bash
+
+   snekmer learn --scheduler greedy --configfile=./config.yaml
 
 General Usage Questions
 -----------------------
@@ -152,6 +165,7 @@ the following:
 
 Snekmer cluster mode is producing an unusual number of clusters.
 ````````````````````````````````````````````````````````````````
+
 If Snekmer cluster results in an unexpected number of clusters,
 we recommend tuning the parameter set used to generate the clusters.
 Most likely, the parameters used to generate the clusters are too
@@ -160,3 +174,74 @@ Snekmer determines only 1 cluster for a given protein sequence set of
 many individual sequences, the parameters guiding the clustering
 algorithm is likely not sensitive enough to differentiate the underlying
 clusters. See :ref:`Parameter Selection <background-params>` for more details.
+
+
+``easy-learn-apply`` Questions
+------------------------------
+
+The pipeline failed partway through. How do I re-run it?
+`````````````````````````````````````````````````````````
+
+If ``easy-learn-apply`` fails after the ``learn`` step but before ``apply`` completes,
+Snakemake may leave a lock file or partial outputs in the apply workspace. The safest
+recovery is to delete the output directory and re-run from scratch:
+
+.. code-block:: bash
+
+   rm -rf my_results/
+   snekmer easy-learn-apply --train ... --query ... --ann ... --output my_results
+
+Alternatively, if ``learn`` completed successfully you can re-run only the apply step
+directly:
+
+.. code-block:: bash
+
+   snekmer apply -d my_results/apply
+
+No sequences have a high-confidence prediction.
+```````````````````````````````````````````````
+
+Check the following:
+
+1. **Score = 0 for most sequences** — this means the query sequences share no k-mers
+   with any training family. Verify that the same ``--k`` and ``--alphabet`` were used
+   for both train and query. If the query sequences are from a very different organism
+   or are very divergent, consider lowering the ``--k`` value (e.g. ``--k 6``).
+
+2. **Confidence is low but Score > 0** — the model may be undertrained. Try providing
+   more training sequences per family (at least 20–50 is recommended).
+
+3. **Verify your annotation file** matches your training FASTA headers. Run:
+
+   .. code-block:: python
+
+      import pandas as pd
+      from Bio import SeqIO
+
+      ann = pd.read_csv("annotations.ann", sep="\t")
+      ids_in_ann = set(ann["id"])
+
+      ids_in_fasta = {r.id.split("|")[1] for r in SeqIO.parse("training.fasta", "fasta")
+                      if "|" in r.id}
+
+      print("Matched:", len(ids_in_ann & ids_in_fasta))
+      print("In ann but not FASTA:", len(ids_in_ann - ids_in_fasta))
+
+I used ``--create-ann`` but got an error about no annotated sequences.
+```````````````````````````````````````````````````````````````````````
+
+``--create-ann`` requires training FASTA headers in the format
+``>db|FAMILY_LABEL|seqid ...`` — the family label must be the field
+**between the first pair of** ``|`` **characters**. Headers that use a different
+format (e.g. ``>seqid description``) cannot be parsed automatically.
+
+To check your headers:
+
+.. code-block:: bash
+
+   head -1 training_sequences.fasta
+
+If the header does not contain ``|`` characters, you will need to provide a
+``.ann`` file using ``--ann`` instead. See the
+:doc:`easy-learn-apply tutorial <../tutorial/snekmer_easy_learn_apply_tutorial>`
+for the annotation file format.

@@ -38,11 +38,99 @@ ALPHABETS = {
 }
 
 
+# Mode registry — single source of truth for names and descriptions
+_MODES = {
+    "cluster":          "Unsupervised clustering workflow.",
+    "model":            "Train supervised models + cross-validation reports.",
+    "search":           "Score sequences against trained models.",
+    "learn":            "Build annotation-associated k-mer distributions + confidence evaluation.",
+    "apply":            "Predict annotations using outputs from learn.",
+    "easy-learn-apply": "Guided front-end that runs learn then apply end-to-end.",
+}
+
+
+def _mode_table() -> str:
+    """Return a formatted table of modes and their descriptions."""
+    width = max(len(m) for m in _MODES)
+    lines = []
+    for mode, desc in _MODES.items():
+        lines.append(f"  {mode:<{width}}  {desc}")
+    return "\n".join(lines)
+
+
+class _SnekmerMainParser(argparse.ArgumentParser):
+    """Main parser with concise, organized help and targeted error messages."""
+
+    def print_help(self, file=None):
+        if file is None:
+            file = sys.stdout
+        print(
+            f"Snekmer {__version__} — protein sequence fingerprinting via amino acid reduction.\n"
+            "\n"
+            "Usage:\n"
+            "  snekmer <mode> [options]\n"
+            "  snekmer <mode> --help\n"
+            "\n"
+            "Modes:\n"
+            f"{_mode_table()}\n"
+            "\n"
+            "Global options (accepted by all modes):\n"
+            "  --k N           K-mer length (default: 8).\n"
+            "  --alphabet N    Reduced alphabet encoding 0-5 or name (default: 2 = solvacc).\n"
+            "  --cores N       CPU cores to use (default: all).\n"
+            "  --dry-run       Show what would be done without executing.\n"
+            "  --configfile    Path(s) to YAML/JSON config file(s).\n"
+            "  -v, --version   Print version and exit.\n"
+            "  -h, --help      Show this help message and exit.\n"
+            "\n"
+            "Run 'snekmer <mode> --help' for full options for a specific mode.",
+            file=file,
+        )
+
+    def error(self, message):
+        # Strip the default argparse preamble and show a focused message
+        clean = message
+        # "argument mode: invalid choice: 'X' (choose from ...)" → "unknown mode: 'X'"
+        if "argument mode: invalid choice:" in message:
+            bad = message.split("invalid choice:")[1].split("(")[0].strip()
+            clean = f"unknown mode: {bad}"
+        print(f"snekmer: error: {clean}\n", file=sys.stderr)
+        print("Valid modes:", file=sys.stderr)
+        print(_mode_table(), file=sys.stderr)
+        print(
+            "\nRun 'snekmer <mode> --help' for options, or 'snekmer --help' for an overview.",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+
+
 # ------------------------- argparse helpers -------------------------
 class SnekmerHelpFormatter(
     argparse.ArgumentDefaultsHelpFormatter, argparse.RawDescriptionHelpFormatter
 ):
     pass
+
+
+class _SnekmerSubParser(argparse.ArgumentParser):
+    """Base class for all Snekmer mode subparsers.
+
+    - Defaults to SnekmerHelpFormatter so argument groups show descriptions
+      and defaults in --help output.
+    - Collapses the usage line to 'usage: snekmer <mode> [options]' so it
+      does not expand into a wall of flags.
+    - Overrides error() to suppress the usage line and print a concise
+      message with a pointer to --help.
+    """
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("formatter_class", SnekmerHelpFormatter)
+        kwargs.setdefault("usage", "%(prog)s [options]")
+        super().__init__(*args, **kwargs)
+
+    def error(self, message):
+        print(f"{self.prog}: error: {message}\n", file=sys.stderr)
+        print(f"Run '{self.prog} --help' for usage.", file=sys.stderr)
+        sys.exit(2)
 
 
 class StoreSeenAction(argparse.Action):
@@ -84,11 +172,12 @@ def _main_description() -> str:
 Snekmer: A scalable pipeline for protein sequence fingerprinting using amino acid reduction (AAR).
 
 Modes:
-  cluster  Unsupervised clustering workflow.
-  model    Train supervised models + cross-validation reports.
-  search   Score sequences against trained models.
-  learn    Build annotation-associated k-mer distributions + confidence evaluation.
-  apply    Predict annotations using outputs from learn.
+  cluster           Unsupervised clustering workflow.
+  model             Train supervised models + cross-validation reports.
+  search            Score sequences against trained models.
+  learn             Build annotation-associated k-mer distributions + confidence evaluation.
+  apply             Predict annotations using outputs from learn.
+  easy-learn-apply  Guided front-end that runs learn then apply end-to-end.
 
 General usage:
   snekmer <mode> [snakemake arguments] [snekmer parameter overrides]
@@ -526,6 +615,161 @@ def _add_learn_apply_args(cfg_learn_apply: argparse.ArgumentParser) -> None:
     )
 
 
+# ------------------------- easy-learn-apply args -------------------------
+def _add_easy_la_args(p: argparse.ArgumentParser) -> None:
+    """Add all arguments for the easy-learn-apply subcommand."""
+
+    # -- Input/output --------------------------------------------------------
+    io = p.add_argument_group("Input / output")
+    io.add_argument(
+        "--train",
+        metavar="PATH",
+        default=None,
+        help=(
+            "Path to training sequences (FASTA file or directory of FASTA files). "
+            "If omitted, the wizard will prompt for it."
+        ),
+    )
+    io.add_argument(
+        "--query",
+        metavar="PATH",
+        default=None,
+        help=(
+            "Path to query sequences to annotate (FASTA file or directory). "
+            "If omitted, the wizard will prompt for it."
+        ),
+    )
+    io.add_argument(
+        "--output",
+        dest="output",
+        metavar="DIR",
+        default=None,
+        help="Output directory for the workspace. If omitted, the wizard will prompt.",
+    )
+
+    # -- Annotation ----------------------------------------------------------
+    ann = p.add_argument_group("Annotation (choose one)")
+    ann_mx = ann.add_mutually_exclusive_group()
+    ann_mx.add_argument(
+        "--ann",
+        dest="ann",
+        metavar="PATH",
+        default=None,
+        help=(
+            "Path to an existing annotation file (.ann). "
+            "Format: tab-separated with columns 'id' and 'family'."
+        ),
+    )
+    ann_mx.add_argument(
+        "--create-ann",
+        dest="create_ann",
+        action="store_true",
+        default=False,
+        help=(
+            "Generate annotations from training FASTA headers. "
+            "Requires headers in the format: >db|FAMILY_LABEL|seqid description "
+            "(the field between the first pair of | | becomes the family label)."
+        ),
+    )
+
+    # -- K-mer parameters ----------------------------------------------------
+    kmer = p.add_argument_group("K-mer parameters")
+    kmer.add_argument(
+        "--k",
+        dest="k",
+        type=int,
+        default=8,
+        metavar="N",
+        help="K-mer length.",
+    )
+    kmer.add_argument(
+        "--alphabet",
+        dest="alphabet",
+        type=str,
+        default="2",
+        metavar="",
+        help=(
+            "Reduced alphabet encoding (0–5, alphabet name, or 'None'). "
+            "2 = solvacc (3-letter). See alphabets list below."
+        ),
+    )
+
+    # -- Learn/apply options -------------------------------------------------
+    la = p.add_argument_group("Learn / apply options")
+    la.add_argument(
+        "--selection",
+        dest="selection",
+        choices=["top_hit", "greatest_distance", "combined_distance"],
+        default="top_hit",
+        metavar="",
+        help="Annotation selection method {top_hit, greatest_distance, combined_distance}.",
+    )
+    la.add_argument(
+        "--threshold",
+        dest="threshold",
+        type=str,
+        default="Median",
+        metavar="",
+        help=(
+            "Family-specific score threshold for prediction filtering. "
+            "Options: 'Median', 'Mean', '90th Percentile', 'None'."
+        ),
+    )
+    la.add_argument(
+        "--apply-output",
+        dest="apply_output",
+        type=str,
+        default="snekmer_results.csv",
+        metavar="FILENAME",
+        help="Output filename for apply results.",
+    )
+
+    # -- Snakemake pass-through ----------------------------------------------
+    smk = p.add_argument_group("Snakemake options")
+    smk.add_argument(
+        "--cores",
+        "-c",
+        dest="cores",
+        type=int,
+        default=cpu_count(),
+        metavar="N",
+        help="CPU cores to use.",
+    )
+    smk.add_argument(
+        "--dry-run",
+        "-n",
+        dest="dryrun",
+        action="store_true",
+        help="Show what would be done without executing.",
+    )
+    smk.add_argument(
+        "--verbose",
+        action="store_true",
+        default=False,
+        help="Show additional Snakemake debug output.",
+    )
+    smk.add_argument(
+        "--quiet",
+        "-q",
+        nargs="*",
+        choices=["progress", "rules", "all"],
+        default=None,
+        help="Reduce Snakemake output.",
+    )
+
+    # -- File handling -------------------------------------------------------
+    misc = p.add_argument_group("Miscellaneous")
+    misc.add_argument(
+        "--copy-files",
+        dest="copy_files",
+        action="store_true",
+        help=(
+            "Copy input files into the workspace instead of symlinking them "
+            "(useful when the workspace will be moved or shared)."
+        ),
+    )
+
+
 # ------------------------- parser construction -------------------------
 def get_argument_parser():
     parser = {}
@@ -720,7 +964,7 @@ def get_argument_parser():
     # -------------------------
     # main parser
     # -------------------------
-    parser["main"] = argparse.ArgumentParser(
+    parser["main"] = _SnekmerMainParser(
         description=_main_description(),
         epilog=_main_epilog(),
         formatter_class=SnekmerHelpFormatter,
@@ -744,8 +988,9 @@ def get_argument_parser():
 
     parser["subparsers"] = parser["main"].add_subparsers(
         title="mode",
-        description="Snekmer mode (cluster, model, search, learn, apply).",
+        description="Snekmer mode (cluster, model, search, learn, apply, easy-learn-apply).",
         dest="mode",
+        parser_class=_SnekmerSubParser,
     )
 
     # subparsers (each includes only the relevant Snekmer parameter sections)
@@ -784,6 +1029,19 @@ def get_argument_parser():
         description="Predict annotations using outputs from learn.",
         parents=[parser["smk"], parser["cfg_required"], parser["cfg_learn_apply"]],
     )
+
+    parser["easy-learn-apply"] = parser["subparsers"].add_parser(
+        "easy-learn-apply",
+        description=(
+            "Guided front-end that runs learn then apply end-to-end.\n\n"
+            "Prompts for training sequences, query sequences, and annotation style,\n"
+            "then builds a self-contained workspace and runs both pipeline steps.\n"
+            "All prompts can be skipped by supplying the corresponding flags."
+        ),
+        formatter_class=SnekmerHelpFormatter,
+        epilog=_main_epilog(),
+    )
+    _add_easy_la_args(parser["easy-learn-apply"])
 
     return parser
 
@@ -1127,7 +1385,17 @@ def _run(rule_basename, args, keepgoing_override=None):
 
 def main():
     parser = get_argument_parser()
-    args = parser["main"].parse_args()
+
+    # Route each subcommand through its own subparser so that unrecognized-
+    # argument errors show only that subcommand's concise usage, not the full
+    # snekmer wall of options.  Unknown or missing modes fall through to the
+    # main parser, which now has a clean, organized error handler.
+    mode = sys.argv[1] if len(sys.argv) > 1 else None
+    if mode in _MODES:
+        args = parser[mode].parse_args(sys.argv[2:])
+        args.mode = mode
+    else:
+        args = parser["main"].parse_args()
 
     if args.quiet is not None and len(args.quiet) == 0:
         args.quiet = ["progress", "rules"]
@@ -1142,6 +1410,9 @@ def main():
         rc = _run("learn", args, keepgoing_override=True)
     elif args.mode == "apply":
         rc = _run("apply", args, keepgoing_override=True)
+    elif args.mode == "easy-learn-apply":
+        from snekmer.easy import run_easy_learn_apply
+        rc = run_easy_learn_apply(args)
     else:
         parser["main"].print_help()
         rc = 2

@@ -1,13 +1,18 @@
 Command Line Interface
 ======================
 
-To run any of the five Snekmer operation modes, simply call:
+To run any Snekmer operation mode, call:
 
 .. code-block:: bash
 
     snekmer {mode}
 
-where ``{mode}`` is one of ``cluster``, ``model``, ``search``, ``learn``, or ``apply``.
+where ``{mode}`` is one of ``easy-learn-apply``, ``learn``, ``apply``,
+``cluster``, ``model``, or ``search``.
+
+``easy-learn-apply`` is the recommended entry point for new users — it runs
+the full Learn/Apply pipeline with a single command and no manual directory
+setup. See the :doc:`Quick Start <quickstart>` to get started immediately.
 
 General usage follows the pattern:
 
@@ -24,20 +29,30 @@ For an overview of Snekmer usage, reference the help command (``snekmer --help``
 .. code-block:: console
 
     $ snekmer --help
-    usage: snekmer [-h] [-v] [snakemake args] [snekmer params] {cluster,model,search,learn,apply} ...
+    Snekmer 1.4.1 — protein sequence fingerprinting via amino acid reduction.
 
-    Snekmer: A scalable pipeline for protein sequence fingerprinting using amino acid reduction (AAR).
+    Usage:
+      snekmer <mode> [options]
+      snekmer <mode> --help
 
     Modes:
-      cluster  Unsupervised clustering workflow.
-      model    Train supervised models + cross-validation reports.
-      search   Score sequences against trained models.
-      learn    Build annotation-associated k-mer distributions + confidence evaluation.
-      apply    Predict annotations using outputs from learn.
+      cluster            Unsupervised clustering workflow.
+      model              Train supervised models + cross-validation reports.
+      search             Score sequences against trained models.
+      learn              Build annotation-associated k-mer distributions + confidence evaluation.
+      apply              Predict annotations using outputs from learn.
+      easy-learn-apply   Guided front-end that runs learn then apply end-to-end.
 
-    options:
-      -h, --help            show this help message and exit
-      -v, --version         Print version and exit.
+    Global options (accepted by all modes):
+      --k N           K-mer length (default: 8).
+      --alphabet N    Reduced alphabet encoding 0-5 or name (default: 2 = solvacc).
+      --cores N       CPU cores to use (default: all).
+      --dry-run       Show what would be done without executing.
+      --configfile    Path(s) to YAML/JSON config file(s).
+      -v, --version   Print version and exit.
+      -h, --help      Show this help message and exit.
+
+    Run 'snekmer <mode> --help' for full options for a specific mode.
 
 Tailored references for the individual operation modes can be accessed
 via ``snekmer {mode} --help``. Each subcommand includes only the Snekmer

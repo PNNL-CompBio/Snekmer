@@ -40,3 +40,6 @@ snekmer = ["rules/*.smk", "scripts/*.py", "templates/*.html"]
 
 [project.scripts]
 snekmer = "snekmer.cli:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
