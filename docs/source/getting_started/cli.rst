@@ -383,8 +383,13 @@ step, run:
     snekmer {mode} --until vectorize
 
 
-Snakemake Pass-Through Arguments
---------------------------------
+.. _getting_started-snakemake-passthrough:
+
+.. raw:: html
+
+   <details class="snekmer-collapsible">
+   <summary>Snakemake Pass-Through Arguments</summary>
+   <div class="details-body">
 
 The following arguments are passed through directly to Snakemake and are
 not Snekmer-specific:
@@ -460,13 +465,26 @@ not Snekmer-specific:
 ``--scheduler-ilp-solver-path`` **[PATH]**
     PATH to search for ILP scheduler solver binaries.
 
+.. raw:: html
+
+   </div>
+   </details>
+
 
 .. _getting_started-all_options:
 
-All Options
------------
+.. raw:: html
+
+   <details class="snekmer-collapsible">
+   <summary>All Options (full argparse reference)</summary>
+   <div class="details-body">
 
 .. argparse::
    :module: snekmer.cli
    :func: get_main_args
    :prog: snekmer
+
+.. raw:: html
+
+   </div>
+   </details>
