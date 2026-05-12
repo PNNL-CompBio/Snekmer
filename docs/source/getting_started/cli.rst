@@ -61,8 +61,11 @@ parameter sections relevant to that mode.
 
 .. _getting_started-configuration:
 
-Configuration
--------------
+.. raw:: html
+
+   <details class="snekmer-collapsible">
+   <summary>Configuration</summary>
+   <div class="details-body">
 
 Config Precedence
 `````````````````
@@ -166,18 +169,28 @@ Snekmer ``apply``
     │   ├── B.fasta
     │   └── etc.
     ├── counts/
-    │   └── kmer-counts-total.csv
+    │   └── kmer_counts_total.csv
     ├── confidence/
-    │   └── global-confidence-scores.csv
+    │   └── global_confidence_scores.csv
     ├── stats/
     │   └── family_summary_stats.csv
     ├── output/
     │   ├── ...
     │   └── ...
 
+.. raw:: html
 
-Alphabets
----------
+   </div>
+   </details>
+
+
+.. _getting_started-alphabets:
+
+.. raw:: html
+
+   <details class="snekmer-collapsible">
+   <summary>Alphabets</summary>
+   <div class="details-body">
 
 Snekmer supports several reduced amino acid alphabets for k-mer recoding.
 You may pass either an integer (``0``–``5``), the alphabet name (e.g.
@@ -220,9 +233,19 @@ You may pass either an integer (``0``–``5``), the alphabet name (e.g.
      - 20
      - No reduced alphabet
 
+.. raw:: html
 
-Example: Learn→Apply Without a Config File
---------------------------------------------
+   </div>
+   </details>
+
+
+.. _getting_started-example-learnapp:
+
+.. raw:: html
+
+   <details class="snekmer-collapsible">
+   <summary>Example: Learn→Apply Without a Config File</summary>
+   <div class="details-body">
 
 The following walkthrough demonstrates a complete ``learn`` then ``apply``
 workflow using only command line arguments — no ``config.yaml`` required.
@@ -244,7 +267,7 @@ Copy your training FASTA files and annotation file into place:
 .. code-block:: bash
 
     cp training_sequences_*.fasta learn/input/
-    cp TIGRFAMs_annotation.ann    learn/annotations/
+    cp annotations.ann            learn/annotations/
 
 Your directory should look like:
 
@@ -252,7 +275,7 @@ Your directory should look like:
 
     learn/
     ├── annotations/
-    │   └── TIGRFAMs_annotation.ann
+    │   └── annotations.ann
     └── input/
         ├── training_sequences_1.fasta
         ├── training_sequences_2.fasta
@@ -273,15 +296,8 @@ Step 2: Run ``snekmer learn``
         --no-nested-output \
         --no-save-apply-associations \
         --conf-weight-modifier 20 \
-        --fragment-version absolute \
-        --frag-length 50 \
-        --min-length 50 \
-        --fragment-location random \
-        --seed 999 \
         --selection top_hit \
         --threshold Median \
-        --weight-top 0.7 \
-        --weight-distance 0.3 \
         --apply-output snekmer_results.csv \
         -d learn
 
@@ -295,6 +311,9 @@ Step 2: Run ``snekmer learn``
 
        snekmer learn --no-default-configfile -d learn
 
+   Advanced options such as sequence fragmentation are available via
+   ``config.yaml``. See :doc:`config` for the full parameter reference.
+
 Step 3: Copy ``learn`` outputs into the ``apply`` directory
 ```````````````````````````````````````````````````````````
 
@@ -303,22 +322,19 @@ handoff files:
 
 .. code-block:: bash
 
-    mkdir -p apply/input apply/annotations apply/counts apply/confidence apply/stats
+    mkdir -p apply/input apply/counts apply/confidence apply/stats
 
-    cp test_sequences.fasta                                apply/input/
-    cp TIGRFAMs_annotation.ann                             apply/annotations/
+    cp test_sequences.fasta                                      apply/input/
 
-    cp learn/output/learn/kmer_counts_total.csv            apply/counts/
-    cp learn/output/eval_conf/global_confidence_scores.csv apply/confidence/
-    cp learn/output/eval_conf/family_summary_stats.csv     apply/stats/
+    cp learn/apply_inputs/counts/kmer_counts_total.csv           apply/counts/
+    cp learn/apply_inputs/confidence/global_confidence_scores.csv apply/confidence/
+    cp learn/apply_inputs/stats/family_summary_stats.csv         apply/stats/
 
 Your ``apply`` directory should look like:
 
 .. code-block:: console
 
     apply/
-    ├── annotations/
-    │   └── TIGRFAMs_annotation.ann
     ├── confidence/
     │   └── global_confidence_scores.csv
     ├── counts/
@@ -343,15 +359,8 @@ Step 4: Run ``snekmer apply``
         --no-nested-output \
         --no-save-apply-associations \
         --conf-weight-modifier 20 \
-        --fragment-version absolute \
-        --frag-length 50 \
-        --min-length 50 \
-        --fragment-location random \
-        --seed 999 \
         --selection top_hit \
         --threshold Median \
-        --weight-top 0.7 \
-        --weight-distance 0.3 \
         --apply-output snekmer_results.csv \
         -d apply
 
@@ -370,9 +379,19 @@ preview them with:
 
     head apply/snekmer_results.csv
 
+.. raw:: html
 
-Partial Workflow
-----------------
+   </div>
+   </details>
+
+
+.. _getting_started-partial-workflow:
+
+.. raw:: html
+
+   <details class="snekmer-collapsible">
+   <summary>Partial Workflow</summary>
+   <div class="details-body">
 
 To execute only a part of the workflow, the ``--until`` option can be invoked.
 For instance, to execute the workflow only through the kmer vector generation
@@ -381,6 +400,11 @@ step, run:
 .. code-block:: bash
 
     snekmer {mode} --until vectorize
+
+.. raw:: html
+
+   </div>
+   </details>
 
 
 .. _getting_started-snakemake-passthrough:
