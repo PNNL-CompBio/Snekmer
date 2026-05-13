@@ -724,6 +724,56 @@ def _add_easy_la_args(p: argparse.ArgumentParser) -> None:
         help="Output filename for apply results.",
     )
 
+    # -- Fragmentation (advanced) --------------------------------------------
+    frag = p.add_argument_group("Fragmentation (advanced)")
+    frag.add_argument(
+        "--fragmentation",
+        dest="fragmentation",
+        action="store_true",
+        default=False,
+        help="Split sequences into fragments before kmerization.",
+    )
+    frag.add_argument(
+        "--frag-length",
+        dest="frag_length",
+        type=int,
+        default=None,
+        metavar="N",
+        help="Fragment length in residues (default: 50).",
+    )
+    frag.add_argument(
+        "--min-length",
+        dest="min_length",
+        type=int,
+        default=None,
+        metavar="N",
+        help="Minimum sequence length to fragment (default: 50).",
+    )
+    frag.add_argument(
+        "--fragment-version",
+        dest="fragment_version",
+        type=str,
+        default=None,
+        metavar="",
+        help="Fragmentation version (default: absolute).",
+    )
+    frag.add_argument(
+        "--fragment-location",
+        dest="fragment_location",
+        type=str,
+        default=None,
+        metavar="",
+        help="Fragment location method (default: random).",
+    )
+    frag.add_argument(
+        "--seed",
+        dest="seed",
+        type=int,
+        default=None,
+        metavar="N",
+        help="Random seed for fragmentation (default: 999).",
+    )
+
     # -- Snakemake pass-through ----------------------------------------------
     smk = p.add_argument_group("Snakemake options")
     smk.add_argument(

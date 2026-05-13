@@ -43,3 +43,7 @@ snekmer = "snekmer.cli:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "integration: end-to-end tests that invoke the snekmer CLI (slow, requires snekmer installed)",
+    "docker: tests that build and run a Docker image (requires docker in PATH)",
+]

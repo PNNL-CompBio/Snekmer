@@ -506,6 +506,13 @@ def run_easy_learn_apply(args) -> int:
         print(f"\nERROR: snekmer learn failed (exit code {rc})", file=sys.stderr)
         return rc
 
+    # In dry-run mode the learn DAG was printed but no files were created.
+    # Show the apply DAG too and exit cleanly — there is nothing to hand off.
+    if getattr(args, "dryrun", False):
+        print("\n--- Running snekmer apply (dry run) ---")
+        _run("apply", _make_run_args(args, str(apply_dir)), keepgoing_override=True)
+        return 0
+
     # ---- Copy handoff files ------------------------------------------------
     print("\nCopying learn outputs to apply input directories...")
     try:
