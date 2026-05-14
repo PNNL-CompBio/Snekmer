@@ -81,6 +81,103 @@ concat_results = apply_cfg.get("apply_output", "snekmer_results.csv")
 extra_all = [concat_results] if concat_results is not None else []
 
 
+onstart:
+    import sys as _sys
+    from Bio import SeqIO as _SeqIO
+
+    _errors = []
+    _warns = []
+
+    if not FAS:
+        _errors.append(
+            f"No FASTA files found in '{input_dir}/'. "
+            f"Expected extensions: {config['input_file_exts']}"
+        )
+
+    for _label, _files, _subdir in [
+        ("k-mer counts",      compare_file,     "counts/"),
+        ("confidence scores", confidence_file,  "confidence/"),
+        ("family stats",      decoy_stats_file, "stats/"),
+    ]:
+        if not _files:
+            _errors.append(
+                f"No {_label} CSV found in '{_subdir}'. "
+                f"Run 'snekmer learn' first, then copy apply_inputs/ files here."
+            )
+
+    for _fa in unzipped:
+        try:
+            _recs = list(_SeqIO.parse(_fa, "fasta"))
+        except Exception as _exc:
+            _errors.append(f"Cannot parse FASTA '{_fa}': {_exc}")
+            continue
+        if not _recs:
+            _errors.append(
+                f"FASTA file has no sequences: '{_fa}'\n"
+                f"  Verify the file uses FASTA format (records start with '>')."
+            )
+            continue
+        _short = [r for r in _recs if len(r.seq) < config["k"]]
+        if _short:
+            _warns.append(
+                f"{len(_short)}/{len(_recs)} sequence(s) in '{_fa}' are shorter "
+                f"than k={config['k']} and will yield no k-mers."
+            )
+        _sample = "".join(str(r.seq).upper() for r in _recs[:10])
+        if _sample and sum(1 for c in _sample if c in "ATCGN") / len(_sample) > 0.9:
+            _warns.append(
+                f"'{_fa}' may contain nucleotide sequences. "
+                f"Snekmer expects amino acid (protein) input."
+            )
+
+    # ── Parameter checks ─────────────────────────────────────────────────────
+    _VALID_SEL = {"top_hit", "greatest_distance", "combined_distance"}
+
+    if config["k"] < 1:
+        _errors.append(f"k must be ≥ 1, got k={config['k']}.")
+
+    try:
+        from snekmer.alphabet import get_alphabet_keys as _gak
+        _n_sym = len(_gak(config["alphabet"]))
+        _vocab = _n_sym ** config["k"]
+        if _vocab > 50_000_000:
+            _errors.append(
+                f"Vocabulary too large: alphabet '{config['alphabet']}' has {_n_sym} "
+                f"symbols, k={config['k']} → {_vocab:,} k-mers. This will exhaust memory.\n"
+                f"  Use a smaller k or a coarser alphabet (e.g., alphabet=0, k=6)."
+            )
+        elif _vocab > 1_000_000:
+            _warns.append(
+                f"Large vocabulary: alphabet '{config['alphabet']}' has {_n_sym} symbols, "
+                f"k={config['k']} → {_vocab:,} k-mers. Runtime and memory may be high."
+            )
+    except Exception:
+        pass
+
+    _sel = config.get("learn_apply", {}).get("selection", "top_hit")
+    if _sel not in _VALID_SEL:
+        _errors.append(
+            f"Unknown selection method '{_sel}'. "
+            f"Valid options: {', '.join(sorted(_VALID_SEL))}"
+        )
+
+    if _sel == "combined_distance":
+        _la = config.get("learn_apply", {})
+        _wt, _wd = _la.get("weight_top", 0.7), _la.get("weight_distance", 0.3)
+        if abs(_wt + _wd - 1.0) > 0.01:
+            _warns.append(
+                f"weight_top ({_wt}) + weight_distance ({_wd}) = {_wt + _wd:.2f} "
+                f"(expected 1.0). Combined-distance scores may be poorly calibrated."
+            )
+
+    for _w in _warns:
+        print(f"\nWARNING: {_w}", file=_sys.stderr)
+    if _errors:
+        for _e in _errors:
+            print(f"\nINPUT ERROR: {_e}", file=_sys.stderr)
+        raise Exception("\nInput validation failed — fix the errors above and re-run.")
+
+
 def resource_path(package: str, *parts) -> str:
     """
     Re-create pkg_resources.resource_filename()

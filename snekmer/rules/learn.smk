@@ -83,6 +83,186 @@ if (
     )
 
 
+onstart:
+    import re as _re
+    import sys as _sys
+    from Bio import SeqIO as _SeqIO
+
+    _errors = []
+    _warns = []
+    _pipe_pat = _re.compile(r"\|(.*?)\|")
+
+    if not FAS:
+        _errors.append(
+            f"No FASTA files found in '{input_dir}/'. "
+            f"Expected extensions: {config['input_file_exts']}"
+        )
+
+    if not annot_files:
+        _errors.append("No annotation files (.ann) found in 'annotations/'.")
+
+    for _fa in unzipped:
+        try:
+            _recs = list(_SeqIO.parse(_fa, "fasta"))
+        except Exception as _exc:
+            _errors.append(f"Cannot parse FASTA '{_fa}': {_exc}")
+            continue
+        if not _recs:
+            _errors.append(
+                f"FASTA file has no sequences: '{_fa}'\n"
+                f"  Verify the file uses FASTA format (records start with '>')."
+            )
+            continue
+        _short = [r for r in _recs if len(r.seq) < config["k"]]
+        if _short:
+            _warns.append(
+                f"{len(_short)}/{len(_recs)} sequence(s) in '{_fa}' are shorter "
+                f"than k={config['k']} and will yield no k-mers."
+            )
+        _sample = "".join(str(r.seq).upper() for r in _recs[:10])
+        if _sample and sum(1 for c in _sample if c in "ATCGN") / len(_sample) > 0.9:
+            _warns.append(
+                f"'{_fa}' may contain nucleotide sequences. "
+                f"Snekmer expects amino acid (protein) input."
+            )
+
+    for _ann in annot_files:
+        try:
+            with open(_ann, encoding="utf-8") as _fh:
+                _hdr = _fh.readline().rstrip("\n")
+                _n_rows = sum(1 for ln in _fh if ln.strip())
+        except Exception as _exc:
+            _errors.append(f"Cannot read annotation file '{_ann}': {_exc}")
+            continue
+        _tab_cols = [c.strip() for c in _hdr.split("\t")]
+        if not {"id", "family"}.issubset(set(_tab_cols)):
+            _comma_cols = [c.strip() for c in _hdr.split(",")]
+            if {"id", "family"}.issubset(set(_comma_cols)):
+                _errors.append(
+                    f"Annotation file '{_ann}' appears comma-separated; "
+                    f"Snekmer expects tab-separated format.\n"
+                    f"  Expected header: id<TAB>family"
+                )
+            else:
+                _errors.append(
+                    f"Annotation file '{_ann}' is missing required columns "
+                    f"'id' and/or 'family'.\n"
+                    f"  Found (tab-split): {_tab_cols}\n"
+                    f"  Expected header:   id<TAB>family"
+                )
+        elif _n_rows == 0:
+            _errors.append(f"Annotation file '{_ann}' has a header but no data rows.")
+
+    if not _errors and annot_files and unzipped:
+        try:
+            _ann_ids = set()
+            for _ann in annot_files:
+                with open(_ann, encoding="utf-8") as _fh:
+                    _fh.readline()
+                    for _ln in _fh:
+                        _ln = _ln.strip()
+                        if _ln:
+                            _ann_ids.add(_ln.split("\t")[0].strip())
+            _matched = _total = 0
+            for _fa in unzipped:
+                for _rec in _SeqIO.parse(_fa, "fasta"):
+                    _total += 1
+                    _m = _pipe_pat.search(_rec.id)
+                    if _m and _m.group(1) in _ann_ids:
+                        _matched += 1
+            if _total > 0 and _matched == 0:
+                _errors.append(
+                    f"No training sequences matched any annotation ID.\n"
+                    f"  Checked {_total} sequence(s) vs {len(_ann_ids)} annotation ID(s).\n"
+                    f"  Snekmer extracts the pipe-enclosed field from FASTA headers:\n"
+                    f"    >db|FAMILY_ID|seqid  →  looks up 'FAMILY_ID' in annotation 'id' column\n"
+                    f"  Verify annotation 'id' values appear in training FASTA headers."
+                )
+            elif _total > 0 and _matched / _total < 0.1:
+                _warns.append(
+                    f"Only {_matched}/{_total} training sequences "
+                    f"({100 * _matched / _total:.0f}%) matched an annotation ID. "
+                    f"Unmatched sequences are excluded from training."
+                )
+        except Exception:
+            pass
+
+    # ── Parameter checks ─────────────────────────────────────────────────────
+    _VALID_SEL = {"top_hit", "greatest_distance", "combined_distance"}
+
+    if config["k"] < 1:
+        _errors.append(f"k must be ≥ 1, got k={config['k']}.")
+
+    try:
+        from snekmer.alphabet import get_alphabet_keys as _gak
+        _n_sym = len(_gak(config["alphabet"]))
+        _vocab = _n_sym ** config["k"]
+        if _vocab > 50_000_000:
+            _errors.append(
+                f"Vocabulary too large: alphabet '{config['alphabet']}' has {_n_sym} "
+                f"symbols, k={config['k']} → {_vocab:,} k-mers. This will exhaust memory.\n"
+                f"  Use a smaller k or a coarser alphabet (e.g., alphabet=0, k=6)."
+            )
+        elif _vocab > 1_000_000:
+            _warns.append(
+                f"Large vocabulary: alphabet '{config['alphabet']}' has {_n_sym} symbols, "
+                f"k={config['k']} → {_vocab:,} k-mers. Runtime and memory may be high."
+            )
+    except Exception:
+        pass
+
+    _sel = config.get("learn_apply", {}).get("selection", "top_hit")
+    if _sel not in _VALID_SEL:
+        _errors.append(
+            f"Unknown selection method '{_sel}'. "
+            f"Valid options: {', '.join(sorted(_VALID_SEL))}"
+        )
+
+    if _sel == "combined_distance":
+        _la = config.get("learn_apply", {})
+        _wt, _wd = _la.get("weight_top", 0.7), _la.get("weight_distance", 0.3)
+        if abs(_wt + _wd - 1.0) > 0.01:
+            _warns.append(
+                f"weight_top ({_wt}) + weight_distance ({_wd}) = {_wt + _wd:.2f} "
+                f"(expected 1.0). Combined-distance scores may be poorly calibrated."
+            )
+
+    _la_cfg = config.get("learn_apply", {})
+    if _la_cfg.get("fragmentation"):
+        _flen = _la_cfg.get("frag_length", 50)
+        if _flen < config["k"]:
+            _errors.append(
+                f"frag_length ({_flen}) is less than k ({config['k']}). "
+                f"Fragments shorter than k produce no k-mers."
+            )
+
+    if not _errors and annot_files:
+        try:
+            _families = set()
+            for _ann in annot_files:
+                with open(_ann, encoding="utf-8") as _fh:
+                    _fh.readline()
+                    for _ln in _fh:
+                        _parts = _ln.strip().split("\t")
+                        if len(_parts) >= 2:
+                            _families.add(_parts[1].strip())
+            if len(_families) < 2:
+                _errors.append(
+                    f"Annotation defines only {len(_families)} family/families. "
+                    f"At least 2 distinct families are required — cosine similarity "
+                    f"is undefined with a single family."
+                )
+        except Exception:
+            pass
+
+    for _w in _warns:
+        print(f"\nWARNING: {_w}", file=_sys.stderr)
+    if _errors:
+        for _e in _errors:
+            print(f"\nINPUT ERROR: {_e}", file=_sys.stderr)
+        raise Exception("\nInput validation failed — fix the errors above and re-run.")
+
+
 def resource_path(package: str, *parts) -> str:
     """
     Re-create pkg_resources.resource_filename()

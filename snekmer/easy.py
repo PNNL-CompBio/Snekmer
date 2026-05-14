@@ -444,6 +444,209 @@ def _collect_la_overrides(args) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Input validation
+# ---------------------------------------------------------------------------
+
+_VALID_SELECTIONS: frozenset = frozenset({"top_hit", "greatest_distance", "combined_distance"})
+
+
+def _check_fasta_files(label: str, files: list, k: int, warnings: list, errors: list) -> None:
+    """Append FASTA-level warnings/errors in-place."""
+    for fasta in files:
+        try:
+            with _open_fasta(fasta) as fh:
+                records = list(SeqIO.parse(fh, "fasta"))
+        except (OSError, ValueError, UnicodeDecodeError) as exc:
+            errors.append(
+                f"{label} file cannot be parsed as FASTA: {fasta.name}\n  {exc}"
+            )
+            continue
+
+        if not records:
+            errors.append(
+                f"{label} file '{fasta.name}' contains no sequences.\n"
+                f"  Verify the file is in FASTA format (each record starts with '>')."
+            )
+            continue
+
+        short = [r for r in records if len(r.seq) < k]
+        if short:
+            warnings.append(
+                f"{label}: {len(short)}/{len(records)} sequence(s) in "
+                f"'{fasta.name}' are shorter than k={k} and will yield no k-mers."
+            )
+
+        sample = "".join(str(r.seq).upper() for r in records[:10])
+        if sample and sum(1 for c in sample if c in "ATCGN") / len(sample) > 0.9:
+            warnings.append(
+                f"{label}: '{fasta.name}' appears to contain nucleotide sequences "
+                f"(>90% ATCGN characters). Snekmer expects amino acid (protein) sequences."
+            )
+
+
+def _check_annotation_file(ann_file: Path, errors: list) -> None:
+    """Append annotation-level errors in-place."""
+    try:
+        with open(ann_file, encoding="utf-8") as fh:
+            header_line = fh.readline().rstrip("\n")
+            n_data_lines = sum(1 for line in fh if line.strip())
+    except OSError as exc:
+        errors.append(f"Annotation file cannot be read: {ann_file}\n  {exc}")
+        return
+
+    tab_cols = [c.strip() for c in header_line.split("\t")]
+    required = {"id", "family"}
+    if not required.issubset(set(tab_cols)):
+        comma_cols = [c.strip() for c in header_line.split(",")]
+        if required.issubset(set(comma_cols)):
+            errors.append(
+                f"Annotation file appears to be comma-separated, but Snekmer "
+                f"expects tab-separated format.\n"
+                f"  File: {ann_file}\n"
+                f"  Expected header: id<TAB>family"
+            )
+        else:
+            errors.append(
+                f"Annotation file is missing required columns 'id' and/or 'family'.\n"
+                f"  Found columns (tab-split): {tab_cols}\n"
+                f"  File: {ann_file}\n"
+                f"  Expected: tab-separated file with header: id<TAB>family"
+            )
+    elif n_data_lines == 0:
+        errors.append(f"Annotation file has a header but no data rows: {ann_file}")
+
+
+def _check_training_coverage(
+    train_files: list, ann_file: Path, warnings: list, errors: list
+) -> None:
+    """Cross-check training FASTA IDs against annotation IDs. Appends in-place."""
+    try:
+        with open(ann_file, encoding="utf-8") as fh:
+            fh.readline()
+            ann_ids = {line.split("\t")[0].strip() for line in fh if line.strip()}
+
+        matched = total = 0
+        for fasta in train_files:
+            with _open_fasta(fasta) as fh:
+                for record in SeqIO.parse(fh, "fasta"):
+                    total += 1
+                    m = _SEQID_PATTERN.search(record.id)
+                    if m and m.group(1) in ann_ids:
+                        matched += 1
+
+        if total > 0 and matched == 0:
+            errors.append(
+                f"No training sequences matched any annotation ID.\n"
+                f"  Checked {total} sequence(s) against {len(ann_ids)} annotation entry/entries.\n"
+                f"  Snekmer extracts the pipe-enclosed field from FASTA headers:\n"
+                f"    >db|FAMILY_ID|seqid  →  looks up 'FAMILY_ID' in annotation 'id' column\n"
+                f"  Verify that your annotation 'id' values appear in training FASTA headers."
+            )
+        elif total > 0 and matched / total < 0.1:
+            warnings.append(
+                f"Only {matched}/{total} training sequences "
+                f"({100 * matched / total:.0f}%) matched an annotation ID. "
+                f"Unmatched sequences are silently excluded from training."
+            )
+
+        with open(ann_file, encoding="utf-8") as fh:
+            fh.readline()
+            families = {
+                parts[1].strip()
+                for line in fh
+                if line.strip() and len(parts := line.split("\t")) >= 2
+            }
+        if len(families) < 2:
+            errors.append(
+                f"Annotation file defines only {len(families)} family/families. "
+                f"At least 2 distinct families are required — cosine similarity "
+                f"comparison is undefined with a single family."
+            )
+    except (OSError, ValueError, UnicodeDecodeError):
+        pass  # don't let coverage check abort the pipeline on unexpected I/O errors
+
+
+def validate_inputs(
+    train_files: list,
+    query_files: list,
+    ann_file: Path,
+    k: int = 8,
+) -> tuple:
+    """Pre-flight check of input files before starting the pipeline.
+
+    Returns (warnings, errors) — two lists of human-readable strings.
+    Errors indicate conditions that will definitely crash the pipeline.
+    Warnings indicate conditions likely to produce unexpected results.
+    """
+    warnings: list = []
+    errors: list = []
+
+    _check_fasta_files("Training", train_files, k, warnings, errors)
+    _check_fasta_files("Query", query_files, k, warnings, errors)
+    _check_annotation_file(ann_file, errors)
+    if not errors and train_files:
+        _check_training_coverage(train_files, ann_file, warnings, errors)
+
+    return warnings, errors
+
+
+def validate_params(k: int, alphabet, la_overrides: dict) -> tuple:
+    """Check pipeline parameters before starting the pipeline.
+
+    Returns (warnings, errors) — two lists of human-readable strings.
+    """
+    warnings: list = []
+    errors: list = []
+
+    if k < 1:
+        errors.append(f"k must be ≥ 1, got k={k}.")
+    else:
+        try:
+            from snekmer.alphabet import get_alphabet_keys  # noqa: PLC0415
+            n_sym = len(get_alphabet_keys(_coerce_alphabet(alphabet)))
+            vocab = n_sym ** k
+            if vocab > 50_000_000:
+                errors.append(
+                    f"Vocabulary too large: alphabet '{alphabet}' has {n_sym} symbols, "
+                    f"k={k} → {vocab:,} k-mers. This will exhaust memory.\n"
+                    f"  Use a smaller k or a coarser alphabet (e.g., --alphabet 0 --k 6)."
+                )
+            elif vocab > 1_000_000:
+                warnings.append(
+                    f"Large vocabulary: alphabet '{alphabet}' has {n_sym} symbols, "
+                    f"k={k} → {vocab:,} k-mers. Runtime and memory may be high."
+                )
+        except ValueError:
+            pass  # invalid alphabet already caught by check_valid() at pipeline start
+
+    sel = la_overrides.get("selection", "top_hit")
+    if sel not in _VALID_SELECTIONS:
+        errors.append(
+            f"Unknown selection method '{sel}'. "
+            f"Valid options: {', '.join(sorted(_VALID_SELECTIONS))}"
+        )
+
+    if sel == "combined_distance":
+        wt = la_overrides.get("weight_top", 0.7)
+        wd = la_overrides.get("weight_distance", 0.3)
+        if abs(wt + wd - 1.0) > 0.01:
+            warnings.append(
+                f"--weight-top ({wt}) + --weight-distance ({wd}) = {wt + wd:.2f} "
+                f"(expected 1.0). Scores may be poorly calibrated."
+            )
+
+    if la_overrides.get("fragmentation"):
+        frag_len = la_overrides.get("frag_length", 50)
+        if frag_len < k:
+            errors.append(
+                f"--frag-length ({frag_len}) is less than k ({k}). "
+                f"Fragments shorter than k produce no k-mers."
+            )
+
+    return warnings, errors
+
+
+# ---------------------------------------------------------------------------
 # Main entry point
 # ---------------------------------------------------------------------------
 
@@ -475,9 +678,23 @@ def run_easy_learn_apply(args) -> int:
     output_dir = _wizard_output_dir(args)                                  # 4
 
     # k and alphabet use defaults silently; only applied if flags were given
-    k = int(getattr(args, "k", None) or 8)
+    k = int(getattr(args, "k", 8))  # don't use `or 8` — k=0 is falsy but still invalid
     alphabet = getattr(args, "alphabet", None) or 2
     la_overrides = _collect_la_overrides(args)
+
+    # ---- Validate inputs and parameters ------------------------------------
+    file_warns, file_errs = validate_inputs(train_files, query_files, ann_tmp, k=k)
+    param_warns, param_errs = validate_params(k, alphabet, la_overrides)
+    all_warns = file_warns + param_warns
+    all_errs = file_errs + param_errs
+
+    for w in all_warns:
+        print(f"\nWARNING: {w}", file=sys.stderr)
+    if all_errs:
+        for e in all_errs:
+            print(f"\nERROR: {e}", file=sys.stderr)
+        ann_tmp.unlink(missing_ok=True)
+        return 1
 
     # ---- Scaffold workspace ------------------------------------------------
     if interactive:
