@@ -48,7 +48,7 @@ jobs:
           source snekmer_env/bin/activate
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install git+https://github.com/PNNL-CompBio/Snekmer@learn_decoy_implementation#egg=snekmer
+          pip install .
           echo "VIRTUAL_ENV=$PWD/snekmer_env" >> $GITHUB_ENV
           echo "$PWD/snekmer_env/bin" >> $GITHUB_PATH
 

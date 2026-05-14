@@ -227,6 +227,27 @@ Check the following:
       print("Matched:", len(ids_in_ann & ids_in_fasta))
       print("In ann but not FASTA:", len(ids_in_ann - ids_in_fasta))
 
+I see an ``INPUT ERROR`` message before the pipeline starts.
+``````````````````````````````````````````````````````````````
+
+Snekmer validates your inputs before launching the pipeline. Common messages and fixes:
+
+**Vocabulary too large** — e.g. ``alphabet '5' has 10 symbols, k=8 → 100,000,000 k-mers``:
+The combination of alphabet and k-mer length would create more k-mers than can fit in memory.
+Use a coarser alphabet (lower number) or a smaller ``--k`` value.
+
+**frag-length less than k** — e.g. ``--frag-length (4) is less than k (8)``:
+Fragments shorter than k produce no k-mers. Increase ``--frag-length`` to at least the value of ``--k``.
+
+**Annotation file missing 'family' column** — the ``.ann`` file must be tab-separated with
+exactly the columns ``id`` and ``family``. Check for comma separators or misspelled headers.
+
+**No training sequences found in annotation file** — no sequence IDs in your FASTA files
+matched any ``id`` in the ``.ann`` file. Verify that the accession extraction matches your
+header format (Snekmer extracts the field between the first pair of ``|`` characters for
+UniProt-style headers). If your headers lack ``|``, use ``--create-ann`` or build the
+``.ann`` file manually using your actual header IDs.
+
 I used ``--create-ann`` but got an error about no annotated sequences.
 ```````````````````````````````````````````````````````````````````````
 

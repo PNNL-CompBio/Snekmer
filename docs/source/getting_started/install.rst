@@ -91,7 +91,7 @@ or via ``conda install -n base -c conda-forge mamba``. Then:
 Install Snekmer via Docker
 --------------------------
 
-Snekmer has been installed into a public docker image hosted on `Dockerhub <https://hub.docker.com/repository/docker/jjacobson95/snekmer_env>`_.
+Snekmer has been installed into a public docker image hosted on `Dockerhub <https://hub.docker.com/r/jjacobson95/snekmer>`_.
 Usage requires the installation of `Docker Desktop <https://docs.docker.com/desktop/>`_.
 
 To download the image from Dockerhub:

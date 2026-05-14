@@ -86,7 +86,7 @@ The demo data is included in the repository under ``resources/demo_sequences/lea
 
    resources/demo_sequences/learn_apply_inputs/
    ├── learn/                        ← 10 training FASTA files
-   │   ├── training_sequences_1.fasta     (5,000 proteins across 200 TIGRFAM families)
+   │   ├── training_sequences_1.fasta     (1,000 proteins each; 10,000 total across 200 TIGRFAM families)
    │   ├── ...
    │   └── training_sequences_10.fasta
    ├── apply/                        ← 1 query FASTA
@@ -299,8 +299,17 @@ adjusted parameters:
    * - ``--copy-files``
      - —
      - Copy input files into the workspace instead of symlinking
+   * - ``--fragmentation``
+     - off
+     - Split training sequences into fixed-length fragments before k-merizing
+   * - ``--frag-length``
+     - ``50``
+     - Fragment length in amino acids (must be ≥ ``--k``)
+   * - ``--min-length``
+     - ``50``
+     - Minimum fragment length to retain; shorter fragments are discarded
 
-For advanced use — adding to an existing model, fragmentation, or custom config files —
+For advanced use — adding to an existing model or custom config files —
 use ``snekmer learn`` and ``snekmer apply`` directly. See the
 :doc:`full pipeline reference <snekmer_learnapp_tutorial>`.
 
