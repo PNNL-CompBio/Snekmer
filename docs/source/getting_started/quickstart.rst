@@ -1,14 +1,14 @@
 Quick Start
 ===========
 
-Once Snekmer is installed, you can annotate sequences with a single command — no
+Once Snekmer is installed, you can annotate sequences with a single command with no
 configuration file or directory setup required.
 
 Try it with the included demo data
 ------------------------------------
 
-The repository includes demo data — 5,000 training proteins across 200 TIGRFAM families
-and 3,000 query proteins — so you can run a complete example immediately after installing.
+The repository includes demo data (5,000 training proteins across 200 TIGRFAM families
+and 3,000 query proteins), so you can run a complete example immediately after installing.
 From the root of the Snekmer repository:
 
 .. code-block:: bash
@@ -47,7 +47,7 @@ Three inputs:
      For UniProt-style headers (``>db|ACCESSION|name ...``), the accession is the
      field between the first pair of ``|`` characters.
 
-     Family labels can be **any string** — database accessions (e.g. ``TIGR04183``),
+     Family labels can be **any string**: database accessions (e.g. ``TIGR04183``),
      descriptive names (e.g. ``nitrogenase``), or numbers. Labels are case-sensitive.
 
    - ``--create-ann``: generate annotations automatically from training FASTA

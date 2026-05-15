@@ -83,7 +83,7 @@ General parameters related to Snekmer's cluster mode (``snekmer cluster``), wher
  ``cluster_plots``         ``bool``               If True, generates figures illustrating clustering results (t-SNE, UMAP, PCA)
  ``min_rep``               ``int`` or ``None``    Discard k-mers with fewer than this many occurrences across the input set
  ``max_rep``               ``int`` or ``None``    Discard k-mers with more than this many occurrences across the input set
- ``save_matrix``           ``bool``               If True, saves the pairwise distance matrix (large files — not recommended for large datasets)
+ ``save_matrix``           ``bool``               If True, saves the pairwise distance matrix (large files; not recommended for large datasets)
  ``dist_thresh``           ``int``                Distance threshold used when computing the BSF Jaccard matrix
 ========================  ====================  ==============================================================================
 

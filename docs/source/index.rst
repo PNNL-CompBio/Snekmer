@@ -20,6 +20,10 @@ The primary use case for Snekmer is sequence annotation via the Learn/Apply pipe
 
 **New to Snekmer? Start here:**
 
+1. :doc:`Install Snekmer <getting_started/install>`: set up a Python virtual environment
+   and install the package.
+2. Run ``easy-learn-apply`` with your training sequences, query sequences, and annotation file:
+
 .. code-block:: bash
 
    snekmer easy-learn-apply \
@@ -28,8 +32,8 @@ The primary use case for Snekmer is sequence annotation via the Learn/Apply pipe
        --ann    path/to/annotations.ann \
        --output results/
 
-``easy-learn-apply`` runs the complete pipeline from a single command — no directory setup,
-no config file required. See the :doc:`easy-learn-apply tutorial <tutorial/snekmer_easy_learn_apply_tutorial>`
+``easy-learn-apply`` runs the complete pipeline from a single command with no directory setup
+or config file required. See the :doc:`easy-learn-apply tutorial <tutorial/snekmer_easy_learn_apply_tutorial>`
 to get started with the included demo data.
 
 .. image:: ../../resources/images/snekmer_workflow.svg

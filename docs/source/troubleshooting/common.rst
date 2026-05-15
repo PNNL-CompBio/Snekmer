@@ -252,7 +252,7 @@ I used ``--create-ann`` but got an error about no annotated sequences.
 ```````````````````````````````````````````````````````````````````````
 
 ``--create-ann`` requires training FASTA headers in the format
-``>db|FAMILY_LABEL|seqid ...`` — the family label must be the field
+``>db|FAMILY_LABEL|seqid ...``; the family label must be the field
 **between the first pair of** ``|`` **characters**. Headers that use a different
 format (e.g. ``>seqid description``) cannot be parsed automatically.
 

@@ -4,7 +4,7 @@ Learn/Apply Tutorial
 ====================
 
 ``snekmer easy-learn-apply`` is the recommended way to run the Learn/Apply pipeline.
-Provide your training sequences, query sequences, and annotation information — Snekmer
+Provide your training sequences, query sequences, and annotation information. Snekmer
 handles directory setup, configuration, and the handoff between pipeline stages automatically.
 
 .. list-table::
@@ -61,7 +61,7 @@ A tab-separated file with two columns:
 
 The ``id`` must match the accession in your training FASTA headers. For UniProt-style
 headers (``>db|ACCESSION|name ...``), Snekmer extracts the field between the first pair
-of ``|`` characters. Family labels can be any string — database accessions, descriptive
+of ``|`` characters. Family labels can be any string: database accessions, descriptive
 names, or numbers. Labels are case-sensitive.
 
 **Auto-generating annotations with --create-ann**
@@ -202,7 +202,7 @@ All sequences receive a prediction. Use **Confidence** and **Score** to filter
 for reliable annotations:
 
 - **Confidence ≥ 0.95** is a good starting threshold for high-quality calls.
-- **Score = 0.0** means no overlapping k-mers with any training family — exclude
+- **Score = 0.0** means no overlapping k-mers with any training family; exclude
   these predictions.
 
 Using the demo data with a 0.95 confidence threshold, 995 of 3,000 query sequences
@@ -255,7 +255,7 @@ Omit any required flag and Snekmer will prompt for it interactively:
 
    Step 4  Output directory [snekmer_easy_output]: my_results
 
-You can mix flags and wizard — provide ``--train`` and ``--ann`` but omit ``--query``,
+You can mix flags and wizard: provide ``--train`` and ``--ann`` but omit ``--query``,
 and only the query prompt will appear.
 
 
@@ -309,7 +309,7 @@ adjusted parameters:
      - ``50``
      - Minimum fragment length to retain; shorter fragments are discarded
 
-For advanced use — adding to an existing model or custom config files —
+For advanced use (adding to an existing model or using custom config files),
 use ``snekmer learn`` and ``snekmer apply`` directly. See the
 :doc:`full pipeline reference <snekmer_learnapp_tutorial>`.
 

@@ -10,7 +10,7 @@ Learn/Apply: Full Pipeline Reference
    See the :doc:`easy-learn-apply tutorial <snekmer_easy_learn_apply_tutorial>`.
 
    This page is for users who need **direct control** over ``snekmer learn``
-   and ``snekmer apply`` — for example:
+   and ``snekmer apply``, for example:
 
    - Incrementally adding new training sequences to an existing model
    - Reusing a trained model against multiple query sets
@@ -115,7 +115,7 @@ Step 1: Set up the ``learn`` workspace
 
       ln -s "$(pwd)/resources/demo_sequences/learn_apply_inputs/learn/"*.fasta learn/input/
 
-   Symlinks are not supported on Windows — use ``cp`` there.
+   Symlinks are not supported on Windows; use ``cp`` there.
 
 
 Step 2: Run ``snekmer learn``
@@ -208,7 +208,7 @@ Key parameters
 --------------
 
 The most commonly adjusted parameters. Pass them as CLI flags or set them in
-``config.yaml`` — see :doc:`../getting_started/config` for the full reference.
+``config.yaml``; see :doc:`../getting_started/config` for the full reference.
 
 .. list-table::
    :header-rows: 1
@@ -251,9 +251,9 @@ to the expanded training set. The merged counts matrix accumulates across runs.
 Deep-dive notebook
 ------------------
 
-For a step-by-step walkthrough of every internal pipeline rule — vectorization,
+For a step-by-step walkthrough of every internal pipeline rule (vectorization,
 k-mer count matrix construction, reversed-sequence decoy evaluation, and confidence
-calibration — see the companion notebook:
+calibration), see the companion notebook:
 
 ``docs/source/tutorial/snekmer_learn_apply_tutorial.ipynb``
 

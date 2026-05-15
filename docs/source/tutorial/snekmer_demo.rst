@@ -3,7 +3,7 @@
 Model / Cluster / Search Tutorial
 ==================================
 
-This tutorial walks through three Snekmer modes — **Cluster**, **Model**, and **Search** —
+This tutorial walks through three Snekmer modes (**Cluster**, **Model**, and **Search**)
 using the demo data included in the repository.
 
 .. list-table::

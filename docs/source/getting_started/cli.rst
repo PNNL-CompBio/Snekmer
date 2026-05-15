@@ -10,7 +10,7 @@ To run any Snekmer operation mode, call:
 where ``{mode}`` is one of ``easy-learn-apply``, ``learn``, ``apply``,
 ``cluster``, ``model``, or ``search``.
 
-``easy-learn-apply`` is the recommended entry point for new users — it runs
+``easy-learn-apply`` is the recommended entry point for new users. It runs
 the full Learn/Apply pipeline with a single command and no manual directory
 setup. See the :doc:`Quick Start <quickstart>` to get started immediately.
 
@@ -248,7 +248,7 @@ You may pass either an integer (``0``–``5``), the alphabet name (e.g.
    <div class="details-body">
 
 The following walkthrough demonstrates a complete ``learn`` then ``apply``
-workflow using only command line arguments — no ``config.yaml`` required.
+workflow using only command line arguments with no ``config.yaml`` required.
 The ``--no-default-configfile`` flag tells Snekmer to skip auto-loading a
 config file, so all parameters come from built-in defaults and any explicit
 CLI flags.

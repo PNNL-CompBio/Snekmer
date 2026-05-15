@@ -7,7 +7,7 @@ They provide optional performance improvements for specific use cases.
 
 .. _bsf-install:
 
-Blazing Signature Filter (BSF) — faster clustering
+Blazing Signature Filter (BSF): Faster Clustering
 ----------------------------------------------------
 
 The `Blazing Signature Filter <https://github.com/PNNL-CompBio/bsf-jaccard-py>`_
@@ -21,7 +21,7 @@ distance matrices more efficiently. It applies to the following clustering metho
 
 If BSF is not installed, Snekmer automatically falls back to
 ``scipy.spatial.distance.pdist`` for Jaccard distance computation. Clustering
-will produce identical results — BSF simply runs faster on large datasets.
+will produce identical results; BSF simply runs faster on large datasets.
 
 **BSF is not compatible with Apple silicon (M1/M2/M3) systems.** See the
 `known Apple silicon issues <https://github.com/PNNL-CompBio/Snekmer/issues/102>`_

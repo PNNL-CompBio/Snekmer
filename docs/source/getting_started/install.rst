@@ -126,5 +126,5 @@ Optional: Blazing Signature Filter (BSF)
 -----------------------------------------
 
 BSF is an optional performance dependency for ``snekmer cluster``. It is not
-required — Snekmer works without it. See :doc:`Advanced / Optional Dependencies <advanced>`
+optional; Snekmer works without it. See :doc:`Advanced / Optional Dependencies <advanced>`
 for installation instructions.

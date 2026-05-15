@@ -244,7 +244,7 @@ Snekmer Apply Output Files
 
 Snekmer's apply mode produces the following output files
 and directories in addition to the files described previously.
-Predictions are stored in ``kmer_summary_<name>.csv`` — one 5-column file per input FASTA,
+Predictions are stored in ``kmer_summary_<name>.csv``, one 5-column file per input FASTA,
 with one row per sequence: the predicted family, cosine similarity score, score gap (delta),
 and calibrated confidence. These are concatenated into the single ``snekmer_results.csv`` file.
 The optional ``seq_annotation_scores_<name>.csv`` files contain the full cosine similarity
@@ -283,7 +283,7 @@ one row per query sequence with five columns:
        pair of ``|`` characters.
    * - ``Prediction``
      - The family assigned the highest cosine similarity score. Every sequence
-       receives a prediction — use ``Score`` and ``Confidence`` to decide
+       receives a prediction; use ``Score`` and ``Confidence`` to decide
        whether to accept it.
    * - ``Score``
      - Cosine similarity between the query k-mer vector and the predicted
