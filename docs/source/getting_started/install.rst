@@ -16,10 +16,11 @@ The next step is to create and activate a new virtual environment that will cont
 Once the virtual environment has been created and activated, clone and install Snekmer using the following commands.
 
 .. code-block:: bash
-  # Download from Github Main Branch
+
+	# Download from Github Main Branch
 	git clone https://github.com/PNNL-CompBio/Snekmer.git
-  # Alternatively, Download a Github Branch
-  # git clone -b pre_paper_updates https://github.com/PNNL-CompBio/Snekmer.git
+	# Alternatively, download a specific branch:
+	# git clone -b pre_paper_updates https://github.com/PNNL-CompBio/Snekmer.git
 	cd Snekmer
 	pip install --no-cache -r requirements.txt
 	pip install .
