@@ -1,6 +1,6 @@
 .. _learnapp-tutorial:
 
-Learn/Apply — Full Pipeline Reference
+Learn/Apply: Full Pipeline Reference
 ======================================
 
 .. note::
@@ -93,7 +93,7 @@ when using the modes directly you build them yourself.
        └── family_summary_stats.csv   ← copied from learn output
 
 
-Step 1 — Set up the ``learn`` workspace
+Step 1: Set up the ``learn`` workspace
 ----------------------------------------
 
 .. code-block:: bash
@@ -118,7 +118,7 @@ Step 1 — Set up the ``learn`` workspace
    Symlinks are not supported on Windows — use ``cp`` there.
 
 
-Step 2 — Run ``snekmer learn``
+Step 2: Run ``snekmer learn``
 --------------------------------
 
 If you have a ``config.yaml`` in the ``learn/`` directory:
@@ -161,7 +161,7 @@ To preview what will run without executing:
        └── eval_conf/  ← confidence scores and family statistics
 
 
-Step 3 — Copy ``learn`` outputs into the ``apply`` workspace
+Step 3: Copy ``learn`` outputs into the ``apply`` workspace
 --------------------------------------------------------------
 
 .. code-block:: bash
@@ -177,7 +177,7 @@ Step 3 — Copy ``learn`` outputs into the ``apply`` workspace
    cp learn/apply_inputs/stats/family_summary_stats.csv     apply/stats/
 
 
-Step 4 — Run ``snekmer apply``
+Step 4: Run ``snekmer apply``
 --------------------------------
 
 .. code-block:: bash

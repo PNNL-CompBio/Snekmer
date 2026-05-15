@@ -92,7 +92,7 @@ in order:
 
 Or run each mode individually after copying the input files and config manually:
 
-Step 1 — Copy inputs and config
+Step 1: Copy inputs and config
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: bash
@@ -102,21 +102,21 @@ Step 1 — Copy inputs and config
    cp ../demo_sequences/model_cluster_search_inputs/TIGR03149.faa   input/
    cp ../config.yaml ./config.yaml
 
-Step 2 — Cluster
+Step 2: Cluster
 ~~~~~~~~~~~~~~~~
 
 .. code-block:: bash
 
    snekmer cluster --scheduler greedy --configfile=./config.yaml
 
-Step 3 — Model
+Step 3: Model
 ~~~~~~~~~~~~~~
 
 .. code-block:: bash
 
    snekmer model --scheduler greedy --configfile=./config.yaml
 
-Step 4 — Collect model artifacts (required before Search)
+Step 4: Collect model artifacts (required before Search)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ``snekmer search`` needs the per-family ``.model``, ``.kmers``, and ``.scorer``
@@ -129,7 +129,7 @@ files collected into a single directory (``output/example-model/`` by default):
    cp output/kmerize/*.kmers   output/example-model/
    cp output/scoring/*.scorer  output/example-model/
 
-Step 5 — Search
+Step 5: Search
 ~~~~~~~~~~~~~~~
 
 .. code-block:: bash

@@ -203,12 +203,12 @@ No sequences have a high-confidence prediction.
 
 Check the following:
 
-1. **Score = 0 for most sequences** — this means the query sequences share no k-mers
+1. **Score = 0 for most sequences**: this means the query sequences share no k-mers
    with any training family. Verify that the same ``--k`` and ``--alphabet`` were used
    for both train and query. If the query sequences are from a very different organism
    or are very divergent, consider lowering the ``--k`` value (e.g. ``--k 6``).
 
-2. **Confidence is low but Score > 0** — the model may be undertrained. Try providing
+2. **Confidence is low but Score > 0**: the model may be undertrained. Try providing
    more training sequences per family (at least 20–50 is recommended).
 
 3. **Verify your annotation file** matches your training FASTA headers. Run:
@@ -232,17 +232,17 @@ I see an ``INPUT ERROR`` message before the pipeline starts.
 
 Snekmer validates your inputs before launching the pipeline. Common messages and fixes:
 
-**Vocabulary too large** — e.g. ``alphabet '5' has 10 symbols, k=8 → 100,000,000 k-mers``:
+**Vocabulary too large**: e.g. ``alphabet '5' has 10 symbols, k=8 → 100,000,000 k-mers``:
 The combination of alphabet and k-mer length would create more k-mers than can fit in memory.
 Use a coarser alphabet (lower number) or a smaller ``--k`` value.
 
-**frag-length less than k** — e.g. ``--frag-length (4) is less than k (8)``:
+**frag-length less than k**: e.g. ``--frag-length (4) is less than k (8)``:
 Fragments shorter than k produce no k-mers. Increase ``--frag-length`` to at least the value of ``--k``.
 
-**Annotation file missing 'family' column** — the ``.ann`` file must be tab-separated with
+**Annotation file missing 'family' column**: the ``.ann`` file must be tab-separated with
 exactly the columns ``id`` and ``family``. Check for comma separators or misspelled headers.
 
-**No training sequences found in annotation file** — no sequence IDs in your FASTA files
+**No training sequences found in annotation file**: no sequence IDs in your FASTA files
 matched any ``id`` in the ``.ann`` file. Verify that the accession extraction matches your
 header format (Snekmer extracts the field between the first pair of ``|`` characters for
 UniProt-style headers). If your headers lack ``|``, use ``--create-ann`` or build the
