@@ -318,24 +318,24 @@
         <text x="-236.73px" y="0px" style="font-family:'Helvetica-Light', 'Helvetica', sans-serif;font-weight:300;font-size:60px;fill:white;">Build k-mer count</text>
     </g>
     <g transform="matrix(1,0,0,1,2196.44,2399.5)">
-        <text x="-166.71px" y="0px" style="font-family:'Helvetica-Light', 'Helvetica', sans-serif;font-weight:300;font-size:60px;fill:white;">vectors from</text>
+        <text x="-150px" y="0px" style="font-family:'Helvetica-Light', 'Helvetica', sans-serif;font-weight:300;font-size:60px;fill:white;">matrix from</text>
     </g>
     <g transform="matrix(1,0,0,1,2196.44,2477.5)">
         <text x="-243.45px" y="0px" style="font-family:'Helvetica-Light', 'Helvetica', sans-serif;font-weight:300;font-size:60px;fill:white;">annotated training</text>
     </g>
     <g transform="matrix(1,0,0,1,2196.44,2555.5)">
-        <g transform="matrix(60,0,0,60,141.75,0)">
+        <g transform="matrix(60,0,0,60,320.13,0)">
         </g>
-        <g transform="matrix(60,0,0,60,158.43,0)">
-        </g>
-        <text x="-188.43px" y="0px" style="font-family:'Helvetica-Light', 'Helvetica', sans-serif;font-weight:300;font-size:60px;fill:white;">sequences; ﬁt</text>
+        <text x="-303.45px" y="0px" style="font-family:'Helvetica-Light', 'Helvetica', sans-serif;font-weight:300;font-size:60px;fill:white;">sequences. Determine</text>
     </g>
     <g transform="matrix(1,0,0,1,2196.44,2633.5)">
-        <g transform="matrix(60,0,0,60,-141.69,0)">
+        <g transform="matrix(60,0,0,60,-178.35,0)">
         </g>
-        <g transform="matrix(60,0,0,60,-125.01,0)">
+        <g transform="matrix(60,0,0,60,-161.67,0)">
         </g>
-        <text x="-241.77px" y="0px" style="font-family:'Helvetica-Light', 'Helvetica', sans-serif;font-weight:300;font-size:60px;fill:white;">conﬁdence model</text>
+        <g transform="matrix(60,0,0,60,278.43,0)">
+        </g>
+        <text x="-278.43px" y="0px" style="font-family:'Helvetica-Light', 'Helvetica', sans-serif;font-weight:300;font-size:60px;fill:white;">conﬁdence mapping</text>
     </g>
     <g transform="matrix(1,0,0,1,140.44,0)">
         <circle cx="2855" cy="2062.5" r="66" style="fill:none;stroke:white;stroke-width:8px;stroke-linejoin:miter;"/>
@@ -361,24 +361,26 @@
     <g transform="matrix(1,0,0,1,2995.44,2243.5)">
         <text x="-139.025px" y="0px" style="font-family:'Metropolis-Bold', 'Metropolis';font-weight:700;font-size:83px;fill:white;">APPL<tspan x="78.269px " y="0px ">Y</tspan></text>
     </g>
-    <g transform="matrix(1,0,0,1,2995.44,2321.5)">
+    <g transform="matrix(1,0,0,1,3028.44,2321.5)">
         <text x="-320.13px" y="0px" style="font-family:'Helvetica-Light', 'Helvetica', sans-serif;font-weight:300;font-size:60px;fill:white;">Score query sequences</text>
     </g>
-    <g transform="matrix(1,0,0,1,2995.44,2399.5)">
+    <g transform="matrix(1,0,0,1,3021.44,2399.5)">
         <text x="-293.4px" y="0px" style="font-family:'Helvetica-Light', 'Helvetica', sans-serif;font-weight:300;font-size:60px;fill:white;">against learned k-mer</text>
     </g>
-    <g transform="matrix(1,0,0,1,2995.44,2477.5)">
-        <text x="-226.74px" y="0px" style="font-family:'Helvetica-Light', 'Helvetica', sans-serif;font-weight:300;font-size:60px;fill:white;">model via cosine</text>
+    <g transform="matrix(1,0,0,1,3021.44,2477.5)">
+        <text x="-225.06px" y="0px" style="font-family:'Helvetica-Light', 'Helvetica', sans-serif;font-weight:300;font-size:60px;fill:white;">matrix via cosine</text>
     </g>
-    <g transform="matrix(1,0,0,1,2995.44,2555.5)">
+    <g transform="matrix(1,0,0,1,3021.44,2555.5)">
         <text x="-221.67px" y="0px" style="font-family:'Helvetica-Light', 'Helvetica', sans-serif;font-weight:300;font-size:60px;fill:white;">similarity; assign</text>
     </g>
-    <g transform="matrix(1,0,0,1,2995.44,2633.5)">
-        <g transform="matrix(60,0,0,60,64.8,0)">
+    <g transform="matrix(1,0,0,1,3021.44,2633.5)">
+        <g transform="matrix(60,0,0,60,96.69,0)">
         </g>
-        <g transform="matrix(60,0,0,60,81.48,0)">
+        <g transform="matrix(60,0,0,60,113.37,0)">
         </g>
-        <text x="-264.9px" y="0px" style="font-family:'Helvetica-Light', 'Helvetica', sans-serif;font-weight:300;font-size:60px;fill:white;">family + conﬁdence</text>
+        <g transform="matrix(60,0,0,60,296.79,0)">
+        </g>
+        <text x="-296.79px" y="0px" style="font-family:'Helvetica-Light', 'Helvetica', sans-serif;font-weight:300;font-size:60px;fill:white;">family and conﬁdence</text>
     </g>
     <g transform="matrix(1,0,0,1,193.4,0)">
         <path d="M2800,491L2800,371" style="fill:none;fill-rule:nonzero;stroke:white;stroke-width:0.85px;stroke-linecap:round;stroke-linejoin:miter;"/>
