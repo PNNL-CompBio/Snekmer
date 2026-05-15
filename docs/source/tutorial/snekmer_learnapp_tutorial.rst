@@ -44,7 +44,7 @@ The commands below use the demo data in ``resources/demo_sequences/learn_apply_i
 .. code-block:: text
 
    resources/demo_sequences/learn_apply_inputs/
-   ├── learn/                        ← 10 training FASTA files (5,000 proteins, 200 families)
+   ├── learn/                        ← 10 training FASTA files (10,000 proteins, 200 families)
    │   ├── training_sequences_1.fasta
    │   ├── ...
    │   └── training_sequences_10.fasta
