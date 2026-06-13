@@ -100,7 +100,7 @@ Learn/Apply also uses:
   annotations/{file}.ann
 ```
 
-Requiremented Inputs
+Required Inputs
 ----------------------------------------
 
 **Cluster**  
