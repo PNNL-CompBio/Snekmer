@@ -116,7 +116,7 @@ directory to save all output files. Snekmer also assumes background files,
 if any, are stored in ``input/background``. An example of the assumed
 directory structure is shown for each execution mode of Snekmer.
 
-**Snekmer ``cluster``, ``model``, and ``search``**
+**Snekmer cluster, model, and search**
 
 .. code-block:: console
 
@@ -135,7 +135,7 @@ directory structure is shown for each execution mode of Snekmer.
     │   └── ...
 
 
-**Snekmer ``learn``**
+**Snekmer learn**
 
 .. code-block:: console
 
@@ -154,7 +154,7 @@ directory structure is shown for each execution mode of Snekmer.
     │   └── ...
 
 
-**Snekmer ``apply``**
+**Snekmer apply**
 
 .. code-block:: console
 
@@ -249,7 +249,7 @@ The ``--no-default-configfile`` flag tells Snekmer to skip auto-loading a
 config file, so all parameters come from built-in defaults and any explicit
 CLI flags.
 
-**Step 1: Prepare the ``learn`` directory**
+**Step 1: Prepare the learn directory**
 
 Create a working directory for the learn step with the expected layout:
 
@@ -276,7 +276,7 @@ Your directory should look like:
         ├── training_sequences_2.fasta
         └── ...
 
-**Step 2: Run ``snekmer learn``**
+**Step 2: Run snekmer learn**
 
 .. code-block:: bash
 
@@ -308,7 +308,7 @@ Your directory should look like:
    Advanced options such as sequence fragmentation are available via
    ``config.yaml``. See :doc:`config` for the full parameter reference.
 
-**Step 3: Copy ``learn`` outputs into the ``apply`` directory**
+**Step 3: Copy learn outputs into the apply directory**
 
 After ``learn`` completes, create the ``apply`` directory and copy the
 handoff files:
@@ -337,7 +337,7 @@ Your ``apply`` directory should look like:
     └── stats/
         └── family_summary_stats.csv
 
-**Step 4: Run ``snekmer apply``**
+**Step 4: Run snekmer apply**
 
 .. code-block:: bash
 
