@@ -503,3 +503,8 @@ not Snekmer-specific:
 
    </div>
    </details>
+
+.. rst-class:: snekmer-section-close
+
+Page End
+========
