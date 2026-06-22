@@ -108,8 +108,7 @@ A config file is no longer strictly required. You can use
 needed overrides via Snekmer parameter flags or ``-C KEY=VALUE``.
 
 
-Directory Structure
-```````````````````
+**Directory Structure**
 
 Snekmer assumes that input files are stored in the ``input`` directory
 (configurable via ``--input-dir``), and automatically creates an ``output``
@@ -117,8 +116,7 @@ directory to save all output files. Snekmer also assumes background files,
 if any, are stored in ``input/background``. An example of the assumed
 directory structure is shown for each execution mode of Snekmer.
 
-Snekmer ``cluster``, ``model``, and ``search``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Snekmer ``cluster``, ``model``, and ``search``**
 
 .. code-block:: console
 
@@ -137,8 +135,7 @@ Snekmer ``cluster``, ``model``, and ``search``
     │   └── ...
 
 
-Snekmer ``learn``
-~~~~~~~~~~~~~~~~~
+**Snekmer ``learn``**
 
 .. code-block:: console
 
@@ -157,8 +154,7 @@ Snekmer ``learn``
     │   └── ...
 
 
-Snekmer ``apply``
-~~~~~~~~~~~~~~~~~
+**Snekmer ``apply``**
 
 .. code-block:: console
 
@@ -253,8 +249,7 @@ The ``--no-default-configfile`` flag tells Snekmer to skip auto-loading a
 config file, so all parameters come from built-in defaults and any explicit
 CLI flags.
 
-Step 1: Prepare the ``learn`` directory
-```````````````````````````````````````
+**Step 1: Prepare the ``learn`` directory**
 
 Create a working directory for the learn step with the expected layout:
 
@@ -281,8 +276,7 @@ Your directory should look like:
         ├── training_sequences_2.fasta
         └── ...
 
-Step 2: Run ``snekmer learn``
-`````````````````````````````
+**Step 2: Run ``snekmer learn``**
 
 .. code-block:: bash
 
@@ -314,8 +308,7 @@ Step 2: Run ``snekmer learn``
    Advanced options such as sequence fragmentation are available via
    ``config.yaml``. See :doc:`config` for the full parameter reference.
 
-Step 3: Copy ``learn`` outputs into the ``apply`` directory
-```````````````````````````````````````````````````````````
+**Step 3: Copy ``learn`` outputs into the ``apply`` directory**
 
 After ``learn`` completes, create the ``apply`` directory and copy the
 handoff files:
@@ -344,8 +337,7 @@ Your ``apply`` directory should look like:
     └── stats/
         └── family_summary_stats.csv
 
-Step 4: Run ``snekmer apply``
-`````````````````````````````
+**Step 4: Run ``snekmer apply``**
 
 .. code-block:: bash
 
@@ -369,8 +361,7 @@ Step 4: Run ``snekmer apply``
    Use the **same** ``--k`` and ``--alphabet`` values for both ``learn`` and
    ``apply``. Mismatched encoding parameters will produce incorrect results.
 
-Step 5: Inspect results
-```````````````````````
+**Step 5: Inspect results**
 
 The final predictions are written to ``apply/snekmer_results.csv``. You can
 preview them with:
