@@ -7,18 +7,18 @@ Annotation Pipeline (Learn/Apply)
 The primary use case for Snekmer is sequence annotation via the Learn/Apply pipeline,
 accessible through three commands:
 
-- ``easy-learn-apply``: **recommended entry point** that runs the full Learn/Apply pipeline
+- ``easy``: **recommended entry point** that runs the full Learn/Apply pipeline
   from a single command. Provide training sequences, query sequences, and an annotation file;
   Snekmer handles the rest:
 
   .. code-block:: bash
 
-     snekmer easy-learn-apply --train train/ --query query.fasta --ann annotations.ann --output results/
+     snekmer easy --train train/ --query query.fasta --ann annotations.ann --output results/
 
 - ``learn``: builds a kmer counts matrix and confidence model from annotated training sequences.
 - ``apply``: scores query sequences against outputs from a prior ``learn`` run.
 
-The ``easy-learn-apply`` command is built on top of ``learn`` and ``apply`` and produces
+The ``easy`` command is built on top of ``learn`` and ``apply`` and produces
 identical results. Use ``learn``/``apply`` directly when adding new training data to an existing
 model or when you need fine-grained control over intermediate steps.
 

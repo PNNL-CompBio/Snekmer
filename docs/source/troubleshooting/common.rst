@@ -176,20 +176,20 @@ algorithm is likely not sensitive enough to differentiate the underlying
 clusters. See :ref:`Parameter Selection <background-params>` for more details.
 
 
-``easy-learn-apply`` Questions
+``easy`` Questions
 ------------------------------
 
 The pipeline failed partway through. How do I re-run it?
 `````````````````````````````````````````````````````````
 
-If ``easy-learn-apply`` fails after the ``learn`` step but before ``apply`` completes,
+If ``easy`` fails after the ``learn`` step but before ``apply`` completes,
 Snakemake may leave a lock file or partial outputs in the apply workspace. The safest
 recovery is to delete the output directory and re-run from scratch:
 
 .. code-block:: bash
 
    rm -rf my_results/
-   snekmer easy-learn-apply --train ... --query ... --ann ... --output my_results
+   snekmer easy --train ... --query ... --ann ... --output my_results
 
 Alternatively, if ``learn`` completed successfully you can re-run only the apply step
 directly:
@@ -264,5 +264,5 @@ To check your headers:
 
 If the header does not contain ``|`` characters, you will need to provide a
 ``.ann`` file using ``--ann`` instead. See the
-:doc:`easy-learn-apply tutorial <../tutorial/snekmer_easy_learn_apply_tutorial>`
+:doc:`easy tutorial <../tutorial/snekmer_easy_learn_apply_tutorial>`
 for the annotation file format.

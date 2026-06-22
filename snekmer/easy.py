@@ -1,6 +1,6 @@
 """easy: Guided front-end for the Snekmer learn/apply pipeline.
 
-Provides 'snekmer easy-learn-apply', a wizard that:
+Provides 'snekmer easy', a wizard that:
   1. Collects training sequences, query sequences, and annotation info from
      the user (interactively or via flags).
   2. Optionally extracts family labels directly from FASTA headers.
@@ -321,7 +321,7 @@ def _make_run_args(base_args, directory: str) -> argparse.Namespace:
     ns.no_default_configfile = False
     ns.config = None
 
-    # Working directory managed by easy-learn-apply
+    # Working directory managed by easy
     ns.directory = directory
 
     return ns
@@ -651,7 +651,7 @@ def validate_params(k: int, alphabet, la_overrides: dict) -> tuple:
 # ---------------------------------------------------------------------------
 
 def run_easy_learn_apply(args) -> int:
-    """Main entry point for 'snekmer easy-learn-apply'.
+    """Main entry point for 'snekmer easy'.
 
     Runs without any prompts when --train, --query, and an annotation source
     (--ann or --create-ann) are all supplied.  Any missing value is prompted
@@ -665,7 +665,7 @@ def run_easy_learn_apply(args) -> int:
     interactive = not (getattr(args, "train", None) and getattr(args, "query", None) and has_ann)
 
     if interactive:
-        print("\n=== Snekmer easy-learn-apply ===\n")
+        print("\n=== Snekmer easy ===\n")
 
     # ---- Collect inputs (wizard steps 1 → 2 → 3 → 4) ----------------------
     try:

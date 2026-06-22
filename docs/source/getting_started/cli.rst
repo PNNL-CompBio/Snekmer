@@ -7,10 +7,10 @@ To run any Snekmer operation mode, call:
 
     snekmer {mode}
 
-where ``{mode}`` is one of ``easy-learn-apply``, ``learn``, ``apply``,
+where ``{mode}`` is one of ``easy``, ``learn``, ``apply``,
 ``cluster``, ``model``, or ``search``.
 
-``easy-learn-apply`` is the recommended entry point for new users. It runs
+``easy`` is the recommended entry point for new users. It runs
 the full Learn/Apply pipeline with a single command and no manual directory
 setup. See the :doc:`Quick Start <quickstart>` to get started immediately.
 
@@ -41,7 +41,7 @@ For an overview of Snekmer usage, reference the help command (``snekmer --help``
       search             Score sequences against trained models.
       learn              Build annotation-associated k-mer distributions + confidence evaluation.
       apply              Predict annotations using outputs from learn.
-      easy-learn-apply   Guided front-end that runs learn then apply end-to-end.
+      easy               Guided front-end that runs learn then apply end-to-end.
 
     Global options (accepted by all modes):
       --k N           K-mer length (default: 8).

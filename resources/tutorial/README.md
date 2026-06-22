@@ -4,7 +4,7 @@ Run these notebooks from the `resources/tutorial/` directory.
 
 | Notebook | Audience | Description |
 |---|---|---|
-| `snekmer_learn_apply_user_tutorial.ipynb` | **All users** | Runs `easy-learn-apply` via the command line and shows how to read, filter, and visualize results. Start here. |
+| `snekmer_learn_apply_user_tutorial.ipynb` | **All users** | Runs `easy` via the command line and shows how to read, filter, and visualize results. Start here. |
 | `snekmer_learn_apply_rules_reference.ipynb` | **Developers / advanced users** | Step-by-step walkthrough of every internal pipeline rule using Snekmer's Python APIs directly. For users who want to understand the method or integrate pipeline steps into their own code. |
 | `snekmer_model_cluster_search_demo.ipynb` | **All users** | Demonstrates the Model, Cluster, and Search pipeline on a small demo dataset. |
 

@@ -22,18 +22,18 @@ The primary use case for Snekmer is sequence annotation via the Learn/Apply pipe
 
 1. :doc:`Install Snekmer <getting_started/install>`: set up a Python virtual environment
    and install the package.
-2. Run ``easy-learn-apply`` with your training sequences, query sequences, and annotation file:
+2. Run ``easy`` with your training sequences, query sequences, and annotation file:
 
 .. code-block:: bash
 
-   snekmer easy-learn-apply \
+   snekmer easy \
        --train  path/to/training_sequences/ \
        --query  path/to/query_sequences.fasta \
        --ann    path/to/annotations.ann \
        --output results/
 
-``easy-learn-apply`` runs the complete pipeline from a single command with no directory setup
-or config file required. See the :doc:`easy-learn-apply tutorial <tutorial/snekmer_easy_learn_apply_tutorial>`
+``easy`` runs the complete pipeline from a single command with no directory setup
+or config file required. See the :doc:`easy tutorial <tutorial/snekmer_easy_learn_apply_tutorial>`
 to get started with the included demo data.
 
 .. image:: ../../resources/images/snekmer_workflow.svg
@@ -41,7 +41,7 @@ to get started with the included demo data.
         :width: 700
         :alt: Snekmer workflow overview
 
-**easy-learn-apply:** Guided front-end that runs Learn then Apply end-to-end. Handles workspace
+**easy:** Guided front-end that runs Learn then Apply end-to-end. Handles workspace
 setup, annotation generation (from a file or from FASTA headers with ``--create-ann``), and
 the handoff between pipeline stages automatically.
 

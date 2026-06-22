@@ -3,7 +3,7 @@
 Learn/Apply Tutorial
 ====================
 
-``snekmer easy-learn-apply`` is the recommended way to run the Learn/Apply pipeline.
+``snekmer easy`` is the recommended way to run the Learn/Apply pipeline.
 Provide your training sequences, query sequences, and annotation information. Snekmer
 handles directory setup, configuration, and the handoff between pipeline stages automatically.
 
@@ -14,13 +14,13 @@ handles directory setup, configuration, and the handoff between pipeline stages 
    * - Situation
      - Recommendation
    * - First time running, want results fast
-     - ``easy-learn-apply``
+     - ``easy``
    * - Existing ``config.yaml`` and directory layout
      - ``snekmer learn`` then ``snekmer apply``
    * - Adding new training data to an existing model
      - ``snekmer learn`` then ``snekmer apply``
    * - Exploring parameters interactively
-     - ``easy-learn-apply`` wizard
+     - ``easy`` wizard
 
 
 What you need
@@ -104,7 +104,7 @@ Run the full Learn/Apply pipeline with a single command:
 
 .. code-block:: bash
 
-   snekmer easy-learn-apply \
+   snekmer easy \
        --train  resources/demo_sequences/learn_apply_inputs/learn \
        --query  resources/demo_sequences/learn_apply_inputs/apply/test_sequences_1.fasta \
        --ann    resources/demo_sequences/learn_apply_inputs/annotations/TIGRFAMs_annotation.ann \
@@ -226,11 +226,11 @@ Omit any required flag and Snekmer will prompt for it interactively:
 
 .. code-block:: bash
 
-   snekmer easy-learn-apply
+   snekmer easy
 
 .. code-block:: text
 
-   === Snekmer easy-learn-apply ===
+   === Snekmer easy ===
 
    Step 1  Training sequences (file or directory path): /path/to/train/
 
@@ -262,7 +262,7 @@ and only the query prompt will appear.
 Key parameters
 --------------
 
-Run ``snekmer easy-learn-apply --help`` for the full option list. The most commonly
+Run ``snekmer easy --help`` for the full option list. The most commonly
 adjusted parameters:
 
 .. list-table::

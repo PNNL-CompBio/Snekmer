@@ -45,7 +45,7 @@ _MODES = {
     "search":           "Score sequences against trained models.",
     "learn":            "Build annotation-associated k-mer distributions + confidence evaluation.",
     "apply":            "Predict annotations using outputs from learn.",
-    "easy-learn-apply": "Guided front-end that runs learn then apply end-to-end.",
+    "easy":             "Guided front-end that runs learn then apply end-to-end.",
 }
 
 
@@ -177,7 +177,7 @@ Modes:
   search            Score sequences against trained models.
   learn             Build annotation-associated k-mer distributions + confidence evaluation.
   apply             Predict annotations using outputs from learn.
-  easy-learn-apply  Guided front-end that runs learn then apply end-to-end.
+  easy              Guided front-end that runs learn then apply end-to-end.
 
 General usage:
   snekmer <mode> [snakemake arguments] [snekmer parameter overrides]
@@ -615,9 +615,9 @@ def _add_learn_apply_args(cfg_learn_apply: argparse.ArgumentParser) -> None:
     )
 
 
-# ------------------------- easy-learn-apply args -------------------------
+# ------------------------- easy args -------------------------
 def _add_easy_la_args(p: argparse.ArgumentParser) -> None:
-    """Add all arguments for the easy-learn-apply subcommand."""
+    """Add all arguments for the easy subcommand."""
 
     # -- Input/output --------------------------------------------------------
     io = p.add_argument_group("Input / output")
@@ -1038,7 +1038,7 @@ def get_argument_parser():
 
     parser["subparsers"] = parser["main"].add_subparsers(
         title="mode",
-        description="Snekmer mode (cluster, model, search, learn, apply, easy-learn-apply).",
+        description="Snekmer mode (cluster, model, search, learn, apply, easy).",
         dest="mode",
         parser_class=_SnekmerSubParser,
     )
@@ -1080,8 +1080,8 @@ def get_argument_parser():
         parents=[parser["smk"], parser["cfg_required"], parser["cfg_learn_apply"]],
     )
 
-    parser["easy-learn-apply"] = parser["subparsers"].add_parser(
-        "easy-learn-apply",
+    parser["easy"] = parser["subparsers"].add_parser(
+        "easy",
         description=(
             "Guided front-end that runs learn then apply end-to-end.\n\n"
             "Prompts for training sequences, query sequences, and annotation style,\n"
@@ -1091,7 +1091,7 @@ def get_argument_parser():
         formatter_class=SnekmerHelpFormatter,
         epilog=_main_epilog(),
     )
-    _add_easy_la_args(parser["easy-learn-apply"])
+    _add_easy_la_args(parser["easy"])
 
     return parser
 
@@ -1460,7 +1460,7 @@ def main():
         rc = _run("learn", args, keepgoing_override=True)
     elif args.mode == "apply":
         rc = _run("apply", args, keepgoing_override=True)
-    elif args.mode == "easy-learn-apply":
+    elif args.mode == "easy":
         from snekmer.easy import run_easy_learn_apply
         rc = run_easy_learn_apply(args)
     else:

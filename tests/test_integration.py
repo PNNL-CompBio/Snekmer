@@ -5,7 +5,7 @@ Skip with: pytest -m "not integration"
 
 Test map
 --------
-test_baseline              easy-learn-apply with all defaults
+test_baseline              easy with all defaults
 test_low_memory_params     k=6, alphabet=0 (hydro) — vocab = 2^6 = 64, memory-safe
 test_fragmentation         fragmentation=True via CLI flags
 test_create_ann            --create-ann: derive annotations from FASTA headers
@@ -111,26 +111,26 @@ def demo_guard():
 
 
 # ---------------------------------------------------------------------------
-# easy-learn-apply tests
+# easy tests
 # ---------------------------------------------------------------------------
 
 @pytest.mark.integration
 @pytest.mark.usefixtures("demo_guard")
 class TestEasyLearnApply:
-    """End-to-end tests via snekmer easy-learn-apply."""
+    """End-to-end tests via snekmer easy."""
 
     def test_baseline(self, tmp_path):
         """Default parameters (k=8, alphabet=2/solvacc) produce valid predictions."""
         out = tmp_path / "output"
         r = _run(
-            "easy-learn-apply",
+            "easy",
             "--train", str(DEMO["train"]),
             "--query", str(DEMO["query"]),
             "--ann",   str(DEMO["ann"]),
             "--output", str(out),
             "--cores", "1",
         )
-        assert r.returncode == 0, f"easy-learn-apply failed:\n{r.stderr}"
+        assert r.returncode == 0, f"easy failed:\n{r.stderr}"
         df = _check_results(out / "apply" / "snekmer_results.csv", min_rows=10)
         assert (df["Score"] > 0).any(), "All scores zero — pipeline may be broken"
         assert (df["Confidence"] > 0).any(), "All confidence values zero"
@@ -139,7 +139,7 @@ class TestEasyLearnApply:
         """k=6 + alphabet=0 (hydro): vocab 2^6=64 k-mers — verifies small-alphabet path."""
         out = tmp_path / "output"
         r = _run(
-            "easy-learn-apply",
+            "easy",
             "--train", str(DEMO["train"]),
             "--query", str(DEMO["query"]),
             "--ann",   str(DEMO["ann"]),
@@ -148,14 +148,14 @@ class TestEasyLearnApply:
             "--alphabet", "0",
             "--cores", "1",
         )
-        assert r.returncode == 0, f"easy-learn-apply k=6 alphabet=0 failed:\n{r.stderr}"
+        assert r.returncode == 0, f"easy k=6 alphabet=0 failed:\n{r.stderr}"
         _check_results(out / "apply" / "snekmer_results.csv", min_rows=10)
 
     def test_fragmentation(self, tmp_path):
         """Fragmentation splits sequences into sub-fragments before kmerization."""
         out = tmp_path / "output"
         r = _run(
-            "easy-learn-apply",
+            "easy",
             "--train", str(DEMO["train"]),
             "--query", str(DEMO["query"]),
             "--ann",   str(DEMO["ann"]),
@@ -165,28 +165,28 @@ class TestEasyLearnApply:
             "--min-length",  "50",
             "--cores", "1",
         )
-        assert r.returncode == 0, f"easy-learn-apply --fragmentation failed:\n{r.stderr}"
+        assert r.returncode == 0, f"easy --fragmentation failed:\n{r.stderr}"
         _check_results(out / "apply" / "snekmer_results.csv", min_rows=10)
 
     def test_create_ann(self, tmp_path):
         """--create-ann derives the annotation file from >db|FAMILY|seqid FASTA headers."""
         out = tmp_path / "output"
         r = _run(
-            "easy-learn-apply",
+            "easy",
             "--train", str(DEMO["train_family_headers"]),
             "--query", str(DEMO["query"]),
             "--create-ann",
             "--output", str(out),
             "--cores", "1",
         )
-        assert r.returncode == 0, f"easy-learn-apply --create-ann failed:\n{r.stderr}"
+        assert r.returncode == 0, f"easy --create-ann failed:\n{r.stderr}"
         _check_results(out / "apply" / "snekmer_results.csv", min_rows=10)
 
     def test_copy_files(self, tmp_path):
         """--copy-files should copy inputs into workspace rather than symlink them."""
         out = tmp_path / "output"
         r = _run(
-            "easy-learn-apply",
+            "easy",
             "--train", str(DEMO["train"]),
             "--query", str(DEMO["query"]),
             "--ann",   str(DEMO["ann"]),
@@ -194,7 +194,7 @@ class TestEasyLearnApply:
             "--copy-files",
             "--cores", "1",
         )
-        assert r.returncode == 0, f"easy-learn-apply --copy-files failed:\n{r.stderr}"
+        assert r.returncode == 0, f"easy --copy-files failed:\n{r.stderr}"
         _check_results(out / "apply" / "snekmer_results.csv", min_rows=10)
 
         learn_inputs = list((out / "learn" / "input").glob("*.fasta"))
@@ -206,7 +206,7 @@ class TestEasyLearnApply:
         """--dry-run should exit 0 without writing any output files."""
         out = tmp_path / "output"
         r = _run(
-            "easy-learn-apply",
+            "easy",
             "--train", str(DEMO["train"]),
             "--query", str(DEMO["query"]),
             "--ann",   str(DEMO["ann"]),
@@ -214,7 +214,7 @@ class TestEasyLearnApply:
             "--dry-run",
             "--cores", "1",
         )
-        assert r.returncode == 0, f"easy-learn-apply --dry-run failed:\n{r.stderr}"
+        assert r.returncode == 0, f"easy --dry-run failed:\n{r.stderr}"
         assert not (out / "apply" / "snekmer_results.csv").exists(), (
             "dry-run should not produce snekmer_results.csv"
         )
@@ -223,7 +223,7 @@ class TestEasyLearnApply:
         """greatest_distance selection assigns by largest gap from competitors."""
         out = tmp_path / "output"
         r = _run(
-            "easy-learn-apply",
+            "easy",
             "--train", str(DEMO["train"]),
             "--query", str(DEMO["query"]),
             "--ann",   str(DEMO["ann"]),
@@ -232,7 +232,7 @@ class TestEasyLearnApply:
             "--cores", "1",
         )
         assert r.returncode == 0, (
-            f"easy-learn-apply --selection greatest_distance failed:\n{r.stderr}"
+            f"easy --selection greatest_distance failed:\n{r.stderr}"
         )
         _check_results(out / "apply" / "snekmer_results.csv", min_rows=10)
 

@@ -5,9 +5,9 @@ Learn/Apply: Full Pipeline Reference
 
 .. note::
 
-   **New users:** ``snekmer easy-learn-apply`` is the recommended entry point.
+   **New users:** ``snekmer easy`` is the recommended entry point.
    It runs the complete pipeline with a single command and no manual setup.
-   See the :doc:`easy-learn-apply tutorial <snekmer_easy_learn_apply_tutorial>`.
+   See the :doc:`easy tutorial <snekmer_easy_learn_apply_tutorial>`.
 
    This page is for users who need **direct control** over ``snekmer learn``
    and ``snekmer apply``, for example:
@@ -27,7 +27,7 @@ When to use ``learn`` / ``apply`` directly
    * - Situation
      - Recommendation
    * - First time running, want results fast
-     - ``easy-learn-apply``
+     - ``easy``
    * - Existing ``config.yaml`` and directory layout
      - ``snekmer learn`` then ``snekmer apply``
    * - Adding new training data to an existing model
@@ -60,7 +60,7 @@ Directory layout
 ----------------
 
 ``snekmer learn`` and ``snekmer apply`` each require their own working directory
-with a specific structure. ``easy-learn-apply`` creates these automatically;
+with a specific structure. ``easy`` creates these automatically;
 when using the modes directly you build them yourself.
 
 ``learn`` workspace

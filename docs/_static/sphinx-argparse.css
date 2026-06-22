@@ -38,4 +38,25 @@ details.snekmer-collapsible > summary:hover {
 
 details.snekmer-collapsible > .details-body {
     padding: 0.5em 1em 0.5em 1em;
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+details.snekmer-collapsible > .details-body pre {
+    overflow-x: auto;
+    white-space: pre;
+}
+
+/* Keep wide list-table content (e.g. long Description cells) from
+   overflowing the page instead of wrapping. */
+table.docutils {
+    width: 100%;
+    table-layout: fixed;
+}
+
+table.docutils td,
+table.docutils th {
+    white-space: normal;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
 }

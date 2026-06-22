@@ -43,7 +43,7 @@ To test Learn/Apply, run from the root of the Snekmer repository:
 
 .. code-block:: bash
 
-   snekmer easy-learn-apply \
+   snekmer easy \
        --train  resources/demo_sequences/learn_apply_inputs/learn \
        --query  resources/demo_sequences/learn_apply_inputs/apply/test_sequences_1.fasta \
        --ann    resources/demo_sequences/learn_apply_inputs/annotations/TIGRFAMs_annotation.ann \
@@ -118,7 +118,7 @@ To use the command line interface within the container:
 
   docker run --rm -v "$(pwd)":/work jjacobson95/snekmer:latest {mode} {args}
 
-The Docker image accepts the same modes (cluster, model, search, learn, apply, and easy-learn-apply) and command line arguments as the Snekmer command line interface.
+The Docker image accepts the same modes (cluster, model, search, learn, apply, and easy) and command line arguments as the Snekmer command line interface.
 
 
 

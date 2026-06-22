@@ -13,7 +13,7 @@ From the root of the Snekmer repository:
 
 .. code-block:: bash
 
-   snekmer easy-learn-apply \
+   snekmer easy \
        --train  resources/demo_sequences/learn_apply_inputs/learn \
        --query  resources/demo_sequences/learn_apply_inputs/apply/test_sequences_1.fasta \
        --ann    resources/demo_sequences/learn_apply_inputs/annotations/TIGRFAMs_annotation.ann \
@@ -59,7 +59,7 @@ Run
 
 .. code-block:: bash
 
-   snekmer easy-learn-apply \
+   snekmer easy \
        --train  path/to/training_sequences/ \
        --query  path/to/query_sequences.fasta \
        --ann    path/to/annotations.ann \
@@ -69,7 +69,7 @@ Or, if your FASTA headers encode family labels (``>db|FAMILY|seqid ...``):
 
 .. code-block:: bash
 
-   snekmer easy-learn-apply \
+   snekmer easy \
        --train  path/to/training_sequences/ \
        --query  path/to/query_sequences.fasta \
        --create-ann \
@@ -99,7 +99,7 @@ A confidence of **≥ 0.95** is a reliable starting threshold for high-quality a
 Next steps
 ----------
 
-- :doc:`easy-learn-apply tutorial <../tutorial/snekmer_easy_learn_apply_tutorial>`:
+- :doc:`easy tutorial <../tutorial/snekmer_easy_learn_apply_tutorial>`:
   full walkthrough with demo data, output interpretation, and post-hoc evaluation.
 - :doc:`Configuration <config>`: tune k-mer length, alphabet, scoring thresholds,
   and other parameters.

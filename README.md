@@ -15,7 +15,55 @@ to determine probabilistic annotations.
   <img align="center" src="resources/images/snekmer_workflow.svg">
 </p>
 
-There are six operation modes for Snekmer: `cluster`, `model`, `search`, `learn`, `apply`, and `motif`.
+There are six operation modes for Snekmer: `cluster`, `model`, `search`, `learn`, `apply`, and `motif`,
+plus a guided `easy` mode that runs the Learn/Apply pipeline from a single command.
+
+--------------------------------------------------------------------------------
+Installation
+--------------------------------------------------------------------------------
+
+Requirements:
+- Python 3.11+
+- A working C/C++ toolchain may be required for some dependencies depending on your platform.
+- Snekmer orchestrates workflows via Snakemake (installed as a Python dependency).
+
+1) Create and activate a virtual environment:
+```
+  python -m venv ~/snekmer_env
+  source ~/snekmer_env/bin/activate     # bash/zsh
+  # or:
+  source ~/snekmer_env/bin/activate.csh # csh
+```
+2) Clone and install:
+```
+  git clone https://github.com/PNNL-CompBio/Snekmer.git
+  cd Snekmer
+  pip install -r requirements.txt
+  pip install .
+```
+Verify installation:
+```
+  snekmer -h
+```
+
+--------------------------------------------------------------------------------
+Quick Start: Try Snekmer with `easy`
+--------------------------------------------------------------------------------
+
+`easy` is the fastest way to get started with Snekmer: it runs the complete
+Learn/Apply pipeline from a single command, with no directory setup or `config.yaml` required.
+
+Run it against the included demo data from the root of the Snekmer repository:
+```
+  snekmer easy \
+      --train  resources/demo_sequences/learn_apply_inputs/learn \
+      --query  resources/demo_sequences/learn_apply_inputs/apply/test_sequences_1.fasta \
+      --ann    resources/demo_sequences/learn_apply_inputs/annotations/TIGRFAMs_annotation.ann \
+      --output test_results
+```
+
+See the [easy tutorial](https://snekmer.readthedocs.io/en/latest/tutorial/snekmer_easy_learn_apply_tutorial.html)
+for a full walkthrough, including how to use `--create-ann` to generate an annotation file automatically.
 
 ---
 **Clustering, Modeling, and Search Workflows** 
@@ -54,40 +102,14 @@ and the outputs received from Model. Snekmer performs a feature selection workfl
 list of motifs ordered by degree of conservation and a classification model using the selected features (.model).
 
 --------------------------------------------------------------------------------
-Installation
+Advanced: Config-Based Workflows (Cluster / Model / Search / Learn / Apply)
 --------------------------------------------------------------------------------
 
-Requirements:
-- Python 3.11+
-- A working C/C++ toolchain may be required for some dependencies depending on your platform.
-- Snekmer orchestrates workflows via Snakemake (installed as a Python dependency).
+Beyond `easy`, Snekmer's other modes (`cluster`, `model`, `search`, `learn`, `apply`)
+are run via the `snekmer` CLI using a directory of input sequences and a YAML configuration file
+(`config.yaml`). See the [full documentation](https://snekmer.readthedocs.io) for complete setup
+instructions, as these brief examples are not sufficient to run all workflows in all environments.
 
-Option A: Install from source (recommended for development)
-1) Create and activate a virtual environment:
-```
-  python -m venv ~/snekmer_env
-  source ~/snekmer_env/bin/activate     # bash/zsh
-  # or:
-  source ~/snekmer_env/bin/activate.csh # csh
-```
-2) Clone and install:
-```
-  git clone https://github.com/PNNL-CompBio/Snekmer.git
-  cd Snekmer
-  pip install -r requirements.txt
-  pip install .
-```
-Verify installation:
-```
-  snekmer -h
-```
---------------------------------------------------------------------------------
-Quick Start: Running Snekmer
---------------------------------------------------------------------------------
-
-Snekmer workflows are run via the `snekmer` CLI. Most users will run using a YAML configuration file
-(`config.yaml`). Please view the documentation site for full instructions as these brief examples are not
-sufficient to run all workflows in all environments.
 Working directory and required inputs (concise)  
 
 Most runs use:

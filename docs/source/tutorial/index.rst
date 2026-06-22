@@ -11,7 +11,7 @@ Learn/Apply Tutorials
 
    * - Tutorial
      - Description
-   * - :doc:`Quick Start (easy-learn-apply) <snekmer_easy_learn_apply_tutorial>`
+   * - :doc:`Quick Start (easy) <snekmer_easy_learn_apply_tutorial>`
      - Recommended starting point. Single-command pipeline using the included demo data,
        with output interpretation and filtering guidance.
    * - :doc:`Full Pipeline Reference (learn / apply) <snekmer_learnapp_tutorial>`

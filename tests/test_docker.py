@@ -61,8 +61,8 @@ class TestDockerImage:
             f"snekmer --version failed inside container:\n{result.stderr}"
         )
 
-    def test_easy_learn_apply(self, tmp_path, docker_image):
-        """easy-learn-apply should complete inside the container and produce results."""
+    def test_easy(self, tmp_path, docker_image):
+        """easy should complete inside the container and produce results."""
         out = tmp_path / "output"
         out.mkdir()
 
@@ -74,7 +74,7 @@ class TestDockerImage:
                 "-v", f"{DEMO['ann'].parent}:/data/ann:ro",
                 "-v", f"{out}:/work/output",
                 docker_image,
-                "easy-learn-apply",
+                "easy",
                 "--train",  "/data/train",
                 "--query",  f"/data/apply/{DEMO['query'].name}",
                 "--ann",    f"/data/ann/{DEMO['ann'].name}",
