@@ -67,8 +67,7 @@ parameter sections relevant to that mode.
    <summary>Configuration</summary>
    <div class="details-body">
 
-Config Precedence
-`````````````````
+**Config Precedence**
 
 Snekmer resolves configuration using the following precedence order (lowest to
 highest):
@@ -87,8 +86,7 @@ The defaults shown for Snekmer parameter flags match the template
 no config file is in use, or when a flag is explicitly provided on the command
 line.
 
-Config File
-```````````
+**Config File**
 
 To run Snekmer with a config file, create a ``config.yaml`` file containing
 desired parameters. A
