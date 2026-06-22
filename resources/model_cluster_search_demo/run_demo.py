@@ -64,13 +64,13 @@ def main():
     show_dir(WORK)
 
     print("Step 3: Run snekmer cluster")
-    run(["snekmer", "cluster", "--configfile=./config.yaml"])
+    run(["snekmer", "cluster", "--scheduler", "greedy", "--configfile=./config.yaml"])
     show_dir(OUTPUT)
     show_dir(OUTPUT / "cluster")  # if produced by your config
     show_dir(OUTPUT / "kmerize")  # if produced by your config
 
     print("Step 4: Run snekmer model")
-    run(["snekmer", "model", "--configfile=./config.yaml"])
+    run(["snekmer", "model", "--scheduler", "greedy", "--configfile=./config.yaml"])
     show_dir(OUTPUT / "model")
     show_dir(OUTPUT / "scoring")
 
@@ -90,7 +90,7 @@ def main():
     show_dir(example)
 
     print("Step 6: Run snekmer search")
-    run(["snekmer", "search", "--configfile=./config.yaml"])
+    run(["snekmer", "search", "--scheduler", "greedy", "--configfile=./config.yaml"])
     show_dir(OUTPUT / "search")
     show_dir(OUTPUT)
 

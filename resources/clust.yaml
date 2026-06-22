@@ -1,0 +1,7 @@
+__default__:
+  name: snekmer
+  account: {account_name}
+  time: "8:00:00"
+  partition: {partition_name}
+  nodes: 1
+  ntasks: 16

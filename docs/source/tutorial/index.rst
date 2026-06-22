@@ -1,38 +1,45 @@
+.. _Tutorial:
 Tutorial
 ========
 
-Running the Tutorial
---------------------
+Learn/Apply Tutorials
+---------------------
 
-To run an example set of jobs use the following commands:
+.. list-table::
+   :header-rows: 1
+   :widths: 35 65
 
-.. code-block:: bash
+   * - Tutorial
+     - Description
+   * - :doc:`Quick Start (easy) <snekmer_easy_learn_apply_tutorial>`
+     - Recommended starting point. Single-command pipeline using the included demo data,
+       with output interpretation and filtering guidance.
+   * - :doc:`Full Pipeline Reference (learn / apply) <snekmer_learnapp_tutorial>`
+     - For advanced use: manual workspace setup, adding new training data, reusing
+       a trained model across multiple query sets.
 
-   conda activate snekmer
-   cd resources/tutorial/demo_example
-   bash run_demo.py
+Model / Cluster / Search Tutorial
+----------------------------------
 
-This will execute the snekmer model, search, and cluster modes in succession
-on a set of three input families and produce output files for each in output.
+.. list-table::
+   :header-rows: 1
+   :widths: 35 65
 
-
-Running the Learn/Apply Tutorial  
---------------------  
-
-To run an example set of fasta files use the following commands:  
-  
-.. code-block:: bash
-
-   conda activate snekmer
-   cd resources/tutorial
-   jupyter notebook snekmer_learn_apply_tutorial.ipynb
-
-
+   * - Tutorial
+     - Description
+   * - :doc:`Model / Cluster / Search <snekmer_demo>`
+     - Supervised ML modeling, unsupervised clustering, and sequence search using the
+       included demo data.
 
 
 Evaluating Results
 ------------------
 
-See the :ref:`Accessing Results <usage-results>` section for more details.
+Snekmer writes an HTML summary report to ``output/Snekmer_<Mode>_Report.html``
+for each completed run. Below is an example report from Apply:
 
-*to be continued...*
+.. image:: ../../../resources/images/apply_report_example.png
+        :align: center
+        :alt: Example Snekmer Apply html report
+
+See the :ref:`Accessing Results <usage-results>` section for details on all output files.

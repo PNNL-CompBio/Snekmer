@@ -6,70 +6,73 @@ We recommend installing Snekmer using Python's `venv <https://docs.python.org/3/
 
 	python --version
 
-The next step is to create and activate a new virtual environment that will contain Snekmer and its dependencies.
+The next step is to create and activate a new virtual environment that will contain Snekmer and its dependencies. :ref:`Ubuntu users should install additional dependencies after creating the virtual environment. <troubleshooting/ubuntu>`
 
 .. code-block:: bash
 
-	python3 -m venv ~/snekmer_env
+	python -m venv ~/snekmer_env
 	source ~/snekmer_env/bin/activate
 
 Once the virtual environment has been created and activated, clone and install Snekmer using the following commands.
 
 .. code-block:: bash
 
+	# Download from Github Main Branch
 	git clone https://github.com/PNNL-CompBio/Snekmer.git
+	# Alternatively, download a specific branch:
+	# git clone -b pre_paper_updates https://github.com/PNNL-CompBio/Snekmer.git
 	cd Snekmer
-	pip install -r requirements.txt
-	pip install .     # this installs local snekmer
+	pip install --no-cache -r requirements.txt
+	pip install .
 
-Install Snekmer via Mamba/Conda
--------------------------------
-It is also possible to use `Mamba <https://mamba.readthedocs.io/en/latest/installation.html>`_
-for installation handling. `Conda <https://www.anaconda.com/download/>`_ can be
-used as an alternative, but Conda can take a long time to resolve dependencies,
-thus rendering installation via Conda
-significantly slower than installation via Mamba. Mamba/Conda will
-both manage dependencies and versioning, which simplifies the
-process of installation.
-
-The simplest method for installation is via the included YML file, which will create
-a new environment containing Snekmer and all of its dependencies. Users may either
-directly download the
-`YML file <https://github.com/PNNL-CompBio/Snekmer/blob/main/environment.yml>`_
-directly, or clone/fork the repository to obtain a local copy of the repository and all
-included files.
+Verify the installation succeeded:
 
 .. code-block:: bash
 
+	snekmer --version
 
-	mamba env create -f environment.yml
+You should see the current version number printed (e.g. ``1.4.1``). If the command
+is not found, ensure your virtual environment is activated.
 
-Note that if you want to use the optional Blazing Signature Filter (BSF) to
-speed up clustering you must follow the BSF installation instructions below
-and then you can use the alternate conda environment.
+Testing Installation
+====================
+
+A quick test of the installation can be performed by running the following commands.
+
+To test Learn/Apply, run from the root of the Snekmer repository:
 
 .. code-block:: bash
 
-  mamba env create -f environment_BSF.yml
+   snekmer easy \
+       --train  resources/demo_sequences/learn_apply_inputs/learn \
+       --query  resources/demo_sequences/learn_apply_inputs/apply/test_sequences_1.fasta \
+       --ann    resources/demo_sequences/learn_apply_inputs/annotations/TIGRFAMs_annotation.ann \
+       --output test_results
 
-After the install completes activate the conda environment
+Alternatively, a scripted demo that runs ``snekmer learn`` then ``snekmer apply``
+step-by-step is available:
 
 .. code-block:: bash
 
-  conda activate snekmer
+   cd resources/learn_apply_demo
+   python3 run_demo.py
 
-The package should now be ready to use!
+To test Model/Cluster/Search:
 
-Note that the instructions above can be replicated, substituting ``mamba``
-for ``conda``, for users who wish to use Conda to manage installation.
+.. code-block:: bash
+
+   cd resources/model_cluster_search_demo
+   python3 run_demo.py
 
 Troubleshooting Notes
 `````````````````````
 
 The full version of Snakemake is
 `incompatible with Windows <https://snakemake.readthedocs.io/en/stable/getting_started/installation.html#full-installation>`_.
-Thus, you will need to install the environment specifications that
-include only the minimal version of Snakemake:
+On Windows, you will need to use ``mamba`` to create the environment from the
+minimal Snakemake specification. If you do not have mamba installed, install it
+first from `miniforge <https://github.com/conda-forge/miniforge>`_ (recommended)
+or via ``conda install -n base -c conda-forge mamba``. Then:
 
 .. code-block:: bash
 
@@ -99,7 +102,7 @@ include only the minimal version of Snakemake:
 Install Snekmer via Docker
 --------------------------
 
-Snekmer has been installed into a public docker image hosted on `Dockerhub <https://hub.docker.com/repository/docker/jjacobson95/snekmer_env>`_.
+Snekmer has been installed into a public docker image hosted on `Dockerhub <https://hub.docker.com/r/jjacobson95/snekmer>`_.
 Usage requires the installation of `Docker Desktop <https://docs.docker.com/desktop/>`_.
 
 To download the image from Dockerhub:
@@ -113,73 +116,15 @@ To use the command line interface within the container:
 
 .. code-block:: bash
 
-  docker run --rm   -v "$(pwd)":/data   -w /data   jjacobson95/snekmer:latest {mode} {args}    # Run Snekmer
+  docker run --rm -v "$(pwd)":/work jjacobson95/snekmer:latest {mode} {args}
+
+The Docker image accepts the same modes (cluster, model, search, learn, apply, and easy) and command line arguments as the Snekmer command line interface.
 
 
-The Docker image accepts the same modes (cluster, model, search, learn, apply, and motif) and command line arguments as the Snekmer command line interface.
 
+Optional: Blazing Signature Filter (BSF)
+-----------------------------------------
 
-
-(optional) Install GCC for BSF
-------------------------------
-
-The `Blazing Signature Filter <https://github.com/PNNL-CompBio/bsf-jaccard-py>`_
-is a pairwise similarity algorithm that can optionally be used to efficiently
-compute a distance matrix for Snekmer's clustering mode.
-
-**Note that BSF is not required to run Snekmer.** For users that do not want
-to use BSF for clustering, these instructions can be ignored.
-
-In order for BSF to install correctly, GCC 4.9+ must be
-installed on your system using the following instructions for the listed
-operating systems. Once GCC is installed successfully, follow the remaining
-setup steps.
-
-Mac
-```
-
-Install GCC and the relevant dependencies using Homebrew.
-
-.. code-block:: bash
-
-  brew install gcc llvm libomp
-
-After installing ``llvm``, some flags and your ``PATH`` variable may need to
-be updated. Homebrew will output a "Caveats" message that may resemble the one
-shown below:
-
-.. code-block:: none
-
-  To use the bundled libc++ please add the following LDFLAGS:
-    LDFLAGS="-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib"
-
-  llvm is keg-only, which means it was not symlinked into /usr/local,
-  because macOS already provides this software and installing another version in
-  parallel can cause all kinds of trouble.
-
-  If you need to have llvm first in your PATH, run:
-    echo 'export PATH="/usr/local/opt/llvm/bin:$PATH"' >> ~/.zshrc
-
-  For compilers to find llvm you may need to set:
-    export LDFLAGS="-L/usr/local/opt/llvm/lib"
-    export CPPFLAGS="-I/usr/local/opt/llvm/include"
-
-You may follow these instructions to ensure GCC is correctly pulled as needed.
-
-**Note:** BSF is not compatible with Apple silicon systems; see the ongoing log
-of `known Apple silicon issues <https://github.com/PNNL-CompBio/Snekmer/issues/102>`_.
-
-Windows or Linux/Unix
-`````````````````````
-
-Please refer to the
-`BSF documentation <https://github.com/PNNL-CompBio/bsf-jaccard-py#install-gcc-49-or-newers>`_
-for Linux/Unix or Windows instructions for installing GCC.
-
-BSF Install for Snekmer Use
-```````````````````````````
-In the snekmer conda environment use the command
-
-.. code-block:: bash
-
-   pip install git+https://github.com/PNNL-CompBio/bsf-jaccard-py#egg=bsf
+BSF is an optional performance dependency for ``snekmer cluster``. It is not
+optional; Snekmer works without it. See :doc:`Advanced / Optional Dependencies <advanced>`
+for installation instructions.

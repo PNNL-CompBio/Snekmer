@@ -3,8 +3,8 @@
 Setting up User Configuration (config.yaml)
 ===========================================
 
-To run Snekmer, the user must specify parameters in a configuration
-file (.YAML). A template ``config.yaml`` file is included in the
+To run Snekmer, the user must specify parameters either in a configuration
+file (.YAML) or by specifying them as command line arguments using -C or --config. A template ``config.yaml`` file is included in the
 `resources directory <https://github.com/PNNL-CompBio/Snekmer/tree/main/resources>`_.
 
 The example YAML files included are:
@@ -15,7 +15,7 @@ The example YAML files included are:
 Parameter Descriptions for ``config.yaml``
 ------------------------------------------
 
-The base `config.yaml` file is required in order to run `snekmer model` or `snekmer cluster`.
+The base `config.yaml` file contains the parameters which are required in order to run `snekmer model` or `snekmer cluster`. These may alternatively be specified using command line arguments, and Snekmer supports specifying some parameters in a .yaml file (either config.yaml or specified using --configfile when invoking Snekmer) and others using -C or --config arguments.
 
 Required Parameters
 ```````````````````
@@ -38,9 +38,10 @@ General parameters related to input and output sequences and/or files.
 ========================  ====================  =========================================================================
      Parameter                    Type            Description
 ========================  ====================  =========================================================================
+ ``input_dir``             ``str``               Directory containing input FASTA files (default: ``input``)
  ``input_file_exts``       ``list``               File extensions to be considered as valid for input sequence files
  ``input_file_regex``      ``str`` or ``None``    Regular expression for parsing family/annotation identifiers from filenames
- ``nested_output``         ``bool``               If True, saves files into nested directory structure, i.e. `{save_dir}/{alphabet}/{k}`
+ ``nested_output``         ``bool``               If True, saves files into nested directory structure, i.e. ``{save_dir}/{alphabet}/{k}``
 ========================  ====================  =========================================================================
 
 Score Parameters
@@ -51,7 +52,8 @@ General parameters related to how Snekmer calculates family scores for k-mers.
 ========================  =====================  =================================================================================
      Parameter                   Type             Description
 ========================  =====================  =================================================================================
- ``scaler_kwargs``         ``dict``               Keyword arguments to pass to k-mer scaler object
+ ``scaler``                ``bool``               If True, applies k-mer frequency scaling before scoring
+ ``scaler_kwargs``         ``dict``               Keyword arguments to pass to k-mer scaler object (e.g. ``{"n": 0.25}``)
  ``labels``                ``str`` or ``None``    If None, uses default kmer set for scaler. Otherwise, uses the ones specified
  ``lname``                 ``str`` or ``None``    Label name (e.g. ``"family"``)
 ========================  =====================  =================================================================================
@@ -76,28 +78,85 @@ General parameters related to Snekmer's cluster mode (``snekmer cluster``), wher
 ========================  ====================  ==============================================================================
      Parameter                    Type            Description
 ========================  ====================  ==============================================================================
- ``method``                ``str``                Clustering method (options: ``"kmeans"``, ``"agglomerative"``,
-                                                  ``"correlation"``, ``"density"``, ``"birch"``, ``"optics"``,
-                                                  or ``"hdbscan"``)
+ ``method``                ``str``                Clustering algorithm. See table below for all options.
  ``params``                ``dict``               Parameters to pass to the clustering algorithm
- ``cluster_plots``         ``bool``               If True, generates plots illustrating clustering results
- ``min_rep``               ``int`` or ``None``    Threshold for the minimum number of repetitions of a kmer within a set.
-                                                  Kmers that do not meet this threshold are discarded.
- ``max_rep``               ``int`` or ``None``    Threshold for the maximum number of repetitions of a kmer within a set.
-                                                  Kmers that do not meet this threshold are discarded.
- ``save_matrix``           ``bool``               If True, saves distance matrices (BSF). Not recommended for large datasets.
- ``dist_thresh``           ``int``                Distance threshold for BSF matrix
+ ``cluster_plots``         ``bool``               If True, generates figures illustrating clustering results (t-SNE, UMAP, PCA)
+ ``min_rep``               ``int`` or ``None``    Discard k-mers with fewer than this many occurrences across the input set
+ ``max_rep``               ``int`` or ``None``    Discard k-mers with more than this many occurrences across the input set
+ ``save_matrix``           ``bool``               If True, saves the pairwise distance matrix (large files; not recommended for large datasets)
+ ``dist_thresh``           ``int``                Distance threshold used when computing the BSF Jaccard matrix
 ========================  ====================  ==============================================================================
+
+**Clustering methods** (``cluster.method``)
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 70
+
+   * - Value
+     - Description
+   * - ``agglomerative-jaccard``
+     - Agglomerative clustering using Jaccard distance (default; requires BSF or falls back to scipy)
+   * - ``density-jaccard``
+     - DBSCAN density clustering using Jaccard distance (requires BSF or falls back to scipy)
+   * - ``hdensity-jaccard``
+     - HDBSCAN density clustering using Jaccard distance (requires BSF or falls back to scipy)
+   * - ``agglomerative``
+     - Agglomerative clustering using Euclidean distance
+   * - ``kmeans``
+     - Mini-batch k-means clustering
+   * - ``correlation``
+     - Hierarchical clustering using correlation distance
+   * - ``density``
+     - DBSCAN density-based clustering
+   * - ``birch``
+     - Birch incremental clustering
+   * - ``optics``
+     - OPTICS density-based clustering
+   * - ``hdbscan``
+     - HDBSCAN hierarchical density clustering
+
+The three ``-jaccard`` methods use the
+:doc:`Blazing Signature Filter (BSF) <advanced>` when installed, and fall back
+to ``scipy.spatial.distance.pdist`` automatically when BSF is not available.
+
 
 Parameter Descriptions for ``clust.yaml``
 -------------------------------------------
 
-See `SLURM documentation <https://slurm.schedmd.com/sbatch.html>`_ for more information on cluster parameters.
+``clust.yaml`` is an **optional** configuration file used to deploy Snekmer jobs
+on a high-performance computing (HPC) cluster via SLURM (or another scheduler
+supported by Snakemake). It is not required for local runs.
+
+A typical ``clust.yaml`` specifies resource requests per rule, for example:
+
+.. code-block:: yaml
+
+   __default__:
+     partition: normal
+     time: "04:00:00"
+     mem: "16G"
+     ntasks: 1
+     cpus-per-task: 4
+
+   vectorize:
+     time: "01:00:00"
+     mem: "8G"
+
+Pass it to Snekmer with the ``--clust`` flag:
+
+.. code-block:: bash
+
+   snekmer cluster --clust clust.yaml
+
+See the `Snakemake cluster execution documentation <https://snakemake.readthedocs.io/en/stable/executing/cluster.html>`_
+and `SLURM sbatch documentation <https://slurm.schedmd.com/sbatch.html>`_ for
+the full list of supported fields.
 
 Required Parameters for Snekmer Search
 --------------------------------------
 
-The following parameters are required in your config file for `snekmer search`.
+The following parameters must be specified when running `snekmer search`.
 
 ========================  =====================  ========================================================================================
      Parameter                     Type           Description
@@ -114,7 +173,7 @@ The following parameters are required in your config file for `snekmer search`.
 
 
 Learn/Apply Parameters
-````````````````
+``````````````````````
 
 General parameters related to Snekmer's learn and apply mode (``snekmer learn``, ``snekmer apply``) , wherein supervised models are trained via the workflow.
 
@@ -137,12 +196,4 @@ General parameters related to Snekmer's learn and apply mode (``snekmer learn``,
 =============================  =====================  =========================================================================
 
 
-Motif Parameters
-````````````````
-The following parameters are required for Snekmer's motif mode (``snekmer motif``), wherein feature selection is performed to find functionally relevant kmers.
 
-========================  =====================  ==================================================================================
-     Parameter                    Type            Description
-========================  =====================  ==================================================================================
-``n``                     ``int``                Number of label permutation and rescoring iterations to run for each input family.
-========================  =====================  ==================================================================================

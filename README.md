@@ -12,10 +12,61 @@ Snekmer subsequently (1) clusters sequences using various unsupervised clusterin
 to determine probabilistic annotations.
 
 <p align="center">
-  <img align="center" src="resources/snekmer_workflow.svg">
+  <img align="center" src="resources/images/snekmer_workflow.svg">
 </p>
 
-There are six operation modes for Snekmer: `cluster`, `model`, and `search`, `learn`, `apply`, and `motif`.
+There are six operation modes for Snekmer: `cluster`, `model`, `search`, `learn`, `apply`, and `motif`,
+plus a guided `easy` mode that runs the Learn/Apply pipeline from a single command.
+
+--------------------------------------------------------------------------------
+Installation
+--------------------------------------------------------------------------------
+
+Requirements:
+- Python 3.11+
+- A working C/C++ toolchain may be required for some dependencies depending on your platform.
+- Snekmer orchestrates workflows via Snakemake (installed as a Python dependency).
+
+1) Create and activate a virtual environment:
+```
+  python -m venv ~/snekmer_env
+  source ~/snekmer_env/bin/activate     # bash/zsh
+  # or:
+  source ~/snekmer_env/bin/activate.csh # csh
+```
+2) Clone and install:
+```
+  git clone https://github.com/PNNL-CompBio/Snekmer.git
+  cd Snekmer
+  pip install -r requirements.txt
+  pip install .
+```
+Verify installation:
+```
+  snekmer -h
+```
+
+--------------------------------------------------------------------------------
+Quick Start: Try Snekmer with `easy`
+--------------------------------------------------------------------------------
+
+`easy` is the fastest way to get started with Snekmer: it runs the complete
+Learn/Apply pipeline from a single command, with no directory setup or `config.yaml` required.
+
+Run it against the included demo data from the root of the Snekmer repository:
+```
+  snekmer easy \
+      --train  resources/demo_sequences/learn_apply_inputs/learn \
+      --query  resources/demo_sequences/learn_apply_inputs/apply/test_sequences_1.fasta \
+      --ann    resources/demo_sequences/learn_apply_inputs/annotations/TIGRFAMs_annotation.ann \
+      --output test_results
+```
+
+See the [easy tutorial](https://snekmer.readthedocs.io/en/latest/tutorial/snekmer_easy_learn_apply_tutorial.html)
+for a full walkthrough, including how to use `--create-ann` to generate an annotation file automatically.
+
+---
+**Clustering, Modeling, and Search Workflows** 
 
 **Cluster mode:** The user supplies files containing sequences in an appropriate format (e.g. FASTA).
 Snekmer applies the relevant workflow steps and outputs the resulting clustering results in tabular form (.CSV),
@@ -29,6 +80,9 @@ displays K-fold cross validation results in the form of figures (AUC ROC and PR 
 **Search mode:** The user supplies files containing sequences in an appropriate format (e.g. FASTA)
 and the models they wish to search their sequences against. Snekmer applies the relevant workflow steps
 and outputs a table for each file containing model annotation probabilities for the given sequences.
+   
+---
+**Learn/Apply Annotation Workflows**
 
 **Learn mode:** The user supplies files containing sequences in an appropriate format (e.g. FASTA)
 as well as an annotation file. Snekmer generates a kmer counts matrix with the summed kmer distribution
@@ -40,30 +94,157 @@ and the outputs received from Learn. Snekmer uses cosine distance to predict the
 sequence from the kmer counts matrix. The output is a table for each file containing sequence annotation
 predictions with confidence levels.
 
+---
+**In Development**
+
 **Motif mode:** The user supplies files containing sequences in an appropriate format (e.g. FASTA)
-and the outputs received from Model. Snekmer performs a feature selection workflow to produce a 
+and the outputs received from Model. Snekmer performs a feature selection workflow to produce a
 list of motifs ordered by degree of conservation and a classification model using the selected features (.model).
 
-## How to Use Snekmer
+--------------------------------------------------------------------------------
+Advanced: Config-Based Workflows (Cluster / Model / Search / Learn / Apply)
+--------------------------------------------------------------------------------
 
-For installation instructions, documentation, and more, refer to
-the [official documentation](https://snekmer.readthedocs.io).
+Beyond `easy`, Snekmer's other modes (`cluster`, `model`, `search`, `learn`, `apply`)
+are run via the `snekmer` CLI using a directory of input sequences and a YAML configuration file
+(`config.yaml`). See the [full documentation](https://snekmer.readthedocs.io) for complete setup
+instructions, as these brief examples are not sufficient to run all workflows in all environments.
 
-To run the demonstration example, see 
-[resources/tutorial/demo_example](https://github.com/PNNL-CompBio/Snekmer/tree/main/resources/tutorial/demo_example).
+Working directory and required inputs (concise)  
+
+Most runs use:
+```
+  input/            sequence files (FASTA/FAA/FNA/etc.)
+  config.yaml       workflow parameters (start from resources/config.yaml)
+```
+Learn/Apply also uses:
+```
+  annotations/{file}.ann
+```
+
+Required Inputs
+----------------------------------------
+
+**Cluster**  
+  ```
+    - input/
+    - config.yaml
+```
+  
+**Model**  
+```
+    - input/
+    - config.yaml
+```
+  
+**Search**  
+```
+    - input/
+    - config.yaml
+    - model_dir/*.model
+    - basis_dir/*.kmers
+    - score_dir/*.scorer
+```
+  
+**Learn**  
+```
+    - input/                         (training FASTAs)
+    - annotations/{file}.ann
+    - config.yaml
+```
+  
+**Apply**  
+```
+    - input/                         (query FASTAs)
+    - config.yaml
+    - counts/kmer_counts_total.csv                 # From Learn
+    - confidence/global_confidence_scores.csv      # From Learn
+    - stats/family_summary_stats.csv               # From Learn
+```
+
+Basic run commands
+------------------
+```
+  snekmer {mode} --cores 2 --configfile ./config.yaml
+```
+Help:
+```
+  snekmer -h
+  snekmer {mode} -h
+```
+
+Docs:
+  https://snekmer.readthedocs.io
+   
+--------------------------------------------------------------------------------
+Demos and Tutorials
+--------------------------------------------------------------------------------
+
+Snekmer includes minimal demos and Jupyter tutorials under the `resources/` directory.
+
+Two end-to-end demos (each has a single entrypoint script named `run_demo.py`):
+1) Model -> Cluster -> Search demo:
+   `resources/model_cluster_search_demo/run_demo.py`
+
+2) Learn -> Apply demo:
+   `resources/learn_apply_demo/run_demo.py`
+
+Run a demo (example):
+```
+  cd resources/model_cluster_search_demo
+  python run_demo.py
+```
+
+Tutorial notebooks:
+- `resources/tutorial/snekmer_demo.ipynb`
+- `resources/tutorial/snekmer_learn_apply_tutorial.ipynb`
+
+--------------------------------------------------------------------------------
+Citation Guidance
+--------------------------------------------------------------------------------
+
+1. McDermott, Jason E., Chang, Christine H., Jerger, Abby, Nelson, William B., & Jacobson, Jeremy R. (2023).
+   Snekmer: A scalable pipeline for protein sequence fingerprinting using amino acid recoding (AAR) (v1.0.3).
+   Zenodo. https://doi.org/10.5281/zenodo.7662597
+
+2. Christine H Chang, William C Nelson, Abby Jerger, Aaron T Wright, Robert G Egbert, Jason E McDermott,
+   Snekmer: a scalable pipeline for protein sequence fingerprinting based on amino acid recoding,
+   Bioinformatics Advances, Volume 3, Issue 1, 2023, vbad005. https://doi.org/10.1093/bioadv/vbad005
+
+--------------------------------------------------------------------------------
+Maintainers
+--------------------------------------------------------------------------------
+
+Snekmer was written and is maintained by the following PNNL development team:
+Christine Chang, Jeremy Jacobson, Abby Jerger, Tara Nitka, Bill Nelson, and Jason McDermott.
+
+--------------------------------------------------------------------------------
+License
+--------------------------------------------------------------------------------
+
+BSD 3-Clause License
+
+Copyright (c) 2021, Pacific Northwest National Laboratory All rights reserved.
+
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+
+Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+
+Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+
+Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-Snekmer was written and is maintained by the following PNNL development team: Christine Chang, Jeremy Jacobson, Abby Jerger, Tara Nitka, Bill Nelson, and Jason McDermott.
+--------------------------------------------------------------------------------
+Disclaimers
+--------------------------------------------------------------------------------
 
-## Citation Guidance
+```
+This material was prepared as an account of work sponsored by an agency of the United States Government. Neither the United States Government nor the United States Department of Energy, nor Battelle, nor any of their employees, nor any jurisdiction or organization that has cooperated in the development of these materials, makes any warranty, express or implied, or assumes any legal liability or responsibility for the accuracy, completeness, or usefulness or any information, apparatus, product, software, or process disclosed, or represents that its use would not infringe privately owned rights.
 
-1. McDermott, Jason E., Chang, Christine H., Jerger, Abby, Nelson, William B., & Jacobson, Jeremy R. (2023). Snekmer: A scalable pipeline for protein sequence fingerprinting using amino acid recoding (AAR) (v1.0.3). Zenodo. [https://doi.org/10.5281/zenodo.7662597](https://doi.org/10.5281/zenodo.7662597)
-2. Christine H Chang, William C Nelson, Abby Jerger, Aaron T Wright, Robert G Egbert, Jason E McDermott, Snekmer: a scalable pipeline for protein sequence fingerprinting based on amino acid recoding, Bioinformatics Advances, Volume 3, Issue 1, 2023, vbad005, [https://doi.org/10.1093/bioadv/vbad005](https://doi.org/10.1093/bioadv/vbad005).
+Reference herein to any specific commercial product, process, or service by trade name, trademark, manufacturer, or otherwise does not necessarily constitute or imply its endorsement, recommendation, or favoring by the United States Government or any agency thereof, or Battelle Memorial Institute. The views and opinions of authors expressed herein do not necessarily state or reflect those of the United States Government or any agency thereof.
 
-## License
-
-    This material was prepared as an account of work sponsored by an agency of the United States Government. Neither the United States Government nor the United States Department of Energy, nor Battelle, nor any of their employees, nor any jurisdiction or organization that has cooperated in the development of these materials, makes any warranty, express or implied, or assumes any legal liability or responsibility for the accuracy, completeness, or usefulness or any information, apparatus, product, software, or process disclosed, or represents that its use would not infringe privately owned rights.
-
-    Reference herein to any specific commercial product, process, or service by trade name, trademark, manufacturer, or otherwise does not necessarily constitute or imply its endorsement, recommendation, or favoring by the United States Government or any agency thereof, or Battelle Memorial Institute. The views and opinions of authors expressed herein do not necessarily state or reflect those of the United States Government or any agency thereof.
-
-    PACIFIC NORTHWEST NATIONAL LABORATORY operated by BATTELLE for the UNITED STATES DEPARTMENT OF ENERGY under Contract DE-AC05-76RL01830
+PACIFIC NORTHWEST NATIONAL LABORATORY operated by BATTELLE for the UNITED STATES DEPARTMENT OF ENERGY under Contract DE-AC05-76RL01830
+```

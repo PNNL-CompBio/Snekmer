@@ -1,0 +1,61 @@
+/* Collapsible <details> sections used on the CLI reference page */
+
+details.snekmer-collapsible {
+    border: 1px solid #e1e4e5;
+    border-radius: 4px;
+    margin: 1.2em 0;
+}
+
+details.snekmer-collapsible > summary {
+    cursor: pointer;
+    padding: 0.55em 0.8em;
+    background-color: #f3f6f6;
+    border-radius: 3px;
+    font-size: 1.05em;
+    font-weight: bold;
+    color: #404040;
+    user-select: none;
+    list-style: none;
+}
+
+details.snekmer-collapsible > summary::-webkit-details-marker {
+    display: none;
+}
+
+details.snekmer-collapsible > summary::before {
+    content: "▶  ";
+    font-size: 0.75em;
+    color: #2980b9;
+}
+
+details.snekmer-collapsible[open] > summary::before {
+    content: "▼  ";
+}
+
+details.snekmer-collapsible > summary:hover {
+    background-color: #e5ebeb;
+}
+
+details.snekmer-collapsible > .details-body {
+    padding: 0.5em 1em 0.5em 1em;
+    max-width: 100%;
+}
+
+details.snekmer-collapsible > .details-body pre {
+    overflow-x: auto;
+    white-space: pre;
+}
+
+/* Keep wide list-table content (e.g. long Description cells) from
+   overflowing the page instead of wrapping. */
+table.docutils {
+    width: 100%;
+    table-layout: fixed;
+}
+
+table.docutils td,
+table.docutils th {
+    white-space: normal;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+}
