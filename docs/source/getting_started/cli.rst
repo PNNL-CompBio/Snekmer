@@ -100,8 +100,7 @@ when using ``-d``/``--directory``). You can specify one or more explicit config
 files with ``--configfile``, or suppress the default auto-load with
 ``--no-default-configfile``.
 
-Running Without a Config File
-`````````````````````````````
+**Running Without a Config File**
 
 A config file is no longer strictly required. You can use
 ``--no-default-configfile`` and rely on built-in defaults, providing any
@@ -503,8 +502,3 @@ not Snekmer-specific:
 
    </div>
    </details>
-
-.. rst-class:: snekmer-section-close
-
-Page End
-========

@@ -59,10 +59,3 @@ table.docutils th {
     overflow-wrap: break-word;
     word-wrap: break-word;
 }
-
-/* Dummy heading inserted at the end of cli.rst purely to force docutils to
-   close out any sections left open by the auto-generated argparse content
-   before the page ends, which otherwise corrupts the theme's wrapper markup. */
-.snekmer-section-close {
-    display: none;
-}
