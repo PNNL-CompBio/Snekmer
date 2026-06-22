@@ -4,6 +4,7 @@ author: @christinehc
 
 """
 # imports
+import inspect
 from typing import Optional
 
 import numpy as np
@@ -20,6 +21,16 @@ from sklearn.metrics import (
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
+
+# scikit-learn >= 1.7 moved line-style kwargs (alpha, lw, ...) on
+# *Display.from_estimator() behind a dedicated curve_kwargs= dict; older
+# versions accept them directly. Detect once per class at import time.
+_ROC_USES_CURVE_KWARGS = "curve_kwargs" in inspect.signature(
+    RocCurveDisplay.from_estimator
+).parameters
+_PR_USES_CURVE_KWARGS = "curve_kwargs" in inspect.signature(
+    PrecisionRecallDisplay.from_estimator
+).parameters
 
 
 def cv_roc_curve(
@@ -68,14 +79,18 @@ def cv_roc_curve(
     # take each cv result
     for i in X.keys():
         clf.fit(X[i]["train"], y[i]["train"])
+        style_kwargs = (
+            {"curve_kwargs": {"alpha": 0.3, "lw": 1}}
+            if _ROC_USES_CURVE_KWARGS
+            else {"alpha": 0.3, "lw": 1}
+        )
         viz = RocCurveDisplay.from_estimator(
             clf.model,
             X[i]["test"],
             y[i]["test"],
             name=f"ROC fold {i}",
-            alpha=0.3,
-            lw=1,
             ax=ax,
+            **style_kwargs,
         )
         interp_tpr = np.interp(mean_fpr, viz.fpr, viz.tpr)
         interp_tpr[0] = 0.0
@@ -168,14 +183,18 @@ def cv_pr_curve(
         precision, recall, _ = precision_recall_curve(
             y[i]["test"], clf.predict(X[i]["test"])
         )
+        style_kwargs = (
+            {"curve_kwargs": {"alpha": 0.3, "lw": 1}}
+            if _PR_USES_CURVE_KWARGS
+            else {"alpha": 0.3, "lw": 1}
+        )
         viz = PrecisionRecallDisplay.from_estimator(
             clf.model,
             X[i]["test"],
             y[i]["test"],
             name=f"ROC fold {i}",
-            alpha=0.3,
-            lw=1,
             ax=ax,
+            **style_kwargs,
         )
 
         y_real.append(y[i]["test"])
