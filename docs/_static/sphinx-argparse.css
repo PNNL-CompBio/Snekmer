@@ -39,7 +39,6 @@ details.snekmer-collapsible > summary:hover {
 details.snekmer-collapsible > .details-body {
     padding: 0.5em 1em 0.5em 1em;
     max-width: 100%;
-    overflow-x: auto;
 }
 
 details.snekmer-collapsible > .details-body pre {
